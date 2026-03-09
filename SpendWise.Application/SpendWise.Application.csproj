@@ -14,7 +14,6 @@
   
   <ItemGroup>
     <ProjectReference Include="..\SpendWise.Domain\SpendWise.Domain.csproj" />
-    <ProjectReference Include="..\SpendWise.Infrastructure\SpendWise.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

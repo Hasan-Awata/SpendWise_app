@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>0d3dc77e-d53c-4472-a590-800a972d1267</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,10 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SpendWise.Application\SpendWise.Application.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Controllers\" />
+    <ProjectReference Include="..\SpendWise.Infrastructure\SpendWise.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
