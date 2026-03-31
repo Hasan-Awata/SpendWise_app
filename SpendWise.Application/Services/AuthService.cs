@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using SpendWise.Application.DTOs;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using SpendWise.Application.Interfaces;
 using SpendWise.Domain.Entities;
+using SpendWise.Application.Interfaces.DTOs;
 
 namespace SpendWise.Application.Services
 {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace SpendWise.Application.DTOs
+namespace SpendWise.Application.Interfaces.DTOs
 {
     public class ResponseAuthDto
     {

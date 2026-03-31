@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SpendWise.Application.DTOs
+namespace SpendWise.Application.Interfaces.DTOs
 {
     public class LoginDto
     {
