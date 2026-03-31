@@ -2,7 +2,7 @@ PROJECT ARCHITECTURE SNAPSHOT
 =============================
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise\appsettings.json
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise\appsettings.json
 ----------------------------------------
 {
   "Logging": {
@@ -24,7 +24,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise\appsettings.json
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise\Program.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise\Program.cs
 ----------------------------------------
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -115,7 +115,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.Run();
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise\SpendWise.csproj
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise\SpendWise.csproj
 ----------------------------------------
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
@@ -123,6 +123,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise\SpendWise.csproj
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>0d3dc77e-d53c-4472-a590-800a972d1267</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -147,7 +148,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise\SpendWise.csproj
 </Project>
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise\Controllers\AuthenticationController.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise\Controllers\AuthenticationController.cs
 ----------------------------------------
 ﻿using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.Interfaces;
@@ -196,7 +197,7 @@ namespace SpendWise.Controllers
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Application\SpendWise.Application.csproj
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\SpendWise.Application.csproj
 ----------------------------------------
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
@@ -219,7 +220,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Application\SpendWise.Appli
 </Project>
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Application\DTOs\LoginDto.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\LoginDto.cs
 ----------------------------------------
 ﻿using System.ComponentModel.DataAnnotations;
 
@@ -227,16 +228,16 @@ namespace SpendWise.Application.DTOs
 {
     public class LoginDto
     {
-        [Required(ErrorMessage = "Username is requierd for registeration.")]
+        [Required(ErrorMessage = "Username is required for logging in.")]
         public string UserName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Password is requierd for registeration.")]
+        [Required(ErrorMessage = "Password is requierd for logging in.")]
         public string Password { get; set; } = string.Empty;
     }
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Application\DTOs\RegisterDto.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\RegisterDto.cs
 ----------------------------------------
 ﻿using System.ComponentModel.DataAnnotations;
 
@@ -244,7 +245,7 @@ namespace SpendWise.Application.DTOs
 {
     public class RegisterDto
     {
-        [Required(ErrorMessage = "Username is requierd for registeration.")]
+        [Required(ErrorMessage = "Username is required for registeration.")]
         [StringLength(maximumLength:25, ErrorMessage = "Username mustn't be more than 25 characters")]
         [MinLength(3, ErrorMessage = "Username must be at least 3 characters.")]
         public string UserName { get; set; } = string.Empty;
@@ -256,7 +257,7 @@ namespace SpendWise.Application.DTOs
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Application\DTOs\ResponseAuthDto.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\ResponseAuthDto.cs
 ----------------------------------------
 ﻿using System;
 using System.Collections.Generic;
@@ -273,7 +274,7 @@ namespace SpendWise.Application.DTOs
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Application\Interfaces\IAuthService.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\IAuthService.cs
 ----------------------------------------
 ﻿using System;
 using System.Collections.Generic;
@@ -290,7 +291,7 @@ namespace SpendWise.Application.Interfaces
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Application\Interfaces\IUserRepository.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\IUserRepository.cs
 ----------------------------------------
 ﻿using SpendWise.Domain.Entities;
 using System;
@@ -310,7 +311,7 @@ namespace SpendWise.Application.Interfaces
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Application\Services\AuthService.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Services\AuthService.cs
 ----------------------------------------
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -380,7 +381,7 @@ namespace SpendWise.Application.Services
         public async Task<ResponseAuthDto> RegisterAsync(RegisterDto registerDto)
         {
             if (await _userRepo.UsernameExistsAsync(registerDto.UserName))
-                throw new InvalidOperationException("This email address is already existed.");
+                throw new InvalidOperationException("This username is already taken.");
 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
 
@@ -411,7 +412,7 @@ namespace SpendWise.Application.Services
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Domain\SpendWise.Domain.csproj
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\SpendWise.Domain.csproj
 ----------------------------------------
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
@@ -424,7 +425,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Domain\SpendWise.Domain.csp
 </Project>
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Domain\Entities\User.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\Entities\User.cs
 ----------------------------------------
 ﻿namespace SpendWise.Domain.Entities
 {
@@ -437,7 +438,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Domain\Entities\User.cs
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Infrastructure\SpendWise.Infrastructure.csproj
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\SpendWise.Infrastructure.csproj
 ----------------------------------------
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
@@ -459,7 +460,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Infrastructure\SpendWise.In
 </Project>
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Infrastructure\Data\ApplicationDbContext.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Data\ApplicationDbContext.cs
 ----------------------------------------
 ﻿using Microsoft.EntityFrameworkCore;
 using SpendWise.Domain.Entities;
@@ -484,7 +485,7 @@ namespace SpendWise.Infrastructure.Data
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise\SpendWise.Infrastructure\Repositories\UserRepository.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Repositories\UserRepository.cs
 ----------------------------------------
 ﻿using SpendWise.Application.Interfaces;
 using SpendWise.Infrastructure.Data;
