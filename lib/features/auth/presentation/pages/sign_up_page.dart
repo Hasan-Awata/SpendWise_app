@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/presentation/auth/auth_controller.dart';
-import 'package:spendwise/presentation/auth/logein.dart';
+import 'package:spendwise/features/auth/presentation/auth_controller.dart';
+import 'package:spendwise/features/auth/presentation/pages/login_page.dart';
 import 'package:spendwise/presentation/widgets/supwidgets/custom_button.dart';
 import 'package:spendwise/presentation/widgets/supwidgets/custom_text_field.dart';
 import 'package:spendwise/utils/colors.dart';
 
-class SignUp extends StatelessWidget {
-  SignUp({super.key});
+class SignUpPage extends StatelessWidget {
+  SignUpPage({super.key});
   TextEditingController controller1 = TextEditingController();
   TextEditingController controller2 = TextEditingController();
   TextEditingController controller3 = TextEditingController();
@@ -21,7 +21,7 @@ class SignUp extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: SpColor.primaryDark,
         title: Text(
-          "SignUp",
+          "SignUpPage",
           style: TextStyle(
             color: SpColor.accentBlue,
             fontWeight: FontWeight.bold,

@@ -1,23 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/presentation/auth/sign_up.dart' show SignUp;
+import 'package:spendwise/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:spendwise/presentation/widgets/supwidgets/custom_button.dart';
 import 'package:spendwise/utils/colors.dart';
 
-class Introduction extends StatefulWidget {
-  const Introduction({super.key});
-
-  @override
-  State<Introduction> createState() => _IntroductionState();
-}
-
-class _IntroductionState extends State<Introduction> {
-  @override
-  void didChangeDependencies() {
-    precacheImage(AssetImage('assets/images/logo3.png'), context);
-    super.didChangeDependencies();
-  }
-
+class Introduction extends StatelessWidget {
+  Introduction({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,7 +19,7 @@ class _IntroductionState extends State<Introduction> {
             child: CustomButton(
               onPressed: () {
                 Get.to(
-                  () => SignUp(),
+                  () => SignUpPage(),
                   // تأثير الـ fade مع الـ zoom هو الأكثر حداثة ويمنع الوميض تماماً
                   transition: Transition.downToUp,
 
