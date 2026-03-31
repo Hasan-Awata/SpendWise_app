@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using SpendWise.Application.DTOs;
+using SpendWise.Application.Interfaces.DTOs;
 
 namespace SpendWise.Application.Interfaces
 {
