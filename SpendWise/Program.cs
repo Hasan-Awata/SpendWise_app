@@ -36,8 +36,12 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 
-// ── Dependency Injection ──────────────────────────────────────────────────
+// ── Dependency Injections ──────────────────────────────────────────────────
+//builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<ITagRepository, TagRepository>();
+builder.Services.AddScoped<ITagService, TagService>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

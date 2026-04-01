@@ -6,10 +6,14 @@ using System.Text;
 
 namespace SpendWise.Application.Interfaces
 {
-    internal interface ITagService
+    public interface ITagService
     {
-        public Task AddTag(TagDTO tag);
-        public Task UpdateTag(TagDTO tag);
-        public Task DeleteTag(int tagId);
+        public Task<Tag?> GetTagAsync(int id);
+        public Task<IEnumerable<Tag?>> GetTagsByUserIdAsync(int UserId);
+        public Task<IEnumerable<Tag?>> GetTagsByCategoryIdAsync(int UserId, int CategoryId);
+
+        public Task AddTagAsync(TagDTO tag);
+        public Task UpdateTagAsync(TagDTO tag);
+        public Task DeleteTagAsync(int tagId);
     }
 }
