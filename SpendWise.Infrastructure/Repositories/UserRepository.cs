@@ -1,5 +1,4 @@
 ﻿using SpendWise.Application.Interfaces;
-using SpendWise.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 using SpendWise.Domain.Entities;
@@ -8,7 +7,7 @@ namespace SpendWise.Infrastructure.Repositories
 {
     public class UserRepository : IUserRepository
     {
-        public readonly ApplicationDbContext _context;
+        public readonly ApplicationDbContext _context; // Inject the database connection here 
         public UserRepository(ApplicationDbContext context)
         {
             _context = context;

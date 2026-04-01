@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.Json.Serialization;
 using SpendWise.Application.Interfaces;
 using SpendWise.Application.Services;
-using SpendWise.Infrastructure.Data;
 using SpendWise.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
