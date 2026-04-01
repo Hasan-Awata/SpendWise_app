@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using SpendWise.Application.Interfaces;
+using SpendWise.Application.Interfaces.Tags;
 using SpendWise.Domain.Entities;
 using SpendWise.Infrastructure.Global;
 using System;
@@ -23,6 +23,7 @@ namespace SpendWise.Infrastructure.Repositories
                 {
                     command.CommandType = CommandType.StoredProcedure;
 
+                    command.Parameters.AddWithValue("@NewID", NewTag.Id);
                     command.Parameters.AddWithValue("@UserID", NewTag.OwnerId);
                     command.Parameters.AddWithValue("@CategoryID", NewTag.CategoryId);
                     command.Parameters.AddWithValue("@Name", NewTag.Label);

@@ -6,6 +6,7 @@ using System.Text;
 using SpendWise.Application.Interfaces;
 using SpendWise.Domain.Entities;
 using SpendWise.Application.Interfaces.DTOs;
+using SpendWise.Application.Interfaces.Users;
 
 namespace SpendWise.Application.Services
 {
@@ -65,16 +66,12 @@ namespace SpendWise.Application.Services
 
         public async Task<ResponseAuthDto> RegisterAsync(RegisterDto registerDto)
         {
-            if (await _userRepo.UsernameExistsAsync(registerDto.UserName))
+            if (await _userRepo.IsUsernameExistAsync(registerDto.UserName))
                 throw new InvalidOperationException("This username is already taken.");
 
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
+            var Hashedpassword = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
 
-            var user = new User
-            {
-                UserName = registerDto.UserName,
-                PasswordHash = passwordHash,
-            };
+            var user = new User(registerDto.UserName, Hashedpassword);
 
             await _userRepo.AddUserAsync(user);
 
@@ -87,7 +84,7 @@ namespace SpendWise.Application.Services
 
             if (user == null) return null;
 
-            var passwordIsValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash);
+            var passwordIsValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.HashedPassword);
 
             if (!passwordIsValid) return null;
 
