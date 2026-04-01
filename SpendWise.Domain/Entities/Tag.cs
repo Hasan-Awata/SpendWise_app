@@ -5,7 +5,7 @@ using System.Text;
 
 namespace SpendWise.Domain.Entities
 {
-    public class Tags
+    public class Tag
     {
         public int Id { get; set; } = -1;
         public int CategoryId { get; set; } = -1;

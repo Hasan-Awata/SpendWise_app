@@ -18,7 +18,7 @@ namespace SpendWise.Application.Services
 
         public async Task CreateTag(TagDTO tagDto)
         {
-            var newTag = new Tags
+            var newTag = new Tag
             {
                 Id = tagDto.Id,
                 Label = tagDto.Label,
@@ -30,7 +30,7 @@ namespace SpendWise.Application.Services
         }
         public async Task UpdateTag(TagDTO tagDto)
         {
-            var updatedTag = new Tags
+            var updatedTag = new Tag
             {
                 Id = tagDto.Id,
                 Label = tagDto.Label,
