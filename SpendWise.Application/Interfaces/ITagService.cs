@@ -8,7 +8,7 @@ namespace SpendWise.Application.Interfaces
 {
     internal interface ITagService
     {
-        public Task CreateTag(TagDTO tag);
+        public Task AddTag(TagDTO tag);
         public Task UpdateTag(TagDTO tag);
         public Task DeleteTag(int tagId);
     }

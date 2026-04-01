@@ -37,7 +37,6 @@ builder.Services.AddSwaggerGen(options =>
 
 
 // ── Dependency Injection ──────────────────────────────────────────────────
-builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────

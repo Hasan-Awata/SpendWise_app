@@ -16,27 +16,15 @@ namespace SpendWise.Application.Services
             _tagRepo = tagRepository;
         }
 
-        public async Task CreateTag(TagDTO tagDto)
+        public async Task AddTag(TagDTO tagDto)
         {
-            var newTag = new Tags
-            {
-                Id = tagDto.Id,
-                Label = tagDto.Label,
-                OwnerId = tagDto.OwnerId,
-                CategoryId = tagDto.CategoryId,
-            };
+            var newTag = new Tag(tagDto.Id, tagDto.CategoryId, tagDto.OwnerId, tagDto.Label);
 
-            await _tagRepo.CreateTagAsync(newTag);
+            await _tagRepo.AddTagAsync(newTag);
         }
         public async Task UpdateTag(TagDTO tagDto)
         {
-            var updatedTag = new Tags
-            {
-                Id = tagDto.Id,
-                Label = tagDto.Label,
-                OwnerId = tagDto.OwnerId,
-                CategoryId = tagDto.CategoryId,
-            };
+            var updatedTag = new Tag(tagDto.Id, tagDto.CategoryId, tagDto.OwnerId, tagDto.Label);
 
             await _tagRepo.UpdateTagAsync(updatedTag);
         }
