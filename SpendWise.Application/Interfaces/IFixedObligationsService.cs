@@ -17,5 +17,8 @@ namespace SpendWise.Application.Interfaces
         public Task UpdateFixedObligationAsync(FixedObligationDTO fixedObligationDTO);
         public Task DeleteFixedObligationAsync(int obligationId);
 
+        // Logic methods
+        //public Task<bool> ValidateAmount(decimal amount);
+
     }
 }

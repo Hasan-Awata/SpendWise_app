@@ -59,5 +59,11 @@ namespace SpendWise.Application.Services
         {
             await _fixedObligationRepo.DeleteFixedObligationAsync(fixedObligationId);
         }
+
+        //private async Task<bool> ValidateAmount(FixedObligationDTO fixedObligationDto)
+        //{
+        //    /// This method validates the amount of the fixed obligation before saving it to Database
+        //    if (fixedObligationDto.Amount)
+        //}
     }
 }
