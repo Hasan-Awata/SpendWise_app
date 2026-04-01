@@ -27,30 +27,28 @@ namespace SpendWise.Application.Services
 
         public async Task CreateFixedObligationAsync(FixedObligationDTO fixedObligationDto)
         {
-            var newObligation = new FixedObligation 
-            {
-                Id = fixedObligationDto.Id,
-                OwnerId = fixedObligationDto.OwnerId,
-                Title = fixedObligationDto.Title,
-                Amount = fixedObligationDto.Amount,
-                DueDate = fixedObligationDto.DueDate,
-                IsActive = fixedObligationDto.IsActive,
-            };
+            var newObligation = new FixedObligation(
+                fixedObligationDto.Id,
+                fixedObligationDto.OwnerId,
+                fixedObligationDto.Title,
+                fixedObligationDto.Amount,
+                fixedObligationDto.DueDate,
+                fixedObligationDto.IsActive
+            );
 
             await _fixedObligationRepo.CreateFixedObligationAsync(newObligation);
         }
 
         public async Task UpdateFixedObligationAsync(FixedObligationDTO fixedObligationDto)
         {
-            var updatedObligation = new FixedObligation
-            {
-                Id = fixedObligationDto.Id,
-                OwnerId = fixedObligationDto.OwnerId,
-                Title = fixedObligationDto.Title,
-                Amount = fixedObligationDto.Amount,
-                DueDate = fixedObligationDto.DueDate,
-                IsActive = fixedObligationDto.IsActive,
-            };
+            var updatedObligation = new FixedObligation(
+                fixedObligationDto.Id,
+                fixedObligationDto.OwnerId,
+                fixedObligationDto.Title,
+                fixedObligationDto.Amount,
+                fixedObligationDto.DueDate,
+                fixedObligationDto.IsActive
+            );
 
             await _fixedObligationRepo.UpdateFixedObligationAsync(updatedObligation);
         }

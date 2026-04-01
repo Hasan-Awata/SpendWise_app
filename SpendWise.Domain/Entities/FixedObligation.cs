@@ -12,5 +12,15 @@ namespace SpendWise.Domain.Entities
         public decimal Amount { get; set; }
         public DateTime DueDate { get; set; }
         public bool IsActive { get; set; }
+
+        public FixedObligation(int id, int ownerId, string title, decimal amount, DateTime dueDate, bool isActive) 
+        {
+            Id = id;
+            OwnerId = ownerId;
+            Title = title;
+            Amount = amount;
+            DueDate = dueDate;
+            IsActive = isActive;
+        }
     }
 }

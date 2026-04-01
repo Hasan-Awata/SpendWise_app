@@ -13,8 +13,8 @@ namespace SpendWise.Application.Interfaces
         public Task<IEnumerable<FixedObligation?>> GetFixedObligationsByUserIdAsync(int userId);
 
         // Writing to DB methods
-        public Task CreateFixedObligationAsync(FixedObligation fixedObligationDTO);
-        public Task UpdateFixedObligationAsync(FixedObligation fixedObligationDTO);
-        public Task DeleteFixedObligationAsync(int obligationId);
+        public Task<bool> CreateFixedObligationAsync(FixedObligation fixedObligationDTO);
+        public Task<bool> UpdateFixedObligationAsync(FixedObligation fixedObligationDTO);
+        public Task<bool> DeleteFixedObligationAsync(int obligationId);
     }
 }
