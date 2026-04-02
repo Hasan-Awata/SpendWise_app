@@ -16,6 +16,6 @@ namespace SpendWise.Application.Interfaces.Tags
         // Writing to DB methods
         public Task<bool> AddTagAsync(Tag tag);
         public Task<bool> UpdateTagAsync(Tag tag);
-        public Task<bool> DeleteTagAsync(int userId, int tagId);
+        public Task<bool> DeleteTagAsync(int tagId, int UserID);
     }
 }

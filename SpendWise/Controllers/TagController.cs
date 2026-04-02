@@ -94,6 +94,8 @@ namespace SpendWise.Controllers
         {
             int userId = CurrentUserId;
 
+            if (tagDto.OwnerId != userId) return Unauthorized("You do not have permission to update this tag.");
+
             // 1. Guard against mismatched IDs (Optional but highly recommended)
             if (tagDto.Id != 0 && tagDto.Id != tagId)
             {
@@ -114,7 +116,7 @@ namespace SpendWise.Controllers
         {
             int userId = CurrentUserId;
 
-            await _tagService.DeleteTagAsync(userId, tagId);
+            await _tagService.DeleteTagAsync(tagId, userId);
 
             return NoContent();
         }
