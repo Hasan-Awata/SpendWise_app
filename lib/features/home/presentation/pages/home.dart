@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:spendwise/presentation/widgets/new/appbar.dart';
-import 'package:spendwise/presentation/widgets/new/balance_card.dart';
-import 'package:spendwise/presentation/widgets/new/bottom_nav_bar.dart';
-import 'package:spendwise/presentation/widgets/new/quick_actions_row.dart';
-import 'package:spendwise/presentation/widgets/new/recent_transactions_list.dart';
-import 'package:spendwise/presentation/widgets/new/saving_goals_section.dart';
-import 'package:spendwise/presentation/widgets/new/title_with_show.dart';
-import 'package:spendwise/utils/colors.dart';
+import 'package:spendwise/features/widget_feature/helper_widget/balance_card.dart';
+import 'package:spendwise/features/widget_feature/helper_widget/quick_actions_row.dart';
+import 'package:spendwise/features/widget_feature/helper_widget/recent_transactions_list.dart';
+import 'package:spendwise/features/widget_feature/helper_widget/saving_goals_section.dart';
+import 'package:spendwise/features/widget_feature/helper_widget/title_with_show.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key});

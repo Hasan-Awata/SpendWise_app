@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import 'package:spendwise/utils/colors.dart';
+import 'package:spendwise/core/utils/colors.dart';
 
 class SpConstants {
   static TextStyle numStyle(bool isExpense) => TextStyle(

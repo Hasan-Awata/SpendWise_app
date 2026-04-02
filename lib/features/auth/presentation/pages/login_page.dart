@@ -1,27 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/presentation/auth/auth_controller.dart';
-import 'package:spendwise/presentation/auth/sign_up.dart';
-import 'package:spendwise/presentation/main_screen/main_screen.dart';
-import 'package:spendwise/presentation/widgets/supwidgets/custom_button.dart';
-import 'package:spendwise/presentation/widgets/supwidgets/custom_text_field.dart';
-import 'package:spendwise/utils/colors.dart';
+import 'package:spendwise/core/utils/colors.dart';
+import 'package:spendwise/features/auth/presentation/manager/auth_controller.dart';
+import 'package:spendwise/features/auth/presentation/pages/sign_up_page.dart';
+import 'package:spendwise/features/home/presentation/pages/main_screen.dart';
+import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 
-class LogeIn extends StatelessWidget {
+import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
+
+class LogeIn extends StatefulWidget {
+  const LogeIn({super.key});
+
+  @override
+  State<LogeIn> createState() => _LogeInState();
+}
+
+class _LogeInState extends State<LogeIn> {
   AuthController controller = AuthController.instance;
-  LogeIn({super.key});
-  TextEditingController controller1 = TextEditingController();
+
+  TextEditingController textEditingController = TextEditingController();
+
   TextEditingController controller2 = TextEditingController();
+
   TextEditingController controller3 = TextEditingController();
+
   TextEditingController controller4 = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: SpColor.primaryDark,
       appBar: AppBar(
         backgroundColor: SpColor.primaryDark,
-        title: Text(
+        title: const Text(
           "LogeIn",
           style: TextStyle(
             color: SpColor.accentBlue,
@@ -30,7 +42,7 @@ class LogeIn extends StatelessWidget {
         ),
       ),
       body: Padding(
-        padding: EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(8.0),
         child: SingleChildScrollView(
           child: Column(
             children: [
@@ -44,8 +56,8 @@ class LogeIn extends StatelessWidget {
               CustomTextField(
                 label: "Email",
                 hint: "Email",
-                prefixIcon: Icon(Icons.email),
-                controller1: controller3,
+                prefixIcon: const Icon(Icons.email),
+                textEditingController: controller3,
               ),
               const SizedBox(height: 25),
               Obx(
@@ -65,14 +77,14 @@ class LogeIn extends StatelessWidget {
                       color: SpColor.accentBlue,
                     ),
                   ),
-                  controller1: controller4,
+                  textEditingController: controller4,
                 ),
               ),
               const SizedBox(height: 30),
               CustomButton(
                 text: "Send",
                 onPressed: () {
-                  Get.to(MainScreen());
+                  Get.to(() => const MainScreen());
                 },
                 color: SpColor.accentBlue,
               ),
@@ -91,7 +103,7 @@ class LogeIn extends StatelessWidget {
                     ),
                     GestureDetector(
                       onTap: () {
-                        Get.to(SignUp());
+                        Get.to(() => SignUpPage());
                       },
                       child: Text(
                         " Sign up",
