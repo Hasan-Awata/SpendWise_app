@@ -16,9 +16,9 @@ namespace SpendWise.Application.Services
             _fixedObligationRepo = fixedObligationRepo;
         }
 
-        public async Task<FixedObligation> GetFixedObligationAsync(int fixedObligationId)
+        public async Task<FixedObligation> GetFixedObligationAsync(int fixedObligationId, int UserID)
         {
-            return await _fixedObligationRepo.GetFixedObligationAsync(fixedObligationId);
+            return await _fixedObligationRepo.GetFixedObligationAsync(fixedObligationId, UserID);
         }
         public async Task<IEnumerable<FixedObligation?>> GetFixedObligationsByUserIdAsync(int userId)
         {
@@ -53,9 +53,9 @@ namespace SpendWise.Application.Services
             await _fixedObligationRepo.UpdateFixedObligationAsync(updatedObligation);
         }
 
-        public async Task DeleteFixedObligationAsync(int fixedObligationId)
+        public async Task DeleteFixedObligationAsync(int fixedObligationId, int UserID)
         {
-            await _fixedObligationRepo.DeleteFixedObligationAsync(fixedObligationId);
+            await _fixedObligationRepo.DeleteFixedObligationAsync(fixedObligationId, UserID);
         }
 
         //private async Task<bool> ValidateAmount(FixedObligationDTO fixedObligationDto)
