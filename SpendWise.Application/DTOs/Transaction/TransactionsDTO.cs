@@ -3,24 +3,16 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
-using System.Transactions;
+using SpendWise.Domain.Enums;
 
 namespace SpendWise.Application.DTOs.Transaction
 {
     public class TransactionsDTO
     {
-
-        [Required(ErrorMessage = "Transaction ID is required!")]
-        public int TransactionId { get; set; }
+        // Required attributes
 
         [Required(ErrorMessage = "User ID is required to associate the transaction!")]
         public int UserId { get; set; }
-
-        // هذه الحقول اختيارية (Nullable) في قاعدة البيانات، لذا لا نضع لها [Required]
-        public int? DebtId { get; set; }
-        public int? TagId { get; set; }
-        public int? GoalId { get; set; }
-        public int? ObligationId { get; set; }
 
         [Required(ErrorMessage = "Please enter the transaction amount!")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
@@ -29,8 +21,16 @@ namespace SpendWise.Application.DTOs.Transaction
         [Required(ErrorMessage = "Please select a transaction date!")]
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
+        [Required(ErrorMessage = "Please provide the transaction type")]
+        public enTransactionType TransactionType { get; set; }
+
+        [Required(ErrorMessage = "Please provide the transaction mode (Add, Edit, Delete)")]
+        public enTransactionMode TransactionMode { get; set; }
+
+        // Not required
         [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters!")]
         public string Description { get; set; } = string.Empty;
-        public enTransactionType TransactionType { get; set; }
+
+        // Record ID and Title are fetched in service layer (Business) during the creation of the transaction
     }
 }

@@ -7,10 +7,10 @@ namespace SpendWise.Application.DTOs
 {
     public class UserDTO
     {
-        [Required(ErrorMessage = "Provide the tag id!")]
+        [Required(ErrorMessage = "Provide the user id!")]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Please enter a valid tag name!")]
+        [Required(ErrorMessage = "Please enter a valid username name!")]
         public string Username { get; set; } = string.Empty;
     }
 }

@@ -92,17 +92,16 @@ namespace SpendWise.Controllers
         [HttpPatch("{tagId}")]
         public async Task<IActionResult> UpdateTag([FromRoute] int tagId, [FromBody] TagDTO tagDto)
         {
-            int userId = CurrentUserId;
+            if (tagDto.OwnerId != CurrentUserId)
+                return Unauthorized();
 
             // 1. Guard against mismatched IDs (Optional but highly recommended)
             if (tagDto.Id != 0 && tagDto.Id != tagId)
-            {
                 return BadRequest("The tag ID in the body does not match the URL.");
-            }
 
             // 2. Force the DTO to match the URL parameters
             tagDto.Id = tagId;
-            tagDto.OwnerId = userId;
+            tagDto.OwnerId = CurrentUserId;
 
             await _tagService.UpdateTagAsync(tagDto);
 
@@ -112,9 +111,7 @@ namespace SpendWise.Controllers
         [HttpDelete("{tagId}")]
         public async Task<IActionResult> DeleteTag([FromRoute] int tagId)
         {
-            int userId = CurrentUserId;
-
-            await _tagService.DeleteTagAsync(userId, tagId);
+            await _tagService.DeleteTagAsync(CurrentUserId, tagId);
 
             return NoContent();
         }
