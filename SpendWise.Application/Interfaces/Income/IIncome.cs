@@ -3,28 +3,30 @@ using SpendWise.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
-
-namespace SpendWise.Application.Interfaces.Incom
+namespace SpendWise.Domain.Entities
 {
-    public  interface IIncome
+    namespace SpendWise.Application.Interfaces.Incom
     {
+        public interface IIncome
+        {
 
-        public Task<Income?> GetIncomeAsync(int userId, int incomeId);
+            public Task<Income?> GetIncomeAsync(int userId, int incomeId);
 
-        // 2. عرض جميع مصادر الدخل الخاصة بمستخدم معين (عرض حسب الشخص)
-        public Task<IEnumerable<Income?>> GetIncomesByUserIdAsync(int userId);
+            // 2. عرض جميع مصادر الدخل الخاصة بمستخدم معين (عرض حسب الشخص)
+            public Task<IEnumerable<Income?>> GetIncomesByUserIdAsync(int userId);
 
-        // 3. عرض مصادر الدخل حسب النوع (مثلاً: ثابت، متغير) لمستخدم معين
-        public Task<IEnumerable<IncomeDTO?>> GetIncomesByTypeAsync(int userId, enIncomeType incomeType);
+            // 3. عرض مصادر الدخل حسب النوع (مثلاً: ثابت، متغير) لمستخدم معين
+            public Task<IEnumerable<IncomeDTO?>> GetIncomesByTypeAsync(int userId, enIncomeType incomeType);
 
-        // 4. إضافة مصدر دخل جديد
-        public Task AddIncomeAsync(IncomeDTO income);
+            // 4. إضافة مصدر دخل جديد
+            public Task<bool> AddIncomeAsync(IncomeDTO income);
 
-        // 5. تعديل بيانات مصدر دخل موجود
-        public Task UpdateIncomeAsync(IncomeDTO income);
+            // 5. تعديل بيانات مصدر دخل موجود
+            public Task<bool> UpdateIncomeAsync(IncomeDTO income);
 
-        // 6. حذف مصدر دخل
-        public Task DeleteIncomeAsync(int incomeId, int userId);
+            // 6. حذف مصدر دخل
+            public Task<bool> DeleteIncomeAsync(int incomeId, int userId);
 
+        }
     }
 }
