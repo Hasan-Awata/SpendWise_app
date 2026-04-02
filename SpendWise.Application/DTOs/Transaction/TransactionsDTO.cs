@@ -5,9 +5,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Transactions;
 
-namespace SpendWise.Application.DTOs
+namespace SpendWise.Application.DTOs.Transaction
 {
-    public enum enTransactionType { MoneyEntry = 1 }
     public class TransactionsDTO
     {
 

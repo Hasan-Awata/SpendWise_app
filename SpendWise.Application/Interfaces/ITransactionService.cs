@@ -1,4 +1,4 @@
-﻿using SpendWise.Application.DTOs;
+﻿using SpendWise.Application.DTOs.Transaction;
 using System;
 using System.Collections.Generic;
 using System.Text;
