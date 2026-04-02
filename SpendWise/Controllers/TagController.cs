@@ -95,6 +95,8 @@ namespace SpendWise.Controllers
             if (tagDto.OwnerId != CurrentUserId)
                 return Unauthorized();
 
+            if (tagDto.OwnerId != userId) return Unauthorized("You do not have permission to update this tag.");
+
             // 1. Guard against mismatched IDs (Optional but highly recommended)
             if (tagDto.Id != 0 && tagDto.Id != tagId)
                 return BadRequest("The tag ID in the body does not match the URL.");
@@ -111,7 +113,9 @@ namespace SpendWise.Controllers
         [HttpDelete("{tagId}")]
         public async Task<IActionResult> DeleteTag([FromRoute] int tagId)
         {
-            await _tagService.DeleteTagAsync(CurrentUserId, tagId);
+            int userId = CurrentUserId;
+
+            await _tagService.DeleteTagAsync(tagId, userId);
 
             return NoContent();
         }

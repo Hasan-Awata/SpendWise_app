@@ -71,7 +71,7 @@ namespace SpendWise.Application.Services
 
             var Hashedpassword = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
 
-            var user = new User(registerDto.UserName, Hashedpassword);
+            var user = new User(registerDto.UserName, Hashedpassword, registerDto.FirstName, registerDto.LastName);
 
             await _userRepo.AddUserAsync(user);
 

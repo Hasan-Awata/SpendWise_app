@@ -1,0 +1,1 @@
+Alter table cfg.Tags add constraint UQ_USER_NAME unique(UserID,Name);

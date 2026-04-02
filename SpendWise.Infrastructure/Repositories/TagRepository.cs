@@ -59,6 +59,7 @@ namespace SpendWise.Infrastructure.Repositories
                     command.Parameters.AddWithValue("@CategoryID", UpdatedTag.CategoryId);
                     command.Parameters.AddWithValue("@Name", UpdatedTag.Label);
                     command.Parameters.AddWithValue("@TagID", UpdatedTag.Id);
+                    command.Parameters.AddWithValue("@UserID", UpdatedTag.OwnerId);
 
                     try
                     {
@@ -74,7 +75,7 @@ namespace SpendWise.Infrastructure.Repositories
             return (rowsAffected > 0);
         }
 
-        public async Task<bool> DeleteTagAsync(int TagID)
+        public async Task<bool> DeleteTagAsync(int TagID, int UserID)
         {
             int rowsAffected = 0;
             using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
@@ -83,6 +84,7 @@ namespace SpendWise.Infrastructure.Repositories
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@TagID", TagID);
+                    command.Parameters.AddWithValue("@UserID", UserID);
 
                     try
                     {
@@ -98,7 +100,7 @@ namespace SpendWise.Infrastructure.Repositories
             return (rowsAffected > 0);
         }
 
-        public async Task<Tag> GetTagAsync(int TagID)
+        public async Task<Tag> GetTagAsync(int UserID, int TagID)
         {
             Tag tag = null;
 
@@ -108,6 +110,7 @@ namespace SpendWise.Infrastructure.Repositories
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@TagID", TagID);
+                    command.Parameters.AddWithValue("@UserID", UserID);
 
                     try
                     {

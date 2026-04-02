@@ -14,6 +14,6 @@ namespace SpendWise.Application.Interfaces.Tags
 
         public Task AddTagAsync(TagDTO tag);
         public Task UpdateTagAsync(TagDTO tag);
-        public Task DeleteTagAsync(int userId, int tagId);
+        public Task DeleteTagAsync(int tagId, int UserID);
     }
 }

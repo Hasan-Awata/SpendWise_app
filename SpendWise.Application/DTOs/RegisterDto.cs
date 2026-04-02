@@ -12,5 +12,11 @@ namespace SpendWise.Application.Interfaces.DTOs
         [Required(ErrorMessage = "Password is requierd for registeration.")]
         [MinLength(6, ErrorMessage = "Password must be at least 6 characters.")]
         public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "First name is required for registeration.")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Last name is required for registeration.")]
+        public string LastName { get; set; } = string.Empty;
     }
 }
