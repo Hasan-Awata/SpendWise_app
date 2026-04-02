@@ -4,7 +4,9 @@ using System.Text;
 
 namespace SpendWise.Domain.Entities
 {
-    internal class Wallet
+    public class Wallet
     {
+
+
     }
 }

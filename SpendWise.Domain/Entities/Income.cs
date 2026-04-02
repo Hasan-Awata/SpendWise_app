@@ -5,7 +5,7 @@ using System.Text;
 
 namespace SpendWise.Domain.Entities
 {
-    public class Incom
+    public class Income
     {
         public int Id { get; set; }
         public string Title { get; set; } = string.Empty;
