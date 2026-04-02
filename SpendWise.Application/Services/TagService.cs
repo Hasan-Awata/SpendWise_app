@@ -16,9 +16,9 @@ namespace SpendWise.Application.Services
             _tagRepo = tagRepository;
         }
 
-        public async Task<Tag?> GetTagAsync(int tagId)
+        public async Task<Tag?> GetTagAsync(int userId, int tagId)
         {
-            var tag = await _tagRepo.GetTagAsync(tagId);
+            var tag = await _tagRepo.GetTagAsync(userId, tagId);
 
             return tag;
         }
@@ -49,9 +49,9 @@ namespace SpendWise.Application.Services
 
             await _tagRepo.UpdateTagAsync(updatedTag);
         }
-        public async Task DeleteTagAsync(int tagId)
+        public async Task DeleteTagAsync(int userId, int tagId)
         {
-            await _tagRepo.DeleteTagAsync(tagId);
+            await _tagRepo.DeleteTagAsync(userId, tagId);
         }
     }
 }

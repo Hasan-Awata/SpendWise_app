@@ -9,13 +9,13 @@ namespace SpendWise.Application.Interfaces.Tags
     public interface ITagRepository
     {
         // Readging from the DB methods
-        public Task<Tag> GetTagAsync(int id);
-        public Task<IEnumerable<Tag?>> GetTagsByUserIdAsync(int UserId);
-        public Task<IEnumerable<Tag?>> GetTagsByCategoryIdAsync(int UserId, int CategoryId);
+        public Task<Tag> GetTagAsync(int userId, int tagId);
+        public Task<IEnumerable<Tag?>> GetTagsByUserIdAsync(int userId);
+        public Task<IEnumerable<Tag?>> GetTagsByCategoryIdAsync(int userId, int categoryId);
 
         // Writing to DB methods
         public Task<bool> AddTagAsync(Tag tag);
         public Task<bool> UpdateTagAsync(Tag tag);
-        public Task<bool> DeleteTagAsync(int tagId);
+        public Task<bool> DeleteTagAsync(int userId, int tagId);
     }
 }

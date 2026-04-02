@@ -1,25 +1,48 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs;
 using SpendWise.Application.Interfaces.Tags;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace SpendWise.Controllers
 {
+    [Authorize]
     [ApiController]
-    [Route("api/users/{userId}/tags")]
+    [Route("api/tags")]
     public class TagController : ControllerBase
     {
         private readonly ITagService _tagService;
 
+        // Helper property to securely extract the user ID from the auth token
+        private int CurrentUserId
+        {
+            get
+            {
+                // 1. Get the string value from the claim
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                // 2. Safely attempt to parse it into an integer
+                if (int.TryParse(userIdString, out int userId))
+                {
+                    return userId;
+                }
+
+                // 3. Fallback/Safety Net: If the claim is missing or somehow isn't a valid number
+                throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
+            }
+        }
         public TagController(ITagService tagService)
         {
             _tagService = tagService;
         }
 
         [HttpGet("{tagId}")]
-        public async Task<IActionResult> GetTag([FromRoute] int userId, [FromRoute] int tagId)
+        public async Task<IActionResult> GetTag([FromRoute] int tagId)
         {
-            var tag = await _tagService.GetTagAsync(tagId);
+            int userId = CurrentUserId;
+
+            var tag = await _tagService.GetTagAsync(userId, tagId);
 
             if (tag == null)
             {
@@ -32,41 +55,45 @@ namespace SpendWise.Controllers
         [HttpGet]
         // Multiple routes for the same data
         // we use [FromQuery] instead of [FromRoute] for the categoryId
-        public async Task<IActionResult> GetTags([FromRoute] int userId, [FromQuery] int? categoryId)
+        public async Task<IActionResult> GetTags([FromQuery] int? categoryId)
         {
+            int userId = CurrentUserId;
+
             if (categoryId.HasValue)
             {
-                // Triggered by: GET /api/users/1/tags?categoryId=5
+                // Triggered by: GET /api/tags?categoryId=5
                 var tags = await _tagService.GetTagsByCategoryIdAsync(userId, categoryId.Value);
                 return Ok(tags);
             }
             else
             {
-                // Triggered by: GET /api/users/1/tags
+                // Triggered by: GET /api/tags
                 var tags = await _tagService.GetTagsByUserIdAsync(userId);
                 return Ok(tags);
             }
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddTag([FromRoute] int userId, [FromBody] TagDTO tagDto)
+        public async Task<IActionResult> AddTag([FromBody] TagDTO tagDto)
         {
-            tagDto.OwnerId = userId;
+            tagDto.OwnerId = CurrentUserId;
 
             await _tagService.AddTagAsync(tagDto);
 
             // This generates a 201 status and a Location header like:
-            // Location: https://mydomain.com/api/users/1/tags/5
+            // Location: https://mydomain.com/api/tags/5
             return CreatedAtAction(
-                nameof(GetTag),                                   // 1. Action Name
-                new { userId = userId, tagId = tagDto.Id },       // 2. Route Values
-                tagDto                                            // 3. Response Body
+                nameof(GetTag),                // 1. Action Name
+                new {tagId = tagDto.Id },      // 2. Route Values
+                tagDto                         // 3. Response Body
             );
         }
 
         [HttpPatch("{tagId}")]
-        public async Task<IActionResult> UpdateTag([FromRoute] int userId, [FromRoute] int tagId, [FromBody] TagDTO tagDto)
+        public async Task<IActionResult> UpdateTag([FromRoute] int tagId, [FromBody] TagDTO tagDto)
         {
+            int userId = CurrentUserId;
+
             // 1. Guard against mismatched IDs (Optional but highly recommended)
             if (tagDto.Id != 0 && tagDto.Id != tagId)
             {
@@ -83,9 +110,11 @@ namespace SpendWise.Controllers
         }
 
         [HttpDelete("{tagId}")]
-        public async Task<IActionResult> DeleteTag([FromRoute] int userId, [FromRoute] int tagId)
+        public async Task<IActionResult> DeleteTag([FromRoute] int tagId)
         {
-            await _tagService.DeleteTagAsync(tagId);
+            int userId = CurrentUserId;
+
+            await _tagService.DeleteTagAsync(userId, tagId);
 
             return NoContent();
         }
