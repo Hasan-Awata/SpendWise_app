@@ -12,10 +12,11 @@ namespace SpendWise.Application.Services
 
         public async Task<Income?> GetIncomAsync(int userId, int incomeId)
         {
-            var  Income ;
+            //Convert tipe of (Income
+            Income  IncomeTest =null ;
             //Add Later 
             //  Income = await _IncomeRepo.GetIncomAsync(userId, incomeId);
-            await Income;
+            return IncomeTest;
 
         }
 
