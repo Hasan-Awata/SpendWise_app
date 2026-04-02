@@ -95,7 +95,7 @@ namespace SpendWise.Controllers
             if (tagDto.OwnerId != CurrentUserId)
                 return Unauthorized();
 
-            if (tagDto.OwnerId != userId) return Unauthorized("You do not have permission to update this tag.");
+            if (tagDto.OwnerId != CurrentUserId) return Unauthorized("You do not have permission to update this tag.");
 
             // 1. Guard against mismatched IDs (Optional but highly recommended)
             if (tagDto.Id != 0 && tagDto.Id != tagId)
