@@ -6,6 +6,9 @@ using System.Text.Json.Serialization;
 using SpendWise.Application.Interfaces;
 using SpendWise.Application.Services;
 using SpendWise.Infrastructure.Repositories;
+using SpendWise.Application.Interfaces.Tags;
+using SpendWise.Application.Interfaces.Users;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,9 +37,13 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// ── Dependency Injection ──────────────────────────────────────────────────
+
+// ── Dependency Injections ──────────────────────────────────────────────────
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<ITagRepository, TagRepository>();
+builder.Services.AddScoped<ITagService, TagService>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

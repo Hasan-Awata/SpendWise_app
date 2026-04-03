@@ -1,5 +1,5 @@
 ﻿using SpendWise.Application.DTOs;
-using SpendWise.Application.Interfaces;
+using SpendWise.Application.Interfaces.Tags;
 using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Text;
 
 namespace SpendWise.Application.Services
 {
-    internal class TagService: ITagService
+    public class TagService: ITagService
     {
         private readonly ITagRepository _tagRepo;
 
@@ -16,33 +16,42 @@ namespace SpendWise.Application.Services
             _tagRepo = tagRepository;
         }
 
-        public async Task CreateTag(TagDTO tagDto)
+        public async Task<Tag?> GetTagAsync(int userId, int tagId)
         {
-            var newTag = new Tag
-            {
-                Id = tagDto.Id,
-                Label = tagDto.Label,
-                OwnerId = tagDto.OwnerId,
-                CategoryId = tagDto.CategoryId,
-            };
+            var tag = await _tagRepo.GetTagAsync(userId, tagId);
 
-            await _tagRepo.CreateTagAsync(newTag);
+            return tag;
         }
-        public async Task UpdateTag(TagDTO tagDto)
+
+        public async Task<IEnumerable<Tag?>> GetTagsByUserIdAsync(int userId)
         {
-            var updatedTag = new Tag
-            {
-                Id = tagDto.Id,
-                Label = tagDto.Label,
-                OwnerId = tagDto.OwnerId,
-                CategoryId = tagDto.CategoryId,
-            };
+            var tagsList = await _tagRepo.GetTagsByUserIdAsync(userId);
+
+            return tagsList;
+        }
+
+        public async Task<IEnumerable<Tag?>> GetTagsByCategoryIdAsync(int userId, int categoryId)
+        {
+            var tagsList = await _tagRepo.GetTagsByCategoryIdAsync(userId, categoryId);
+
+            return tagsList;
+        }
+
+        public async Task AddTagAsync(TagDTO tagDto)
+        {
+            var newTag = new Tag(tagDto.Id, tagDto.CategoryId, tagDto.OwnerId, tagDto.Label);
+
+            await _tagRepo.AddTagAsync(newTag);
+        }
+        public async Task UpdateTagAsync(TagDTO tagDto)
+        {
+            var updatedTag = new Tag(tagDto.Id, tagDto.CategoryId, tagDto.OwnerId, tagDto.Label);
 
             await _tagRepo.UpdateTagAsync(updatedTag);
         }
-        public async Task DeleteTag(int tagId)
+        public async Task DeleteTagAsync(int tagId, int UserID)
         {
-            await _tagRepo.DeleteTagAsync(tagId);
+            await _tagRepo.DeleteTagAsync(tagId, UserID);
         }
     }
 }

@@ -6,6 +6,6 @@ namespace SpendWise.Infrastructure.Global
 {
     public static class DataAccessSettings
     {
-        public static string ConnectionString = "Server=.;Database=DVLD;User Id=sa;Password=sa123456;TrustServerCertificate=True;";
+        public static string ConnectionString = "Server=.;Database=SpendWiseDB;User Id=sa;Password=sa123456;TrustServerCertificate=True;";
     }
 }
