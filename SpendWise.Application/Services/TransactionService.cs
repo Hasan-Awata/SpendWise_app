@@ -11,9 +11,13 @@ namespace SpendWise.Application.Services
 {
     public  class TransactionService: ITransactionService
     {
+        private readonly IIncome _incomeService;
         // Add these later:
         //private readonly ITransactionRepository _transactionRepository;
+<<<<<<< HEAD
         private readonly IIncome _incomeService;
+=======
+>>>>>>> feature/Add-income-sources
         //private readonly IExpenseRepository _expenseRepository;
         //private readonly IFixedObligationRepository _fixedObligationRepository;
         //private readonly ISavingGoalRepository _savingGoalRepository;
@@ -67,12 +71,12 @@ namespace SpendWise.Application.Services
         }
         public async Task<bool> UpdateTransactionAsync(TransactionsDTO transactionsDto)
         {
-            return true;
 
             switch (transactionsDto.TransactionType)
             {
                 case enTransactionType.Income:
-                    // Call update new income method from _incomRepository
+                    if(transactionsDto.Incomedto!=null)
+                    return await _incomeService.UpdateIncomeAsync(transactionsDto.Incomedto);
                     break;
                 case enTransactionType.Expense:
                     // Call update new income method from _expenseRepository
@@ -84,15 +88,16 @@ namespace SpendWise.Application.Services
                     // Call update new income method from _savingGoalRepository
                     break;
             }
+            return false ;
         }
         public async Task<bool> DeleteTransactionAsync(TransactionsDTO transactionsDto)
         {
-            return true;   
 
             switch (transactionsDto.TransactionType)
             {
                 case enTransactionType.Income:
-                    // Call deleting new income method from _incomRepository
+                    if (transactionsDto.Incomedto != null && transactionsDto.IncomeId!=null)
+                        return await _incomeService.DeleteIncomeAsync(transactionsDto.IncomeId,transactionsDto.UserId);
                     break;
                 case enTransactionType.Expense:
                     // Call deleting new income method from _expenseRepository
@@ -104,6 +109,7 @@ namespace SpendWise.Application.Services
                     // Call deleting new income method from _savingGoalRepository
                     break;
             }
+            return false;   
         }
 
     }

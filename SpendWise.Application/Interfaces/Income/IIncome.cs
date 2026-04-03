@@ -25,7 +25,7 @@ namespace SpendWise.Domain.Entities
             public Task<bool> UpdateIncomeAsync(IncomeDTO income);
 
             // 6. حذف مصدر دخل
-            public Task<bool> DeleteIncomeAsync(int incomeId, int userId);
+            public Task<bool> DeleteIncomeAsync(int incomeId);
 
         }
     }
