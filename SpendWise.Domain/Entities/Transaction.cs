@@ -9,6 +9,8 @@ namespace SpendWise.Domain.Entities
     {
         public int TransactionId { get; set; } = -1;
         public int UserId { get; set; } = -1;
+        public int? IncomeId { get; set; }
+        public Income? Incomedto { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal Amount { get; set; } = 0.0m;
@@ -22,7 +24,7 @@ namespace SpendWise.Domain.Entities
         public int RecordId { get; set; } = -1; // Refrencing to the record in the table that was specified in transaction type
 
         public Transaction(int transactionId, int userId, string title, string description, decimal amount, int recordId,
-            DateTime transactionDate, enTransactionType transactionType, enTransactionMode transactionMode)
+            DateTime transactionDate, enTransactionType transactionType)
         {
             TransactionId = transactionId;
             UserId = userId;
@@ -32,7 +34,8 @@ namespace SpendWise.Domain.Entities
             RecordId = recordId;
             TransactionDate = transactionDate;
             TransactionType = transactionType;
-            TransactionMode = transactionMode;
+            TransactionMode = enTransactionMode.Edit;
+
         }
 
     }

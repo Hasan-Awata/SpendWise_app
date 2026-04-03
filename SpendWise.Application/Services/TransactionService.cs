@@ -1,5 +1,6 @@
 ﻿using SpendWise.Application.DTOs.Transaction;
 using SpendWise.Application.Interfaces.Transactions;
+using SpendWise.Domain.Entities.SpendWise.Application.Interfaces.Incom;
 using SpendWise.Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -12,7 +13,7 @@ namespace SpendWise.Application.Services
     {
         // Add these later:
         //private readonly ITransactionRepository _transactionRepository;
-        //private readonly IIncomRepository _incomRepository;
+        private readonly IIncome _incomeService;
         //private readonly IExpenseRepository _expenseRepository;
         //private readonly IFixedObligationRepository _fixedObligationRepository;
         //private readonly ISavingGoalRepository _savingGoalRepository;
@@ -34,9 +35,7 @@ namespace SpendWise.Application.Services
                 case enTransactionMode.Edit:
                     success = await UpdateTransactionAsync(transactionsDto);
                     break;
-                case enTransactionMode.Delete:
-                    success = await DeleteTransactionAsync(transactionsDto);
-                    break;
+               
                 default:
                     success = false;
                     break;
@@ -47,12 +46,12 @@ namespace SpendWise.Application.Services
 
         public async Task<bool> CreateTransactionAsync(TransactionsDTO transactionsDto)
         {
-            return true;    
 
             switch (transactionsDto.TransactionType)
             {
                 case enTransactionType.Income:
-                    // Call creating new income method from _incomRepository
+                    if (transactionsDto.Incomedto!=null)
+                     return  await _incomeService.AddIncomeAsync(transactionsDto.Incomedto);
                     break;
                 case enTransactionType.Expense:
                     // Call creating new expense method from _expenseRepository
@@ -64,6 +63,7 @@ namespace SpendWise.Application.Services
                     // Call creating new saving goal method from _savingGoalRepository
                     break;
             }
+            return false;    
         }
         public async Task<bool> UpdateTransactionAsync(TransactionsDTO transactionsDto)
         {

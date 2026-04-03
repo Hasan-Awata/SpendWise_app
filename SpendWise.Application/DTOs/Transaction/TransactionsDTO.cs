@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using SpendWise.Domain.Enums;
+using SpendWise.Application.DTOs.Income;
 
 namespace SpendWise.Application.DTOs.Transaction
 {
@@ -13,6 +14,8 @@ namespace SpendWise.Application.DTOs.Transaction
 
         [Required(ErrorMessage = "User ID is required to associate the transaction!")]
         public int UserId { get; set; }
+        public int? IncomeId { get; set; }
+        public IncomeDTO? Incomedto { get; set; }
 
         [Required(ErrorMessage = "Please enter the transaction amount!")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
