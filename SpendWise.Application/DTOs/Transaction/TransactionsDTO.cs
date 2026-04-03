@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using SpendWise.Domain.Enums;
+using SpendWise.Application.DTOs.Income;
 
 namespace SpendWise.Application.DTOs.Transaction
 {
@@ -24,12 +25,12 @@ namespace SpendWise.Application.DTOs.Transaction
         [Required(ErrorMessage = "Please provide the transaction type")]
         public enTransactionType TransactionType { get; set; }
 
-        [Required(ErrorMessage = "Please provide the transaction mode (Add, Edit, Delete)")]
-        public enTransactionMode TransactionMode { get; set; }
-
         // Not required
         [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters!")]
         public string Description { get; set; } = string.Empty;
+
+        // Transaction types DTOs
+        public IncomeDTO? IncomeDTO;
 
         // Record ID and Title are fetched in service layer (Business) during the creation of the transaction
     }

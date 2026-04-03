@@ -1,6 +1,6 @@
 ﻿using SpendWise.Application.DTOs.Transaction;
+using SpendWise.Application.Interfaces.Incom;
 using SpendWise.Application.Interfaces.Transactions;
-using SpendWise.Domain.Entities.SpendWise.Application.Interfaces.Incom;
 using SpendWise.Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -13,36 +13,39 @@ namespace SpendWise.Application.Services
     {
         private readonly IIncomeService _incomeService;
         // Add these later:
-        //private readonly ITransactionRepository _transactionRepository;
-        //private readonly IExpenseRepository _expenseRepository;
-        //private readonly IFixedObligationRepository _fixedObligationRepository;
-        //private readonly ISavingGoalRepository _savingGoalRepository;
+        //private readonly ITransactionService _transactionService;
+        //private readonly IExpenseService _expenseService;
+        //private readonly IFixedObligationService _fixedObligationService;
+        //private readonly ISavingGoalService _savingGoalService;
 
-        //public TransactionService(ITransactionRepository transactionRepository)
-        //{
-        //    _transactionRepository = transactionRepository;
-        //}
-
-        public async Task<bool> TransactionProcess(TransactionsDTO transactionsDto)
+        public TransactionService(IIncomeService incomeService)
         {
-            bool success = false;
-
-            switch (transactionsDto.TransactionMode)
-            {
-                case enTransactionMode.Add:
-                    success = await CreateTransactionAsync(transactionsDto);
-                    break;
-                case enTransactionMode.Edit:
-                    success = await UpdateTransactionAsync(transactionsDto);
-                    break;
-               
-                default:
-                    success = false;
-                    break;
-            }
-
-            return success;
+            _incomeService = incomeService;
+            //_transactionRepository = transactionRepository;
         }
+
+
+        //--------------- For Deletion later -----------------------------------------
+        //public async Task<bool> TransactionProcess(TransactionsDTO transactionsDto)
+        //{
+        //    bool success = false;
+
+        //    switch (transactionsDto.TransactionMode)
+        //    {
+        //        case enTransactionMode.Add:
+        //            success = await CreateTransactionAsync(transactionsDto);
+        //            break;
+        //        case enTransactionMode.Edit:
+        //            success = await UpdateTransactionAsync(transactionsDto);
+        //            break;
+
+        //        default:
+        //            success = false;
+        //            break;
+        //    }
+
+        //    return success;
+        //}
 
         public async Task<bool> CreateTransactionAsync(TransactionsDTO transactionsDto)
         {
@@ -50,8 +53,8 @@ namespace SpendWise.Application.Services
             switch (transactionsDto.TransactionType)
             {
                 case enTransactionType.Income:
-                    if (transactionsDto.Incomedto!=null)
-                     return  await _incomeService.AddIncomeAsync(transactionsDto.Incomedto);
+                    if (transactionsDto.IncomeDTO!=null)
+                     return  await _incomeService.AddIncomeAsync(transactionsDto.IncomeDTO);
                     break;
                 case enTransactionType.Expense:
                     // Call creating new expense method from _expenseRepository
@@ -71,8 +74,8 @@ namespace SpendWise.Application.Services
             switch (transactionsDto.TransactionType)
             {
                 case enTransactionType.Income:
-                    if(transactionsDto.Incomedto!=null)
-                    return await _incomeService.UpdateIncomeAsync(transactionsDto.Incomedto);
+                    if(transactionsDto.IncomeDTO != null)
+                    return await _incomeService.UpdateIncomeAsync(transactionsDto.IncomeDTO);
                     break;
                 case enTransactionType.Expense:
                     // Call update new income method from _expenseRepository
@@ -92,8 +95,8 @@ namespace SpendWise.Application.Services
             switch (transactionsDto.TransactionType)
             {
                 case enTransactionType.Income:
-                    if (transactionsDto.Incomedto != null && transactionsDto.IncomeId!=null)
-                        return await _incomeService.DeleteIncomeAsync(transactionsDto.IncomeId,transactionsDto.UserId);
+                    if (transactionsDto.IncomeDTO != null)
+                        return await _incomeService.DeleteIncomeAsync(transactionsDto.IncomeDTO.Id, transactionsDto.UserId);
                     break;
                 case enTransactionType.Expense:
                     // Call deleting new income method from _expenseRepository

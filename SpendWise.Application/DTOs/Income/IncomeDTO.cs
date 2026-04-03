@@ -1,4 +1,5 @@
-﻿using SpendWise.Domain.Enums;
+﻿using SpendWise.Domain.Entities;
+using SpendWise.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -16,18 +17,19 @@ namespace SpendWise.Application.DTOs.Income
         [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters!")]
         public string Title { get; set; } = string.Empty;
 
-        [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters!")]
-        public string Description { get; set; } = string.Empty;
-
         [Required(ErrorMessage = "Please select the income type!")]
-        public enIncomeType enIncomeType { get; set; }
+        public bool IsFixed { get; set; }
+
+        public bool IsMonthly { get; set; }
+
+        [Required(ErrorMessage = "Please enter the currency id")]
+        public int CurrencyId { get; set; }
 
         [Required(ErrorMessage = "Enter the amount of your income")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
         public decimal Amount { get; set; }
 
-        public DateTime? Repetition { get; set; }
-
+        public DateTime? LastTime { get; set; }
 
     }
 }

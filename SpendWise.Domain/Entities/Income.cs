@@ -9,8 +9,10 @@ namespace SpendWise.Domain.Entities
     {
         public int Id { get; set; }
         public string Title { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public enIncomeType enIncomeType { get; set; }
-        public DateTime? Repetition { get; set; } // How frequent does this Incom repeat.
+        public decimal Amount { get; set; }
+        public bool IsFixed { get; set; }
+        public bool IsMonthly { get; set; }
+        public Currency Currency { get; set; } = new Currency(-1, "Syrain Pound");
+        public DateTime? LastTime { get; set; } 
     }
 }

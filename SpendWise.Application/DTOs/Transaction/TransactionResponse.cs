@@ -17,10 +17,6 @@ namespace SpendWise.Application.DTOs.Transaction
         public decimal Amount { get; set; }
         public DateTime TransactionDate { get; set; } = DateTime.Now;
         
-        public enTransactionMode TransactionMode { get; set; }
-        //Add = 0,
-        //Edit = 1,
-        //Delete = 2,
         public enTransactionType TransactionType { get; set; }
         //Income              // A revenue provided for once to do a specific service e.g(freelancer, trader, ...) or a Salary
         //FixedObligation     // A fixed amount of money a person have to pay every due date, e.g(rent, suscription, ...)
