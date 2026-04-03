@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SpendWise.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
@@ -7,7 +8,8 @@ namespace SpendWise.Application.DTOs.Category
 {
     public  class CategoryDTO
     {
-      
+            [Required(ErrorMessage = "Category Id is required!")]
+            public int CategoryId { get; set; }=-1;
             [Required(ErrorMessage = "Category name is required!")]
             [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters.")]
             public string Name { get; set; } = string.Empty;
@@ -27,9 +29,11 @@ namespace SpendWise.Application.DTOs.Category
 
             [Required(ErrorMessage = "Year is required!")]
             public int Year { get; set; }
+             
 
-            [Required(ErrorMessage = "Category must have an owner!")]
-            public int UserId { get; set; }
+            public enCategoryType categoryType { get; set; }
+
+         
         
     }
 }
