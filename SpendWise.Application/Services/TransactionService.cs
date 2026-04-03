@@ -11,7 +11,7 @@ namespace SpendWise.Application.Services
 {
     public  class TransactionService: ITransactionService
     {
-        private readonly IIncome _incomeService;
+        private readonly IIncomeService _incomeService;
         // Add these later:
         //private readonly ITransactionRepository _transactionRepository;
         //private readonly IExpenseRepository _expenseRepository;

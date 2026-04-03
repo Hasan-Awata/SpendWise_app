@@ -22,7 +22,10 @@ namespace SpendWise.Application.DTOs.Income
         [Required(ErrorMessage = "Please select the income type!")]
         public enIncomeType enIncomeType { get; set; }
 
-        // بما أنه تاريخ تكرار (Repetition) فغالباً هو اختياري، لذا نتركه Nullable بدون [Required]
+        [Required(ErrorMessage = "Enter the amount of your income")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
+        public decimal Amount { get; set; }
+
         public DateTime? Repetition { get; set; }
 
 
