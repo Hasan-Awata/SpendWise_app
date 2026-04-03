@@ -7,9 +7,18 @@ namespace SpendWise.Domain.Entities
 {
     public class Category
     {
-        public int CategoryId { get; private set; }
-        public string Name { get; private set; } = string.Empty;
-        public int Priority { get; private set; }
+            public int CategoryId { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public int Priority { get; set; }
 
+            // Budget properties merged into Category
+            public decimal LimitAmount { get; set; }
+            public decimal Percentage { get; set; }
+
+            public int Month { get; set; }
+            public int Year { get; set; }
+
+            
+       
     }
 }
