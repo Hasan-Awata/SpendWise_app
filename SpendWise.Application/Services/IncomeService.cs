@@ -55,10 +55,10 @@ namespace SpendWise.Application.Services
         }
 
        
-        public async Task<bool> DeleteIncomeAsync(int incomeId, int userId)
+        public async Task<bool> DeleteIncomeAsync(int incomeId)
         {
             bool isDone = false;
-            //isDone =await _incomeRepo.DeleteIncomeAsync(incomeId,userId);
+            //isDone =await _incomeRepo.DeleteIncomeAsync(incomeId);
             return isDone;
 
 
