@@ -11,13 +11,12 @@ namespace SpendWise.Application.Services
 {
     public  class TransactionService: ITransactionService
     {
-        private readonly IIncome _incomeService;
+       
         // Add these later:
         //private readonly ITransactionRepository _transactionRepository;
-<<<<<<< HEAD
+
         private readonly IIncome _incomeService;
-=======
->>>>>>> feature/Add-income-sources
+
         //private readonly IExpenseRepository _expenseRepository;
         //private readonly IFixedObligationRepository _fixedObligationRepository;
         //private readonly ISavingGoalRepository _savingGoalRepository;
@@ -96,8 +95,8 @@ namespace SpendWise.Application.Services
             switch (transactionsDto.TransactionType)
             {
                 case enTransactionType.Income:
-                    if (transactionsDto.Incomedto != null && transactionsDto.IncomeId!=null)
-                        return await _incomeService.DeleteIncomeAsync(transactionsDto.IncomeId,transactionsDto.UserId);
+                    if (transactionsDto.Incomedto != null && transactionsDto.IncomeId != null)
+                        return await _incomeService.DeleteIncomeAsync(Convert.ToInt32( transactionsDto.IncomeId));
                     break;
                 case enTransactionType.Expense:
                     // Call deleting new income method from _expenseRepository
