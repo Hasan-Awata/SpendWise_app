@@ -13,6 +13,9 @@ namespace SpendWise.Application.DTOs.Income
         [Required(ErrorMessage = "Income ID is required!")]
         public int Id { get; set; }
 
+        [Required(ErrorMessage = "Owner ID is required!")]
+        public int UserId { get; set; }
+
         [Required(ErrorMessage = "Please enter a title for this income!")]
         [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters!")]
         public string Title { get; set; } = string.Empty;

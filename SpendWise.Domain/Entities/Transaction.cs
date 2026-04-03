@@ -14,9 +14,6 @@ namespace SpendWise.Domain.Entities
         public decimal Amount { get; set; } = 0.0m;
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
-        // Transaction mode is specified here: Add, Edit, Delete
-         public enTransactionMode TransactionMode { get; set; }
-
         // Transaction type is specified here:
         public enTransactionType TransactionType { get; set; }
         public int RecordId { get; set; } = -1; // Refrencing to the record in the table that was specified in transaction type
@@ -32,7 +29,6 @@ namespace SpendWise.Domain.Entities
             RecordId = recordId;
             TransactionDate = transactionDate;
             TransactionType = transactionType;
-            TransactionMode = transactionMode;
         }
 
     }

@@ -42,6 +42,7 @@ namespace SpendWise.Application.Services
             return incomesList.Select(item => new IncomeResponse
             {
                 Id = item.Id,
+                UserId = item.UserId,
                 Title = item.Title,
                 Amount = item.Amount,
                 Currency = item.Currency,
@@ -62,6 +63,7 @@ namespace SpendWise.Application.Services
             return incomesByType.Select(item => new IncomeResponse
             {
                 Id = item.Id,
+                UserId = item.UserId,
                 Title = item.Title,
                 Amount = item.Amount,
                 Currency = item.Currency,
@@ -79,6 +81,7 @@ namespace SpendWise.Application.Services
             var income = new Income
             {
                 Id= incomeDto.Id,
+                UserId= incomeDto.UserId,
                 Title= incomeDto.Title,
                 Amount= incomeDto.Amount,
                 //Currency= await _currencyRepo.GetCurrencyAsync(incomeDto.CurrencyId),
@@ -100,6 +103,7 @@ namespace SpendWise.Application.Services
             var incomeToUpdate = new Income
             {
                 Id = incomeDto.Id,
+                UserId = incomeDto.UserId,
                 Title = incomeDto.Title,
                 Amount = incomeDto.Amount,
                 //Currency= await _currencyRepo.GetCurrencyAsync(incomeDto.CurrencyId),
