@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace SpendWise.Application.DTOs
+namespace SpendWise.Application.DTOs.FixedObligations
 {
     public class FixedObligationDTO
     {

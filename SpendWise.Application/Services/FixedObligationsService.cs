@@ -1,9 +1,9 @@
 ﻿using SpendWise.Application.Interfaces;
-using SpendWise.Application.DTOs;
 using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using SpendWise.Application.DTOs.FixedObligations;
 
 namespace SpendWise.Application.Services
 {
@@ -16,13 +16,34 @@ namespace SpendWise.Application.Services
             _fixedObligationRepo = fixedObligationRepo;
         }
 
-        public async Task<FixedObligation> GetFixedObligationAsync(int fixedObligationId, int UserID)
+        public async Task<FixedObligationResponse> GetFixedObligationAsync(int fixedObligationId, int UserID)
         {
-            return await _fixedObligationRepo.GetFixedObligationAsync(fixedObligationId, UserID);
+            var fixedObligation = await _fixedObligationRepo.GetFixedObligationAsync(fixedObligationId, UserID);
+           
+            return new FixedObligationResponse
+            {
+                Id = fixedObligation.Id,
+                OwnerId = fixedObligation.OwnerId,
+                Title = fixedObligation.Title,
+                Amount = fixedObligation.Amount,
+                DueDate = fixedObligation.DueDate,
+                IsActive = fixedObligation.IsActive,
+            };
         }
-        public async Task<IEnumerable<FixedObligation?>> GetFixedObligationsByUserIdAsync(int userId)
+        public async Task<IEnumerable<FixedObligationResponse?>> GetFixedObligationsByUserIdAsync(int userId)
         {
-            return await _fixedObligationRepo.GetFixedObligationsByUserIdAsync(userId);
+            var fixedObligationsList = await _fixedObligationRepo.GetFixedObligationsByUserIdAsync(userId);
+
+            // Use LINQ to map each item in the collection
+            return fixedObligationsList.Select(item => new FixedObligationResponse
+            {
+                Id = item.Id,
+                OwnerId = item.OwnerId,
+                Title = item.Title,
+                Amount = item.Amount,
+                DueDate = item.DueDate,
+                IsActive = item.IsActive,
+            });
         }
 
         public async Task CreateFixedObligationAsync(FixedObligationDTO fixedObligationDto)
