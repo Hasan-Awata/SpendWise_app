@@ -12,5 +12,6 @@ namespace SpendWise.Application.DTOs
 
         [Required(ErrorMessage = "Please enter a valid username name!")]
         public string Username { get; set; } = string.Empty;
+
     }
 }

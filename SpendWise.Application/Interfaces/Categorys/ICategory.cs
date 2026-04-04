@@ -10,22 +10,23 @@ using System.Text;
         public interface ICategory
         {
             // Create
-            public Task<int> AddCategoryAsync(CategoryDTO categoryDto);
+            public Task<bool> AddCategoryAsync(CategoryDTO categoryDto);
 
             // Update
             public Task<bool> UpdateCategoryAsync(CategoryDTO categoryDto);
 
-            // Delete
+            // Delete 
             public Task<bool> DeleteCategoryAsync(int id);
 
             // Search & Get
             public Task<Category?> GetCategoryByIdAsync(int id);
-            public Task<IEnumerable<Category>?> GetAllCategoriesAsync(int userId);
+            public Task<IEnumerable<Category>> GetAllCategoriesAsync(int userId);
 
-            // Search by Name
-            public Task<IEnumerable<Category>?> SearchCategoriesByNameAsync(string name, int userId);
+             // Search by Name and userId 
+             public Task<Category?> GetCategoryByNameAsync(string name, int userId);
 
-        }
+
+    }
     }
 
 
