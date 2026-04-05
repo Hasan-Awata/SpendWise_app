@@ -17,7 +17,7 @@ class Introduction extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
-              width: 200,
+              width: 300,
               child: Image.asset(
                 'assets/images/logo3.png',
                 color: SpColor.accentBlue,

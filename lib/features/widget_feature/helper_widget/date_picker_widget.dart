@@ -5,10 +5,12 @@ import 'package:spendwise/core/utils/colors.dart';
 class DatePickerWidget extends StatelessWidget {
   final dynamic controller;
   final Color color;
+  final String title;
   const DatePickerWidget({
     super.key,
     required this.controller,
     this.color = SpColor.accentBlue,
+    this.title = "Date",
   });
 
   @override
@@ -20,7 +22,7 @@ class DatePickerWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           borderSide: BorderSide(color: color),
         ),
-        title: const Text('Date', style: TextStyle(color: SpColor.mutedGrey)),
+        title: Text(title, style: TextStyle(color: SpColor.mutedGrey)),
         subtitle: Text(
           '${controller.selectedDate.value.year}-${controller.selectedDate.value.month.toString().padLeft(2, '0')}-${controller.selectedDate.value.day.toString().padLeft(2, '0')}',
           style: const TextStyle(color: SpColor.offWhite, fontSize: 15),

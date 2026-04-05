@@ -1,4 +1,4 @@
-import 'package:spendwise/features/transaction/domain/entities/tag_entity.dart';
+import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 
 class TagModel extends TagEntity {
   TagModel({

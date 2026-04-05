@@ -30,4 +30,6 @@ class SpColor {
   // ألوان مضافة للعمليات المالية (ضرورية للتطبيق)
   static const Color incomeGreen = Color(0xFF10B981); // أخضر للراتب والدخل
   static const Color expenseRed = Color(0xFFEF4444);
+
+  static const Color primaryDark2 = Color(0xFF0B1220);
 }

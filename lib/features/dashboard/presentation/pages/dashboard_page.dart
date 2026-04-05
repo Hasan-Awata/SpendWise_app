@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/transaction/presentation/pages/add_tag_page.dart';
+import 'package:spendwise/features/expense/presentation/pages/add_expense_view.dart';
 import 'package:spendwise/features/savings_goals/presentation/pages/add_saving_goal_page.dart';
-import 'package:spendwise/features/transaction/presentation/pages/add_expense_view.dart';
-import 'package:spendwise/features/transaction/presentation/pages/add_income_view.dart';
+import 'package:spendwise/features/income/presentation/pages/add_income_view.dart';
+import 'package:spendwise/features/tags/presentation/pages/add_tag_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -38,7 +38,7 @@ class DashboardPage extends StatelessWidget {
             title: 'New tag',
             subtitle: 'Organize spending with tags',
             color: SpColor.accentBlue,
-            onTap: () => Get.to(() => const AddtagPage()),
+            onTap: () => Get.to(() => AddtagPage()),
           ),
           _DashboardTile(
             icon: Icons.savings_outlined,
@@ -52,7 +52,7 @@ class DashboardPage extends StatelessWidget {
             title: 'New income',
             subtitle: 'Record money in',
             color: SpColor.incomeGreen,
-            onTap: () => Get.to(() => AddIncomeView()),
+            onTap: () => Get.toNamed('/add-income'),
           ),
           _DashboardTile(
             icon: Icons.trending_down,

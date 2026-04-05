@@ -9,13 +9,7 @@ class ExpenseController extends GetxController {
   var selectedValue = 'General'.obs;
   var selectedDate = DateTime.now().obs;
 
-  final List<String> values = [
-    'General',
-    'Food',
-    'Transport',
-    'Bills',
-    'Other',
-  ].obs;
+  final List<String> values = ['General', 'Food', 'Transport', 'Bills'].obs;
 
   Future<void> fetchDate(BuildContext context) async {
     DateTime? pickedDate = await HelperFunction.chooseDate(context);

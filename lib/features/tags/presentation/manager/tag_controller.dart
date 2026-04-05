@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/features/transaction/data/models/tag_model.dart';
+import 'package:spendwise/features/tags/data/models/tag_model.dart';
 
 class TagController extends GetxController {
+  static TagController get instance => Get.put(TagController());
   var tags = <TagModel>[
     TagModel(id: 1, ownerId: 2, label: "Food", categoryId: 1),
     TagModel(id: 1, ownerId: 2, label: "Health", categoryId: 1),
   ].obs;
 
-  final List<String> values = [
-    "Basic",
-    "Health",
-    "Entertainment",
-    "Education",
-    "Other",
-  ].obs;
+  final Map<String, int> values = {
+    "Basics": 1,
+    "Secondaries": 2,
+    "Expenses": 3,
+    "Savings": 4,
+  }.obs;
   RxString selectedValue = "Basic".obs;
 
   /// Persists to the in-app tag store (observable list).

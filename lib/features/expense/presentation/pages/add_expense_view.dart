@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/transaction/presentation/manager/expense_controller.dart';
-import 'package:spendwise/features/transaction/presentation/widgets/tag_widget.dart';
+import 'package:spendwise/features/expense/presentation/manager/expense_controller.dart';
+import 'package:spendwise/features/tags/presentation/pages/add_tag_page.dart';
+import 'package:spendwise/features/tags/presentation/widgets/tag_widget.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/date_picker_widget.dart';
@@ -20,7 +21,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SpColor.primaryDark,
+      backgroundColor: SpColor.primaryDark2,
       appBar: AppBar(
         title: const Text(
           'New expense',
@@ -34,38 +35,43 @@ class _AddExpenseViewState extends State<AddExpenseView> {
         iconTheme: const IconThemeData(color: SpColor.expenseRed),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
         child: Column(
           children: [
             _buildAmountInput(controller),
             const SizedBox(height: 30),
-            _buildtagDropdown(controller),
+            _buildSourceExpenseDropdown(controller),
             const SizedBox(height: 30),
-            SPDropdownButton(
-              controller: controller,
-              title: "tag",
-              hint: "tag",
-              textColor: SpColor.expenseRed.withAlpha(200),
-              prefixIcon: const Icon(Icons.tag),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: () {},
-                autofocus: true,
-                highlightColor: SpColor.expenseRed.withAlpha(60),
-              ),
-            ),
+            _buildTagDropdown(controller),
             const SizedBox(height: 20),
-            TagWidget(
-              tagName: "tagName",
-              icon: Icons.food_bank,
-              color: SpColor.expenseRed,
-              onDelete: () {},
-            ),
+            _buildTagsToExpense(),
+
             const SizedBox(height: 50),
             _buildDatePicker(context),
             const SizedBox(height: 50),
             _buildSubmitButton(controller),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTagsToExpense() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          spacing: 10,
+          children: List.generate(
+            5,
+            (index) => TagWidget(
+              tagName: "tagName",
+              icon: Icons.food_bank,
+              color: SpColor.expenseRed,
+              onDelete: () {},
+            ),
+          ),
         ),
       ),
     );
@@ -85,12 +91,30 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     );
   }
 
-  Widget _buildtagDropdown(ExpenseController controller) {
+  Widget _buildSourceExpenseDropdown(ExpenseController controller) {
     return SPDropdownButton(
       controller: controller,
       title: "source expense",
       hint: 'Select or enter',
       textColor: SpColor.expenseRed,
+    );
+  }
+
+  Widget _buildTagDropdown(ExpenseController controller) {
+    return SPDropdownButton(
+      controller: controller,
+      title: "tag",
+      hint: "tag",
+      textColor: SpColor.expenseRed.withAlpha(200),
+      prefixIcon: const Icon(Icons.tag),
+      suffixIcon: IconButton(
+        icon: const Icon(Icons.add),
+        onPressed: () {
+          Get.to(() => const AddtagPage());
+        },
+        autofocus: true,
+        highlightColor: SpColor.expenseRed.withAlpha(60),
+      ),
     );
   }
 

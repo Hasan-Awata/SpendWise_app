@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
-import 'package:spendwise/features/widget_feature/helper_widget/custom_button2.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 
 class AddSavingGoalPage extends StatefulWidget {
@@ -55,7 +54,7 @@ class _AddSavingGoalPageState extends State<AddSavingGoalPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SpColor.primaryDark,
+      backgroundColor: SpColor.primaryDark2,
       appBar: AppBar(
         backgroundColor: SpColor.primaryDark,
         elevation: 0,
