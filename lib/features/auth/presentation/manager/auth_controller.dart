@@ -2,9 +2,11 @@ import 'package:get/get_instance/get_instance.dart';
 import 'package:get/route_manager.dart';
 import 'package:get/state_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:spendwise/features/auth/data/models/user_dto.dart';
+import 'package:spendwise/features/auth/domain/entities/user_entity.dart';
+import 'package:spendwise/features/auth/domain/usecases/login_params.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:spendwise/features/auth/domain/usecases/signup_params.dart';
 import 'package:spendwise/features/auth/domain/usecases/signup_usecase.dart';
 import 'package:spendwise/features/helper_function.dart';
 
@@ -39,6 +41,8 @@ class AuthController extends GetxController {
 
   final isLoadingLogOut = false.obs;
 
+  final Rx<UserEntity?> currentUser = Rx<UserEntity?>(null);
+
   void toggleSignUpPasswordVisibility() {
     isSignUpPasswordVisible.value = !isSignUpPasswordVisible.value;
   }
@@ -47,52 +51,56 @@ class AuthController extends GetxController {
     isLoginPasswordVisible.value = !isLoginPasswordVisible.value;
   }
 
-  Future<bool> signUp() async {
+  Future<void> signUp() async {
     final isValid = signUpFormKey.currentState?.validate() ?? false;
-    if (!isValid) return false;
+    if (!isValid) return;
     try {
       isLoadingSignUp.value = true;
 
-      final userDto = UserDto(
-        firstName: signUpPasswordController.text.trim(),
+      final userParams = SignupParams(
+        firstName: firstNameController.text.trim(),
         lastName: lastNameController.text.trim(),
         userName: signUpUserNameController.text.trim(),
         password: signUpPasswordController.text.trim(),
       );
-      await signupUsecase.signUp(userDto);
+      final user = await signupUsecase.signUp(userParams);
+
+      currentUser.value = user;
+
       HelperFunction.showSnackBar("Success", "Account created successfully!");
-      return true;
+      Get.offAllNamed('/main-screen');
     } catch (e) {
       HelperFunction.showSnackBar(
         "Sign Up Failed",
         "Faild process",
         isError: true,
       );
-      return false;
     } finally {
       // 6. إغلاق حالة التحميل في كل الأحوال (نجاح أو فشل)
       isLoadingSignUp.value = false;
     }
   }
 
-  Future<bool> logIn() async {
+  Future<void> logIn() async {
     final isValid = loginFormKey.currentState?.validate() ?? false;
-    if (!isValid) return false;
+    if (!isValid) return;
     try {
       isLoadingLogIn.value = true;
-      await loginUsecase.login(
-        loginUserNameController.text.trim(),
-        loginPasswordController.text.trim(),
+
+      final userParams = LoginParams(
+        userName: loginUserNameController.text.trim(),
+        password: loginPasswordController.text.trim(),
       );
+      final user = await loginUsecase.login(userParams);
+      currentUser.value = user;
       HelperFunction.showSnackBar("Success", "LogIn");
-      return true;
+      Get.offAllNamed('/main-screen');
     } catch (e) {
       HelperFunction.showSnackBar(
         "LogIn Failed",
         "Faild process",
         isError: true,
       );
-      return false;
     } finally {
       isLoadingLogIn.value = false;
     }

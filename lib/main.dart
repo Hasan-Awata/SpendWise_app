@@ -6,25 +6,15 @@ import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
-
-import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
+import 'package:spendwise/features/auth/data/models/user_adapter.dart';
 import 'package:spendwise/features/income/data/models/income_adapter.dart';
 import 'package:spendwise/features/splash/introduction.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //init hive
   await Hive.initFlutter();
-  // await Hive.deleteBoxFromDisk('MYINCOME');
-  //register IncomeAdapter
+  Hive.registerAdapter(UserAdapter());
   Hive.registerAdapter(IncomeAdapter());
-
-  // init hive for Income
-  await IncomeLocalDataSourceImpl().init();
-
-  await AppUserLocalDatasourceImpl().init();
-
   runApp(DevicePreview(enabled: false, builder: (context) => const MyApp()));
 }
 

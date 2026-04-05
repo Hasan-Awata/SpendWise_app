@@ -1,9 +1,9 @@
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource.dart';
-
-import 'package:spendwise/features/auth/data/models/user_dto.dart';
 import 'package:spendwise/features/auth/data/models/user_model.dart';
 import 'package:spendwise/features/auth/data/repositories/user_repository.dart';
+import 'package:spendwise/features/auth/domain/usecases/login_params.dart';
+import 'package:spendwise/features/auth/domain/usecases/signup_params.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final AppUserLocalDatasource appUserLocalDatasource;
@@ -20,22 +20,22 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<UserModel> register(UserDto userDto) async {
-    return await appUserRemoteDatasource.register(userDto);
+  Future<UserModel> register(SignupParams params) async {
+    final user = await appUserRemoteDatasource.register(params);
+    await appUserLocalDatasource.registerLocal(user);
+    return user;
   }
 
   @override
-  Future<UserModel> logIn(String userName, String password) async {
-    return await appUserRemoteDatasource.logIn(userName, password);
+  Future<UserModel> logIn(LoginParams params) async {
+    final user = await appUserRemoteDatasource.logIn(params);
+    await appUserLocalDatasource.registerLocal(user);
+    return user;
   }
 
   @override
   Future<void> logOut() async {
     await appUserRemoteDatasource.logOut();
-  }
-
-  @override
-  Future<UserModel?> getUser() async {
-    return await appUserLocalDatasource.getUser();
+    await appUserLocalDatasource.logOut();
   }
 }

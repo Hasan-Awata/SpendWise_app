@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 
 class Introduction extends StatelessWidget {

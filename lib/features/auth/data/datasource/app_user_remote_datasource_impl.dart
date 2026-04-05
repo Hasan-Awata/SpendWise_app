@@ -2,7 +2,10 @@
 
 import 'package:dio/dio.dart';
 import 'package:spendwise/core/network/api_endpoints.dart';
-import '../models/user_dto.dart';
+import 'package:spendwise/features/auth/data/models/login_dto.dart';
+import 'package:spendwise/features/auth/data/models/signup_dto.dart';
+import 'package:spendwise/features/auth/domain/usecases/login_params.dart';
+import 'package:spendwise/features/auth/domain/usecases/signup_params.dart';
 import '../models/user_model.dart';
 import 'app_user_remote_datasource.dart';
 
@@ -12,12 +15,13 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
   AppUserRemoteDatasourceImpl({required this.dio});
 
   @override
-  Future<UserModel> register(UserDto userDto) async {
+  Future<UserModel> register(SignupParams params) async {
     try {
+      final dto = SignupDto.fromParams(params);
       // إرسال كائن UserDto بعد تحويله لـ JSON
       final response = await dio.post(
         ApiEndpoints.register,
-        data: userDto.toJson(),
+        data: dto.toJson(),
       );
 
       return UserModel.fromJson(response.data);
@@ -27,12 +31,10 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
   }
 
   @override
-  Future<UserModel> logIn(String userName, String password) async {
+  Future<UserModel> logIn(LoginParams params) async {
     try {
-      final response = await dio.post(
-        ApiEndpoints.login,
-        data: {"userName": userName, "password": password},
-      );
+      final dto = LoginDto.fromParams(params);
+      final response = await dio.post(ApiEndpoints.login, data: dto.toJson());
 
       return UserModel.fromJson(response.data);
     } on DioException catch (e) {

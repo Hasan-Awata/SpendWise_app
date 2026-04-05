@@ -115,10 +115,7 @@ class SignUpPage extends StatelessWidget {
                   () => CustomButton(
                     text: "Sign Up",
                     onPressed: () async {
-                      final success = await controller.signUp();
-                      if (success) {
-                        Get.offAll(() => const MainScreen());
-                      }
+                      await controller.signUp();
                     },
                     color: SpColor.accentBlue,
                     isLoading: controller.isLoadingSignUp.value,

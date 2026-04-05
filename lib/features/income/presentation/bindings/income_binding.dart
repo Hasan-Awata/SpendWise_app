@@ -12,7 +12,11 @@ import 'package:spendwise/features/income/presentation/manager/income_controller
 class IncomeBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<IncomeLocalDataSource>(() => IncomeLocalDataSourceImpl());
+    Get.lazyPut<IncomeLocalDataSource>(() {
+      final datasource = IncomeLocalDataSourceImpl();
+      datasource.init();
+      return datasource;
+    });
     Get.lazyPut<IncomeRepository>(
       () => IncomeRepositoryImpl(
         localDataSource: Get.find<IncomeLocalDataSource>(),

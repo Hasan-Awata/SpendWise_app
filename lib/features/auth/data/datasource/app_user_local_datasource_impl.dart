@@ -33,15 +33,6 @@ class AppUserLocalDatasourceImpl implements AppUserLocalDatasource {
   }
 
   @override
-  Future<UserModel?> getUser() async {
-    try {
-      return _box.get(_userKey) as UserModel?;
-    } catch (e) {
-      throw Exception("Failed to retrieve user data: $e");
-    }
-  }
-
-  @override
   Future<void> logOut() async {
     try {
       await _box.delete(_userKey);

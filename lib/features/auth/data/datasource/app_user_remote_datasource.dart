@@ -1,8 +1,10 @@
-import '../models/user_dto.dart';
+import 'package:spendwise/features/auth/domain/usecases/login_params.dart';
+import 'package:spendwise/features/auth/domain/usecases/signup_params.dart';
+
 import '../models/user_model.dart';
 
 abstract class AppUserRemoteDatasource {
-  Future<UserModel> register(UserDto userDto);
-  Future<UserModel> logIn(String userName, String password);
+  Future<UserModel> register(SignupParams params);
+  Future<UserModel> logIn(LoginParams params);
   Future<void> logOut();
 }

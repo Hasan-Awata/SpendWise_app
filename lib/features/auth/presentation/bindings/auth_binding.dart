@@ -29,7 +29,11 @@ class AuthBinding extends Bindings {
         ),
       ),
     );
-    Get.lazyPut<AppUserLocalDatasource>(() => AppUserLocalDatasourceImpl());
+    Get.lazyPut<AppUserLocalDatasource>(() {
+      final datasource = AppUserLocalDatasourceImpl();
+      datasource.init();
+      return datasource;
+    });
     Get.lazyPut<AppUserRemoteDatasource>(
       () => AppUserRemoteDatasourceImpl(dio: Get.find()),
     );
