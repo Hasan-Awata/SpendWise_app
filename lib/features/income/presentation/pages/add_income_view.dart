@@ -36,53 +36,55 @@ class AddIncomeView extends StatelessWidget {
         ],
 
         foregroundColor: SpColor.incomeGreen,
-        backgroundColor: Colors.transparent,
+        backgroundColor: SpColor.primaryDark2,
         elevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // // UI: Amount Input with Currency Toggle
-            _buildAmountInput(),
-            const SizedBox(height: 30),
+      body: Padding(
+        padding: const EdgeInsets.all(25.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // // UI: Amount Input with Currency Toggle
+              _buildAmountInput(),
+              const SizedBox(height: 30),
 
-            // // UI Section: Main Income Type (isFixed)
-            _buildFixedTypeSelector(),
+              // // UI Section: Main Income Type (isFixed)
+              _buildFixedTypeSelector(),
 
-            // // UI Logic: Conditional Recurrence Options
-            Obx(
-              () => AnimatedSize(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                child: controller.isFixed.value
-                    ? Column(
-                        children: [
-                          const SizedBox(height: 25),
-                          _buildMonthlyToggle(),
-                          // // UI Logic: Show Days input only if NOT monthly
-                          if (!controller.isMonthly.value) ...[
-                            const SizedBox(height: 20),
-                            _buildDaysInput(),
+              // // UI Logic: Conditional Recurrence Options
+              Obx(
+                () => AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  child: controller.isFixed.value
+                      ? Column(
+                          children: [
+                            const SizedBox(height: 25),
+                            _buildMonthlyToggle(),
+                            // // UI Logic: Show Days input only if NOT monthly
+                            if (!controller.isMonthly.value) ...[
+                              const SizedBox(height: 20),
+                              _buildDaysInput(),
+                            ],
                           ],
-                        ],
-                      )
-                    : const SizedBox(height: 0, width: double.infinity),
+                        )
+                      : const SizedBox(height: 0, width: double.infinity),
+                ),
               ),
-            ),
 
-            const SizedBox(height: 30),
-            _buildSourceDropdown(),
-            const SizedBox(height: 30),
-            _buildDescriptionWidget(),
-            const SizedBox(height: 30),
-            _buildDatePicker(context),
-            const SizedBox(height: 50),
-            _buildSubmitButton(),
-            const SizedBox(height: 60),
-          ],
+              const SizedBox(height: 30),
+              _buildSourceDropdown(),
+              const SizedBox(height: 30),
+              _buildDescriptionWidget(),
+              const SizedBox(height: 30),
+              _buildDatePicker(context),
+              const SizedBox(height: 50),
+              _buildSubmitButton(),
+              const SizedBox(height: 60),
+            ],
+          ),
         ),
       ),
     );

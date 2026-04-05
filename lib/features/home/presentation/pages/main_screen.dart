@@ -31,7 +31,6 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SpColor.primaryDark, // خلفية فاتحة ومريحة للعين
       // 1. الـ AppBar: عرض هوية المستخدم والتنبيهات
       appBar: const SPAppbar(),
 

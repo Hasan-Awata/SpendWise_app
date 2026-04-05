@@ -7,9 +7,7 @@ class SignupUsecase {
 
   SignupUsecase(this.userRepository);
 
-  Future<UserModel> signUp(UserDto userDto) async {
-    final response = await userRepository.register(userDto);
-    await userRepository.registerLocal(response);
-    return response;
+  Future<void> signUp(UserDto userDto) async {
+    await userRepository.register(userDto);
   }
 }

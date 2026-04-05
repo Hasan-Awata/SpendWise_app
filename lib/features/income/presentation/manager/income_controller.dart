@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
 // // Import: استيراد الـ Use Cases
@@ -77,7 +76,7 @@ class IncomeController extends GetxController {
       final results = await getIncomesUseCase();
       incomesList.assignAll(results);
     } catch (e) {
-      _showSnackbar(
+      HelperFunction.showSnackBar(
         "Data Error",
         "Could not fetch data from server",
         isError: true,
@@ -90,7 +89,7 @@ class IncomeController extends GetxController {
   // // Logic: حفظ البيانات عبر الـ Use Case الفعلي
   Future<void> saveIncome() async {
     if (incomeAmount.value <= 0) {
-      _showSnackbar(
+      HelperFunction.showSnackBar(
         "Input Error",
         "Please enter a valid amount",
         isError: true,
@@ -99,7 +98,11 @@ class IncomeController extends GetxController {
     }
 
     if (selectedValue.value.isEmpty) {
-      _showSnackbar("Warning", "Please select an income source", isError: true);
+      HelperFunction.showSnackBar(
+        "Warning",
+        "Please select an income source",
+        isError: true,
+      );
       return;
     }
 
@@ -123,9 +126,13 @@ class IncomeController extends GetxController {
       // // UI Update: إضافة العنصر للقائمة المحلية فوراً
       incomesList.add(incomeData);
 
-      _showSnackbar("Success", "Data saved successfully", isError: false);
+      HelperFunction.showSnackBar(
+        "Success",
+        "Data saved successfully",
+        isError: false,
+      );
     } catch (e) {
-      _showSnackbar(
+      HelperFunction.showSnackBar(
         "Technical Error",
         "Server connection failed: $e",
         isError: true,
@@ -133,19 +140,5 @@ class IncomeController extends GetxController {
     } finally {
       isLoading.value = false;
     }
-  }
-
-  void _showSnackbar(String title, String message, {required bool isError}) {
-    Get.snackbar(
-      title,
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: isError
-          ? Colors.redAccent.withOpacity(0.4)
-          : SpColor.incomeGreen.withOpacity(0.4),
-      colorText: Colors.white,
-      margin: const EdgeInsets.all(15),
-      borderRadius: 10,
-    );
   }
 }

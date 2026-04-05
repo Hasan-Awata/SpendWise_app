@@ -3,20 +3,27 @@ import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/auth/presentation/manager/auth_controller.dart';
 import 'package:spendwise/features/auth/presentation/pages/login_page.dart';
+import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/home/presentation/pages/main_screen.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 
 class SignUpPage extends StatelessWidget {
   SignUpPage({super.key});
-  final AuthController controller = AuthController.instance;
+  final controller = AuthController.instance;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SpColor.primaryDark,
       appBar: AppBar(
-        backgroundColor: SpColor.primaryDark,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.fork_right),
+            onPressed: () {
+              Get.to(() => MainScreen());
+            },
+          ),
+        ],
         title: const Text(
           "Create Account",
           style: TextStyle(
@@ -44,9 +51,14 @@ class SignUpPage extends StatelessWidget {
                   hint: "Enter first name",
                   prefixIcon: const Icon(Icons.person),
                   textEditingController: controller.firstNameController,
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? "First name is required"
-                      : null,
+                  validator: (value) {
+                    if ((value == null || value.trim().isEmpty)) {
+                      return "First name is required";
+                    } else if (value[0].isNum) {
+                      return "First Name mustn't start in number ";
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 25),
                 CustomTextField(
@@ -54,40 +66,48 @@ class SignUpPage extends StatelessWidget {
                   hint: "Enter last name",
                   prefixIcon: const Icon(Icons.person_outline),
                   textEditingController: controller.lastNameController,
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? "Last name is required"
-                      : null,
+                  validator: (value) {
+                    if ((value == null || value.trim().isEmpty)) {
+                      return "Last name is required";
+                    } else if (value[0].isNum) {
+                      return "Last Name mustn't start in number ";
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 25),
                 CustomTextField(
-                  label: "Email",
-                  hint: "Enter email",
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  textEditingController: controller.emailController,
-                  validator: (value) =>
-                      (value == null || !GetUtils.isEmail(value.trim()))
-                      ? "Enter a valid email"
-                      : null,
+                  label: "User Name",
+                  hint: "Enter User Name",
+                  prefixIcon: const Icon(Icons.person_add_outlined),
+                  textEditingController: controller.signUpUserNameController,
+                  validator: (value) {
+                    if ((value == null || value.trim().isEmpty)) {
+                      return "User Name is required";
+                    } else if (value[0].isNum) {
+                      return "User Name mustn't start in number ";
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 25),
                 Obx(
                   () => CustomTextField(
                     label: "Password",
                     hint: "Enter password",
-                    obscureText: !controller.isPasswordVisible.value,
+                    obscureText: !controller.isSignUpPasswordVisible.value,
                     prefixIcon: IconButton(
                       onPressed: controller.toggleSignUpPasswordVisibility,
                       icon: Icon(
-                        controller.isPasswordVisible.value
+                        controller.isSignUpPasswordVisible.value
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
                         color: SpColor.accentBlue,
                       ),
                     ),
-                    textEditingController: controller.passwordController,
-                    validator: (value) => (value == null || value.length < 6)
-                        ? "Minimum 6 characters"
-                        : null,
+                    textEditingController: controller.signUpPasswordController,
+                    validator: (value) =>
+                        HelperFunction.validatePassword(value),
                   ),
                 ),
                 const SizedBox(height: 30),
@@ -101,7 +121,7 @@ class SignUpPage extends StatelessWidget {
                       }
                     },
                     color: SpColor.accentBlue,
-                    isLoading: controller.isLoading.value,
+                    isLoading: controller.isLoadingSignUp.value,
                   ),
                 ),
                 const SizedBox(height: 80),
@@ -117,7 +137,7 @@ class SignUpPage extends StatelessWidget {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () => Get.to(() => const LogeIn()),
+                      onTap: () => Get.toNamed('/login'),
                       child: const Text(
                         " Log in",
                         style: TextStyle(

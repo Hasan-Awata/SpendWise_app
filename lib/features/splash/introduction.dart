@@ -27,16 +27,7 @@ class Introduction extends StatelessWidget {
               width: 300,
               child: CustomButton(
                 onPressed: () {
-                  Get.to(
-                    () => SignUpPage(),
-                    // تأثير الـ fade مع الـ zoom هو الأكثر حداثة ويمنع الوميض تماماً
-                    transition: Transition.downToUp,
-
-                    // يمكنك التحكم في السرعة لزيادة النعومة (500 مللي ثانية مثالية)
-                    duration: const Duration(milliseconds: 500),
-                    // منحنى الحركة يجعل الانتقال يبدو طبيعياً وغير ميكانيكي
-                    curve: Curves.fastOutSlowIn,
-                  );
+                  Get.toNamed('/signup');
                 },
                 text: "Continue",
                 color: SpColor.accentBlue,

@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/network/api_endpoints.dart';
-import 'package:spendwise/features/auth/data/datasources/app_user_local_datasource.dart';
-import 'package:spendwise/features/auth/data/datasources/app_user_local_datasource_impl.dart';
-import 'package:spendwise/features/auth/data/datasources/app_user_remote_datasource.dart';
-import 'package:spendwise/features/auth/data/datasources/app_user_remote_datasource_impl.dart';
+import 'package:spendwise/features/auth/data/app_user_remote_datasource_impl.dart/app_user_local_datasource.dart';
+import 'package:spendwise/features/auth/data/app_user_remote_datasource_impl.dart/app_user_remote_datasource.dart';
+import 'package:spendwise/features/auth/data/app_user_remote_datasource_impl.dart/app_user_remote_datasource_impl.dart';
+
 import 'package:spendwise/features/auth/data/repositories/user_repository.dart';
 import 'package:spendwise/features/auth/data/repositories/user_repository_impl.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_usecase.dart';
@@ -19,8 +19,8 @@ class AuthBinding extends Bindings {
       () => Dio(
         BaseOptions(
           baseUrl: ApiEndpoints.baseUrl,
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
+          connectTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
@@ -42,6 +42,12 @@ class AuthBinding extends Bindings {
     Get.lazyPut(() => SignupUsecase(Get.find<UserRepository>()));
     Get.lazyPut(() => LoginUsecase(Get.find<UserRepository>()));
     Get.lazyPut(() => LogoutUsecase(Get.find<UserRepository>()));
-    Get.put(() => AuthController());
+    Get.put(
+      AuthController(
+        signupUsecase: Get.find(),
+        loginUsecase: Get.find(),
+        logoutUsecase: Get.find(),
+      ),
+    );
   }
 }

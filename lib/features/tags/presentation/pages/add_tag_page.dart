@@ -53,7 +53,7 @@ class _AddtagPageState extends State<AddtagPage> {
     return Scaffold(
       backgroundColor: SpColor.primaryDark2,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: SpColor.primaryDark2,
         elevation: 0,
         centerTitle: true,
         title: const Text(
@@ -80,83 +80,85 @@ class _AddtagPageState extends State<AddtagPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
 
-              // // UI Decoration: Adding a descriptive header
-              const Text(
-                "Tag Details",
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                  letterSpacing: 1.1,
+                // // UI Decoration: Adding a descriptive header
+                const Text(
+                  "Tag Details",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    letterSpacing: 1.1,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 25),
+                const SizedBox(height: 25),
 
-              // // Layout: Grouping inputs inside a container for better visual structure
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: SpColor.surfaceNavy.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white10),
+                // // Layout: Grouping inputs inside a container for better visual structure
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: SpColor.surfaceNavy.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CustomTextField(
+                        label: "Tag Name",
+                        hint: "e.g. Shopping, Bills...",
+                        prefixIcon: const Icon(
+                          Icons.label_important_outline,
+                          color: SpColor.accentBlue,
+                        ),
+                        textEditingController: _nameController,
+                      ),
+                      const SizedBox(height: 25),
+                      const Text(
+                        "Category Type",
+                        style: TextStyle(
+                          color: SpColor.accentBlue,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SPDropdownButton(
+                        controller: tagController,
+                        title: "category",
+                        hint: "Select Category",
+                        isTextField: false,
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomTextField(
-                      label: "Tag Name",
-                      hint: "e.g. Shopping, Bills...",
-                      prefixIcon: const Icon(
-                        Icons.label_important_outline,
-                        color: SpColor.accentBlue,
+
+                const SizedBox(height: 40),
+
+                // // Visual Feedback: Information note for the user
+                Row(
+                  children: const [
+                    Icon(Icons.info_outline, color: Colors.white38, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Tags help you categorize your expenses more specifically.",
+                        style: TextStyle(color: Colors.white38, fontSize: 12),
                       ),
-                      textEditingController: _nameController,
-                    ),
-                    const SizedBox(height: 25),
-                    const Text(
-                      "Category Type",
-                      style: TextStyle(
-                        color: SpColor.accentBlue,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    SPDropdownButton(
-                      controller: tagController,
-                      title: "category",
-                      hint: "Select Category",
-                      isTextField: false,
                     ),
                   ],
                 ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // // Visual Feedback: Information note for the user
-              Row(
-                children: const [
-                  Icon(Icons.info_outline, color: Colors.white38, size: 16),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "Tags help you categorize your expenses more specifically.",
-                      style: TextStyle(color: Colors.white38, fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

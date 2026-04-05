@@ -1,5 +1,6 @@
-import 'package:spendwise/features/auth/data/datasources/app_user_local_datasource.dart';
-import 'package:spendwise/features/auth/data/datasources/app_user_remote_datasource.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource.dart';
+
 import 'package:spendwise/features/auth/data/models/user_dto.dart';
 import 'package:spendwise/features/auth/data/models/user_model.dart';
 import 'package:spendwise/features/auth/data/repositories/user_repository.dart';
@@ -19,8 +20,8 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<UserModel> register(UserDto user) async {
-    return await appUserRemoteDatasource.register(user);
+  Future<UserModel> register(UserDto userDto) async {
+    return await appUserRemoteDatasource.register(userDto);
   }
 
   @override
@@ -30,7 +31,11 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<void> logOut() async {
-    await appUserLocalDatasource.logOut();
     await appUserRemoteDatasource.logOut();
+  }
+
+  @override
+  Future<UserModel?> getUser() async {
+    return await appUserLocalDatasource.getUser();
   }
 }

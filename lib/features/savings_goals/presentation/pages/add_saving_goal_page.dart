@@ -56,7 +56,7 @@ class _AddSavingGoalPageState extends State<AddSavingGoalPage> {
     return Scaffold(
       backgroundColor: SpColor.primaryDark2,
       appBar: AppBar(
-        backgroundColor: SpColor.primaryDark,
+        backgroundColor: SpColor.primaryDark2,
         elevation: 0,
         title: Text(
           'New saving goal',
@@ -67,52 +67,54 @@ class _AddSavingGoalPageState extends State<AddSavingGoalPage> {
         ),
         iconTheme: IconThemeData(color: Colors.amberAccent.withAlpha(195)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CustomTextField(
-                label: 'Goal name',
-                hint: 'e.g. Emergency fund',
-                prefixIcon: const Icon(Icons.flag_outlined),
-                textEditingController: _nameController,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'Enter a name';
-                  }
-                  return null;
-                },
-                textColor: Colors.amberAccent.withAlpha(160),
-              ),
-              const SizedBox(height: 20),
-              CustomTextField(
-                label: 'Target amount',
-                hint: '0.00',
-                prefixIcon: const Icon(Icons.attach_money),
-                textEditingController: _targetController,
-                isNumber: true,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'Enter a target amount';
-                  }
-                  if (double.tryParse(v.trim()) == null) {
-                    return 'Enter a valid number';
-                  }
-                  return null;
-                },
-                textColor: Colors.amberAccent.withAlpha(160),
-              ),
-              const SizedBox(height: 32),
+      body: Padding(
+        padding: const EdgeInsets.all(22.0),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CustomTextField(
+                  label: 'Goal name',
+                  hint: 'e.g. Emergency fund',
+                  prefixIcon: const Icon(Icons.flag_outlined),
+                  textEditingController: _nameController,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Enter a name';
+                    }
+                    return null;
+                  },
+                  textColor: Colors.amberAccent.withAlpha(160),
+                ),
+                const SizedBox(height: 20),
+                CustomTextField(
+                  label: 'Target amount',
+                  hint: '0.00',
+                  prefixIcon: const Icon(Icons.attach_money),
+                  textEditingController: _targetController,
+                  isNumber: true,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Enter a target amount';
+                    }
+                    if (double.tryParse(v.trim()) == null) {
+                      return 'Enter a valid number';
+                    }
+                    return null;
+                  },
+                  textColor: Colors.amberAccent.withAlpha(160),
+                ),
+                const SizedBox(height: 32),
 
-              CustomButton(
-                text: "save goal",
-                onPressed: () {},
-                color: Colors.amberAccent.withAlpha(195),
-              ),
-            ],
+                CustomButton(
+                  text: "save goal",
+                  onPressed: () {},
+                  color: Colors.amberAccent.withAlpha(195),
+                ),
+              ],
+            ),
           ),
         ),
       ),

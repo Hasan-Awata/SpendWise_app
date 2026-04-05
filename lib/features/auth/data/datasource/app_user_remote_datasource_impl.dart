@@ -42,7 +42,11 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
 
   @override
   Future<void> logOut() async {
-    await dio.post(ApiEndpoints.logout);
+    try {
+      await dio.post(ApiEndpoints.logout);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
   }
 
   // دالة بسيطة للتعامل مع أخطاء Dio

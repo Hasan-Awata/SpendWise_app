@@ -31,26 +31,30 @@ class _AddExpenseViewState extends State<AddExpenseView> {
           ),
         ),
         backgroundColor: SpColor.primaryDark,
+
         elevation: 0,
         iconTheme: const IconThemeData(color: SpColor.expenseRed),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-        child: Column(
-          children: [
-            _buildAmountInput(controller),
-            const SizedBox(height: 30),
-            _buildSourceExpenseDropdown(controller),
-            const SizedBox(height: 30),
-            _buildTagDropdown(controller),
-            const SizedBox(height: 20),
-            _buildTagsToExpense(),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+          child: Column(
+            children: [
+              _buildAmountInput(controller),
+              const SizedBox(height: 30),
+              _buildSourceExpenseDropdown(controller),
+              const SizedBox(height: 30),
+              _buildTagDropdown(controller),
+              const SizedBox(height: 20),
+              _buildTagsToExpense(),
 
-            const SizedBox(height: 50),
-            _buildDatePicker(context),
-            const SizedBox(height: 50),
-            _buildSubmitButton(controller),
-          ],
+              const SizedBox(height: 50),
+              _buildDatePicker(context),
+              const SizedBox(height: 50),
+              _buildSubmitButton(controller),
+            ],
+          ),
         ),
       ),
     );

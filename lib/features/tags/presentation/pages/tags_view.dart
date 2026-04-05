@@ -18,7 +18,7 @@ class TagsView extends StatelessWidget {
     return Scaffold(
       backgroundColor: SpColor.primaryDark2,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: SpColor.primaryDark2,
         elevation: 0,
         centerTitle: true,
         title: const Text(

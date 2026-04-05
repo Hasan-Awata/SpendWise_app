@@ -8,7 +8,6 @@ class SPAppbar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       elevation: 0,
-      backgroundColor: SpColor.primaryDark,
 
       title: Row(
         children: [

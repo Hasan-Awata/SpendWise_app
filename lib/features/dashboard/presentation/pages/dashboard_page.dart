@@ -12,9 +12,7 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SpColor.primaryDark,
       appBar: AppBar(
-        backgroundColor: SpColor.primaryDark,
         elevation: 0,
         title: const Text(
           'Quick add',

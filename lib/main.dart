@@ -6,6 +6,7 @@ import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
+import 'package:spendwise/features/auth/data/datasources/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
 import 'package:spendwise/features/income/data/models/income_adapter.dart';
 import 'package:spendwise/features/splash/introduction.dart';
@@ -20,6 +21,8 @@ void main() async {
 
   // init hive for Income
   await IncomeLocalDataSourceImpl().init();
+
+  await AppUserLocalDatasourceImpl().init();
 
   runApp(DevicePreview(enabled: false, builder: (context) => const MyApp()));
 }
@@ -42,6 +45,13 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Noto',
         scaffoldBackgroundColor: SpColor.primaryDark,
+
+        appBarTheme: AppBarTheme(
+          backgroundColor: SpColor.primaryDark,
+          foregroundColor: SpColor.accentBlue,
+          elevation: 0,
+          centerTitle: true,
+        ),
         textSelectionTheme: TextSelectionThemeData(
           cursorColor: SpColor.accentBlue,
           selectionColor: SpColor.accentBlue.withOpacity(0.3),

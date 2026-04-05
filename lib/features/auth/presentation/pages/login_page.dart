@@ -1,40 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/auth/presentation/manager/auth_controller.dart';
-import 'package:spendwise/features/auth/presentation/pages/sign_up_page.dart';
-import 'package:spendwise/features/home/presentation/pages/main_screen.dart';
+import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
-
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 
-class LogeIn extends StatefulWidget {
-  const LogeIn({super.key});
-
-  @override
-  State<LogeIn> createState() => _LogeInState();
-}
-
-class _LogeInState extends State<LogeIn> {
-  AuthController controller = AuthController.instance;
-
-  TextEditingController textEditingController = TextEditingController();
-
-  TextEditingController controller2 = TextEditingController();
-
-  TextEditingController controller3 = TextEditingController();
-
-  TextEditingController controller4 = TextEditingController();
-
+class LogInPage extends StatelessWidget {
+  final controller = AuthController.instance;
+  LogInPage({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SpColor.primaryDark,
       appBar: AppBar(
-        backgroundColor: SpColor.primaryDark,
+        elevation: 0,
         title: const Text(
-          "LogeIn",
+          "Login",
           style: TextStyle(
             color: SpColor.accentBlue,
             fontWeight: FontWeight.bold,
@@ -42,83 +23,95 @@ class _LogeInState extends State<LogeIn> {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              Image.asset(
-                width: 180,
-                "assets/images/logo.png",
-                color: SpColor.accentBlue.withValues(alpha: 0.5),
-              ),
-              const SizedBox(height: 40),
-              CustomTextField(
-                label: "Email",
-                hint: "Email",
-                prefixIcon: const Icon(Icons.email),
-                textEditingController: controller3,
-              ),
-              const SizedBox(height: 25),
-              Obx(
-                () => CustomTextField(
-                  label: "Password",
-                  hint: "Password",
-                  obscureText: controller.visibility.value ? true : false,
-                  prefixIcon: IconButton(
-                    onPressed: () {
-                      controller.visibility.value =
-                          !controller.visibility.value;
-                    },
-                    icon: Icon(
-                      controller.visibility.value
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                      color: SpColor.accentBlue,
-                    ),
-                  ),
-                  textEditingController: controller4,
+          child: Form(
+            key: controller.loginFormKey,
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+                Image.asset(
+                  "assets/images/logo.png",
+                  width: 180,
+                  color: SpColor.accentBlue.withValues(alpha: 0.5),
                 ),
-              ),
-              const SizedBox(height: 30),
-              CustomButton(
-                text: "Send",
-                onPressed: () {
-                  Get.to(() => const MainScreen());
-                },
-                color: SpColor.accentBlue,
-              ),
-              const SizedBox(height: 80),
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Don't have an account yet?",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: SpColor.offWhite,
+                const SizedBox(height: 50),
+                CustomTextField(
+                  label: "User Name",
+                  hint: "Enter User Name",
+                  prefixIcon: const Icon(Icons.person_add_outlined),
+                  textEditingController: controller.loginUserNameController,
+                  validator: (value) {
+                    if ((value == null || value.trim().isEmpty)) {
+                      return "User Name is required";
+                    } else if (value[0].isNum) {
+                      return "User Name mustn't start in number ";
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 25),
+
+                Obx(
+                  () => CustomTextField(
+                    label: "Password",
+                    hint: "Enter your password",
+                    obscureText: !controller.isLoginPasswordVisible.value,
+                    textEditingController: controller.loginPasswordController,
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      onPressed: controller.toggleLoginPasswordVisibility,
+                      icon: Icon(
+                        controller.isLoginPasswordVisible.value
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: SpColor.accentBlue,
                       ),
                     ),
+                    validator: (value) =>
+                        HelperFunction.validatePassword(value),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                // زر تسجيل الدخول مع مراقبة حالة التحميل
+                Obx(
+                  () => controller.isLoadingLogIn.value
+                      ? const CircularProgressIndicator(
+                          color: SpColor.accentBlue,
+                        )
+                      : CustomButton(
+                          text: "Login",
+                          onPressed: () => controller.logIn(),
+                          color: SpColor.accentBlue,
+                        ),
+                ),
+
+                const SizedBox(height: 50),
+
+                // رابط الانتقال لإنشاء حساب
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Don't have an account yet?",
+                      style: TextStyle(color: SpColor.offWhite),
+                    ),
                     GestureDetector(
-                      onTap: () {
-                        Get.to(() => SignUpPage());
-                      },
-                      child: Text(
+                      onTap: () => Get.toNamed('/signup'),
+                      child: const Text(
                         " Sign up",
                         style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
                           color: SpColor.accentBlue,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 30),
-            ],
+              ],
+            ),
           ),
         ),
       ),
