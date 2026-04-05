@@ -8,7 +8,6 @@ namespace SpendWise.Application.Interfaces.Transactions
 {
     public interface ITransactionService
     {
-        public Task<bool> TransactionProcess(TransactionsDTO transactionDto);
         public Task<bool> CreateTransactionAsync(TransactionsDTO transactionDto);
 
         public Task<bool> UpdateTransactionAsync(TransactionsDTO transactionDto);
