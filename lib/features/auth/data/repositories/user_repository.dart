@@ -6,4 +6,5 @@ abstract class UserRepository {
   Future<UserModel> register(UserDto user);
   Future<UserModel> logIn(String userName, String password);
   Future<void> logOut();
+  Future<UserModel?> getUser();
 }

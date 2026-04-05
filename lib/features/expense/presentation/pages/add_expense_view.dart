@@ -38,7 +38,6 @@ class _AddExpenseViewState extends State<AddExpenseView> {
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
           child: Column(
             children: [
               _buildAmountInput(controller),

@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
-import 'package:spendwise/features/auth/data/datasources/app_user_local_datasource.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
+
 import 'package:spendwise/features/auth/data/models/user_model.dart';
 
 class AppUserLocalDatasourceImpl implements AppUserLocalDatasource {

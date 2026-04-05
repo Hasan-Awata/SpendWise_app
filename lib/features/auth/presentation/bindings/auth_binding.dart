@@ -1,9 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/network/api_endpoints.dart';
-import 'package:spendwise/features/auth/data/app_user_remote_datasource_impl.dart/app_user_local_datasource.dart';
-import 'package:spendwise/features/auth/data/app_user_remote_datasource_impl.dart/app_user_remote_datasource.dart';
-import 'package:spendwise/features/auth/data/app_user_remote_datasource_impl.dart/app_user_remote_datasource_impl.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource_impl.dart';
 
 import 'package:spendwise/features/auth/data/repositories/user_repository.dart';
 import 'package:spendwise/features/auth/data/repositories/user_repository_impl.dart';

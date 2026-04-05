@@ -6,7 +6,8 @@ import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/auth/data/datasources/app_user_local_datasource_impl.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
+
 import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
 import 'package:spendwise/features/income/data/models/income_adapter.dart';
 import 'package:spendwise/features/splash/introduction.dart';

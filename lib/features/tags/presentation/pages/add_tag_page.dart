@@ -54,8 +54,7 @@ class _AddtagPageState extends State<AddtagPage> {
       backgroundColor: SpColor.primaryDark2,
       appBar: AppBar(
         backgroundColor: SpColor.primaryDark2,
-        elevation: 0,
-        centerTitle: true,
+
         title: const Text(
           "Create New Tag",
           style: TextStyle(
@@ -64,6 +63,8 @@ class _AddtagPageState extends State<AddtagPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        elevation: 0,
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new,
