@@ -16,9 +16,9 @@ namespace SpendWise.Application.DTOs.Transaction
         public decimal Amount { get; set; }
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
-        //public IncomeResponse IncomeResponse { get; set; }
-        //public ExpenseResponse ExpenseResponse { get; set; }
-        //public DeptResponse DeptResponse { get; set; }
-        //public SavingGoalResponse SavingGoalResponse { get; set; }
+        //public IncomeResponse? IncomeResponse { get; set; }
+        //public ExpenseResponse? ExpenseResponse { get; set; }
+        //public DeptResponse? DeptResponse { get; set; }
+        //public SavingGoalResponse? SavingGoalResponse { get; set; }
     }
 }

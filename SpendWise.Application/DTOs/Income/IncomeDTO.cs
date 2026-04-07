@@ -16,19 +16,17 @@ namespace SpendWise.Application.DTOs.Income
         [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters!")]
         public string Title { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Please select the income type!")]
-        public bool IsFixed { get; set; }
-
-        public bool IsMonthly { get; set; }
-
-        [Required(ErrorMessage = "Please enter the currency id")]
-        public int CurrencyId { get; set; }
+        [Required(ErrorMessage = "Please enter the wallet's id that you want to deduct from")]
+        public int WalletId { get; set; }
 
         [Required(ErrorMessage = "Enter the amount of your income")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
         public decimal Amount { get; set; }
 
-        public DateTime? LastTime { get; set; }
-
+        [Required(ErrorMessage ="Please enter the date of the transaction")]
+        public DateTime Date { get; set; }
+        
+        public int? TagId { get; set; } = -1;
+        public string Description { get; set; } = string.Empty;
     }
 }

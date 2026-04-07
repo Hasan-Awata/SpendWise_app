@@ -8,8 +8,13 @@ using System.Transactions;
 
 namespace SpendWise.Application.Services
 {
-    //public class TransactionService : ITransactionService
-    //{
-    //    // Implement after the Income and Expense  ...
-    //}
+    public class TransactionService : ITransactionService
+    {
+        private readonly ITransactionService _transactionService;
+
+        public TransactionService(ITransactionService transactionService)
+        {
+            _transactionService = transactionService;
+        }
+    }
 }
