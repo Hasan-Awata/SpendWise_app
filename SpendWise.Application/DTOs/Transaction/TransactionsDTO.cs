@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using SpendWise.Domain.Enums;
-using SpendWise.Application.DTOs.Income;
 
 namespace SpendWise.Application.DTOs.Transaction
 {

@@ -1,6 +1,5 @@
 ﻿using SpendWise.Application.DTOs.Transaction;
 using SpendWise.Application.Interfaces.Transactions;
-using SpendWise.Domain.Entities.SpendWise.Application.Interfaces.Incom;
 using SpendWise.Domain.Enums;
 using System;
 using System.Collections.Generic;

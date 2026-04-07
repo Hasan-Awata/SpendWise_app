@@ -1,5 +1,4 @@
-﻿using SpendWise.Application.DTOs.Income;
-using SpendWise.Domain.Entities;
+﻿using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -17,7 +16,9 @@ namespace SpendWise.Application.DTOs.Transaction
         public decimal Amount { get; set; }
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
-        //public IncomeResponse? IncomeResponse { get; set; }        
-        //public ExpenseResponse? ExpenseResponse { get; set; }        
+        //public IncomeResponse IncomeResponse { get; set; }
+        //public ExpenseResponse ExpenseResponse { get; set; }
+        //public DeptResponse DeptResponse { get; set; }
+        //public SavingGoalResponse SavingGoalResponse { get; set; }
     }
 }
