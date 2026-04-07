@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.Interfaces.Incom;
-using SpendWise.Application.Interfaces.Tags;
 using System.Security.Claims;
 
 namespace SpendWise.Controllers

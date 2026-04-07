@@ -9,11 +9,12 @@ namespace SpendWise.Domain.Entities
     {
         public int Id { get; set; }
         public int UserId { get; set; }
+        public int TagId { get; set; }
         public string Title { get; set; } = string.Empty;
         public decimal Amount { get; set; }
-        public bool IsFixed { get; set; }
-        public bool IsMonthly { get; set; }
-        public Currency Currency { get; set; } = new Currency(-1, "Syrain Pound");
-        public DateTime? LastTime { get; set; } 
+        public Currency Currency { get; set; } = new Currency(1, "Syrian Pound"); 
+        public bool IsMonthly {  get; set; }
+        public int Days {  get; set; }
+        public DateTime? LastTime { get; set; }
     }
 }

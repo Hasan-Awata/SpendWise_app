@@ -25,7 +25,6 @@ namespace SpendWise.Application.Services
                 Title = incomeTest.Title,
                 Amount = incomeTest.Amount,
                 Currency = incomeTest.Currency,
-                IsFixed = incomeTest.IsFixed,
                 IsMonthly = incomeTest.IsMonthly,
                 LastTime = incomeTest.LastTime,
             };
@@ -46,7 +45,6 @@ namespace SpendWise.Application.Services
                 Title = item.Title,
                 Amount = item.Amount,
                 Currency = item.Currency,
-                IsFixed = item.IsFixed,
                 IsMonthly = item.IsMonthly,
                 LastTime = item.LastTime,
             });
@@ -67,7 +65,6 @@ namespace SpendWise.Application.Services
                 Title = item.Title,
                 Amount = item.Amount,
                 Currency = item.Currency,
-                IsFixed = item.IsFixed,
                 IsMonthly = item.IsMonthly,
                 LastTime = item.LastTime,
             });
@@ -80,12 +77,10 @@ namespace SpendWise.Application.Services
 
             var income = new Income
             {
-                Id= incomeDto.Id,
                 UserId= incomeDto.UserId,
                 Title= incomeDto.Title,
                 Amount= incomeDto.Amount,
                 //Currency= await _currencyRepo.GetCurrencyAsync(incomeDto.CurrencyId),
-                IsFixed= incomeDto.IsFixed,
                 IsMonthly= incomeDto.IsMonthly,
                 LastTime= incomeDto.LastTime,
             };
@@ -102,12 +97,10 @@ namespace SpendWise.Application.Services
 
             var incomeToUpdate = new Income
             {
-                Id = incomeDto.Id,
                 UserId = incomeDto.UserId,
                 Title = incomeDto.Title,
                 Amount = incomeDto.Amount,
                 //Currency= await _currencyRepo.GetCurrencyAsync(incomeDto.CurrencyId),
-                IsFixed = incomeDto.IsFixed,
                 IsMonthly = incomeDto.IsMonthly,
                 LastTime = incomeDto.LastTime,
             };

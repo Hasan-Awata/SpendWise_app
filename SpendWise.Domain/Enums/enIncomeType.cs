@@ -4,10 +4,9 @@ using System.Text;
 
 namespace SpendWise.Domain.Enums
 {
-    public enum enTransactionMode
+    public enum enIncomeType
     {
-        Add = 0,
-        Edit = 1
-      
+        Fixed = 0,
+        NotFixed = 1,
     }
 }
