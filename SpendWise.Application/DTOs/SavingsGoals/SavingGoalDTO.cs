@@ -5,7 +5,7 @@ using System.Text;
 
 namespace SpendWise.Application.DTOs.SavingGoals
 {
-    public class SavingGoalsDTO
+    public class SavingGoalDTO
     {
 
         [Required(ErrorMessage = "Title is required!")]

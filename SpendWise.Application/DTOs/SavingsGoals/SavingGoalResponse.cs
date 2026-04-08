@@ -5,7 +5,7 @@ using System.Text;
 
 namespace SpendWise.Application.DTOs.SavingsGoals
 {
-    public class SavingGoalsResponse
+    public class SavingGoalResponse
     {
         public int GoalID { get; set; }
         public int UserID { get; set; }
@@ -17,8 +17,8 @@ namespace SpendWise.Application.DTOs.SavingsGoals
         public decimal CurrentAmount { get; set; }
 
         public DateTime DeadlineDate { get; set; }
-        public SavingGoalsResponse() { }
-        public SavingGoalsResponse(int goalID, int userID, string title, decimal targetAmount, decimal currentAmount, DateTime deadlineDate)
+        public SavingGoalResponse() { }
+        public SavingGoalResponse(int goalID, int userID, string title, decimal targetAmount, decimal currentAmount, DateTime deadlineDate)
         {
             GoalID = goalID;
             UserID = userID;
@@ -27,7 +27,7 @@ namespace SpendWise.Application.DTOs.SavingsGoals
             CurrentAmount = currentAmount;
             DeadlineDate = deadlineDate;
         }
-        public SavingGoalsResponse(SpendWise.Domain.Entities.SavingGoals savingGoals) {
+        public SavingGoalResponse(SpendWise.Domain.Entities.SavingGoal savingGoals) {
         this.GoalID= savingGoals.GoalID;
             this.DeadlineDate = savingGoals.DeadlineDate;
             this.UserID = savingGoals.UserID;

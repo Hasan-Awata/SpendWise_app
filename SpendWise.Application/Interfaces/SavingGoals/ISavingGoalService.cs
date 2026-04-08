@@ -6,25 +6,25 @@ using System.Text;
 
 namespace SpendWise.Application.Interfaces.SavingGoals
 {
-    public interface ISavingGoals
+    public interface ISavingGoalService
     {
         // Get a specific goal by its ID
-        public Task<SavingGoalsResponse?> GetGoalByIdAsync(int goalId);
+        public Task<SavingGoalResponse?> GetGoalByIdAsync(int goalId);
 
         // Get all goals for a specific user
-        public Task<IEnumerable<SavingGoalsResponse>>? GetAllUserGoalsAsync(int userId);
+        public Task<IEnumerable<SavingGoalResponse>>? GetAllUserGoalsAsync(int userId);
 
         // Add a new savings goal
-        public Task<bool> AddGoalAsync(SavingGoalsDTO goalDto);
+        public Task<int> AddGoalAsync(SavingGoalDTO goalDto);
 
         // Update an existing goal
-        public Task<bool> UpdateGoalAsync(int goalId, SavingGoalsDTO goalDto);
+        public Task<bool> UpdateGoalAsync(int goalId, SavingGoalDTO goalDto);
 
         // Delete a goal
         public Task<bool> DeleteGoalAsync(int goalId);
 
         // Check if a goal exists
         public Task<bool> GoalExistsAsync(int goalId);
-        Task<IEnumerable<SavingGoalsResponse>> GetAchievedGoalsAsync(int userId);
+        Task<IEnumerable<SavingGoalResponse>> GetAchievedGoalsAsync(int userId);
     }
 }

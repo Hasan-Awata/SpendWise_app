@@ -4,7 +4,7 @@ using System.Text;
 
 namespace SpendWise.Domain.Entities
 {
-    public class SavingGoals
+    public class SavingGoal
     {
         public int GoalID { get; set; }
         public int UserID { get; set; }
@@ -16,7 +16,7 @@ namespace SpendWise.Domain.Entities
         public decimal CurrentAmount { get; set; }
 
         public DateTime DeadlineDate { get; set; }
-        public SavingGoals(int goalID, int userID, string title, decimal targetAmount, decimal currentAmount, DateTime deadlineDate)
+        public SavingGoal(int goalID, int userID, string title, decimal targetAmount, decimal currentAmount, DateTime deadlineDate)
         {
             GoalID = goalID;
             UserID = userID;
