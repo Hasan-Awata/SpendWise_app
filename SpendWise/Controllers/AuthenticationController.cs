@@ -5,7 +5,7 @@ using SpendWise.Application.Interfaces.DTOs;
 namespace SpendWise.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Authentication")]
     public class AuthenticationController: ControllerBase
     {
         public readonly IAuthService _authService;

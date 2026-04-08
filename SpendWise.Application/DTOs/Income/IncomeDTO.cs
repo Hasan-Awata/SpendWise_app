@@ -9,6 +9,8 @@ namespace SpendWise.Application.DTOs.Income
 {
     public class IncomeDTO
     {
+        public int Id { get; set; } = -1;
+
         [Required(ErrorMessage = "Owner ID is required!")]
         public int UserId { get; set; }
 

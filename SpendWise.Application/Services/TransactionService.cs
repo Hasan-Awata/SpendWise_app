@@ -8,13 +8,13 @@ using System.Transactions;
 
 namespace SpendWise.Application.Services
 {
-    public class TransactionService : ITransactionService
+    public class TransactionService
     {
-        private readonly ITransactionService _transactionService;
+        //private readonly ITransactionRepository _transactionRepo;
 
-        public TransactionService(ITransactionService transactionService)
-        {
-            _transactionService = transactionService;
-        }
+        //public TransactionService(ITransactionRepository transactionRepo)
+        //{
+        //    _transactionRepo = transactionRepo;
+        //}
     }
 }

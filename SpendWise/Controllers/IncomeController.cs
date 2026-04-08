@@ -36,42 +36,5 @@ namespace SpendWise.Controllers
             _incomeService = incomeService;
         }
 
-        [HttpGet("{incomeId}")]
-        public async Task<IActionResult> GetIncome([FromRoute] int incomeId)
-        {
-            int userId = CurrentUserId;
-
-            var income = await _incomeService.GetIncomeAsync(userId, incomeId);
-
-            if (income == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(income);
-        }
-
-        [HttpGet]
-        // Multiple routes for the same data
-        // we use [FromQuery] instead of [FromRoute] for the categoryId
-        public async Task<IActionResult> GetIncomes([FromQuery] bool? isFixed)
-        {
-            int userId = CurrentUserId;
-
-            if (isFixed.HasValue)
-            {
-                // Triggered by: GET /api/incomes?Type=5
-                var tags = await _incomeService.GetIncomesByTypeAsync(userId, isFixed);
-                return Ok(tags);
-            }
-            else
-            {
-                // Triggered by: GET /api/incomes
-                var tags = await _incomeService.GetIncomesByUserIdAsync(userId);
-                return Ok(tags);
-            }
-        }
-
-
     }
 }

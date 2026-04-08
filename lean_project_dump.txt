@@ -27,15 +27,15 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise\appsettings.json
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise\Program.cs
 ----------------------------------------
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
 using System.Text.Json.Serialization;
 using SpendWise.Application.Interfaces;
 using SpendWise.Application.Services;
-using SpendWise.Infrastructure.Data;
 using SpendWise.Infrastructure.Repositories;
+using SpendWise.Application.Interfaces.Users;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,11 +65,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 
-// ── Database ─────────────────────────────────────────────────────────────
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// ── Dependency Injection ──────────────────────────────────────────────────
+// ── Dependency Injections ──────────────────────────────────────────────────
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
@@ -152,12 +148,12 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise\Controllers\Authenticat
 ----------------------------------------
 ﻿using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.Interfaces;
-using SpendWise.Application.DTOs;
+using SpendWise.Application.Interfaces.DTOs;
 
 namespace SpendWise.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Authentication")]
     public class AuthenticationController: ControllerBase
     {
         public readonly IAuthService _authService;
@@ -197,6 +193,87 @@ namespace SpendWise.Controllers
 }
 
 
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise\Controllers\IncomeController.cs
+----------------------------------------
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SpendWise.Application.Interfaces.Incom;
+using System.Security.Claims;
+
+namespace SpendWise.Controllers
+{
+    [Authorize]
+    [ApiController]
+    [Route("api/incoms")]
+
+    public class IncomeController : Controller
+    {
+        private readonly IIncomeService _incomeService;
+
+        // Helper property to securely extract the user ID from the auth token
+        private int CurrentUserId
+        {
+            get
+            {
+                // 1. Get the string value from the claim
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                // 2. Safely attempt to parse it into an integer
+                if (int.TryParse(userIdString, out int userId))
+                {
+                    return userId;
+                }
+
+                // 3. Fallback/Safety Net: If the claim is missing or somehow isn't a valid number
+                throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
+            }
+        }
+        public IncomeController(IIncomeService incomeService)
+        {
+            _incomeService = incomeService;
+        }
+
+        [HttpGet("{incomeId}")]
+        public async Task<IActionResult> GetIncome([FromRoute] int incomeId)
+        {
+            int userId = CurrentUserId;
+
+            var income = await _incomeService.GetIncomeAsync(userId, incomeId);
+
+            if (income == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(income);
+        }
+
+        [HttpGet]
+        // Multiple routes for the same data
+        // we use [FromQuery] instead of [FromRoute] for the categoryId
+        public async Task<IActionResult> GetIncomes([FromQuery] bool? isFixed)
+        {
+            int userId = CurrentUserId;
+
+            if (isFixed.HasValue)
+            {
+                // Triggered by: GET /api/incomes?Type=5
+                var tags = await _incomeService.GetIncomesByTypeAsync(userId, isFixed);
+                return Ok(tags);
+            }
+            else
+            {
+                // Triggered by: GET /api/incomes
+                var tags = await _incomeService.GetIncomesByUserIdAsync(userId);
+                return Ok(tags);
+            }
+        }
+
+
+    }
+}
+
+
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\SpendWise.Application.csproj
 ----------------------------------------
 ﻿<Project Sdk="Microsoft.NET.Sdk">
@@ -224,7 +301,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\LoginD
 ----------------------------------------
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SpendWise.Application.DTOs
+namespace SpendWise.Application.Interfaces.DTOs
 {
     public class LoginDto
     {
@@ -241,7 +318,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Regist
 ----------------------------------------
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SpendWise.Application.DTOs
+namespace SpendWise.Application.Interfaces.DTOs
 {
     public class RegisterDto
     {
@@ -253,6 +330,12 @@ namespace SpendWise.Application.DTOs
         [Required(ErrorMessage = "Password is requierd for registeration.")]
         [MinLength(6, ErrorMessage = "Password must be at least 6 characters.")]
         public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "First name is required for registeration.")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Last name is required for registeration.")]
+        public string LastName { get; set; } = string.Empty;
     }
 }
 
@@ -263,7 +346,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Respon
 using System.Collections.Generic;
 using System.Text;
 
-namespace SpendWise.Application.DTOs
+namespace SpendWise.Application.Interfaces.DTOs
 {
     public class ResponseAuthDto
     {
@@ -274,12 +357,142 @@ namespace SpendWise.Application.DTOs
 }
 
 
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\UserDTO.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+
+namespace SpendWise.Application.DTOs
+{
+    public class UserDTO
+    {
+        [Required(ErrorMessage = "Provide the user id!")]
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "Please enter a valid username name!")]
+        public string Username { get; set; } = string.Empty;
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Income\IncomeDTO.cs
+----------------------------------------
+﻿using SpendWise.Domain.Entities;
+using SpendWise.Domain.Enums;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+
+namespace SpendWise.Application.DTOs.Income
+{
+    public class IncomeDTO
+    {
+        [Required(ErrorMessage = "Owner ID is required!")]
+        public int UserId { get; set; }
+
+        [Required(ErrorMessage = "Please enter a title for this income!")]
+        [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters!")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please enter the wallet's id that you want to deduct from")]
+        public int WalletId { get; set; }
+
+        [Required(ErrorMessage = "Enter the amount of your income")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
+        public decimal Amount { get; set; }
+
+        [Required(ErrorMessage ="Please enter the date of the transaction")]
+        public DateTime Date { get; set; }
+        
+        public int? TagId { get; set; } = -1;
+        public string Description { get; set; } = string.Empty;
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Income\IncomeResponse.cs
+----------------------------------------
+﻿using SpendWise.Domain.Entities;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.DTOs.Income
+{
+    public class IncomeResponse
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public int? TagId { get; set; }
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Transaction\TransactionResponse.cs
+----------------------------------------
+﻿using SpendWise.Domain.Entities;
+using SpendWise.Domain.Enums;
+using SpendWise.Application.DTOs.Income;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+
+namespace SpendWise.Application.DTOs.Transaction
+{
+    public class TransactionResponse
+    {
+        // Main information
+        public int TransactionId { get; set; } = -1;
+        public int UserId { get; set; } = -1;
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public DateTime TransactionDate { get; set; } = DateTime.Now;
+
+        // Process Id
+        public int? IncomeId { get; set; }
+        public int? FixedIncomeId { get; set; }
+        public int? FixedExpenseId { get; set; }
+        public int? SavingGoalId { get; set; }
+        public int? DebtId { get; set; }
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Transaction\TransactionsDTO.cs
+----------------------------------------
+﻿using SpendWise.Domain.Entities;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+using SpendWise.Domain.Enums;
+
+namespace SpendWise.Application.DTOs.Transaction
+{
+    public class TransactionsDTO
+    {
+        [Required(ErrorMessage = "Provide the id of the transaction you want to accuire")]
+        public int TransactionId { get; set; } = -1;
+
+        [Required(ErrorMessage = "Please enter the transaction type to proceed")]
+        public enTransactionType TransactionType { get; set; } // Addetion = 0, Dedduction = 1.
+    }
+}
+
+
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\IAuthService.cs
 ----------------------------------------
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using SpendWise.Application.DTOs;
+using SpendWise.Application.Interfaces.DTOs;
 
 namespace SpendWise.Application.Interfaces
 {
@@ -291,22 +504,108 @@ namespace SpendWise.Application.Interfaces
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\IUserRepository.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\Incomes\IIncomeRepository.cs
 ----------------------------------------
-﻿using SpendWise.Domain.Entities;
+﻿using SpendWise.Application.DTOs.Income;
+using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace SpendWise.Application.Interfaces
+namespace SpendWise.Application.Interfaces.Incomes
+{
+    public interface IIncomeRepository
+    {
+        public Task<int> AddIncomeAsync(Income newIncome, Transaction newTransaction);
+        public Task<int> UpdateIncomeAsync(Income newIncome, Transaction newTransaction);
+        public Task<bool> DeleteIncomeAsync(int incomeId);
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\Incomes\IIncomeService.cs
+----------------------------------------
+﻿using SpendWise.Application.DTOs.Income;
+using SpendWise.Domain.Entities;
+using SpendWise.Domain.Enums;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+    namespace SpendWise.Application.Interfaces.Incom
+{
+    public interface IIncomeService
+    {
+        // Writing on the database
+        public Task<IncomeResponse> AddIncomeAsync(IncomeDTO incomeDto);
+        public Task<IncomeResponse> UpdateIncomeAsync(IncomeDTO incomeDto);
+        public Task<bool> DeleteIncomeAsync(int incomeId);
+
+        // Reading from the database
+        public Task<IncomeResponse> GetIncomeAsync(int incomeId);
+        public Task<IncomeResponse> GetIncomeByUserAsync(int userId);
+    }
+
+}
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\Transactions\ITransactionService.cs
+----------------------------------------
+﻿using SpendWise.Application.DTOs.Transaction;
+using SpendWise.Domain.Enums;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.Interfaces.Transactions
+{
+    public interface ITransactionService
+    {
+        public Task<bool> CreateTransactionAsync(TransactionsDTO transactionDto);
+
+        public Task<bool> UpdateTransactionAsync(TransactionsDTO transactionDto);
+
+        public Task<bool> DeleteTransactionAsync(TransactionsDTO transactionDto);
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\Users\IUserRepository.cs
+----------------------------------------
+﻿using SpendWise.Application.DTOs;
+using SpendWise.Domain.Entities;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.Interfaces.Users
 {
     public interface IUserRepository
     {
-        public Task AddUserAsync(User user);
+        public Task<bool> AddUserAsync(User user);
         public Task<User?> GetByUsernameAsync(string userName);
         public Task<User?> GetByIdAsync(int id);
-        public Task<bool> UsernameExistsAsync(string username);
+        public Task<bool> IsUsernameExistAsync(string username);
 
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\Users\IUserService.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using SpendWise.Application.DTOs;
+using SpendWise.Domain.Entities;
+
+namespace SpendWise.Application.Interfaces.Users
+{
+    public interface IUserService
+    {
+        public Task AddUserAsync(UserDTO user);
+        public Task<User?> GetByUsernameAsync(string userName);
+        public Task<User?> GetByIdAsync(int id);
+        public Task<bool> IsUsernameExistAsync(string username);
     }
 }
 
@@ -315,12 +614,13 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Services\Au
 ----------------------------------------
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using SpendWise.Application.DTOs;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using SpendWise.Application.Interfaces;
 using SpendWise.Domain.Entities;
+using SpendWise.Application.Interfaces.DTOs;
+using SpendWise.Application.Interfaces.Users;
 
 namespace SpendWise.Application.Services
 {
@@ -380,16 +680,12 @@ namespace SpendWise.Application.Services
 
         public async Task<ResponseAuthDto> RegisterAsync(RegisterDto registerDto)
         {
-            if (await _userRepo.UsernameExistsAsync(registerDto.UserName))
+            if (await _userRepo.IsUsernameExistAsync(registerDto.UserName))
                 throw new InvalidOperationException("This username is already taken.");
 
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
+            var Hashedpassword = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
 
-            var user = new User
-            {
-                UserName = registerDto.UserName,
-                PasswordHash = passwordHash,
-            };
+            var user = new User(registerDto.UserName, Hashedpassword, registerDto.FirstName, registerDto.LastName);
 
             await _userRepo.AddUserAsync(user);
 
@@ -402,11 +698,182 @@ namespace SpendWise.Application.Services
 
             if (user == null) return null;
 
-            var passwordIsValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash);
+            var passwordIsValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.HashedPassword);
 
             if (!passwordIsValid) return null;
 
             return GenerateToken(user);
+        }
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Services\IncomeService.cs
+----------------------------------------
+﻿using SpendWise.Application.DTOs.Income;
+using SpendWise.Application.Interfaces.Incom;
+using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Domain.Entities;
+using SpendWise.Domain.Enums;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Transactions;
+
+namespace SpendWise.Application.Services
+{
+    public class IncomeService: IIncomeService
+    {
+        private readonly IIncomeRepository _incomeRepo;
+        
+        public IncomeService(IIncomeRepository incomeRepo)
+        {
+            _incomeRepo = incomeRepo;
+        }
+        
+
+        public async Task<IncomeResponse> AddIncomeAsync(IncomeDTO incomeDto)
+        {
+            // 1 - map the incomeDTO into an income object
+            var newIncome = new Income
+            {
+                UserId = incomeDto.UserId,
+                Amount = incomeDto.Amount,
+            };
+
+            // 2 - Create a Transaction object to store in the database
+            var newTransaction = new Domain.Entities.Transaction
+            {
+              UserId = incomeDto.UserId,
+              Title = "Added Income",
+              Amount = incomeDto.Amount,
+              Description = incomeDto.Description,
+              IncomeId = null,
+              WalletId = incomeDto.WalletId,
+              TagId = incomeDto.TagId,
+              TransactionDate = incomeDto.Date,
+              TransactionType = enTransactionType.Addition,
+            };
+
+            // 3 - store both the income and the transaction in the database
+            int newIncomeId = await _incomeRepo.AddIncomeAsync(newIncome, newTransaction);
+
+            // 4 - Return the created item
+            return new IncomeResponse 
+            { 
+                Id = newIncomeId,
+                UserId = incomeDto.UserId,
+                Title = newTransaction.Title,
+                Amount= newTransaction.Amount,
+                TagId= newTransaction.TagId,
+            };
+        }
+        public async Task<IncomeResponse> UpdateIncomeAsync(IncomeDTO incomeDto)
+        {
+            // 1 - map the incomeDTO into an income object
+            var updatedIncome = new Income
+            {
+                UserId = incomeDto.UserId,
+                Amount = incomeDto.Amount,
+            };
+
+            // 2 - Create a Transaction object to update the one in the database
+            var updatedTransaction = new Domain.Entities.Transaction
+            {
+              UserId = incomeDto.UserId,
+              Title = "Added Income",
+              Amount = incomeDto.Amount,
+              Description = incomeDto.Description,
+              IncomeId = null,
+              WalletId = incomeDto.WalletId,
+              TagId = incomeDto.TagId,
+              TransactionDate = incomeDto.Date,
+              TransactionType = enTransactionType.Addition,
+            };
+
+            // 3 - update both the income and the transaction in the database
+            int updatedIncomeId = await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction);
+
+            // 4 - Return the updated item
+            return new IncomeResponse 
+            { 
+                Id = updatedIncomeId,
+                UserId = incomeDto.UserId,
+                Title = updatedTransaction.Title,
+                Amount= updatedTransaction.Amount,
+                TagId= updatedTransaction.TagId,
+            };
+        }
+
+        public async Task<bool> DeleteIncomeAsync(int incomeId)
+        {
+            return await _incomeRepo.DeleteIncomeAsync(incomeId);
+        }
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Services\TransactionService.cs
+----------------------------------------
+﻿using SpendWise.Application.DTOs.Transaction;
+using SpendWise.Application.Interfaces.Transactions;
+using SpendWise.Domain.Enums;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Transactions;
+
+namespace SpendWise.Application.Services
+{
+    public class TransactionService : ITransactionService
+    {
+        private readonly ITransactionService _transactionService;
+
+        public TransactionService(ITransactionService transactionService)
+        {
+            _transactionService = transactionService;
+        }
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Services\UserService.cs
+----------------------------------------
+﻿using SpendWise.Application.DTOs;
+using SpendWise.Application.Interfaces.Users;
+using SpendWise.Domain.Entities;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.Services
+{
+    public class UserService : IUserService
+    {
+        private readonly IUserRepository _UserRepo;
+        public UserService(IUserRepository userRepo)
+        {
+            _UserRepo = userRepo;
+        }
+        public async Task<User?> GetByIdAsync(int id)
+        {
+            var user = await _UserRepo.GetByIdAsync(id);
+            return user;
+        }
+        public async Task<User?> GetByUsernameAsync(string userName)
+        {
+            var user = await _UserRepo.GetByUsernameAsync(userName);
+            return user;
+        }
+        public async Task AddUserAsync(UserDTO userDTO)
+        {
+            var NewUser = new User(userDTO.Id, userDTO.Username);
+            await _UserRepo.AddUserAsync(NewUser);
+        }
+        public async Task<bool> IsUsernameExistAsync(string username)
+        {
+            var isExist = await _UserRepo.IsUsernameExistAsync(username);
+            return isExist;
         }
     }
 }
@@ -425,6 +892,100 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\SpendWise.Domain
 </Project>
 
 
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\Entities\Category.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection.Emit;
+using System.Text;
+
+namespace SpendWise.Domain.Entities
+{
+    public class Category
+    {
+        public int CategoryId { get; private set; }
+        public string Name { get; private set; } = string.Empty;
+        public int Priority { get; private set; }
+
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\Entities\Currency.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Domain.Entities
+{
+    public class Currency
+    {
+        public int Id { get; set; }
+        public string CurrencyName { get; set; } = string.Empty;
+        //public decimal liveValue { get; set; };
+        public Currency(int id, string currencyName)
+        {
+            this.Id = id;
+            this.CurrencyName = currencyName;
+        }
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\Entities\Income.cs
+----------------------------------------
+﻿using SpendWise.Domain.Enums;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Domain.Entities
+{
+    public class Income
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public decimal Amount { get; set; }
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\Entities\Transaction.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using SpendWise.Domain.Enums;
+
+namespace SpendWise.Domain.Entities
+{
+    public class Transaction
+    {
+        public int TransactionId { get; set; } = -1;
+        public int UserId { get; set; } = -1;
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int WalletId { get; set; }
+        public decimal Amount { get; set; } = 0.0m;
+        public DateTime TransactionDate { get; set; } = DateTime.Now;
+
+        public int? CategoryId { get; set; }
+        public int? TagId { get; set; }
+        public int? SavinGoalId { get; set; }
+        public int? FixedExpenseId { get; set; }
+        public int? FixedIncomeId { get; set; }
+        public int? DebtId { get; set; }
+        public int? IncomeId { get; set; }
+        public int? ExpenseId { get; set; }
+
+        // Transaction type is specified here:
+        public enTransactionType TransactionType { get; set; } // Addition or Deduction from the balance
+
+    }
+}
+
+
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\Entities\User.cs
 ----------------------------------------
 ﻿namespace SpendWise.Domain.Entities
@@ -433,7 +994,66 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\Entities\User.cs
     {
         public int Id { get; set; }
         public string UserName { get; set; } = string.Empty;
-        public string PasswordHash { get; set; } = string.Empty;
+        public string HashedPassword { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public User(int id, string userName)
+        {
+            Id = id;
+            UserName = userName;
+        }
+        public User(string userName, string HashedPassword)
+        {
+            this.UserName = userName;
+            this.HashedPassword = HashedPassword;
+        }
+        public User(string userName, string HashedPassword, string FirstName, string LastName)
+        {
+            this.UserName = userName;
+            this.HashedPassword = HashedPassword;
+            this.FirstName = FirstName;
+            this.LastName = LastName;
+        }
+        public User(int ID, string userName, string HashedPassword, string FirstName, string LastName)
+        {
+            this.Id = ID;
+            this.UserName = userName;
+            this.HashedPassword = HashedPassword;
+            this.FirstName = FirstName;
+            this.LastName = LastName;
+        }
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\Enums\enIncomeType.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Domain.Enums
+{
+    public enum enIncomeType
+    {
+        Fixed = 0,
+        NotFixed = 1,
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\Enums\enTransactionType.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Domain.Enums
+{
+    public enum enTransactionType
+    {
+        Addition = 0,             // Every process that leads to add to balance
+        Dedduction = 1            // Every process that leads to deduct from balance
     }
 }
 
@@ -460,70 +1080,154 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\SpendWis
 </Project>
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Data\ApplicationDbContext.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Global\DataAccessSettings.cs
 ----------------------------------------
-﻿using Microsoft.EntityFrameworkCore;
-using SpendWise.Domain.Entities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace SpendWise.Infrastructure.Data
+namespace SpendWise.Infrastructure.Global
 {
-    public class ApplicationDbContext : DbContext
+    public static class DataAccessSettings
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
-        public DbSet<User> Users { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<User>().HasIndex(u => u.UserName).IsUnique();
-        }
+        public static string ConnectionString = "Server=.;Database=SpendWiseDB;User Id=sa;Password=sa123456;TrustServerCertificate=True;";
     }
 }
 
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Repositories\UserRepository.cs
 ----------------------------------------
-﻿using SpendWise.Application.Interfaces;
-using SpendWise.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
-
+﻿using Azure;
+using Microsoft.Data.SqlClient;
+using SpendWise.Application.Interfaces.Users;
 using SpendWise.Domain.Entities;
+using SpendWise.Infrastructure.Global;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Text;
 
 namespace SpendWise.Infrastructure.Repositories
 {
     public class UserRepository : IUserRepository
     {
-        public readonly ApplicationDbContext _context;
-        public UserRepository(ApplicationDbContext context)
-        {
-            _context = context;
-        }
-
-        public async Task AddUserAsync(User user)
-        {
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task<User?> GetByUsernameAsync(string username)
-        {
-            return await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
-        }
-        
         public async Task<User?> GetByIdAsync(int id)
         {
-            return await _context.Users.FindAsync(id);
-        }
+            User user = null;
 
-        public async Task<bool> UsernameExistsAsync(string username)
+            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            {
+                using (SqlCommand command = new SqlCommand("[usr].[sp_GetUserByID]", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("@UserID", id);
+
+                    try
+                    {
+                        await connection.OpenAsync();
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            if (await reader.ReadAsync())
+                            {
+                                user = new User((string)reader["UserName"],
+                                                (string)reader["HashedPassword"],
+                                                (string)reader["FirstName"],
+                                                (string)reader["LastName"]);
+                            }
+                        }
+                    }
+                    catch (Exception) { }
+                }
+            }
+            return user;
+        }
+        public async Task<User?> GetByUsernameAsync(string userName)
         {
-            return await _context.Users.AnyAsync(u => u.UserName == username);
+            User user = null;
+
+            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            {
+                using (SqlCommand command = new SqlCommand("[usr].[sp_GetByUsername]", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("@Username", userName);
+
+                    try
+                    {
+                        await connection.OpenAsync();
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            if (await reader.ReadAsync())
+                            {
+                                user = new User((int)reader["UserID"],
+                                                (string)reader["UserName"],
+                                                (string)reader["Password"],
+                                                (string)reader["FirstName"],
+                                                (string)reader["LastName"]);
+                            }
+                        }
+                    }
+                    catch (Exception) { }
+                }
+            }
+            return user;
         }
-    } 
+        public async Task<bool> IsUsernameExistAsync(string username)
+        {
+            bool found = false;
+            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            {
+                using (SqlCommand command = new SqlCommand("[usr].[sp_IsUsernameExist]", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("@Username", username);
+
+                    try
+                    {
+                        await connection.OpenAsync();
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            found = reader.HasRows;
+                        }
+                    }
+                    catch (Exception) { }
+                }
+            }
+            return found;
+        }
+        public async Task<bool> AddUserAsync(User user)
+        {
+            int UserID = -1;
+
+            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            {
+                using (SqlCommand command = new SqlCommand("[usr].[sp_CreateUser]", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+
+                    command.Parameters.AddWithValue("@NewID", user.Id);
+                    command.Parameters.AddWithValue("@Username", user.UserName);
+                    command.Parameters.AddWithValue("@Password", user.HashedPassword);
+                    command.Parameters.AddWithValue("@FirstName", user.FirstName);
+                    command.Parameters.AddWithValue("@LastName", user.LastName);
+
+                    try
+                    {
+                        await connection.OpenAsync();
+                        object result = await command.ExecuteScalarAsync();
+                        if (result != null && int.TryParse(result.ToString(), out int insertedID))
+                        {
+                            UserID = insertedID;
+                            user.Id = UserID;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+    }
 }
-
-
