@@ -13,7 +13,7 @@ namespace SpendWise.Infrastructure.Repositories
 {
     public class TagRepository : ITagRepository
     {
-        public async Task<bool> AddTagAsync(Tag NewTag)
+        public async Task<int> AddTagAsync(Tag NewTag)
         {
             int TagID = -1;
 
@@ -25,7 +25,6 @@ namespace SpendWise.Infrastructure.Repositories
 
                     command.Parameters.AddWithValue("@NewID", NewTag.Id);
                     command.Parameters.AddWithValue("@UserID", NewTag.OwnerId);
-                    command.Parameters.AddWithValue("@CategoryID", NewTag.CategoryId);
                     command.Parameters.AddWithValue("@Name", NewTag.Label);
 
                     try
@@ -40,10 +39,10 @@ namespace SpendWise.Infrastructure.Repositories
                     }
                     catch (Exception)
                     {
-                        return false;
+                        return TagID;
                     }
                 }
-                return true;
+                return TagID;
             }
         }
 
@@ -56,7 +55,6 @@ namespace SpendWise.Infrastructure.Repositories
                 {
                     command.CommandType = CommandType.StoredProcedure;
 
-                    command.Parameters.AddWithValue("@CategoryID", UpdatedTag.CategoryId);
                     command.Parameters.AddWithValue("@Name", UpdatedTag.Label);
                     command.Parameters.AddWithValue("@TagID", UpdatedTag.Id);
                     command.Parameters.AddWithValue("@UserID", UpdatedTag.OwnerId);
@@ -75,7 +73,7 @@ namespace SpendWise.Infrastructure.Repositories
             return (rowsAffected > 0);
         }
 
-        public async Task<bool> DeleteTagAsync(int TagID, int UserID)
+        public async Task<bool> DeleteTagAsync(int TagID)
         {
             int rowsAffected = 0;
             using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
@@ -84,7 +82,6 @@ namespace SpendWise.Infrastructure.Repositories
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@TagID", TagID);
-                    command.Parameters.AddWithValue("@UserID", UserID);
 
                     try
                     {
@@ -100,7 +97,7 @@ namespace SpendWise.Infrastructure.Repositories
             return (rowsAffected > 0);
         }
 
-        public async Task<Tag> GetTagAsync(int UserID, int TagID)
+        public async Task<Tag> GetTagAsync(int TagID)
         {
             Tag tag = null;
 
@@ -110,7 +107,6 @@ namespace SpendWise.Infrastructure.Repositories
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@TagID", TagID);
-                    command.Parameters.AddWithValue("@UserID", UserID);
 
                     try
                     {
@@ -121,7 +117,6 @@ namespace SpendWise.Infrastructure.Repositories
                             {
                                 tag = new Tag(
                                     (int)reader["TagID"],
-                                    (int)reader["CategoryID"],
                                     (int)reader["UserID"],
                                     (string)reader["Name"]
                                 );
@@ -154,46 +149,6 @@ namespace SpendWise.Infrastructure.Repositories
                             {
                                 Tag? tag = new Tag(
                                     (int)reader["TagID"],
-                                    (int)reader["CategoryID"],
-                                    (int)reader["UserID"],
-                                    (string)reader["Name"]
-                                );
-                                tags.Add(tag);
-                            }
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // Handle exception appropriately based on your needs
-                    }
-                }
-            }
-
-            return tags;
-        }
-
-        public async Task<IEnumerable<Tag?>> GetTagsByCategoryIdAsync(int UserID, int CategoryID)
-        {
-            List<Tag?> tags = new List<Tag?>(); // Fixed initialization
-
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
-            {
-                using (SqlCommand command = new SqlCommand("[cfg].[sp_GetTagsByCategoryID]", connection))
-                {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@UserID", UserID);
-                    command.Parameters.AddWithValue("@CategoryID", CategoryID);
-
-                    try
-                    {
-                        await connection.OpenAsync();
-                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                        {
-                            while (await reader.ReadAsync())
-                            {
-                                Tag? tag = new Tag(
-                                    (int)reader["TagID"],
-                                    (int)reader["CategoryID"],
                                     (int)reader["UserID"],
                                     (string)reader["Name"]
                                 );

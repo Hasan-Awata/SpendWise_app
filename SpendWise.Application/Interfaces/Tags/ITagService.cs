@@ -8,12 +8,11 @@ namespace SpendWise.Application.Interfaces.Tags
 {
     public interface ITagService
     {
-        public Task<Tag?> GetTagAsync(int userId, int tagId);
+        public Task<Tag?> GetTagAsync(int tagId);
         public Task<IEnumerable<Tag?>> GetTagsByUserIdAsync(int UserId);
-        public Task<IEnumerable<Tag?>> GetTagsByCategoryIdAsync(int UserId, int CategoryId);
 
         public Task AddTagAsync(TagDTO tag);
         public Task UpdateTagAsync(TagDTO tag);
-        public Task DeleteTagAsync(int tagId, int UserID);
+        public Task DeleteTagAsync(int tagId);
     }
 }

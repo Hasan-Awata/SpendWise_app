@@ -16,9 +16,9 @@ namespace SpendWise.Application.Services
             _tagRepo = tagRepository;
         }
 
-        public async Task<Tag?> GetTagAsync(int userId, int tagId)
+        public async Task<Tag?> GetTagAsync(int tagId)
         {
-            var tag = await _tagRepo.GetTagAsync(userId, tagId);
+            var tag = await _tagRepo.GetTagAsync(tagId);
 
             return tag;
         }
@@ -30,28 +30,21 @@ namespace SpendWise.Application.Services
             return tagsList;
         }
 
-        public async Task<IEnumerable<Tag?>> GetTagsByCategoryIdAsync(int userId, int categoryId)
-        {
-            var tagsList = await _tagRepo.GetTagsByCategoryIdAsync(userId, categoryId);
-
-            return tagsList;
-        }
-
         public async Task AddTagAsync(TagDTO tagDto)
         {
-            var newTag = new Tag(tagDto.Id, tagDto.CategoryId, tagDto.OwnerId, tagDto.Label);
+            var newTag = new Tag(tagDto.Id, tagDto.OwnerId, tagDto.Label);
 
             await _tagRepo.AddTagAsync(newTag);
         }
         public async Task UpdateTagAsync(TagDTO tagDto)
         {
-            var updatedTag = new Tag(tagDto.Id, tagDto.CategoryId, tagDto.OwnerId, tagDto.Label);
+            var updatedTag = new Tag(tagDto.Id, tagDto.OwnerId, tagDto.Label);
 
             await _tagRepo.UpdateTagAsync(updatedTag);
         }
-        public async Task DeleteTagAsync(int tagId, int UserID)
+        public async Task DeleteTagAsync(int tagId)
         {
-            await _tagRepo.DeleteTagAsync(tagId, UserID);
+            await _tagRepo.DeleteTagAsync(tagId);
         }
     }
 }
