@@ -16,9 +16,9 @@ namespace SpendWise.Application.Services
             _tagRepo = tagRepository;
         }
 
-        public async Task<TagResponse?> GetTagAsync(int tagId)
+        public async Task<TagResponse?> GetTagAsync(int tagId, int userId)
         {
-            var tag = await _tagRepo.GetTagAsync(tagId);
+            var tag = await _tagRepo.GetTagAsync(tagId, userId);
 
             return new TagResponse 
             {

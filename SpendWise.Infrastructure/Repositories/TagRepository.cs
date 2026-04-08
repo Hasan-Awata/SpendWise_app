@@ -97,7 +97,7 @@ namespace SpendWise.Infrastructure.Repositories
             return (rowsAffected > 0);
         }
 
-        public async Task<Tag> GetTagAsync(int TagID)
+        public async Task<Tag> GetTagAsync(int TagID, int userId)
         {
             Tag tag = null;
 

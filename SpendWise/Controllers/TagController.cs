@@ -106,7 +106,7 @@ namespace SpendWise.Controllers
         {
             int userId = CurrentUserId;
 
-            await _tagService.DeleteTagAsync(tagId, userId);
+            await _tagService.DeleteTagAsync(tagId);
 
             return NoContent();
         }

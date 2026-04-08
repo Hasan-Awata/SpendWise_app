@@ -13,7 +13,7 @@ namespace SpendWise.Application.DTOs.Transaction
         public int UserId { get; set; } = -1;
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public Tag? TagId { get; set; }
+        public int? TagId { get; set; }
         public decimal Amount { get; set; }
         public DateTime TransactionDate { get; set; } = DateTime.Now;
         
