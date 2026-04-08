@@ -1,4 +1,4 @@
-﻿using SpendWise.Application.DTOs;
+﻿using SpendWise.Application.DTOs.Tag;
 using SpendWise.Application.Interfaces.Tags;
 using SpendWise.Domain.Entities;
 using System;
@@ -16,18 +16,28 @@ namespace SpendWise.Application.Services
             _tagRepo = tagRepository;
         }
 
-        public async Task<Tag?> GetTagAsync(int tagId)
+        public async Task<TagResponse?> GetTagAsync(int tagId)
         {
             var tag = await _tagRepo.GetTagAsync(tagId);
 
-            return tag;
+            return new TagResponse 
+            {
+                Id = tag.Id,
+                Label = tag.Label,
+                OwnerId = tag.OwnerId,
+            };
         }
 
-        public async Task<IEnumerable<Tag?>> GetTagsByUserIdAsync(int userId)
+        public async Task<IEnumerable<TagResponse?>> GetTagsByUserIdAsync(int userId)
         {
             var tagsList = await _tagRepo.GetTagsByUserIdAsync(userId);
 
-            return tagsList;
+            return tagsList.Select(item => new TagResponse 
+            {
+                Id = item.Id,
+                Label = item.Label,
+                OwnerId = item.OwnerId
+            });
         }
 
         public async Task AddTagAsync(TagDTO tagDto)

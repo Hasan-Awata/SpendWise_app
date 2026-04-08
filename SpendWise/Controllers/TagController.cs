@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SpendWise.Application.DTOs;
+using SpendWise.Application.DTOs.Tag;
 using SpendWise.Application.Interfaces.Tags;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -55,22 +55,13 @@ namespace SpendWise.Controllers
         [HttpGet]
         // Multiple routes for the same data
         // we use [FromQuery] instead of [FromRoute] for the categoryId
-        public async Task<IActionResult> GetTags([FromQuery] int? categoryId)
+        public async Task<IActionResult> GetTags()
         {
             int userId = CurrentUserId;
 
-            if (categoryId.HasValue)
-            {
-                // Triggered by: GET /api/tags?categoryId=5
-                var tags = await _tagService.GetTagsByCategoryIdAsync(userId, categoryId.Value);
-                return Ok(tags);
-            }
-            else
-            {
-                // Triggered by: GET /api/tags
-                var tags = await _tagService.GetTagsByUserIdAsync(userId);
-                return Ok(tags);
-            }
+            // Triggered by: GET /api/tags
+            var tags = await _tagService.GetTagsByUserIdAsync(userId);
+            return Ok(tags);
         }
 
         [HttpPost]

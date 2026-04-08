@@ -1,4 +1,4 @@
-﻿using SpendWise.Application.DTOs;
+﻿using SpendWise.Application.DTOs.Tag;
 using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -8,8 +8,8 @@ namespace SpendWise.Application.Interfaces.Tags
 {
     public interface ITagService
     {
-        public Task<Tag?> GetTagAsync(int tagId);
-        public Task<IEnumerable<Tag?>> GetTagsByUserIdAsync(int UserId);
+        public Task<TagResponse?> GetTagAsync(int tagId);
+        public Task<IEnumerable<TagResponse?>> GetTagsByUserIdAsync(int UserId);
 
         public Task AddTagAsync(TagDTO tag);
         public Task UpdateTagAsync(TagDTO tag);
