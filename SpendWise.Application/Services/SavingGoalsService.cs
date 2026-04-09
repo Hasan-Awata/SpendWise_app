@@ -18,10 +18,10 @@ namespace SpendWise.Application.Services
         _goalRepo = goalRepo;
         }*/
 
-        public async Task<SavingGoalResponse?> GetGoalByIdAsync(int goalId)
+        public async Task<SavingGoalResponse?> GetGoalByIdAsync(int userID,int goalId)
         {
             //UnComment Later *_*
-            //SavingGoals savingGoals =await _goalRepo .GetGoalByIdAsync(goalId);
+            //SavingGoals savingGoals =await _goalRepo .GetGoalByIdAsync(userID,goalId);
             
             // return new SavingGoalsResponse(savingGoals)
             return null;
@@ -52,9 +52,9 @@ namespace SpendWise.Application.Services
         }
     
 
-        public async Task<int>AddGoalAsync (SavingGoalDTO savingGoal)
+        public async Task<int>AddGoalAsync (int userID,SavingGoalDTO savingGoal)
         {
-            //return await _goalRepo.AddGoalAsync(savingGoal);
+            //return await _goalRepo.AddGoalAsync(userID,savingGoal);
             return -1;
 
         }
