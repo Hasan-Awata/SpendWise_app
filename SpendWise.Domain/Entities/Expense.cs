@@ -10,5 +10,6 @@ namespace SpendWise.Domain.Entities
         public int UserId { get; set; }
         public decimal Amount { get; set; }
         public string Products { get; set; } = string.Empty;
+
     }
 }

@@ -1,4 +1,5 @@
-﻿using SpendWise.Domain.Entities;
+﻿using SpendWise.Application.DTOs.Tag;
+using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -28,7 +29,7 @@ namespace SpendWise.Application.DTOs.Income
         [Required(ErrorMessage ="Please enter the date of the transaction")]
         public DateTime Date { get; set; }
         
-        public int? TagId { get; set; } = -1;
+        public TagDTO? IncomeTag { get; set; } = null;
         public string Description { get; set; } = string.Empty;
     }
 }

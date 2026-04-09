@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using SpendWise.Application.DTOs.Paged;
 
-namespace SpendWise.Application.Interfaces.Incom
+namespace SpendWise.Application.Interfaces.Incomes
 {
     public interface IIncomeService
     {
@@ -17,7 +17,7 @@ namespace SpendWise.Application.Interfaces.Incom
         public Task<bool> DeleteIncomeAsync(int incomeId);
 
         // Reading from the database
-        public Task<IncomeResponse> GetIncomeAsync(int incomeId);
+        public Task<IncomeResponse> GetIncomeAsync(int incomeId, int userId);
         public Task<PagedResponse<IncomeResponse>> GetIncomeByUserAsync(int userId, PageDTO pageDto);
     }
 
