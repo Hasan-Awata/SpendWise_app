@@ -24,6 +24,7 @@ namespace SpendWise.Application.Services
         public async Task<ExpenseResponse> GetExpenseAsync(int expenseId)
         {
             var transactionExpense = await _expenseRepo.GetExpenseAsync(expenseId);
+            var products = await _expenseRepo.GetProductsAsync(expenseId);
 
             if (transactionExpense == null)
             {
@@ -37,6 +38,7 @@ namespace SpendWise.Application.Services
                 Title = transactionExpense.Title,
                 Amount = transactionExpense.Amount,
                 TagId = transactionExpense.TagId,
+                Products = products,
             };
         }
 
@@ -52,6 +54,8 @@ namespace SpendWise.Application.Services
                 Amount = item.Amount,
                 TagId = item.TagId,
             });
+
+            expenseResponse.Select(async item => item.Products = await _expenseRepo.GetProductsAsync(item.Id));
 
             return new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
         }
