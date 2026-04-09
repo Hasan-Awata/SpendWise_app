@@ -1,4 +1,5 @@
-﻿using SpendWise.Application.DTOs.Tag;
+﻿using SpendWise.Application.DTOs.NewFolder;
+using SpendWise.Application.DTOs.Tag;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
 using System;
@@ -20,7 +21,7 @@ namespace SpendWise.Application.DTOs.Income
         public string Title { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Please enter the wallet's id that you want to deduct from")]
-        public int WalletId { get; set; }
+        public WalletDTO Wallet { get; set; } = new WalletDTO();
 
         [Required(ErrorMessage = "Enter the amount of your income")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]

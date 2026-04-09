@@ -7,6 +7,9 @@ using SpendWise.Application.Interfaces;
 using SpendWise.Application.Services;
 using SpendWise.Infrastructure.Repositories;
 using SpendWise.Application.Interfaces.Users;
+using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Application.DTOs.Income;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,7 +42,14 @@ builder.Services.AddSwaggerGen(options =>
 
 // ── Dependency Injections ──────────────────────────────────────────────────
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+//builder.Services.AddScoped<IIncomeService, IncomeService>();
+//builder.Services.AddScoped<IIncomeRepository, IncomeRepository>();
+
+//builder.Services.AddScoped<IWalletService, WalletService>();
+//builder.Services.AddScoped<IWalletRepository, WalletRepository>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

@@ -1,84 +1,144 @@
-﻿using SpendWise.Application.DTOs.NewFolder;
+﻿using SpendWise.Application.DTOs.Wallet;
+using SpendWise.Application.DTOs.Currency;
 using SpendWise.Application.Interfaces.Wallets;
 using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using SpendWise.Application.DTOs.NewFolder;
 
 namespace SpendWise.Application.Services
 {
-    public  class WalletService :IWallet
+    public class WalletService : IWalletService
     {
-        //private readonly IWalletRepository _walletRepo;
+        private readonly IWalletRepository _walletRepo;
 
-        //public WalletService(IWalletRepository walletRepo)
-        //{
-        //    _walletRepo = walletRepo;
-        //}
-
-        public async Task<bool> AddWalletAsync(WalletsDTO createWalletDto)
+        public WalletService(IWalletRepository walletRepo)
         {
-          
-             bool isDone = false;
-
-            //isDone =await _walletRepo.AddWalletAsync(createWalletDto);
-            return isDone;
-            
+            _walletRepo = walletRepo;
         }
 
-        public async Task<bool> UpdateWalletAsync(WalletsDTO updateWalletDto, int WalletId)
+        public async Task<WalletResponse?> GetWalletByIdAsync(int walletId, int userId)
         {
-            bool isDone = false;
+            var wallet = await _walletRepo.GetWalletByIdAsync(walletId, userId);
 
-            //isDone =await _walletRepo.UpdateWalletAsync(updateWalletDto,userId);
-            return isDone;
-
-
-        }
-
-        public async Task<Wallet?> GetWalletByIdAsync(int walletId, int userId)
-        {
-            Wallet wallet=null;
-           // wallet =await _walletRepo.GetByIdAsync(walletId, userId);
-
-            if (wallet == null) return null;
-
-           
-            return new Wallet
+            if(wallet == null)
             {
-                WalletId = wallet.WalletId,
-                CurrencyId = wallet.CurrencyId,
-                Balance = wallet.Balance,
-                UserId = wallet.UserId
-                ,user=wallet.user
+                return null;
+            }
 
+            return new WalletResponse
+            {
+                WalletId = walletId,
+                UserId = userId,
+                Balance = wallet.Balance,
+                Currency = new CurrencyResponse
+                {
+                    Id = wallet.Currency.Id,
+                    CurrencyName = wallet.Currency.CurrencyName,
+                    LiveValue = wallet.Currency.LiveValue,
+                }
             };
         }
 
-        public async Task<IEnumerable<Wallet>> GetUserWalletsAsync(int userId)
+        public async Task<IEnumerable<WalletResponse>> GetUserWalletsAsync(int userId)
         {
-            var wallets = new List<Wallet>();
-            //uncomment later 
-               //wallets= await _walletRepo.GetAllByUserIdAsync(userId);
+            var walletsList = await _walletRepo.GetUserWalletsAsync(userId);
 
-            return wallets;
+            if (!walletsList.Any())
+            {
+                return Enumerable.Empty<WalletResponse>();
+            }
 
+            return walletsList.Select(item => new WalletResponse
+            {
+                WalletId = item.WalletId,
+                UserId = item.UserId,
+                Balance = item.Balance,
+                Currency = new CurrencyResponse
+                {
+                    Id= item.Currency.Id,
+                    CurrencyName= item.Currency.CurrencyName,
+                    LiveValue= item.Currency.LiveValue,
+                },
+            });
         }
 
-        public async Task<bool> DeleteWalletAsync(int walletId, int userId)
+        public async Task<WalletResponse?> AddWalletAsync(WalletDTO walletDTO)
         {
-            //Uncomment Later <>
-            //return await _walletRepo.DeleteAsync(walletId, userId);
-            return false;
+            var newWallet = new Wallet
+            {
+                WalletId = walletDTO.WalletId,
+                UserId = walletDTO.UserId,
+                Balance = walletDTO.Balance,
+                Currency = new Currency
+                {
+                    Id = walletDTO.CurrencyDTO.CurrencyId,
+                    CurrencyName = walletDTO.CurrencyDTO.CurrencyName,
+                    LiveValue = walletDTO.CurrencyDTO.LiveValue,
+                }
+            };
 
+            int newWalletId = await _walletRepo.AddWalletAsync(newWallet);
+
+            if(newWalletId == -1)
+            {
+                return null;
+            }
+
+            return new WalletResponse
+            {
+                WalletId = newWalletId,
+                UserId = walletDTO.UserId,
+                Balance = walletDTO.Balance,
+                Currency = new CurrencyResponse
+                {
+                    Id = walletDTO.CurrencyDTO.CurrencyId,
+                    CurrencyName = walletDTO.CurrencyDTO.CurrencyName,
+                    LiveValue = walletDTO.CurrencyDTO.LiveValue,
+                },
+            };
         }
 
-        public async Task<decimal> GetTotalBalanceAsync(int userId, int currencyId)
-        {   
-            //Uncomment Later 
-            //return await _walletRepo.GetSumBalanceAsync(userId, currencyId);
-            return 0;
-        }
-    }
+        public async Task<WalletResponse?> UpdateWalletAsync(WalletDTO walletDTO)
+        {
+            var updatedWallet = new Wallet
+            {
+                WalletId = walletDTO.WalletId,
+                UserId = walletDTO.UserId,
+                Balance = walletDTO.Balance,
+                Currency = new Currency
+                {
+                    Id = walletDTO.CurrencyDTO.CurrencyId,
+                    CurrencyName = walletDTO.CurrencyDTO.CurrencyName,
+                    LiveValue = walletDTO.CurrencyDTO.LiveValue,
+                }
+            };
 
+            int updatedWalletId = await _walletRepo.UpdateWalletAsync(updatedWallet);
+
+            if(updatedWalletId == -1)
+            {
+                return null;
+            }
+
+            return new WalletResponse
+            {
+                WalletId = updatedWalletId,
+                UserId = walletDTO.UserId,
+                Balance = walletDTO.Balance,
+                Currency = new CurrencyResponse
+                {
+                    Id = walletDTO.CurrencyDTO.CurrencyId,
+                    CurrencyName = walletDTO.CurrencyDTO.CurrencyName,
+                    LiveValue = walletDTO.CurrencyDTO.LiveValue,
+                },
+            };
+        }
+
+        public async Task<bool> DeleteWalletAsync(int walletId)
+        {
+            return await _walletRepo.DeleteWalletAsync(walletId);
+        }
+    } 
 }

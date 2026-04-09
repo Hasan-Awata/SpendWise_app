@@ -11,7 +11,7 @@ namespace SpendWise.Domain.Entities
         public int UserId { get; set; } = -1;
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public int WalletId { get; set; }
+        public Wallet Wallet { get; set; } = new Wallet();
         public decimal Amount { get; set; } = 0.0m;
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
