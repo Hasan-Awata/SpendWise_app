@@ -10,6 +10,7 @@ using SpendWise.Application.Interfaces.Users;
 using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Application.Interfaces.Wallets;
 using SpendWise.Application.DTOs.Income;
+using SpendWise.Application.Interfaces.Tags;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,6 +51,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 //builder.Services.AddScoped<IWalletService, WalletService>();
 //builder.Services.AddScoped<IWalletRepository, WalletRepository>();
+
+builder.Services.AddScoped<ITagService,  TagService>();
+builder.Services.AddScoped<ITagRepository, TagRepository>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
