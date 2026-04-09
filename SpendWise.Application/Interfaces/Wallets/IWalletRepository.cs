@@ -12,9 +12,9 @@ namespace SpendWise.Application.Interfaces.Wallets
 
         public Task<IEnumerable<Wallet>> GetUserWalletsAsync(int userId);
 
-        public Task<int> AddWalletAsync(Wallet walletDTO);
+        public Task<int> AddWalletAsync(Wallet wallet);
 
-        public Task<int> UpdateWalletAsync(Wallet walletDTO);
+        public Task<int> UpdateWalletAsync(Wallet wallet);
 
         public Task<bool> DeleteWalletAsync(int walletId);
 
