@@ -13,9 +13,6 @@ namespace SpendWise.Application.DTOs.Tag
         [Required(ErrorMessage = "Please enter a valid tag name!")]
         public string Label { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Please choose a category for your tag!")]
-        public int CategoryId { get; set; }
-
         [Required(ErrorMessage ="Tag can't be created without an owner!")]
         public int OwnerId { get; set; }
     }

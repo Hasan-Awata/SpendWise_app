@@ -15,8 +15,8 @@ namespace SpendWise.Application.Interfaces.Incomes
         public Task<bool> DeleteIncomeAsync(int incomeId);
 
         // Reading from the database
-        public Task<Transaction> GetIncomeAsync(int incomeId, int userId); // returns a transaction to store the full information
-        Task<(IEnumerable<Transaction> projects, int totalCount)> GetIncomeByUserAsync(int userId, int pageNumber, int pageSize);
+        public Task<Income> GetIncomeAsync(int incomeId, int userId); // returns a transaction to store the full information
+        Task<(IEnumerable<Income> projects, int totalCount)> GetIncomeByUserAsync(int userId, int pageNumber, int pageSize);
 
     }
 }

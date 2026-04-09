@@ -10,11 +10,11 @@ namespace SpendWise.Domain.Entities
         public int Id { get; set; } = -1;
         public int OwnerId { get; set; } = -1;
         public string Label { get; set; } = string.Empty;
-        public Tag(int  id,int ownerID, string label)
+
+        public Tag() { }
+        public Tag(int id, int ownerId, string label)
         {
-            Id = id;
-            OwnerId = ownerID;
-            Label = label;
+            Id = id; OwnerId = ownerId; Label = label;
         }
     }
 }

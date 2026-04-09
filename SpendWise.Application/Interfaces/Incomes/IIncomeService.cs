@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using SpendWise.Application.DTOs.Paged;
 
-namespace SpendWise.Application.Interfaces.Incom
+namespace SpendWise.Application.Interfaces.Incomes
 {
     public interface IIncomeService
     {

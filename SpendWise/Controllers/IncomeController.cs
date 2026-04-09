@@ -2,14 +2,14 @@
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.Income;
 using SpendWise.Application.DTOs.Paged;
-using SpendWise.Application.Interfaces.Incom;
+using SpendWise.Application.Interfaces.Incomes;
 using System.Security.Claims;
 
 namespace SpendWise.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/incoms")]
+    [Route("api/incomes")]
 
     public class IncomeController : Controller
     {
@@ -42,8 +42,8 @@ namespace SpendWise.Controllers
         public async Task<IActionResult> GetIncome([FromQuery] int incomeId)
         {
             var incomeResponse = await _incomeService.GetIncomeAsync(incomeId, CurrentUserId);
-            
-            if(incomeResponse == null)
+
+            if (incomeResponse == null)
             {
                 return NotFound();
             }
@@ -59,8 +59,23 @@ namespace SpendWise.Controllers
             return Ok(pagedIncomeList);
         }
 
-        [HttpPost]
+        [HttpPost("{AddIncome}")]
         public async Task<IActionResult> AddIncome([FromBody] IncomeDTO incomeDTO)
+        {
+            if (CurrentUserId != incomeDTO.UserId)
+            {
+                return Unauthorized();
+            }
+
+            incomeDTO.UserId = CurrentUserId;
+
+            var createdIncome = await _incomeService.AddIncomeAsync(incomeDTO);
+
+            return CreatedAtAction("Income was created successfully", incomeDTO);
+        }
+
+        [HttpPatch("{UpdateIncome}")]
+        public async Task<IActionResult> UpdateIncome([FromBody] IncomeDTO incomeDTO)
         {
             if(CurrentUserId != incomeDTO.UserId)
             {
@@ -71,7 +86,20 @@ namespace SpendWise.Controllers
 
             var createdIncome = await _incomeService.AddIncomeAsync(incomeDTO);
 
-            return CreatedAtAction("Income was created successfully", incomeDTO);
+            return CreatedAtAction("Income was created successfully", createdIncome);
+        }
+
+        [HttpDelete("{DeleteIncome}")]
+        public async Task<IActionResult> DeleteIncome([FromQuery] int incomeId)
+        {
+            if(await _incomeService.DeleteIncomeAsync(incomeId))
+            {
+                return NoContent();
+            }
+            else
+            {
+                return BadRequest();
+            }
         }
     }
 }
