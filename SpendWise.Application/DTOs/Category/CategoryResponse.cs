@@ -1,12 +1,11 @@
 ﻿using SpendWise.Domain.Enums;
 using System;
 using System.Collections.Generic;
-using System.Reflection.Emit;
 using System.Text;
 
-namespace SpendWise.Domain.Entities
+namespace SpendWise.Application.DTOs.Category
 {
-    public class Category
+    public class CategoryResponse
     {
         public int CategoryId { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -21,19 +20,5 @@ namespace SpendWise.Domain.Entities
 
 
         public enCategoryType CategoryType { get; set; }
-        public Category(int categoryID, string name, int priority, decimal limitAmount, decimal percentage, int month, int year, enCategoryType categoryType)
-        {
-            CategoryId = categoryID;
-            Name = name;
-            Priority = priority;
-            LimitAmount = limitAmount;
-            Percentage = percentage;
-            Month = month;
-            Year = year;
-            CategoryType = categoryType;
-
-
-        }
     }
-
 }
