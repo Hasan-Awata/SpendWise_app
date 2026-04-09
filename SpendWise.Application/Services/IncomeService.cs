@@ -18,9 +18,9 @@ namespace SpendWise.Application.Services
         }
 
         // Reading methods --------------------------------------------------
-        public async Task<IncomeResponse> GetIncomeAsync(int incomeId)
+        public async Task<IncomeResponse> GetIncomeAsync(int incomeId, int userId)
         {
-            var transactionIncome = await _incomeRepo.GetIncomeAsync(incomeId);
+            var transactionIncome = await _incomeRepo.GetIncomeAsync(incomeId, userId);
 
             if (transactionIncome == null)
             {

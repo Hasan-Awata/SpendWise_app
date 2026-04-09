@@ -17,7 +17,7 @@ namespace SpendWise.Application.Interfaces.Incom
         public Task<bool> DeleteIncomeAsync(int incomeId);
 
         // Reading from the database
-        public Task<IncomeResponse> GetIncomeAsync(int incomeId);
+        public Task<IncomeResponse> GetIncomeAsync(int incomeId, int userId);
         public Task<PagedResponse<IncomeResponse>> GetIncomeByUserAsync(int userId, PageDTO pageDto);
     }
 

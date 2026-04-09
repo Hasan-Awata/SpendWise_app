@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SpendWise.Application.DTOs.Income;
+using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.Interfaces.Incom;
 using System.Security.Claims;
 
@@ -36,5 +38,40 @@ namespace SpendWise.Controllers
             _incomeService = incomeService;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetIncome([FromQuery] int incomeId)
+        {
+            var incomeResponse = await _incomeService.GetIncomeAsync(incomeId, CurrentUserId);
+            
+            if(incomeResponse == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(incomeResponse);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetIncomeByUser([FromQuery] PageDTO pageDTO)
+        {
+            var pagedIncomeList = await _incomeService.GetIncomeByUserAsync(CurrentUserId, pageDTO);
+
+            return Ok(pagedIncomeList);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddIncome([FromBody] IncomeDTO incomeDTO)
+        {
+            if(CurrentUserId != incomeDTO.UserId)
+            {
+                return Unauthorized();
+            }
+
+            incomeDTO.UserId = CurrentUserId;
+
+            var createdIncome = await _incomeService.AddIncomeAsync(incomeDTO);
+
+            return CreatedAtAction("Income was created successfully", incomeDTO);
+        }
     }
 }
