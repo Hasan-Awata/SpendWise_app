@@ -38,8 +38,8 @@ namespace SpendWise.Controllers
             _incomeService = incomeService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetIncome([FromQuery] int incomeId)
+        [HttpGet("{incomeId}")]
+        public async Task<IActionResult> GetIncome([FromRoute] int incomeId)
         {
             var incomeResponse = await _incomeService.GetIncomeAsync(incomeId, CurrentUserId);
 
@@ -59,7 +59,7 @@ namespace SpendWise.Controllers
             return Ok(pagedIncomeList);
         }
 
-        [HttpPost("{AddIncome}")]
+        [HttpPost]
         public async Task<IActionResult> AddIncome([FromBody] IncomeDTO incomeDTO)
         {
             if (CurrentUserId != incomeDTO.UserId)
@@ -79,8 +79,8 @@ namespace SpendWise.Controllers
             return CreatedAtAction(nameof(GetIncome), incomeDTO);
         }
 
-        [HttpPatch("{UpdateIncome}")]
-        public async Task<IActionResult> UpdateIncome([FromBody] IncomeDTO incomeDTO)
+        [HttpPatch("{incomeId}")]
+        public async Task<IActionResult> UpdateIncome([FromRoute] int incomeId, [FromBody] IncomeDTO incomeDTO)
         {
             if(CurrentUserId != incomeDTO.UserId)
             {
@@ -99,8 +99,8 @@ namespace SpendWise.Controllers
             return CreatedAtAction("Income was created successfully", createdIncome);
         }
 
-        [HttpDelete("{DeleteIncome}")]
-        public async Task<IActionResult> DeleteIncome([FromQuery] int incomeId)
+        [HttpDelete("{incomeId}")]
+        public async Task<IActionResult> DeleteIncome([FromRoute] int incomeId)
         {
             if(await _incomeService.DeleteIncomeAsync(incomeId))
             {

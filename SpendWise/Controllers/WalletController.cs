@@ -38,8 +38,8 @@ namespace SpendWise.Controllers
             _walletService = walletService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetWallet([FromQuery] int walletId)
+        [HttpGet("{walletId}")]
+        public async Task<IActionResult> GetWallet([FromRoute] int walletId)
         {
             var wallet = await _walletService.GetWalletByIdAsync(walletId, CurrentUserId);
 
@@ -59,7 +59,7 @@ namespace SpendWise.Controllers
             return Ok(walletsList);
         }
 
-        [HttpPost("{AddWallet}")]
+        [HttpPost]
         public async Task<IActionResult> AddWallet([FromBody] WalletDTO walletDTO)
         {
             if(CurrentUserId != walletDTO.UserId)
@@ -77,8 +77,8 @@ namespace SpendWise.Controllers
             return CreatedAtAction(nameof(GetWallet), createdWallet);
         }
 
-        [HttpPatch("{UpdateWallet}")]
-        public async Task<IActionResult> UpdateWallet([FromBody] WalletDTO walletDTO)
+        [HttpPatch("{walletId}")]
+        public async Task<IActionResult> UpdateWallet([FromRoute] int walletId, [FromBody] WalletDTO walletDTO)
         {
             if(CurrentUserId != walletDTO.UserId)
             {
@@ -95,8 +95,8 @@ namespace SpendWise.Controllers
             return CreatedAtAction(nameof(GetWallet), updatedWallet);
         }
 
-        [HttpDelete("{DeleteWallet}")]
-        public async Task<IActionResult> DeleteWallet([FromQuery] int walletId)
+        [HttpDelete("{walletId}")]
+        public async Task<IActionResult> DeleteWallet([FromRoute] int walletId)
         {
             if(await _walletService.DeleteWalletAsync(walletId))
             {
