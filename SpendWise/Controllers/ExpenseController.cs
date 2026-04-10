@@ -10,7 +10,7 @@ namespace SpendWise.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/incomes")]
+    [Route("api/expenses")]
 
     public class ExpenseController : Controller
     {
