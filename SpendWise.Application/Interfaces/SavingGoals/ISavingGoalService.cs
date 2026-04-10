@@ -9,7 +9,7 @@ namespace SpendWise.Application.Interfaces.SavingGoals
     public interface ISavingGoalService
     {
         // Get a specific goal by its ID
-        public Task<SavingGoalResponse?> GetGoalByIdAsync(int userID,int goalId);
+        public Task<SavingGoalResponse?> GetGoalByIdAsync(int goalId);
 
         // Get all goals for a specific user
         public Task<IEnumerable<SavingGoalResponse>>? GetAllUserGoalsAsync(int userId);

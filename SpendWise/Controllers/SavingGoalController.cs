@@ -45,8 +45,8 @@ namespace SpendWise.Controllers
 
             if (id <= 0)
                 return BadRequest("Please enter correct ID");
-            int userId = CurrentUserId; 
-           var goal =await _savingGoalService.GetGoalByIdAsync(userId,id);
+            //int userId = CurrentUserId; 
+           var goal =await _savingGoalService.GetGoalByIdAsync(id);
 
             if (goal == null)
             {
