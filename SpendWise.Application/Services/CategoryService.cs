@@ -7,7 +7,7 @@ using System.Text;
 
 namespace SpendWise.Application.Services
 {
-    public  class CategoryService: ICategory
+    public  class CategoryService: ICategoryService
 
     {
         //private readonly ICategoryRepository _categoryRepo;
