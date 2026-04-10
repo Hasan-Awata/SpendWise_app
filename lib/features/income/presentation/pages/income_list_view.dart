@@ -46,8 +46,7 @@ class IncomeListView extends StatelessWidget {
       ),
       body: RefreshIndicator(
         color: SpColor.incomeGreen,
-        onRefresh: () =>
-            controller.fetchAllIncomes(), // // Logic: تحديث البيانات من السيرفر
+        onRefresh: () => controller.fetchAllIncomes(),
         child: Obx(() {
           if (controller.isLoading.value && controller.incomesList.isEmpty) {
             return const Center(
@@ -112,7 +111,7 @@ class IncomeListView extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat('yyyy-MM-dd').format(income.lastTime),
+                  DateFormat('yyyy-MM-dd').format(income.date),
                   style: const TextStyle(color: Colors.white38, fontSize: 12),
                 ),
               ],
@@ -131,7 +130,10 @@ class IncomeListView extends StatelessWidget {
                 ),
               ),
               Text(
-                income.currencyId == 0 ? "USD" : "SYP",
+                //   {
+                //   income.currencyId == 0 ? "USD" : "SYP",
+                // }
+                "currencyId",
                 style: const TextStyle(color: Colors.white38, fontSize: 10),
               ),
             ],

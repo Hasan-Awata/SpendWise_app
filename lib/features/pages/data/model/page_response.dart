@@ -1,0 +1,30 @@
+// // تعليق: كائن لاستقبال الرد المجدول من السيرفر، حيث يحتوي على البيانات الوصفية للصفحات والبيانات الفعلية
+class PagedResponse<T> {
+  final List<T> data;
+  final int pageNumber;
+  final int pageSize;
+  final int totalRecords;
+  final int totalPages;
+
+  PagedResponse({
+    required this.data,
+    required this.pageNumber,
+    required this.pageSize,
+    required this.totalRecords,
+    required this.totalPages,
+  });
+
+  // // تعليق: دالة مصنع لتحويل الـ JSON القادم من السيرفر إلى كائن PagedResponse مع معالجة البيانات الداخلية
+  factory PagedResponse.fromJson(
+    Map<String, dynamic> json,
+    T Function(Map<String, dynamic>) fromJsonT,
+  ) {
+    return PagedResponse<T>(
+      data: (json['data'] as List).map((item) => fromJsonT(item)).toList(),
+      pageNumber: json['pageNumber'],
+      pageSize: json['pageSize'],
+      totalRecords: json['totalRecords'],
+      totalPages: json['totalPages'],
+    );
+  }
+}

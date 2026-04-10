@@ -2,143 +2,167 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
-// // Import: استيراد الـ Use Cases
+import 'package:spendwise/features/tags/data/models/tag_model.dart';
+import 'package:spendwise/features/tags/presentation/manager/tag_controller.dart';
+import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallet_controller.dart';
 import '../../domain/usecases/add_income_usecase.dart';
 import '../../domain/usecases/get_incomes_usecase.dart';
 
 class IncomeController extends GetxController {
-  // // Clean Architecture: حقن المهام المطلوبة عبر الـ Constructor
+  // // Dependencies
   final AddIncomeUsecase addIncomeUseCase;
   final GetIncomesUsecase getIncomesUseCase;
+
+  final WalletController walletController;
+  final TagController tagController;
 
   IncomeController({
     required this.addIncomeUseCase,
     required this.getIncomesUseCase,
+    required this.walletController,
+    required this.tagController,
   });
 
-  // // --- Observable Variables ---
-  TextEditingController descriptionController = TextEditingController();
-  var incomeAmount = 0.0.obs;
-  var selectedValue = "".obs;
-  var selectedDate = DateTime.now().obs;
-  var values = <String>[
-    "Salary",
-    "Freelancing",
-    "Profits",
-    "Gift",
-    "Other",
-  ].obs;
-  RxBool isUSdollar = false.obs;
-  var isFixed = true.obs;
-  var isMonthly = true.obs;
-  var days = 30.obs;
+  // // Form Controllers (Standard Fields)
+  final TextEditingController amountController = TextEditingController();
+  final TextEditingController sourceController = TextEditingController();
+  final TextEditingController repeatController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController walletTextController = TextEditingController();
+  final TextEditingController tagTextController = TextEditingController();
 
-  // // New Variable: لمراقبة قائمة الدخل الكلية
-  var incomesList = <IncomeModel>[].obs;
-  var isLoading = false.obs;
+  // // Reactive State Variables
+  final Rxn<WalletModel> selectedWallet = Rxn<WalletModel>();
+  final Rxn<TagModel> selectedTag = Rxn<TagModel>();
+  final RxList<IncomeModel> incomesList = <IncomeModel>[].obs;
+
+  final RxString newTagName = "".obs;
+  final Rx<DateTime> selectedDate = DateTime.now().obs;
+  final RxBool isLoading = false.obs;
 
   @override
   void onInit() {
     super.onInit();
-    // // Logic: جلب البيانات فور تشغيل الكنترولر
     fetchAllIncomes();
   }
 
-  // // --- Actions / Methods ---
-
-  void updateAmount(String value) {
-    incomeAmount.value = double.tryParse(value) ?? 0.0;
+  @override
+  void onClose() {
+    amountController.dispose();
+    sourceController.dispose();
+    repeatController.dispose();
+    descriptionController.dispose();
+    walletTextController.dispose();
+    tagTextController.dispose();
+    super.onClose();
   }
 
-  void updateSource(String? source) {
-    if (source != null) selectedValue.value = source;
-  }
-
-  void toggleFixed(bool value) {
-    isFixed.value = value;
-    if (!value) {
-      isMonthly.value = false;
-      days.value = 0;
-    }
-  }
-
-  Future<void> fetchDate(BuildContext context) async {
-    DateTime? pickedDate = await HelperFunction.chooseDate(context);
-    if (context.mounted && pickedDate != null) {
-      selectedDate.value = pickedDate;
-    }
-  }
-
-  // // Logic: جلب البيانات من الـ Use Case (الذي يجمع بين الـ API والـ Hive)
+  // // Data Fetching
   Future<void> fetchAllIncomes() async {
     isLoading.value = true;
     try {
       final results = await getIncomesUseCase();
       incomesList.assignAll(results);
     } catch (e) {
-      HelperFunction.showSnackBar(
-        "Data Error",
-        "Could not fetch data from server",
-        isError: true,
-      );
+      _handleError("Load Error", e.toString());
     } finally {
       isLoading.value = false;
     }
   }
 
-  // // Logic: حفظ البيانات عبر الـ Use Case الفعلي
+  // // Date Picker
+  Future<void> fetchDate(BuildContext context) async {
+    final DateTime? pickedDate = await HelperFunction.chooseDate(context);
+    if (pickedDate != null && pickedDate != selectedDate.value) {
+      selectedDate.value = pickedDate;
+    }
+  }
+
+  // // Save Income
   Future<void> saveIncome() async {
-    if (incomeAmount.value <= 0) {
-      HelperFunction.showSnackBar(
-        "Input Error",
-        "Please enter a valid amount",
-        isError: true,
-      );
-      return;
-    }
+    final String tagName = tagTextController.text.trim();
 
-    if (selectedValue.value.isEmpty) {
-      HelperFunction.showSnackBar(
-        "Warning",
-        "Please select an income source",
-        isError: true,
-      );
-      return;
-    }
+    var foundTag = tagController.myTags.firstWhereOrNull(
+      (t) => t.name == tagName,
+    );
 
-    isLoading.value = true; // // UI: بدء حالة التحميل
+    if (!_isInputValid()) return;
+
+    isLoading.value = true;
     try {
+      if (foundTag == null && tagName.isNotEmpty) {
+        tagController.tag.value = TagModel(userId: 0, name: tagName);
+        await tagController.addtag();
+        // بعد الإضافة، نسحب الكائن الجديد لربطه بالدخل
+        foundTag = tagController.myTags.firstWhereOrNull(
+          (t) => t.name == tagName,
+        );
+      }
+      final double amount =
+          double.tryParse(amountController.text.trim()) ?? 0.0;
+
       final incomeData = IncomeModel(
-        id: 0,
-        title: selectedValue.value,
-        amount: incomeAmount.value,
-        isFixed: isFixed.value,
-        isMonthly: isFixed.value ? isMonthly.value : false,
-        days: (isFixed.value && !isMonthly.value) ? days.value : null,
-        lastTime: selectedDate.value,
-        currencyId: isUSdollar.value ? 0 : 1,
-        userId: 1,
+        wallet: selectedWallet.value,
+        tag: selectedTag.value,
+        description: descriptionController.text.trim(),
+        date: selectedDate.value,
+        title: sourceController.text.isEmpty
+            ? "Untitled Income"
+            : sourceController.text.trim(),
+        amount: amount,
       );
 
-      // // Logic: استدعاء الـ Use Case الفعلي بدلاً من الـ Print
       await addIncomeUseCase(incomeData);
-
-      // // UI Update: إضافة العنصر للقائمة المحلية فوراً
-      incomesList.add(incomeData);
+      incomesList.insert(0, incomeData);
 
       HelperFunction.showSnackBar(
         "Success",
-        "Data saved successfully",
+        "Income added successfully",
         isError: false,
       );
+      _resetFields();
     } catch (e) {
-      HelperFunction.showSnackBar(
-        "Technical Error",
-        "Server connection failed: $e",
-        isError: true,
-      );
+      _handleError("Save Failed", e.toString());
     } finally {
       isLoading.value = false;
     }
+  }
+
+  // // Validation
+  bool _isInputValid() {
+    final double amount = double.tryParse(amountController.text.trim()) ?? 0.0;
+    if (amount <= 0) {
+      _handleError("Validation Error", "Please enter a valid amount.");
+      return false;
+    }
+    if (selectedWallet.value == null) {
+      _handleError("Validation Error", "Please select a wallet.");
+      return false;
+    }
+    if (selectedTag.value == null && tagTextController.text.isEmpty) {
+      _handleError("Validation Error", "Please select or type a tag.");
+      return false;
+    }
+    return true;
+  }
+
+  void _resetFields() {
+    // // تعليق: تنظيف كافة الحقول النصية والقيم المختارة بعد عملية الحفظ الناجحة
+    amountController.clear();
+    sourceController.clear();
+    repeatController.clear();
+    descriptionController.clear();
+    walletTextController.clear();
+    tagTextController.clear();
+    newTagName.value = "";
+    selectedTag.value = null;
+    selectedWallet.value = null;
+    selectedDate.value = DateTime.now();
+    tagController.myTags.clear();
+  }
+
+  void _handleError(String title, String message) {
+    HelperFunction.showSnackBar(title, message, isError: true);
   }
 }

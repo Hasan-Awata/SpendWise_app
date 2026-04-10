@@ -89,23 +89,23 @@ class _AddExpenseViewState extends State<AddExpenseView> {
       textEditingController: TextEditingController(),
       isNumber: false,
       validator: (v) => v == null ? "المبلغ مطلوب" : null,
-      onChanged: (v) =>
-          controller.expenseAmount.value = double.tryParse(v) ?? 0,
+      onChanged: (v) => controller.expenseAmount.text = v.toString(),
     );
   }
 
   Widget _buildSourceExpenseDropdown(ExpenseController controller) {
     return SPDropdownButton(
-      controller: controller,
       title: "source expense",
       hint: 'Select or enter',
       textColor: SpColor.expenseRed,
+      onChanged: (v) => controller.selectedValue.value,
+      values: controller.values,
+      textEditingController: controller.selectedValue,
     );
   }
 
   Widget _buildTagDropdown(ExpenseController controller) {
     return SPDropdownButton(
-      controller: controller,
       title: "tag",
       hint: "tag",
       textColor: SpColor.expenseRed.withAlpha(200),
@@ -118,12 +118,16 @@ class _AddExpenseViewState extends State<AddExpenseView> {
         autofocus: true,
         highlightColor: SpColor.expenseRed.withAlpha(60),
       ),
+      onChanged: (v) => controller.selectedValue.value,
+      values: controller.tags.map((val) => val.name).toList(),
+      textEditingController: TextEditingController(),
     );
   }
 
   Widget _buildDatePicker(BuildContext context) {
     return DatePickerWidget(
-      controller: controller,
+      onTap: () => controller.fetchDate(context),
+      selectedDate: controller.selectedDate.value,
       color: SpColor.expenseRed.withAlpha(190),
     );
   }

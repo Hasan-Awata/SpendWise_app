@@ -27,14 +27,14 @@ class IncomeLocalDataSourceImpl implements IncomeLocalDataSource {
   @override
   Future<void> addIncome(IncomeModel income) async {
     List<IncomeModel> incomes = getIncomes();
-    incomes.add(income);
+    incomes.insert(0, income);
     await saveIncomes(incomes);
   }
 
   @override
   List<IncomeModel> getIncomes() {
     final List? data = _box.get(_incomeKey);
-    return data != null ? List<IncomeModel>.from(data) : [];
+    return data != null ? List<IncomeModel>.from(data) : <IncomeModel>[];
   }
 
   @override

@@ -15,6 +15,7 @@ class CustomTextField extends StatefulWidget {
   final void Function()? onTap;
   final Color textColor;
   final Widget? suffixIcon;
+
   const CustomTextField({
     super.key,
     required this.label,
@@ -41,7 +42,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: widget.textEditingController,
-      keyboardType: widget.isNumber ? TextInputType.number : TextInputType.text,
+      keyboardType: null,
+      //  widget.isNumber ? TextInputType.number : TextInputType.text,
       validator: widget.validator,
       obscureText: widget.obscureText,
       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),

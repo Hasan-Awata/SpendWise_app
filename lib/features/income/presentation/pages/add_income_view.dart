@@ -1,7 +1,7 @@
-// presentation/views/add_income_view.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
+import 'package:spendwise/features/expense/presentation/widgets/tag_widget.dart';
 import 'package:spendwise/features/income/presentation/manager/income_controller.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
@@ -13,308 +13,202 @@ class AddIncomeView extends StatelessWidget {
   AddIncomeView({super.key});
 
   final controller = Get.find<IncomeController>();
+  final RxBool isFixed = false.obs;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: SpColor.primaryDark2,
-      appBar: AppBar(
-        title: const Text(
-          "Add New Income",
-          style: TextStyle(
-            color: SpColor.incomeGreen,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Get.toNamed('/income-list');
-            },
-            icon: Icon(Icons.list, color: SpColor.incomeGreen),
-          ),
-        ],
-
-        foregroundColor: SpColor.incomeGreen,
-        backgroundColor: SpColor.primaryDark2,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(25.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // // UI: Amount Input with Currency Toggle
-              _buildAmountInput(),
-              const SizedBox(height: 30),
-
-              // // UI Section: Main Income Type (isFixed)
-              _buildFixedTypeSelector(),
-
-              // // UI Logic: Conditional Recurrence Options
-              Obx(
-                () => AnimatedSize(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: controller.isFixed.value
-                      ? Column(
-                          children: [
-                            const SizedBox(height: 25),
-                            _buildMonthlyToggle(),
-                            // // UI Logic: Show Days input only if NOT monthly
-                            if (!controller.isMonthly.value) ...[
-                              const SizedBox(height: 20),
-                              _buildDaysInput(),
-                            ],
-                          ],
-                        )
-                      : const SizedBox(height: 0, width: double.infinity),
+      appBar: _buildAppBar(),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25.0),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                _buildField(
+                  "Amount",
+                  controller.amountController,
+                  Icons.monetization_on_outlined,
                 ),
-              ),
-
-              const SizedBox(height: 30),
-              _buildSourceDropdown(),
-              const SizedBox(height: 30),
-              _buildDescriptionWidget(),
-              const SizedBox(height: 30),
-              _buildDatePicker(context),
-              const SizedBox(height: 50),
-              _buildSubmitButton(),
-              const SizedBox(height: 60),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // // UI Component: Selector for isFixed (Boolean)
-  Widget _buildFixedTypeSelector() {
-    return Column(
-      children: [
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            "Income Nature",
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Obx(
-          () => Row(
-            children: [
-              Expanded(
-                child: _typeCard(
-                  label: "Fixed / Recurring",
-                  isActive: controller.isFixed.value == true,
-                  onTap: () => controller.isFixed.value = true,
-                  icon: Icons.repeat_on_rounded,
+                const SizedBox(height: 30),
+                _buildField(
+                  "Source",
+                  controller.sourceController,
+                  Icons.source_outlined,
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _typeCard(
-                  label: "One-Time",
-                  isActive: controller.isFixed.value == false,
-                  onTap: () {
-                    controller.isFixed.value = false;
-                    controller.isMonthly.value =
-                        false; // // Logic: Reset when not fixed
-                  },
-                  icon: Icons.bolt_rounded,
+                const SizedBox(height: 25),
+                _buildFixedToggle(),
+                const SizedBox(height: 15),
+                _buildRepetitionField(),
+                const SizedBox(height: 25),
+                CustomTextFieldDescription(
+                  label: "Description",
+                  hint: "Details...",
+                  textEditingController: controller.descriptionController,
+                  textColor: SpColor.incomeGreen,
                 ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // // UI Component: Toggle for isMonthly (Boolean)
-  Widget _buildMonthlyToggle() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(20),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Material(
-        clipBehavior: Clip.antiAlias,
-        borderRadius: BorderRadius.circular(15),
-        color: Colors.transparent,
-        child: Obx(
-          () => SwitchListTile(
-            title: const Text(
-              "Regular Monthly Income",
-              style: TextStyle(color: Colors.white, fontSize: 15),
+                const SizedBox(height: 25),
+                _buildDatePicker(context),
+                const SizedBox(height: 30),
+                const Divider(color: Colors.white10),
+                const SizedBox(height: 30),
+                _buildWalletDropdown(),
+                const SizedBox(height: 25),
+                _buildTagDropdown(),
+                const SizedBox(height: 15),
+                _buildTagPreview(),
+                const SizedBox(height: 50),
+                _buildSubmitButton(),
+                const SizedBox(height: 50),
+              ],
             ),
-            subtitle: Text(
-              controller.isMonthly.value
-                  ? "Automatically recorded every month"
-                  : "Custom recurrence by days",
-              style: const TextStyle(color: Colors.white38, fontSize: 11),
-            ),
-            value: controller.isMonthly.value,
-            activeThumbColor: SpColor.incomeGreen,
-            onChanged: (val) => controller.isMonthly.value = val,
           ),
         ),
       ),
     );
   }
 
-  // // UI Component: Input for custom days (Days)
-  Widget _buildDaysInput() {
-    return CustomTextField(
-      textColor: SpColor.incomeGreen,
-      label: "Recurrence Period (Days)",
-      hint: "e.g., 7 days or 15 days",
-      prefixIcon: const Icon(
-        Icons.calendar_today_rounded,
-        color: SpColor.incomeGreen,
-        size: 20,
-      ),
-      isNumber: true,
-      onChanged: (v) => controller.days.value = int.tryParse(v) ?? 0,
-      textEditingController: TextEditingController(),
-    );
-  }
+  // // --- Widgets ---
 
-  // // UI Helper: Generic Selection Card
-  Widget _typeCard({
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-    required IconData icon,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          color: isActive
-              ? SpColor.incomeGreen.withOpacity(0.12)
-              : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isActive ? SpColor.incomeGreen : Colors.white10,
-            width: 1.5,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isActive ? SpColor.incomeGreen : Colors.white38,
-              size: 28,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: TextStyle(
-                color: isActive ? Colors.white : Colors.white38,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
+  PreferredSizeWidget _buildAppBar() => AppBar(
+    title: const Text(
+      "Add Income",
+      style: TextStyle(color: SpColor.incomeGreen, fontWeight: FontWeight.bold),
+    ),
+    backgroundColor: Colors.transparent,
+    centerTitle: true,
+    actions: [
+      IconButton(
+        onPressed: () => Get.toNamed('/income-list'),
+        icon: Icon(Icons.all_inbox),
       ),
-    );
-  }
+    ],
+  );
 
-  // // UI Component: Amount & Currency Toggle
-  Widget _buildAmountInput() {
-    return Obx(
-      () => CustomTextField(
+  Widget _buildField(String label, TextEditingController ctr, IconData icon) =>
+      CustomTextField(
         textColor: SpColor.incomeGreen,
-        label: controller.isUSdollar.value ? "Amount (USD)" : "Amount (SYP)",
-        hint: "0.00",
-        prefixIcon: SizedBox(
-          width: 35,
-          child: controller.isUSdollar.value
-              ? const Icon(
-                  Icons.attach_money_rounded,
-                  color: SpColor.incomeGreen,
-                )
-              : const Center(
-                  child: Text(
-                    "SYP",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: SpColor.incomeGreen,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-        ),
-        textEditingController: TextEditingController(),
-        isNumber: true,
-        onChanged: (v) =>
-            controller.incomeAmount.value = double.tryParse(v) ?? 0,
-        suffixIcon: IconButton(
-          onPressed: () => controller.isUSdollar.toggle(),
-          icon: const Icon(
-            Icons.currency_exchange,
-            color: Colors.white54,
-            size: 20,
+        label: label,
+        hint: "...",
+        prefixIcon: Icon(icon, color: SpColor.incomeGreen),
+        textEditingController: ctr,
+      );
+
+  Widget _buildFixedToggle() => Obx(
+    () => Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: SpColor.incomeGreen),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadiusGeometry.circular(15),
+        child: Material(
+          borderRadius: BorderRadius.circular(15),
+          color: Colors.transparent,
+          child: SwitchListTile(
+            title: const Text(
+              "Fixed Income",
+              style: TextStyle(color: Colors.white),
+            ),
+            activeColor: SpColor.incomeGreen,
+            value: isFixed.value,
+            onChanged: (v) => isFixed.value = v,
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 
-  Widget _buildSourceDropdown() {
-    return SPDropdownButton(
-      controller: controller,
-      textColor: SpColor.incomeGreen,
-      title: "Income Source",
-      hint: 'Select Source',
-    );
-  }
+  Widget _buildRepetitionField() => Obx(
+    () => isFixed.value
+        ? _buildField(
+            "Repeat Every (Days)",
+            controller.repeatController,
+            Icons.calendar_month,
+          )
+        : const SizedBox.shrink(),
+  );
 
-  Widget _buildDatePicker(BuildContext context) {
-    return DatePickerWidget(
-      controller: controller,
+  Widget _buildDatePicker(BuildContext context) => Obx(
+    () => DatePickerWidget(
+      onTap: () => controller.fetchDate(context),
+      selectedDate: controller.selectedDate.value,
       color: SpColor.incomeGreen,
-      title: "Date income",
-    );
+    ),
+  );
+
+  Widget _buildWalletDropdown() {
+    return Obx(() {
+      return SPDropdownButton(
+        title: "Select Wallet",
+        hint: "Choose wallet",
+        textColor: SpColor.incomeGreen,
+        prefixIcon: const Icon(Icons.wallet, color: SpColor.incomeGreen),
+        values: controller.walletController.wallets
+            .map((w) => w.currencyId.toString())
+            .toList(),
+        textEditingController: controller.walletTextController,
+        // // تعليق: تم إلغاء onChanged والاعتماد على Listener في الكنترولر
+        suffixIcon: IconButton(
+          onPressed: () => Get.toNamed('/add-wallet'),
+          icon: Icon(Icons.add),
+        ),
+      );
+    });
   }
 
-  Widget _buildDescriptionWidget() {
-    return CustomTextFieldDescription(
-      label: "Description",
-      hint: "Add extra details about this income...",
-      textEditingController: controller.descriptionController,
-      maxLines: 5, // // UI: Allows the field to grow up to 5 lines
-      minLines: 3, // // UI: Starts with a height of 3 lines
-      keyboardType: TextInputType
-          .multiline, // // Logic: Enables 'Enter' key for new lines
-      textColor: SpColor.incomeGreen,
-    );
-  }
-
-  Widget _buildSubmitButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: Obx(
-        () => controller.isLoading.value
-            ? const Center(
-                child: CircularProgressIndicator(color: SpColor.incomeGreen),
-              )
-            : CustomButton(
-                text: "Save Income",
-                onPressed: () => controller.saveIncome(),
-                color: SpColor.incomeGreen,
-              ),
+  Widget _buildTagDropdown() {
+    return Obx(
+      () => Column(
+        children: [
+          SPDropdownButton(
+            title: "Select Tag",
+            isTextField: true,
+            hint: "Search/Type Tag",
+            textColor: SpColor.incomeGreen,
+            prefixIcon: const Icon(Icons.tag, color: SpColor.incomeGreen),
+            values: controller.tagController.myTags.map((t) => t.name).toList(),
+            textEditingController: controller.tagTextController,
+            // // تعليق: تم إلغاء onChanged والاعتماد على Listener في الكنترولر
+          ),
+          if (controller.tagController.myTags.isEmpty)
+            const Text(
+              "✨ New tag will be created",
+              style: TextStyle(color: SpColor.incomeGreen, fontSize: 11),
+            ),
+        ],
       ),
     );
   }
+
+  Widget _buildTagPreview() => Obx(
+    () => controller.selectedTag.value != null
+        ? TagWidget(
+            tagName: controller.selectedTag.value!.name,
+            icon: Icons.check,
+            color: SpColor.incomeGreen,
+            onDelete: () => controller.tagTextController.clear(),
+          )
+        : const SizedBox.shrink(),
+  );
+
+  Widget _buildSubmitButton() => SizedBox(
+    width: double.infinity,
+    child: Obx(
+      () => controller.isLoading.value
+          ? const Center(child: CircularProgressIndicator())
+          : CustomButton(
+              text: "SAVE",
+              onPressed: () {
+                controller.saveIncome();
+              },
+              color: SpColor.incomeGreen,
+            ),
+    ),
+  );
 }

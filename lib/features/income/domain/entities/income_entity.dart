@@ -1,33 +1,24 @@
-import 'package:hive/hive.dart';
+import 'package:spendwise/features/tags/data/models/tag_model.dart';
+import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 
-class IncomeEntity extends HiveObject {
-  final int id;
-
+class IncomeEntity {
   final String title;
 
   final double amount;
 
-  final int currencyId;
+  final String? description;
 
-  final bool isFixed;
+  final TagModel? tag;
 
-  final bool isMonthly;
+  final DateTime date;
 
-  final int? days;
-
-  final DateTime lastTime;
-
-  final int userId;
-
+  final WalletModel? wallet;
   IncomeEntity({
-    required this.id,
     required this.title,
     required this.amount,
-    required this.isFixed,
-    required this.isMonthly,
-    this.days,
-    required this.lastTime,
-    required this.currencyId,
-    required this.userId,
+    required this.date,
+    required this.tag,
+    required this.description,
+    this.wallet,
   });
 }

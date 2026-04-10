@@ -40,4 +40,18 @@ class AppUserLocalDatasourceImpl implements AppUserLocalDatasource {
       throw Exception("Failed to clear local user session: $e");
     }
   }
+
+  @override
+  Future<UserModel?> getUser() async {
+    return await _box.get(_userKey);
+  }
+
+  @override
+  Future<int> getUserId() async {
+    final user = await getUser();
+    if (user != null) {
+      return user.userId!;
+    }
+    throw Exception("User not found");
+  }
 }

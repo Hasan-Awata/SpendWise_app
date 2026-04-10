@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
+import 'package:spendwise/features/ocr/presentation/manager/ocr_controller.dart';
 
-class QuickActionsRow extends StatelessWidget {
+class QuickActionsRow extends GetView<OcrController> {
   const QuickActionsRow({super.key});
 
   @override
@@ -9,7 +11,11 @@ class QuickActionsRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildActionItem(Icons.document_scanner_outlined, "مسح (OCR)", () {}),
+        _buildActionItem(
+          Icons.document_scanner_outlined,
+          "مسح (OCR)",
+          () => controller.scanInvoice(),
+        ),
         _buildActionItem(Icons.qr_code_2_outlined, "رمز QR", () {}),
         _buildActionItem(Icons.account_tree_outlined, "التقسيم", () {}),
         _buildActionItem(Icons.tag_outlined, "الفئات", () {}),

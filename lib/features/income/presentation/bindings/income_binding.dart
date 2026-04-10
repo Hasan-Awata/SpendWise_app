@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasource.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
 import 'package:spendwise/features/income/data/repositories/income_repository.dart';
@@ -6,6 +7,8 @@ import 'package:spendwise/features/income/data/repositories/income_repository_im
 import 'package:spendwise/features/income/domain/usecases/add_income_usecase.dart';
 import 'package:spendwise/features/income/domain/usecases/get_incomes_usecase.dart';
 import 'package:spendwise/features/income/presentation/manager/income_controller.dart';
+import 'package:spendwise/features/tags/presentation/manager/tag_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallet_controller.dart';
 
 //binding مهمته الأساسية هي إعداد كل ما تحتاجه الشاشة من (Controllers, Use Cases, Repositories)
 
@@ -14,7 +17,6 @@ class IncomeBinding extends Bindings {
   void dependencies() {
     Get.lazyPut<IncomeLocalDataSource>(() {
       final datasource = IncomeLocalDataSourceImpl();
-      datasource.init();
       return datasource;
     });
     Get.lazyPut<IncomeRepository>(
@@ -29,6 +31,8 @@ class IncomeBinding extends Bindings {
       IncomeController(
         addIncomeUseCase: Get.find<AddIncomeUsecase>(),
         getIncomesUseCase: Get.find<GetIncomesUsecase>(),
+        walletController: Get.find<WalletController>(),
+        tagController: Get.find<TagController>(),
       ),
     );
   }

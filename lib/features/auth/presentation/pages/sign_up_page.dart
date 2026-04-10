@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/auth/presentation/manager/auth_controller.dart';
-import 'package:spendwise/features/auth/presentation/pages/login_page.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/home/presentation/pages/main_screen.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
@@ -20,7 +19,7 @@ class SignUpPage extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.fork_right),
             onPressed: () {
-              Get.to(() => MainScreen());
+              Get.toNamed('/home');
             },
           ),
         ],

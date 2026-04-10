@@ -8,4 +8,6 @@ abstract class UserRepository {
   Future<UserModel> register(SignupParams params);
   Future<UserModel> logIn(LoginParams params);
   Future<void> logOut();
+  Future<UserModel?> getUser();
+  Future<int> getUserId();
 }

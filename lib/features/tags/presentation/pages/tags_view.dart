@@ -37,18 +37,18 @@ class TagsView extends StatelessWidget {
       // // Logic: Using Obx to make the UI reactive so it updates when tags change
       body: Obx(() {
         // // UI: Show a placeholder if the list is empty
-        if (_tagController.tags.isEmpty) {
+        if (_tagController.myTags.isEmpty) {
           return _buildEmptyState();
         }
 
         return ListView.separated(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.all(20),
-          itemCount: _tagController.tags.length,
+          itemCount: _tagController.myTags.length,
           // // Layout: Better spacing between list items
           separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
-            final tag = _tagController.tags[index];
+            final tag = _tagController.myTags[index];
 
             // // Logic: Dynamic data mapping from the model to the widget
             return ShowTagWidget(
@@ -56,7 +56,7 @@ class TagsView extends StatelessWidget {
                   .accentBlue, // You can make this dynamic if TagModel has a color field
               icon: Icons
                   .tag_rounded, // Dynamic icon based on category if available
-              tagName: tag.label, // Displaying the actual tag name
+              tagName: tag.name, // Displaying the actual tag name
             );
           },
         );

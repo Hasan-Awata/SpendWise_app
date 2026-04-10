@@ -38,4 +38,14 @@ class UserRepositoryImpl implements UserRepository {
     await appUserRemoteDatasource.logOut();
     await appUserLocalDatasource.logOut();
   }
+
+  @override
+  Future<UserModel?> getUser() async {
+    return await appUserLocalDatasource.getUser();
+  }
+
+  @override
+  Future<int> getUserId() async {
+    return await appUserLocalDatasource.getUserId();
+  }
 }
