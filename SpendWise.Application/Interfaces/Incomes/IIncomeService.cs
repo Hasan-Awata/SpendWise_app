@@ -12,12 +12,12 @@ namespace SpendWise.Application.Interfaces.Incomes
     public interface IIncomeService
     {
         // Writing on the database
-        public Task<IncomeResponse> AddIncomeAsync(IncomeDTO incomeDto);
-        public Task<IncomeResponse> UpdateIncomeAsync(IncomeDTO incomeDto);
+        public Task<IncomeResponse?> AddIncomeAsync(IncomeDTO incomeDto);
+        public Task<IncomeResponse?> UpdateIncomeAsync(IncomeDTO incomeDto);
         public Task<bool> DeleteIncomeAsync(int incomeId);
 
         // Reading from the database
-        public Task<IncomeResponse> GetIncomeAsync(int incomeId, int userId);
+        public Task<IncomeResponse?> GetIncomeAsync(int incomeId, int userId);
         public Task<PagedResponse<IncomeResponse>> GetIncomeByUserAsync(int userId, PageDTO pageDto);
     }
 
