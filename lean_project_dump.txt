@@ -233,43 +233,6 @@ namespace SpendWise.Controllers
             _incomeService = incomeService;
         }
 
-        [HttpGet("{incomeId}")]
-        public async Task<IActionResult> GetIncome([FromRoute] int incomeId)
-        {
-            int userId = CurrentUserId;
-
-            var income = await _incomeService.GetIncomeAsync(userId, incomeId);
-
-            if (income == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(income);
-        }
-
-        [HttpGet]
-        // Multiple routes for the same data
-        // we use [FromQuery] instead of [FromRoute] for the categoryId
-        public async Task<IActionResult> GetIncomes([FromQuery] bool? isFixed)
-        {
-            int userId = CurrentUserId;
-
-            if (isFixed.HasValue)
-            {
-                // Triggered by: GET /api/incomes?Type=5
-                var tags = await _incomeService.GetIncomesByTypeAsync(userId, isFixed);
-                return Ok(tags);
-            }
-            else
-            {
-                // Triggered by: GET /api/incomes
-                var tags = await _incomeService.GetIncomesByUserIdAsync(userId);
-                return Ok(tags);
-            }
-        }
-
-
     }
 }
 
@@ -377,6 +340,66 @@ namespace SpendWise.Application.DTOs
 }
 
 
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Expense\ExpenseDTO.cs
+----------------------------------------
+﻿using SpendWise.Domain.Entities;
+using SpendWise.Domain.Enums;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+
+namespace SpendWise.Application.DTOs.Income
+{
+    public class ExpenseDTO
+    {
+        public int Id { get; set; } = -1;
+
+        [Required(ErrorMessage = "Owner ID is required!")]
+        public int UserId { get; set; }
+
+        [Required(ErrorMessage = "Please enter a title for this expense!")]
+        [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters!")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please enter the wallet's id that you want to deduct from")]
+        public int WalletId { get; set; }
+
+        [Required(ErrorMessage = "Enter the amount of your income")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
+        public decimal Amount { get; set; }
+
+        [Required(ErrorMessage = "Please enter the date of the transaction")]
+        public DateTime Date { get; set; }
+
+        public int? TagId { get; set; } = -1;
+        public string Description { get; set; } = string.Empty;
+        public string Products {  get; set; } = string.Empty;
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Expense\ExpenseResponse.cs
+----------------------------------------
+﻿using SpendWise.Domain.Entities;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.DTOs.Expense
+{
+    public class ExpenseResponse
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public int? TagId { get; set; }
+        public string Products { get; set; } = string.Empty;
+    }
+}
+
+
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Income\IncomeDTO.cs
 ----------------------------------------
 ﻿using SpendWise.Domain.Entities;
@@ -390,6 +413,8 @@ namespace SpendWise.Application.DTOs.Income
 {
     public class IncomeDTO
     {
+        public int Id { get; set; } = -1;
+
         [Required(ErrorMessage = "Owner ID is required!")]
         public int UserId { get; set; }
 
@@ -397,7 +422,7 @@ namespace SpendWise.Application.DTOs.Income
         [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters!")]
         public string Title { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Please enter the wallet's id that you want to deduct from")]
+        [Required(ErrorMessage = "Please enter the wallet's id that you want to add to")]
         public int WalletId { get; set; }
 
         [Required(ErrorMessage = "Enter the amount of your income")]
@@ -429,6 +454,54 @@ namespace SpendWise.Application.DTOs.Income
         public string Title { get; set; } = string.Empty;
         public decimal Amount { get; set; }
         public int? TagId { get; set; }
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Paged\PagedResponse.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.DTOs.PagedResponse
+{
+    public class PagedResponse<T>
+    {
+        public IEnumerable<T> Data { get; set; } = new List<T>();
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalRecords { get; set; }
+        public int TotalPages => (int)Math.Ceiling((double)TotalRecords / PageSize);
+
+        public PagedResponse(IEnumerable<T> data, int pageNumber, int pageSize, int totalRecords)
+        {
+            Data = data;
+            PageNumber = pageNumber;
+            PageSize = pageSize;
+            TotalRecords = totalRecords;
+        }
+    }
+}
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Paged\PageDTO.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+
+namespace SpendWise.Application.DTOs.Paged
+{
+    public class PageDTO
+    {
+        [Required(ErrorMessage = "Enter the page size")]
+        [Range(1, 100, ErrorMessage = "Page size must be between 1 and 100.")]
+        public int PageSize { get; set; }
+        
+        [Required(ErrorMessage = "Enter the page number")]
+        [Range(1, int.MaxValue, ErrorMessage = "Page number must be at least 1.")]
+        public int PageNumber { get; set; }
     }
 }
 
@@ -504,9 +577,62 @@ namespace SpendWise.Application.Interfaces
 }
 
 
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\Expenses\IExpenseRepository.cs
+----------------------------------------
+﻿using SpendWise.Application.DTOs.Income;
+using SpendWise.Domain.Entities;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.Interfaces.Expenses
+{
+    public interface IExpenseRepository
+    {
+        // Writing to database
+        public Task<int> AddExpenseAsync(Expense newExpense, Transaction newTransaction);
+        public Task<int> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction);
+        public Task<bool> DeleteExpenseAsync(int expenseId);
+
+        // Reading from the database
+        public Task<Transaction> GetExpenseAsync(int expenseId); // returns a transaction to store the full information
+        public Task<(IEnumerable<Transaction> projects, int totalCount)> GetExpensesByUserAsync(int userId, int pageNumber, int pageSize);
+        public Task<string> GetProductsAsync(int expenseId);
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\Expenses\IExpenseService.cs
+----------------------------------------
+﻿using SpendWise.Application.DTOs.Expense;
+using SpendWise.Application.DTOs.Income;
+using SpendWise.Application.DTOs.Paged;
+using SpendWise.Application.DTOs.PagedResponse;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.Interfaces.Expenses
+{
+    public interface IExpenseService
+    {
+        // Writing on the database
+        public Task<ExpenseResponse> AddExpenseAsync(ExpenseDTO expenseDto);
+        public Task<ExpenseResponse> UpdateExpenseAsync(ExpenseDTO expenseDto);
+        public Task<bool> DeleteExpenseAsync(int expenseId);
+
+        // Reading from the database
+        public Task<ExpenseResponse> GetExpenseAsync(int expenseId);
+        public Task<PagedResponse<ExpenseResponse>> GetExpenseByUserAsync(int userId, PageDTO pageDto);
+
+    }
+}
+
+
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\Incomes\IIncomeRepository.cs
 ----------------------------------------
 ﻿using SpendWise.Application.DTOs.Income;
+using SpendWise.Application.DTOs.PagedResponse;
 using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -516,23 +642,31 @@ namespace SpendWise.Application.Interfaces.Incomes
 {
     public interface IIncomeRepository
     {
+        // Writing to database
         public Task<int> AddIncomeAsync(Income newIncome, Transaction newTransaction);
         public Task<int> UpdateIncomeAsync(Income newIncome, Transaction newTransaction);
         public Task<bool> DeleteIncomeAsync(int incomeId);
+
+        // Reading from the database
+        public Task<Transaction> GetIncomeAsync(int incomeId); // returns a transaction to store the full information
+        Task<(IEnumerable<Transaction> projects, int totalCount)> GetIncomeByUserAsync(int userId, int pageNumber, int pageSize);
+
     }
 }
 
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\Incomes\IIncomeService.cs
 ----------------------------------------
-﻿using SpendWise.Application.DTOs.Income;
+﻿using SpendWise.Application.DTOs.PagedResponse;
+using SpendWise.Application.DTOs.Income;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using SpendWise.Application.DTOs.Paged;
 
-    namespace SpendWise.Application.Interfaces.Incom
+namespace SpendWise.Application.Interfaces.Incom
 {
     public interface IIncomeService
     {
@@ -543,7 +677,7 @@ using System.Text;
 
         // Reading from the database
         public Task<IncomeResponse> GetIncomeAsync(int incomeId);
-        public Task<IncomeResponse> GetIncomeByUserAsync(int userId);
+        public Task<PagedResponse<IncomeResponse>> GetIncomeByUserAsync(int userId, PageDTO pageDto);
     }
 
 }
@@ -708,17 +842,166 @@ namespace SpendWise.Application.Services
 }
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Services\IncomeService.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Services\ExpenseService.cs
 ----------------------------------------
-﻿using SpendWise.Application.DTOs.Income;
-using SpendWise.Application.Interfaces.Incom;
-using SpendWise.Application.Interfaces.Incomes;
+﻿using SpendWise.Application.DTOs.Expense;
+using SpendWise.Application.DTOs.Income;
+using SpendWise.Application.DTOs.Paged;
+using SpendWise.Application.DTOs.PagedResponse;
+using SpendWise.Application.Interfaces.Expenses;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Transactions;
+
+namespace SpendWise.Application.Services
+{
+    public class ExpenseService
+    {
+        private readonly IExpenseRepository _expenseRepo;
+
+        public ExpenseService(IExpenseRepository expenseRepo)
+        {
+            _expenseRepo = expenseRepo;
+        }
+
+        // Reading methods --------------------------------------------------
+        public async Task<ExpenseResponse> GetExpenseAsync(int expenseId)
+        {
+            var transactionExpense = await _expenseRepo.GetExpenseAsync(expenseId);
+            var products = await _expenseRepo.GetProductsAsync(expenseId);
+
+            if (transactionExpense == null)
+            {
+                throw new Exception("There is no expense associated with this id");
+            }
+
+            return new ExpenseResponse
+            {
+                Id = (int)transactionExpense.ExpenseId,
+                UserId = transactionExpense.UserId,
+                Title = transactionExpense.Title,
+                Amount = transactionExpense.Amount,
+                TagId = transactionExpense.TagId,
+                Products = products,
+            };
+        }
+
+        public async Task<PagedResponse<ExpenseResponse>> GetExpenseByUserAsync(int userId, PageDTO pageDto)
+        {
+            var (TransactionExpensesList, totalCount) = await _expenseRepo.GetExpensesByUserAsync(userId, pageDto.PageNumber, pageDto.PageSize);
+
+            var expenseResponse = TransactionExpensesList.Select(item => new ExpenseResponse
+            {
+                Id = (int)item.ExpenseId,
+                UserId = item.UserId,
+                Title = item.Title,
+                Amount = item.Amount,
+                TagId = item.TagId,
+            });
+
+            expenseResponse.Select(async item => item.Products = await _expenseRepo.GetProductsAsync(item.Id));
+
+            return new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
+        }
+
+        // Writing methods --------------------------------------------------
+        public async Task<ExpenseResponse> AddIncomeAsync(ExpenseDTO expenseDto)
+        {
+            // 1 - map the expenseDTO into an expense object
+            var newIncome = new Expense
+            {
+                UserId = expenseDto.UserId,
+                Amount = expenseDto.Amount,
+                Products = expenseDto.Products,
+            };
+
+            // 2 - Create a Transaction object to store in the database
+            var newTransaction = new Transaction
+            {
+                UserId = expenseDto.UserId,
+                Title = "Added Expense",
+                Amount = expenseDto.Amount,
+                Description = expenseDto.Description,
+                IncomeId = null,
+                WalletId = expenseDto.WalletId,
+                TagId = expenseDto.TagId,
+                TransactionDate = expenseDto.Date,
+                TransactionType = enTransactionType.Dedduction,
+            };
+
+            // 3 - store both the income and the transaction in the database
+            int newExpenseId = await _expenseRepo.AddExpenseAsync(newIncome, newTransaction);
+
+            // 4 - Return the created item
+            return new ExpenseResponse
+            {
+                Id = newExpenseId,
+                UserId = expenseDto.UserId,
+                Title = newTransaction.Title,
+                Amount = newTransaction.Amount,
+                TagId = newTransaction.TagId,
+                Products = expenseDto.Products,
+            };
+        }
+        public async Task<ExpenseResponse> UpdateExpenseAsync(ExpenseDTO expenseDto)
+        {
+            // 1 - map the incomeDTO into an income object
+            var updatedExpense = new Expense
+            {
+                UserId = expenseDto.UserId,
+                Amount = expenseDto.Amount,
+                Products = expenseDto.Products,
+            };
+
+            // 2 - Create a Transaction object to update the one in the database
+            var updatedTransaction = new Transaction
+            {
+                UserId = expenseDto.UserId,
+                Title = "Added Expense",
+                Amount = expenseDto.Amount,
+                Description = expenseDto.Description,
+                IncomeId = expenseDto.Id,
+                WalletId = expenseDto.WalletId,
+                TagId = expenseDto.TagId,
+                TransactionDate = expenseDto.Date,
+                TransactionType = enTransactionType.Dedduction,
+            };
+
+            // 3 - update both the income and the transaction in the database
+            int updatedIncomeId = await _expenseRepo.UpdateExpenseAsync(updatedExpense, updatedTransaction);
+
+            // 4 - Return the updated item
+            return new ExpenseResponse
+            {
+                Id = updatedIncomeId,
+                UserId = expenseDto.UserId,
+                Title = updatedTransaction.Title,
+                Amount = updatedTransaction.Amount,
+                TagId = updatedTransaction.TagId,
+                Products = expenseDto.Products,
+            };
+        }
+
+        public async Task<bool> DeleteIncomeAsync(int incomeId)
+        {
+            return await _expenseRepo.DeleteExpenseAsync(incomeId);
+        }
+    }
+
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Services\IncomeService.cs
+----------------------------------------
+﻿using SpendWise.Application.DTOs.Income;
+using SpendWise.Application.DTOs.Paged;
+using SpendWise.Application.DTOs.PagedResponse;
+using SpendWise.Application.Interfaces.Incom;
+using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Domain.Entities;
+using SpendWise.Domain.Enums;
 
 namespace SpendWise.Application.Services
 {
@@ -730,8 +1013,44 @@ namespace SpendWise.Application.Services
         {
             _incomeRepo = incomeRepo;
         }
-        
 
+        // Reading methods --------------------------------------------------
+        public async Task<IncomeResponse> GetIncomeAsync(int incomeId)
+        {
+            var transactionIncome = await _incomeRepo.GetIncomeAsync(incomeId);
+
+            if (transactionIncome == null)
+            {
+                throw new Exception("There is no income associated with this id");
+            }
+
+            return new IncomeResponse
+            {
+                Id = (int)transactionIncome.IncomeId,
+                UserId = transactionIncome.UserId,
+                Title = transactionIncome.Title,
+                Amount = transactionIncome.Amount,
+                TagId = transactionIncome.TagId,
+            };
+        }
+
+        public async Task<PagedResponse<IncomeResponse>> GetIncomeByUserAsync(int userId, PageDTO pageDto)
+        {
+            var (TransactionIncomeList, totalCount) = await _incomeRepo.GetIncomeByUserAsync(userId, pageDto.PageNumber, pageDto.PageSize);
+
+            var incomesResponse = TransactionIncomeList.Select(item => new IncomeResponse
+            {
+                Id = (int)item.IncomeId,
+                UserId = item.UserId,
+                Title = item.Title,
+                Amount= item.Amount,
+                TagId= item.TagId,
+            });
+
+            return new PagedResponse<IncomeResponse> (incomesResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
+        }
+
+        // Writing methods --------------------------------------------------
         public async Task<IncomeResponse> AddIncomeAsync(IncomeDTO incomeDto)
         {
             // 1 - map the incomeDTO into an income object
@@ -742,7 +1061,7 @@ namespace SpendWise.Application.Services
             };
 
             // 2 - Create a Transaction object to store in the database
-            var newTransaction = new Domain.Entities.Transaction
+            var newTransaction = new Transaction
             {
               UserId = incomeDto.UserId,
               Title = "Added Income",
@@ -778,13 +1097,13 @@ namespace SpendWise.Application.Services
             };
 
             // 2 - Create a Transaction object to update the one in the database
-            var updatedTransaction = new Domain.Entities.Transaction
+            var updatedTransaction = new Transaction
             {
               UserId = incomeDto.UserId,
               Title = "Added Income",
               Amount = incomeDto.Amount,
               Description = incomeDto.Description,
-              IncomeId = null,
+              IncomeId = incomeDto.Id,
               WalletId = incomeDto.WalletId,
               TagId = incomeDto.TagId,
               TransactionDate = incomeDto.Date,
@@ -825,14 +1144,14 @@ using System.Transactions;
 
 namespace SpendWise.Application.Services
 {
-    public class TransactionService : ITransactionService
+    public class TransactionService
     {
-        private readonly ITransactionService _transactionService;
+        //private readonly ITransactionRepository _transactionRepo;
 
-        public TransactionService(ITransactionService transactionService)
-        {
-            _transactionService = transactionService;
-        }
+        //public TransactionService(ITransactionRepository transactionRepo)
+        //{
+        //    _transactionRepo = transactionRepo;
+        //}
     }
 }
 
@@ -929,6 +1248,24 @@ namespace SpendWise.Domain.Entities
             this.Id = id;
             this.CurrencyName = currencyName;
         }
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Domain\Entities\Expense.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Domain.Entities
+{
+    public class Expense
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public decimal Amount { get; set; }
+        public string Products { get; set; } = string.Empty;
     }
 }
 

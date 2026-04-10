@@ -11,18 +11,18 @@ namespace SpendWise.Domain.Entities
         public int UserId { get; set; } = -1;
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public int WalletId { get; set; }
+        public Wallet Wallet { get; set; } = new Wallet();
         public decimal Amount { get; set; } = 0.0m;
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
-        public int? CategoryId { get; set; }
-        public int? TagId { get; set; }
-        public int? SavinGoalId { get; set; }
-        public int? FixedExpenseId { get; set; }
-        public int? FixedIncomeId { get; set; }
-        public int? DebtId { get; set; }
-        public int? IncomeId { get; set; }
-        public int? ExpenseId { get; set; }
+        public Category? TransactionCategory { get; set; }
+        public Tag? TransactionTag { get; set; }
+        //public SavingGoal? SavingGoal { get; set; }
+        //public FixedExpense? FixedExpense { get; set; }
+        //public FixedIncome? FixedIncome { get; set; }
+        //public Debt? Debt { get; set; }
+        public Income? Income { get; set; }
+        public Expense? Expense { get; set; }
 
         // Transaction type is specified here:
         public enTransactionType TransactionType { get; set; } // Addition or Deduction from the balance

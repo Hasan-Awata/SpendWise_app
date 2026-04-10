@@ -8,11 +8,13 @@ namespace SpendWise.Domain.Entities
     {
         public int Id { get; set; }
         public string CurrencyName { get; set; } = string.Empty;
-        //public decimal liveValue { get; set; };
+        public decimal LiveValue { get; set; }
         public Currency(int id, string currencyName)
         {
             this.Id = id;
             this.CurrencyName = currencyName;
         }
+
+        public Currency() { }
     }
 }

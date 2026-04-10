@@ -11,29 +11,10 @@ namespace SpendWise.Domain.Entities
         public int CategoryId { get; set; }
         public string Name { get; set; } = string.Empty;
         public int Priority { get; set; }
-
-        // Budget properties merged into Category
-        public decimal LimitAmount { get; set; }
-        public decimal Percentage { get; set; }
-
-        public int Month { get; set; }
-        public int Year { get; set; }
-
-
-        public enCategoryType CategoryType { get; set; }
-        public Category(int categoryID, string name, int priority, decimal limitAmount, decimal percentage, int month, int year, enCategoryType categoryType)
-        {
-            CategoryId = categoryID;
-            Name = name;
-            Priority = priority;
-            LimitAmount = limitAmount;
-            Percentage = percentage;
-            Month = month;
-            Year = year;
-            CategoryType = categoryType;
-
-
-        }
+        // 1 - Highest priority: Essentials
+        // 2 - medium priority: Secondaries
+        // 3 - lowest priority: Luxuries
+        // 4 - Savings
     }
 
 }
