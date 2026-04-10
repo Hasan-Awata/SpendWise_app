@@ -25,9 +25,9 @@ namespace SpendWise.Application.Services
         }
 
         // Reading methods --------------------------------------------------
-        public async Task<ExpenseResponse?> GetExpenseAsync(int expenseId)
+        public async Task<ExpenseResponse?> GetExpenseAsync(int expenseId, int userId)
         {
-            var expense = await _expenseRepo.GetExpenseAsync(expenseId);
+            var expense = await _expenseRepo.GetExpenseAsync(expenseId, expenseId);
 
             if (expense == null)
             {

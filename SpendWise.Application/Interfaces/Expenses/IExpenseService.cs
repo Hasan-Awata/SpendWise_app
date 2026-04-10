@@ -16,7 +16,7 @@ namespace SpendWise.Application.Interfaces.Expenses
         public Task<bool> DeleteExpenseAsync(int expenseId);
 
         // Reading from the database
-        public Task<ExpenseResponse?> GetExpenseAsync(int expenseId);
+        public Task<ExpenseResponse?> GetExpenseAsync(int expenseId, int userId);
         public Task<PagedResponse<ExpenseResponse>> GetExpenseByUserAsync(int userId, PageDTO pageDto);
 
     }
