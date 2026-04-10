@@ -14,8 +14,8 @@ namespace SpendWise.Application.Interfaces.Expenses
         public Task<bool> DeleteExpenseAsync(int expenseId);
 
         // Reading from the database
-        public Task<Transaction> GetExpenseAsync(int expenseId); // returns a transaction to store the full information
-        public Task<(IEnumerable<Transaction> projects, int totalCount)> GetExpensesByUserAsync(int userId, int pageNumber, int pageSize);
+        public Task<Expense> GetExpenseAsync(int expenseId); // returns a transaction to store the full information
+        public Task<(IEnumerable<Expense> projects, int totalCount)> GetExpensesByUserAsync(int userId, int pageNumber, int pageSize);
         public Task<string> GetProductsAsync(int expenseId);
     }
 }

@@ -11,7 +11,7 @@ namespace SpendWise.Application.DTOs.NewFolder
         public int WalletId { get; set; } = -1;
 
         [Required(ErrorMessage = "Please enter the currencyDto")]
-        public CurrencyDTO CurrencyDTO { get; set; } = new CurrencyDTO();
+        public CurrencyDTO Currency { get; set; } = new CurrencyDTO();
 
         [Range(0, double.MaxValue, ErrorMessage = "Balance cannot be negative!")]
         public decimal Balance { get; set; }

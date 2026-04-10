@@ -73,9 +73,9 @@ namespace SpendWise.Application.Services
                 Balance = walletDTO.Balance,
                 Currency = new Currency
                 {
-                    Id = walletDTO.CurrencyDTO.CurrencyId,
-                    CurrencyName = walletDTO.CurrencyDTO.CurrencyName,
-                    LiveValue = walletDTO.CurrencyDTO.LiveValue,
+                    Id = walletDTO.Currency.CurrencyId,
+                    CurrencyName = walletDTO.Currency.CurrencyName,
+                    LiveValue = walletDTO.Currency.LiveValue,
                 }
             };
 
@@ -93,9 +93,9 @@ namespace SpendWise.Application.Services
                 Balance = walletDTO.Balance,
                 Currency = new CurrencyResponse
                 {
-                    Id = walletDTO.CurrencyDTO.CurrencyId,
-                    CurrencyName = walletDTO.CurrencyDTO.CurrencyName,
-                    LiveValue = walletDTO.CurrencyDTO.LiveValue,
+                    Id = walletDTO.Currency.CurrencyId,
+                    CurrencyName = walletDTO.Currency.CurrencyName,
+                    LiveValue = walletDTO.Currency.LiveValue,
                 },
             };
         }
@@ -109,9 +109,9 @@ namespace SpendWise.Application.Services
                 Balance = walletDTO.Balance,
                 Currency = new Currency
                 {
-                    Id = walletDTO.CurrencyDTO.CurrencyId,
-                    CurrencyName = walletDTO.CurrencyDTO.CurrencyName,
-                    LiveValue = walletDTO.CurrencyDTO.LiveValue,
+                    Id = walletDTO.Currency.CurrencyId,
+                    CurrencyName = walletDTO.Currency.CurrencyName,
+                    LiveValue = walletDTO.Currency.LiveValue,
                 }
             };
 
@@ -129,9 +129,9 @@ namespace SpendWise.Application.Services
                 Balance = walletDTO.Balance,
                 Currency = new CurrencyResponse
                 {
-                    Id = walletDTO.CurrencyDTO.CurrencyId,
-                    CurrencyName = walletDTO.CurrencyDTO.CurrencyName,
-                    LiveValue = walletDTO.CurrencyDTO.LiveValue,
+                    Id = walletDTO.Currency.CurrencyId,
+                    CurrencyName = walletDTO.Currency.CurrencyName,
+                    LiveValue = walletDTO.Currency.LiveValue,
                 },
             };
         }

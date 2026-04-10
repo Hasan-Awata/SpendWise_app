@@ -106,9 +106,9 @@ namespace SpendWise.Application.Services
                     Balance = incomeDto.Wallet.Balance,
                     Currency = new Currency
                     {
-                        Id = incomeDto.Wallet.CurrencyDTO.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.CurrencyDTO.CurrencyName,
-                        LiveValue = incomeDto.Wallet.CurrencyDTO.LiveValue,
+                        Id = incomeDto.Wallet.Currency.CurrencyId,
+                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
+                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
                     },
                 }
             };
@@ -144,9 +144,9 @@ namespace SpendWise.Application.Services
                     Balance = incomeDto.Wallet.Balance,
                     Currency = new Currency
                     {
-                        Id = incomeDto.Wallet.CurrencyDTO.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.CurrencyDTO.CurrencyName,
-                        LiveValue = incomeDto.Wallet.CurrencyDTO.LiveValue,
+                        Id = incomeDto.Wallet.Currency.CurrencyId,
+                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
+                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
                     },
                 },
               TransactionTag = newIncomeTag,
@@ -231,9 +231,9 @@ namespace SpendWise.Application.Services
                     Balance = incomeDto.Wallet.Balance,
                     Currency = new Currency
                     {
-                        Id = incomeDto.Wallet.CurrencyDTO.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.CurrencyDTO.CurrencyName,
-                        LiveValue = incomeDto.Wallet.CurrencyDTO.LiveValue,
+                        Id = incomeDto.Wallet.Currency.CurrencyId,
+                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
+                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
                     },
                 },
                 TransactionTag = updatedIncomeTag,
