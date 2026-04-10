@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.5.2 Chrome/142.0.7444.265 Electron/39.6.1 Safari/537.36" version="29.5.2">
   <diagram name="Page-1" id="64Skg4H5y1d7g2sQlqv1">
-    <mxGraphModel dx="4270" dy="2680" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1281" dy="804" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -1626,7 +1626,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="RdTfB-7qcPVQRdmzGo7z-1" parent="1" style="shape=table;startSize=25;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;rowLines=1;fontStyle=1;align=center;resizeLast=1;" value="Expenses" vertex="1">
-          <mxGeometry height="163" width="230" x="2840.5" y="399" as="geometry" />
+          <mxGeometry height="193" width="230" x="2840.5" y="399" as="geometry" />
         </mxCell>
         <mxCell id="RdTfB-7qcPVQRdmzGo7z-2" parent="RdTfB-7qcPVQRdmzGo7z-1" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;" vertex="1">
           <mxGeometry height="46" width="230" y="25" as="geometry" />
@@ -1664,8 +1664,26 @@
             <mxRectangle height="46" width="22" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
+        <mxCell id="rb05Alfv1O6J6sjwt0Vk-1" parent="RdTfB-7qcPVQRdmzGo7z-1" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;" value="" vertex="1">
+          <mxGeometry height="30" width="230" y="117" as="geometry" />
+        </mxCell>
+        <mxCell id="rb05Alfv1O6J6sjwt0Vk-2" parent="rb05Alfv1O6J6sjwt0Vk-1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;" value="NVARCHAR" vertex="1">
+          <mxGeometry height="30" width="48" as="geometry">
+            <mxRectangle height="30" width="48" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rb05Alfv1O6J6sjwt0Vk-3" parent="rb05Alfv1O6J6sjwt0Vk-1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;" value="Products" vertex="1">
+          <mxGeometry height="30" width="160" x="48" as="geometry">
+            <mxRectangle height="30" width="160" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rb05Alfv1O6J6sjwt0Vk-4" parent="rb05Alfv1O6J6sjwt0Vk-1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;" value="" vertex="1">
+          <mxGeometry height="30" width="22" x="208" as="geometry">
+            <mxRectangle height="30" width="22" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
         <mxCell id="RdTfB-7qcPVQRdmzGo7z-10" parent="RdTfB-7qcPVQRdmzGo7z-1" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;" vertex="1">
-          <mxGeometry height="46" width="230" y="117" as="geometry" />
+          <mxGeometry height="46" width="230" y="147" as="geometry" />
         </mxCell>
         <mxCell id="RdTfB-7qcPVQRdmzGo7z-11" parent="RdTfB-7qcPVQRdmzGo7z-10" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=2;overflow=hidden;fontSize=11;" value="DECIMAL" vertex="1">
           <mxGeometry height="46" width="48" as="geometry">

@@ -1,86 +1,69 @@
 ﻿USE SpendWiseDB;
 GO
 
--- ==============================================================
--- 1. الفهارس الأساسية لجدول العمليات (Transactions)
--- ==============================================================
+-- ==========================================
+-- 1. Ledger Schema: The heaviest traffic tables
+-- ==========================================
 
--- تسريع شاشة عرض السجل اليومي (ترتيب العمليات للمستخدم حسب التاريخ)
-CREATE NONCLUSTERED INDEX IX_Transactions_UserID_Date 
-ON fin.Transactions (UserID ASC, TransactionDate DESC);
+-- Optimizes: Fetching a user's transaction timeline (e.g., "Get my recent transactions")
+-- Includes Amount, Type, and Category so EF Core projections (.Select) hit the index only.
+CREATE NONCLUSTERED INDEX IX_Transactions_User_Date 
+ON [Ledger].Transactions (UserID, TransactionDate DESC)
+INCLUDE (Amount, TransactionType, CategoryID, WalletID, Title);
 GO
 
--- تسريع عرض حركات محفظة محددة
-CREATE NONCLUSTERED INDEX IX_Transactions_WalletID 
-ON fin.Transactions (WalletID ASC);
+-- Optimizes: Fetching all transactions for a specific wallet (to calculate or verify balances)
+CREATE NONCLUSTERED INDEX IX_Transactions_Wallet
+ON [Ledger].Transactions (WalletID, TransactionDate DESC)
+INCLUDE (Amount, TransactionType);
 GO
 
--- تسريع الفلترة حسب الوسم (Tag)
-CREATE NONCLUSTERED INDEX IX_Transactions_TagID 
-ON fin.Transactions (TagID ASC);
+-- Optimizes: Fetching a user's specific expenses over time (e.g., Monthly Expense Chart)
+CREATE NONCLUSTERED INDEX IX_Expenses_User_Date
+ON [Ledger].Expenses (UserID, Date DESC)
+INCLUDE (Amount, CategoryID, WalletID);
 GO
 
--- ==============================================================
--- 2. الفهرس المغطي (Covering Index) الأقوى لحساب الميزانية والـ Dashboard
--- ==============================================================
-CREATE NONCLUSTERED INDEX IX_Transactions_User_Category_Date_Covering 
-ON fin.Transactions (UserID ASC, CategoryID ASC, TransactionDate DESC)
-INCLUDE (Amount, TransactionType); 
+-- Optimizes: Fetching a user's specific incomes over time
+CREATE NONCLUSTERED INDEX IX_Incomes_User_Date
+ON [Ledger].Incomes (UserID, Date DESC)
+INCLUDE (Amount, WalletID);
 GO
 
--- ==============================================================
--- 3. الفهارس المفلترة الذكية (Filtered Indexes) للمفاتيح الاختيارية
--- ==============================================================
-CREATE NONCLUSTERED INDEX IX_Transactions_GoalID_Filtered 
-ON fin.Transactions (GoalID ASC) 
-WHERE GoalID IS NOT NULL;
+-- ==========================================
+-- 2. Banking Schema
+-- ==========================================
+
+-- Optimizes: Fetching all wallets for the logged-in user to populate the dashboard
+CREATE NONCLUSTERED INDEX IX_Wallets_User 
+ON [Banking].Wallets (UserID)
+INCLUDE (Balance, CurrencyID);
 GO
 
-CREATE NONCLUSTERED INDEX IX_Transactions_DebtID_Filtered 
-ON fin.Transactions (DebtID ASC) 
-WHERE DebtID IS NOT NULL;
+-- ==========================================
+-- 3. Planning Schema: Date-range lookups
+-- ==========================================
+
+-- Optimizes: Finding which budgets are currently active for a user today
+CREATE NONCLUSTERED INDEX IX_Budgets_User_Dates
+ON [Planning].Budgets (UserID, StartDate, EndDate)
+INCLUDE (CategoryID, LimitAmount);
 GO
 
-CREATE NONCLUSTERED INDEX IX_Transactions_ObligationID_Filtered 
-ON fin.Transactions (ObligationID ASC) 
-WHERE ObligationID IS NOT NULL;
+-- Optimizes: Fetching upcoming fixed expenses sorted by due date
+CREATE NONCLUSTERED INDEX IX_FixedExpenses_User_DueDate
+ON [Planning].FixedExpenses (UserID, DueDate)
+INCLUDE (Amount, Title, CategoryID)
+WHERE IsActive = 1; -- Filtered index so we only scan active obligations
 GO
 
-CREATE NONCLUSTERED INDEX IX_Transactions_WorkID_Filtered 
-ON fin.Transactions (WorkID ASC) 
-WHERE WorkID IS NOT NULL;
+-- Optimizes: Checking pending debts between users
+CREATE NONCLUSTERED INDEX IX_SharedDebts_Debtor
+ON [Planning].SharedDebts (DebtorID, DueDate)
+INCLUDE (Amount, CreditorID, Status);
 GO
 
--- إضافة الفهرس المفلتر لجدول المصاريف المستقلة (بناءً على التعديل الأخير)
-CREATE NONCLUSTERED INDEX IX_Transactions_ExpenseID_Filtered 
-ON fin.Transactions (ExpenseID ASC) 
-WHERE ExpenseID IS NOT NULL;
-GO
-
--- ==============================================================
--- 4. فهارس الجداول المحيطية (لتسريع جلب القوائم والـ JOINs)
--- ==============================================================
-
--- تسريع فلترة الالتزامات الثابتة للمستخدم
-CREATE NONCLUSTERED INDEX IX_FixedObligations_UserID 
-ON pln.FixedObligations (UserID ASC);
-GO
-
--- تسريع جلب الديون المرتبطة بمستخدم (سواء كان دائن أو مدين)
-CREATE NONCLUSTERED INDEX IX_SharedDebts_CreditorID 
-ON fin.SharedDebts (CreditorID ASC);
-GO
-
-CREATE NONCLUSTERED INDEX IX_SharedDebts_DebtorID 
-ON fin.SharedDebts (DebtorID ASC);
-GO
-
--- تسريع جلب أهداف الادخار
-CREATE NONCLUSTERED INDEX IX_SavingsGoals_UserID 
-ON pln.SavingsGoals (UserID ASC);
-GO
-
--- تسريع جلب الأعمال/مصادر الدخل
-CREATE NONCLUSTERED INDEX IX_Works_UserID 
-ON pln.Works (UserID ASC);
+CREATE NONCLUSTERED INDEX IX_SharedDebts_Creditor
+ON [Planning].SharedDebts (CreditorID, DueDate)
+INCLUDE (Amount, DebtorID, Status);
 GO

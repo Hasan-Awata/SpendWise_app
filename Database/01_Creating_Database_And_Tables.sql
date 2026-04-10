@@ -1,9 +1,7 @@
-﻿-- ==========================================
--- 0. إغلاق الاتصالات وحذف قاعدة البيانات القديمة بأمان
--- ==========================================
 USE master;
 GO
 
+-- 1. Drop the existing database if it exists
 IF DB_ID('SpendWiseDB') IS NOT NULL
 BEGIN
     ALTER DATABASE SpendWiseDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
@@ -11,9 +9,7 @@ BEGIN
 END
 GO
 
--- ==========================================
--- 1. إنشاء قاعدة البيانات الجديدة
--- ==========================================
+-- 2. Create the new database
 CREATE DATABASE SpendWiseDB;
 GO
 
@@ -21,187 +17,214 @@ USE SpendWiseDB;
 GO
 
 -- ==========================================
--- 2. إنشاء السكيمات (Schemas)
+-- 3. Create Independent Tables First
 -- ==========================================
-CREATE SCHEMA usr;
-GO
-CREATE SCHEMA cfg;
-GO
-CREATE SCHEMA fin;
-GO
-CREATE SCHEMA pln;
-GO
 
--- ==========================================
--- 3. جداول الإعدادات والمستخدمين
--- ==========================================
-CREATE TABLE usr.Users (
+CREATE TABLE Users (
     UserID INT IDENTITY(1,1) PRIMARY KEY,
     FirstName NVARCHAR(100) NOT NULL,
     LastName NVARCHAR(100) NOT NULL,
     Username NVARCHAR(100) NOT NULL,
     Password NVARCHAR(255) NOT NULL,
-    -- قيد: اليوزرنيم لا يتكرر
-    CONSTRAINT UQ_Users_Username UNIQUE (Username) 
+    CONSTRAINT UQ_Users_Username UNIQUE (Username)
 );
 
-CREATE TABLE cfg.Currencies (
+CREATE TABLE Currencies (
     CurrencyID INT IDENTITY(1,1) PRIMARY KEY,
     CurrencyName NVARCHAR(50) NOT NULL,
-    ActualValue DECIMAL(18,6) NOT NULL,
-    -- قيد: اسم العملة لا يتكرر
-    CONSTRAINT UQ_Currencies_CurrencyName UNIQUE (CurrencyName)
+    ActualValue DECIMAL(18,4) NOT NULL,
+    CONSTRAINT UQ_Currencies_Name UNIQUE (CurrencyName),
+    CONSTRAINT CHK_Currencies_ActualValue CHECK (ActualValue >= 0)
 );
 
-CREATE TABLE cfg.Categories (
+CREATE TABLE Categories (
     CategoryID INT IDENTITY(1,1) PRIMARY KEY,
     Name NVARCHAR(100) NOT NULL,
-    Priority INT NOT NULL,
-    -- قيد: اسم الفئة لا يتكرر
-    CONSTRAINT UQ_Categories_Name UNIQUE (Name)
+    Priority INT NOT NULL
 );
 
-CREATE TABLE cfg.Tags (
+-- ==========================================
+-- 4. Create Tables with 1st-Level Dependencies
+-- ==========================================
+
+CREATE TABLE Tags (
     TagID INT IDENTITY(1,1) PRIMARY KEY,
     UserID INT NOT NULL,
     Name NVARCHAR(100) NOT NULL,
-    CONSTRAINT FK_Tags_Users FOREIGN KEY (UserID) REFERENCES usr.Users(UserID),
-    -- قيد: التاغ لا يتكرر لنفس المستخدم
-    CONSTRAINT UQ_Tags_User_Name UNIQUE (UserID, Name)
+    CONSTRAINT FK_Tags_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    CONSTRAINT UQ_Tags_UserName UNIQUE (UserID, Name)
 );
 
--- ==========================================
--- 4. جداول المحافظ
--- ==========================================
-CREATE TABLE fin.Wallets (
+CREATE TABLE Wallets (
     WalletID INT IDENTITY(1,1) PRIMARY KEY,
     UserID INT NOT NULL,
     CurrencyID INT NOT NULL,
     Balance DECIMAL(18,2) NOT NULL DEFAULT 0,
-    CONSTRAINT FK_Wallets_Users FOREIGN KEY (UserID) REFERENCES usr.Users(UserID),
-    CONSTRAINT FK_Wallets_Currencies FOREIGN KEY (CurrencyID) REFERENCES cfg.Currencies(CurrencyID),
-    -- قيد: لا يمكن للمستخدم فتح محفظتين بنفس العملة
-    CONSTRAINT UQ_Wallets_User_Currency UNIQUE (UserID, CurrencyID)
+    CONSTRAINT FK_Wallets_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    CONSTRAINT FK_Wallets_Currencies FOREIGN KEY (CurrencyID) REFERENCES Currencies(CurrencyID),
+    CONSTRAINT UQ_Wallets_UserCurrency UNIQUE (UserID, CurrencyID),
+    CONSTRAINT CHK_Wallets_Balance CHECK (Balance >= 0)
 );
 
-CREATE TABLE fin.SavedWallets (
-    SavedWalletID INT IDENTITY(1,1) PRIMARY KEY,
-    WalletID INT NOT NULL,
-    Balance DECIMAL(18,2) NOT NULL,
-    CONSTRAINT FK_SavedWallets_Wallets FOREIGN KEY (WalletID) REFERENCES fin.Wallets(WalletID)
+CREATE TABLE SavingsGoals (
+    GoalID INT IDENTITY(1,1) PRIMARY KEY,
+    UserID INT NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
+    TargetAmount DECIMAL(18,2) NOT NULL,
+    CurrentAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+    DeadlineDate DATE,
+    IsAchieved BIT NOT NULL DEFAULT 0,
+    CONSTRAINT FK_SavingsGoals_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    CONSTRAINT CHK_SavingsGoals_TargetAmount CHECK (TargetAmount > 0),
+    CONSTRAINT CHK_SavingsGoals_CurrentAmount CHECK (CurrentAmount >= 0)
 );
 
--- ==========================================
--- 5. جداول التخطيط، الديون، والأعمال
--- ==========================================
-CREATE TABLE pln.Budgets (
+CREATE TABLE Budgets (
     BudgetID INT IDENTITY(1,1) PRIMARY KEY,
     UserID INT NOT NULL,
     CategoryID INT NOT NULL,
     LimitAmount DECIMAL(18,2) NOT NULL,
-    Percentage DECIMAL(5,2) NOT NULL,
+    Percentage DECIMAL(5,2) CHECK (Percentage >= 0),
     StartDate DATE NOT NULL,
     EndDate DATE NOT NULL,
-    CONSTRAINT FK_Budgets_Users FOREIGN KEY (UserID) REFERENCES usr.Users(UserID),
-    CONSTRAINT FK_Budgets_Categories FOREIGN KEY (CategoryID) REFERENCES cfg.Categories(CategoryID),
-    -- قيود الميزانية
-    CONSTRAINT CHK_Budgets_Dates CHECK (EndDate > StartDate),
-    CONSTRAINT CHK_Budgets_Percentage CHECK (Percentage >= 0 AND Percentage <= 100),
-    CONSTRAINT UQ_Budgets_User_Category_Dates UNIQUE (UserID, CategoryID, StartDate, EndDate)
-);
-
-CREATE TABLE pln.SavingsGoals (
-    GoalID INT IDENTITY(1,1) PRIMARY KEY,
-    UserID INT NOT NULL,
-    Title NVARCHAR(255) NOT NULL,
-    TargetAmount DECIMAL(18,2) NOT NULL,
-    CurrentAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
-    DeadlineDate DATE,
-    CONSTRAINT FK_SavingsGoals_Users FOREIGN KEY (UserID) REFERENCES usr.Users(UserID),
-    -- قيد: المبلغ الحالي لا يتجاوز الهدف
-    CONSTRAINT CHK_SavingsGoals_Amounts CHECK (CurrentAmount <= TargetAmount)
-);
-
-CREATE TABLE pln.FixedObligations (
-    ObligationID INT IDENTITY(1,1) PRIMARY KEY,
-    UserID INT NOT NULL,
-    CategoryID INT NOT NULL,
-    Title NVARCHAR(255) NOT NULL,
-    Amount DECIMAL(18,2) NOT NULL,
-    DueDate DATE NOT NULL,
     IsActive BIT NOT NULL DEFAULT 1,
-    CONSTRAINT FK_FixedObligations_Users FOREIGN KEY (UserID) REFERENCES usr.Users(UserID),
-    CONSTRAINT FK_FixedObligations_Categories FOREIGN KEY (CategoryID) REFERENCES cfg.Categories(CategoryID)
+    CONSTRAINT FK_Budgets_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    CONSTRAINT FK_Budgets_Categories FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID),
+    CONSTRAINT CHK_Budgets_LimitAmount CHECK (LimitAmount >= 0),
+    CONSTRAINT CHK_Budgets_Dates CHECK (StartDate < EndDate)
 );
 
-CREATE TABLE fin.SharedDebts (
+CREATE TABLE SharedDebts (
     DebtID INT IDENTITY(1,1) PRIMARY KEY,
     CreditorID INT NOT NULL,
     DebtorID INT NOT NULL,
     Amount DECIMAL(18,2) NOT NULL,
-    Title NVARCHAR(255), 
+    Title NVARCHAR(200) NOT NULL,
     Status NVARCHAR(50) NOT NULL,
     CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
     DueDate DATETIME,
-    CONSTRAINT FK_SharedDebts_Creditor FOREIGN KEY (CreditorID) REFERENCES usr.Users(UserID),
-    CONSTRAINT FK_SharedDebts_Debtor FOREIGN KEY (DebtorID) REFERENCES usr.Users(UserID)
+    CONSTRAINT FK_SharedDebts_Creditor FOREIGN KEY (CreditorID) REFERENCES Users(UserID),
+    CONSTRAINT FK_SharedDebts_Debtor FOREIGN KEY (DebtorID) REFERENCES Users(UserID),
+    CONSTRAINT CHK_SharedDebts_Amount CHECK (Amount > 0)
 );
 
-CREATE TABLE pln.Works (
-    WorkID INT IDENTITY(1,1) PRIMARY KEY,
+CREATE TABLE FixedIncomes (
+    FixedIncomeID INT IDENTITY(1,1) PRIMARY KEY,
     UserID INT NOT NULL,
-    TagID INT NULL,
-    Title NVARCHAR(255) NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
     Amount DECIMAL(18,2) NOT NULL,
     IsMonthly BIT NOT NULL DEFAULT 1,
-    Days INT NULL, 
-    LastTime DATETIME NULL,
-    CONSTRAINT FK_Works_Users FOREIGN KEY (UserID) REFERENCES usr.Users(UserID),
-    CONSTRAINT FK_Works_Tags FOREIGN KEY (TagID) REFERENCES cfg.Tags(TagID)
+    IsActive BIT NOT NULL DEFAULT 1,
+    Days INT,
+    LastTime DATETIME,
+    CONSTRAINT FK_FixedIncomes_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    CONSTRAINT UQ_FixedIncomes_UserTitle UNIQUE (UserID, Title),
+    CONSTRAINT CHK_FixedIncomes_Amount CHECK (Amount > 0)
 );
 
-CREATE TABLE fin.Expenses (
+CREATE TABLE FixedExpenses (
+    FixedExpenseID INT IDENTITY(1,1) PRIMARY KEY,
+    UserID INT NOT NULL,
+    CategoryID INT NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
+    Amount DECIMAL(18,2) NOT NULL,
+    DueDate DATE NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CONSTRAINT FK_FixedExpenses_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    CONSTRAINT FK_FixedExpenses_Categories FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID),
+    CONSTRAINT UQ_FixedExpenses_UserTitle UNIQUE (UserID, Title),
+    CONSTRAINT CHK_FixedExpenses_Amount CHECK (Amount > 0)
+);
+
+-- ==========================================
+-- 5. Create Tables with 2nd-Level Dependencies
+-- ==========================================
+
+CREATE TABLE SavedWallets (
+    SavedWalletID INT IDENTITY(1,1) PRIMARY KEY,
+    WalletID INT NOT NULL,
+    Balance DECIMAL(18,2) NOT NULL,
+    CONSTRAINT FK_SavedWallets_Wallets FOREIGN KEY (WalletID) REFERENCES Wallets(WalletID),
+    CONSTRAINT CHK_SavedWallets_Balance CHECK (Balance >= 0)
+);
+
+CREATE TABLE Expenses (
     ExpenseID INT IDENTITY(1,1) PRIMARY KEY,
     UserID INT NOT NULL,
+    TagID INT,
+    CategoryID INT NOT NULL,
+    WalletID INT NOT NULL,
+	Products NVARCHAR(1000) NOT NULL,
     Amount DECIMAL(18,2) NOT NULL,
-    CONSTRAINT FK_Expenses_Users FOREIGN KEY (UserID) REFERENCES usr.Users(UserID),
-	CONSTRAINT CHK_Expenses_Amount CHECK (Amount > 0)
+    Date DATETIME NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT FK_Expenses_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    CONSTRAINT FK_Expenses_Tags FOREIGN KEY (TagID) REFERENCES Tags(TagID),
+    CONSTRAINT FK_Expenses_Categories FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID),
+    CONSTRAINT FK_Expenses_Wallets FOREIGN KEY (WalletID) REFERENCES Wallets(WalletID),
+    CONSTRAINT CHK_Expenses_Amount CHECK (Amount > 0)
 );
 
--- ==========================================
--- 6. جدول العمليات المركزي (Transactions)
--- ==========================================
-CREATE TABLE fin.Transactions (
-    TransactionID INT IDENTITY(1,1) PRIMARY KEY,
-    
+CREATE TABLE Incomes (
+    IncomeID INT IDENTITY(1,1) PRIMARY KEY,
     UserID INT NOT NULL,
+    TagID INT,
     WalletID INT NOT NULL,
     Amount DECIMAL(18,2) NOT NULL,
-    TransactionDate DATETIME NOT NULL DEFAULT GETDATE(),
-    TransactionType INT NOT NULL, 
-    Description NVARCHAR(255) NOT NULL,
-    
-    -- الحقول الاختيارية (Nullable)
-    CategoryID INT NULL, 
-    TagID INT NULL,      
-    GoalID INT NULL,                 
-    ObligationID INT NULL,           
-    DebtID INT NULL,                 
-    WorkID INT NULL,                 
-    ExpenseID INT NULL,              
+    Date DATETIME NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT FK_Incomes_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    CONSTRAINT FK_Incomes_Tags FOREIGN KEY (TagID) REFERENCES Tags(TagID),
+    CONSTRAINT FK_Incomes_Wallets FOREIGN KEY (WalletID) REFERENCES Wallets(WalletID),
+    CONSTRAINT CHK_Incomes_Amount CHECK (Amount > 0)
+);
 
-    -- العلاقات
-    CONSTRAINT FK_Transactions_Users FOREIGN KEY (UserID) REFERENCES usr.Users(UserID),
-    CONSTRAINT FK_Transactions_Wallets FOREIGN KEY (WalletID) REFERENCES fin.Wallets(WalletID),
-    CONSTRAINT FK_Transactions_Categories FOREIGN KEY (CategoryID) REFERENCES cfg.Categories(CategoryID),
-    CONSTRAINT FK_Transactions_Tags FOREIGN KEY (TagID) REFERENCES cfg.Tags(TagID),
-    CONSTRAINT FK_Transactions_Goals FOREIGN KEY (GoalID) REFERENCES pln.SavingsGoals(GoalID),
-    CONSTRAINT FK_Transactions_Obligations FOREIGN KEY (ObligationID) REFERENCES pln.FixedObligations(ObligationID),
-    CONSTRAINT FK_Transactions_Debts FOREIGN KEY (DebtID) REFERENCES fin.SharedDebts(DebtID),
-    CONSTRAINT FK_Transactions_Works FOREIGN KEY (WorkID) REFERENCES pln.Works(WorkID),
-    CONSTRAINT FK_Transactions_Expenses FOREIGN KEY (ExpenseID) REFERENCES fin.Expenses(ExpenseID),
+-- ==========================================
+-- 6. Create the Transactions Table
+-- ==========================================
+
+CREATE TABLE Transactions (
+    TransactionID INT IDENTITY(1,1) PRIMARY KEY,
+    UserID INT NOT NULL,
+    WalletID INT NOT NULL,
+    CategoryID INT,           
+    TagID INT,                
+    GoalID INT,               
+    FixedExpenseID INT,
+    DebtID INT,               
+    FixedIncomeID INT,        
+    ExpenseID INT,            
+    IncomeID INT,             
+    Title NVARCHAR(255) NOT NULL,
+    Amount DECIMAL(18,2) NOT NULL,
+    TransactionDate DATETIME NOT NULL DEFAULT GETDATE(),
+    TransactionType INT NOT NULL,
+    Description NVARCHAR(255),
     
-    -- قيد: يجب أن يكون المبلغ المدخل موجباً دائماً
+    CONSTRAINT FK_Transactions_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    CONSTRAINT FK_Transactions_Wallets FOREIGN KEY (WalletID) REFERENCES Wallets(WalletID),
+    CONSTRAINT FK_Transactions_Categories FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID),
+    CONSTRAINT FK_Transactions_Tags FOREIGN KEY (TagID) REFERENCES Tags(TagID),
+    CONSTRAINT FK_Transactions_SavingsGoals FOREIGN KEY (GoalID) REFERENCES SavingsGoals(GoalID),
+    CONSTRAINT FK_Transactions_FixedExpenses FOREIGN KEY (FixedExpenseID) REFERENCES FixedExpenses(FixedExpenseID),
+    CONSTRAINT FK_Transactions_SharedDebts FOREIGN KEY (DebtID) REFERENCES SharedDebts(DebtID),
+    CONSTRAINT FK_Transactions_FixedIncomes FOREIGN KEY (FixedIncomeID) REFERENCES FixedIncomes(FixedIncomeID),
+    CONSTRAINT FK_Transactions_Expenses FOREIGN KEY (ExpenseID) REFERENCES Expenses(ExpenseID),
+    CONSTRAINT FK_Transactions_Incomes FOREIGN KEY (IncomeID) REFERENCES Incomes(IncomeID),
     CONSTRAINT CHK_Transactions_Amount CHECK (Amount > 0)
 );
+GO
+
+-- ==========================================
+-- 7. Create Conditional Unique Constraints (Filtered Indexes)
+-- ==========================================
+
+-- Savings goals are unique per user and title ONLY while not achieved (IsAchieved = 0)
+CREATE UNIQUE NONCLUSTERED INDEX UQ_SavingsGoals_ActiveTitle 
+ON SavingsGoals(UserID, Title)
+WHERE IsAchieved = 0;
+GO
+
+-- Budgets are unique per user and category ONLY while the period is active (IsActive = 1)
+CREATE UNIQUE NONCLUSTERED INDEX UQ_Budgets_ActiveCategory 
+ON Budgets(UserID, CategoryID)
+WHERE IsActive = 1;
 GO
