@@ -112,7 +112,7 @@ namespace SpendWise.Controllers
        public async Task<IActionResult> GetAchievedGoals()
         {
             int userID = CurrentUserId;
-            var Goals =await _savingGoalService.GetAchievedGoalsAsync(userID);
+              var Goals =await _savingGoalService.GetAchievedGoalsAsync(userID);
             if (Goals == null) return NotFound();
             return Ok(Goals);
         }
