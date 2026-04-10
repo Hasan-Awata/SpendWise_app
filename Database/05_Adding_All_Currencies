@@ -1,4 +1,4 @@
-INSERT INTO Currencies (CurrencyName, ActualValue)
+INSERT INTO Config.Currencies (CurrencyName, ActualValue)
 VALUES 
     ('Afghan Afghani', 1),
     ('Albanian Lek', 1),
