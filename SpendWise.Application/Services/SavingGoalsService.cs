@@ -12,20 +12,25 @@ namespace SpendWise.Application.Services
     public class SavingGoalsService :ISavingGoalService
     {
 
-        /*private readonly ISavingGoalsRepository _goalRepo;
-        public SavingGoalsService(ISavingGoalsRepository goalRepo) { 
+        private readonly ISavingGoalRepository _goalRepo;
+        public SavingGoalsService(ISavingGoalRepository goalRepo) { 
         
         _goalRepo = goalRepo;
-        }*/
+        }
 
-        public async Task<SavingGoalResponse?> GetGoalByIdAsync(int userID,int goalId)
+        public async Task<SavingGoalResponse?> GetGoalByIdAsync(int goalId)
         {
             //UnComment Later *_*
-            //SavingGoals savingGoals =await _goalRepo .GetGoalByIdAsync(userID,goalId);
-            
-            // return new SavingGoalsResponse(savingGoals)
-            return null;
+            if (_goalRepo == null)
+                return null;
+               
+                SavingGoal savingGoals
+                                        = await _goalRepo.GetGoalByIdAsync(goalId);
 
+              if (savingGoals == null)
+                return null;
+                return new SavingGoalResponse(savingGoals);
+                        
 
         }
 
@@ -33,7 +38,7 @@ namespace SpendWise.Application.Services
         {
             IEnumerable<SavingGoal> savingGoals = new List<SavingGoal>();
 
-            //savingGoals =awiat _goalRepo.GetAllUserGoalAsynce(userId);
+            savingGoals =await _goalRepo.GetAllUserGoalsAsync(userId);
 
 
             return savingGoals.Select(item => new SavingGoalResponse
@@ -54,33 +59,36 @@ namespace SpendWise.Application.Services
 
         public async Task<int>AddGoalAsync (int userID,SavingGoalDTO savingGoal)
         {
-            //return await _goalRepo.AddGoalAsync(userID,savingGoal);
-            return -1;
 
+            var savinggoal =new SavingGoal(-1,userID,savingGoal.Title,savingGoal.TargetAmount,savingGoal.CurrentAmount,savingGoal.DeadlineDate);
+            return await _goalRepo.AddGoalAsync(savinggoal);
+            
         }
         public async Task<bool> UpdateGoalAsync(int savingGoalId,SavingGoalDTO savingGoal)
         {
-            //return await _goalRepo.UpdateGoalAsync(savingGoalId,savingGoal);
-            return false;  
+            var savinggoal = new SavingGoal(savingGoalId, savingGoal.UserId, savingGoal.Title, savingGoal.TargetAmount, savingGoal.CurrentAmount, savingGoal.DeadlineDate);
+
+            return await _goalRepo.UpdateGoalAsync(savinggoal);
+            
 
         }
         public async Task<bool> DeleteGoalAsync(int savingGoalId)
         {
-            //return await _goalRepo.DeleteAsync(savingGoalId);
-            return false;
+            return await _goalRepo.DeleteGoalAsync(savingGoalId);
+          
         }
 
         public async Task<bool> GoalExistsAsync(int goalId)
         {
-            //return await _goalRepo.GoalExistsAsync(goalId);
-            return false;
+            return await _goalRepo.GoalExistsAsync(goalId);
+           // return false;
         }
         public async Task<IEnumerable<SavingGoalResponse>> GetAchievedGoalsAsync(int userId)
         {
 
             IEnumerable<SavingGoal> savingGoals = new List<SavingGoal>();
 
-            //savingGoals =awiat _goalRepo.GetAchievedGoalsAsync(userId);
+            savingGoals =await _goalRepo.GetAchievedGoalsAsync(userId);
 
 
             return savingGoals.Select(item => new SavingGoalResponse
