@@ -3,10 +3,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using SpendWise.Application.Interfaces;
 using SpendWise.Domain.Entities;
-using SpendWise.Application.Interfaces.DTOs;
 using SpendWise.Application.Interfaces.Users;
+using SpendWise.Application.Interfaces.Authentication;
+using SpendWise.Application.DTOs.Authentication;
 
 namespace SpendWise.Application.Services
 {

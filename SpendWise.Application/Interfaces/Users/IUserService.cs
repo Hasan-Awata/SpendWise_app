@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using SpendWise.Application.DTOs;
+using SpendWise.Application.DTOs.User;
 using SpendWise.Domain.Entities;
 
 namespace SpendWise.Application.Interfaces.Users

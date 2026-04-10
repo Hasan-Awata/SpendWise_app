@@ -3,7 +3,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
 using System.Text.Json.Serialization;
-using SpendWise.Application.Interfaces;
 using SpendWise.Application.Services;
 using SpendWise.Infrastructure.Repositories;
 using SpendWise.Application.Interfaces.Users;
@@ -11,6 +10,7 @@ using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Application.Interfaces.Wallets;
 using SpendWise.Application.DTOs.Income;
 using SpendWise.Application.Interfaces.Tags;
+using SpendWise.Application.Interfaces.Authentication;
 
 
 var builder = WebApplication.CreateBuilder(args);

@@ -1,4 +1,4 @@
-﻿using SpendWise.Application.DTOs;
+﻿using SpendWise.Application.DTOs.User;
 using SpendWise.Application.Interfaces.Users;
 using SpendWise.Domain.Entities;
 using System;

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SpendWise.Application.Interfaces;
-using SpendWise.Application.Interfaces.DTOs;
+using SpendWise.Application.DTOs.Authentication;
+using SpendWise.Application.Interfaces.Authentication;
 
 namespace SpendWise.Controllers
 {
