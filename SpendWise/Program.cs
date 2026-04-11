@@ -47,10 +47,10 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<IIncomeService, IncomeService>();
-builder.Services.AddScoped<IIncomeRepository, IncomeRepository>();
+//builder.Services.AddScoped<IIncomeRepository, IncomeRepository>();
 
 builder.Services.AddScoped<IWalletService, WalletService>();
-builder.Services.AddScoped<IWalletRepository, WalletRepository>();
+//builder.Services.AddScoped<IWalletRepository, WalletRepository>();
 
 builder.Services.AddScoped<ITagService,  TagService>();
 builder.Services.AddScoped<ITagRepository, TagRepository>();
@@ -81,6 +81,13 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// ── Allowing all requests for testing ────────────────────────────────────────────────────
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
@@ -89,7 +96,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseCors("AllowAll"); // Delete on actual deployment
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
