@@ -38,12 +38,7 @@ public class IncomeRepository : IIncomeRepository
             command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
             command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
             command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
-            command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategory?.CategoryId > 0 ? newTransaction.TransactionCategory.CategoryId : DBNull.Value);
             command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTag?.Id > 0 ? newTransaction.TransactionTag.Id : DBNull.Value);
-            command.Parameters.AddWithValue("@GoalId", newTransaction.SavingGoal?.GoalID > 0 ? newTransaction.SavingGoal.GoalID : DBNull.Value);
-            //command.Parameters.AddWithValue("@FixedExpenseId", newTransaction.FixedExpenseId.HasValue ? newTransaction.FixedExpenseId.Value : DBNull.Value);
-            //command.Parameters.AddWithValue("@FixedIncomeId", newTransaction.FixedIncomeId.HasValue ? newTransaction.FixedIncomeId.Value : DBNull.Value);
-            //command.Parameters.AddWithValue("@DebtId", newTransaction.DebtId.HasValue ? newTransaction.DebtId.Value : DBNull.Value);
 
             await connection.OpenAsync();
             var result = await command.ExecuteScalarAsync();
@@ -76,12 +71,7 @@ public class IncomeRepository : IIncomeRepository
             command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
             command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
             command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
-            command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategory?.CategoryId > 0 ? newTransaction.TransactionCategory.CategoryId : DBNull.Value);
             command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTag?.Id > 0 ? newTransaction.TransactionTag.Id : DBNull.Value);
-            command.Parameters.AddWithValue("@GoalId", newTransaction.SavingGoal?.GoalID > 0 ? newTransaction.SavingGoal.GoalID : DBNull.Value);
-            //command.Parameters.AddWithValue("@FixedExpenseId", newTransaction.FixedExpenseId.HasValue ? newTransaction.FixedExpenseId.Value : DBNull.Value);
-            //command.Parameters.AddWithValue("@FixedIncomeId", newTransaction.FixedIncomeId.HasValue ? newTransaction.FixedIncomeId.Value : DBNull.Value);
-            //command.Parameters.AddWithValue("@DebtId", newTransaction.DebtId.HasValue ? newTransaction.DebtId.Value : DBNull.Value);
 
             await connection.OpenAsync();
             var result = await command.ExecuteScalarAsync();
@@ -159,22 +149,8 @@ public class IncomeRepository : IIncomeRepository
                         Amount = Convert.ToDecimal(reader["TransAmount"]),
                         TransactionDate = Convert.ToDateTime(reader["TransactionDate"]),
                         TransactionType = (enTransactionType)Convert.ToInt32(reader["TransactionType"]),
-                        Wallet = new Wallet { WalletId = Convert.ToInt32(reader["TransWalletID"]), Balance = Convert.ToDecimal(reader["TransWalletBalance"]) },
-                        SavinGoalId = reader["GoalID"] != DBNull.Value ? Convert.ToInt32(reader["GoalID"]) : null,
-                        FixedExpenseId = reader["FixedExpenseID"] != DBNull.Value ? Convert.ToInt32(reader["FixedExpenseID"]) : null,
-                        FixedIncomeId = reader["FixedIncomeID"] != DBNull.Value ? Convert.ToInt32(reader["FixedIncomeID"]) : null,
-                        DebtId = reader["DebtID"] != DBNull.Value ? Convert.ToInt32(reader["DebtID"]) : null
+                        Wallet = new Wallet { WalletId = Convert.ToInt32(reader["TransWalletID"]), Balance = Convert.ToDecimal(reader["TransWalletBalance"]) }
                     };
-
-                    if (reader["CategoryID"] != DBNull.Value)
-                    {
-                        income.LinkedTransaction.TransactionCategory = new Category
-                        {
-                            CategoryId = Convert.ToInt32(reader["CategoryID"]),
-                            Name = reader["CategoryName"].ToString()!,
-                            Priority = Convert.ToInt32(reader["CategoryPriority"])
-                        };
-                    }
 
                     if (reader["TransTagID"] != DBNull.Value)
                     {
