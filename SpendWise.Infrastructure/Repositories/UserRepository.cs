@@ -96,7 +96,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
             return found;
         }
-        public async Task<bool> AddUserAsync(User user)
+        public async Task<int> AddUserAsync(User user)
         {
             int UserID = -1;
 
@@ -124,10 +124,10 @@ namespace SpendWise.Infrastructure.Repositories
                     }
                     catch (Exception)
                     {
-                        return false;
+                        return UserID;
                     }
                 }
-                return true;
+                return UserID;
             }
         }
     }

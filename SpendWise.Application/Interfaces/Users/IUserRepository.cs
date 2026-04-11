@@ -8,7 +8,7 @@ namespace SpendWise.Application.Interfaces.Users
 {
     public interface IUserRepository
     {
-        public Task<bool> AddUserAsync(User user);
+        public Task<int> AddUserAsync(User user);
         public Task<User?> GetByUsernameAsync(string userName);
         public Task<User?> GetByIdAsync(int id);
         public Task<bool> IsUsernameExistAsync(string username);
