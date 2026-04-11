@@ -18,7 +18,7 @@ namespace SpendWise.Infrastructure.Repositories
 
             using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
             {
-                using (SqlCommand command = new SqlCommand("[usr].[sp_GetUserByID]", connection))
+                using (SqlCommand command = new SqlCommand("[Identity].[sp_GetUserById]", connection))
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@UserID", id);
@@ -30,8 +30,8 @@ namespace SpendWise.Infrastructure.Repositories
                         {
                             if (await reader.ReadAsync())
                             {
-                                user = new User((string)reader["UserName"],
-                                                (string)reader["HashedPassword"],
+                                user = new User((string)reader["Username"],
+                                                (string)reader["Password"],
                                                 (string)reader["FirstName"],
                                                 (string)reader["LastName"]);
                             }
@@ -48,7 +48,7 @@ namespace SpendWise.Infrastructure.Repositories
 
             using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
             {
-                using (SqlCommand command = new SqlCommand("[usr].[sp_GetByUsername]", connection))
+                using (SqlCommand command = new SqlCommand("[Identity].[sp_GetUserByUsername]", connection))
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@Username", userName);
@@ -61,7 +61,7 @@ namespace SpendWise.Infrastructure.Repositories
                             if (await reader.ReadAsync())
                             {
                                 user = new User((int)reader["UserID"],
-                                                (string)reader["UserName"],
+                                                (string)reader["Username"],
                                                 (string)reader["Password"],
                                                 (string)reader["FirstName"],
                                                 (string)reader["LastName"]);
@@ -78,7 +78,7 @@ namespace SpendWise.Infrastructure.Repositories
             bool found = false;
             using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
             {
-                using (SqlCommand command = new SqlCommand("[usr].[sp_IsUsernameExist]", connection))
+                using (SqlCommand command = new SqlCommand("[Identity].[sp_CheckUsernameExists]", connection))
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@Username", username);
@@ -102,7 +102,7 @@ namespace SpendWise.Infrastructure.Repositories
 
             using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
             {
-                using (SqlCommand command = new SqlCommand("[usr].[sp_CreateUser]", connection))
+                using (SqlCommand command = new SqlCommand("[Identity].[sp_AddUser]", connection))
                 {
                     command.CommandType = CommandType.StoredProcedure;
 
