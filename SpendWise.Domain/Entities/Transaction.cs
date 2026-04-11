@@ -17,7 +17,7 @@ namespace SpendWise.Domain.Entities
 
         public Category? TransactionCategory { get; set; }
         public Tag? TransactionTag { get; set; }
-        //public SavingGoal? SavingGoal { get; set; }
+        public SavingGoal? SavingGoal { get; set; }
         //public FixedExpense? FixedExpense { get; set; }
         //public FixedIncome? FixedIncome { get; set; }
         //public Debt? Debt { get; set; }

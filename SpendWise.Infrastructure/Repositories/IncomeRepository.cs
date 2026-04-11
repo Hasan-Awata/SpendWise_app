@@ -40,10 +40,10 @@ public class IncomeRepository : IIncomeRepository
             command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
             command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategory?.CategoryId > 0 ? newTransaction.TransactionCategory.CategoryId : DBNull.Value);
             command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTag?.Id > 0 ? newTransaction.TransactionTag.Id : DBNull.Value);
-            command.Parameters.AddWithValue("@GoalId", newTransaction.SavinGoalId.HasValue ? newTransaction.SavinGoalId.Value : DBNull.Value);
-            command.Parameters.AddWithValue("@FixedExpenseId", newTransaction.FixedExpenseId.HasValue ? newTransaction.FixedExpenseId.Value : DBNull.Value);
-            command.Parameters.AddWithValue("@FixedIncomeId", newTransaction.FixedIncomeId.HasValue ? newTransaction.FixedIncomeId.Value : DBNull.Value);
-            command.Parameters.AddWithValue("@DebtId", newTransaction.DebtId.HasValue ? newTransaction.DebtId.Value : DBNull.Value);
+            command.Parameters.AddWithValue("@GoalId", newTransaction.SavingGoal?.GoalID > 0 ? newTransaction.SavingGoal.GoalID : DBNull.Value);
+            //command.Parameters.AddWithValue("@FixedExpenseId", newTransaction.FixedExpenseId.HasValue ? newTransaction.FixedExpenseId.Value : DBNull.Value);
+            //command.Parameters.AddWithValue("@FixedIncomeId", newTransaction.FixedIncomeId.HasValue ? newTransaction.FixedIncomeId.Value : DBNull.Value);
+            //command.Parameters.AddWithValue("@DebtId", newTransaction.DebtId.HasValue ? newTransaction.DebtId.Value : DBNull.Value);
 
             await connection.OpenAsync();
             var result = await command.ExecuteScalarAsync();
@@ -78,10 +78,10 @@ public class IncomeRepository : IIncomeRepository
             command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
             command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategory?.CategoryId > 0 ? newTransaction.TransactionCategory.CategoryId : DBNull.Value);
             command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTag?.Id > 0 ? newTransaction.TransactionTag.Id : DBNull.Value);
-            command.Parameters.AddWithValue("@GoalId", newTransaction.SavinGoalId.HasValue ? newTransaction.SavinGoalId.Value : DBNull.Value);
-            command.Parameters.AddWithValue("@FixedExpenseId", newTransaction.FixedExpenseId.HasValue ? newTransaction.FixedExpenseId.Value : DBNull.Value);
-            command.Parameters.AddWithValue("@FixedIncomeId", newTransaction.FixedIncomeId.HasValue ? newTransaction.FixedIncomeId.Value : DBNull.Value);
-            command.Parameters.AddWithValue("@DebtId", newTransaction.DebtId.HasValue ? newTransaction.DebtId.Value : DBNull.Value);
+            command.Parameters.AddWithValue("@GoalId", newTransaction.SavingGoal?.GoalID > 0 ? newTransaction.SavingGoal.GoalID : DBNull.Value);
+            //command.Parameters.AddWithValue("@FixedExpenseId", newTransaction.FixedExpenseId.HasValue ? newTransaction.FixedExpenseId.Value : DBNull.Value);
+            //command.Parameters.AddWithValue("@FixedIncomeId", newTransaction.FixedIncomeId.HasValue ? newTransaction.FixedIncomeId.Value : DBNull.Value);
+            //command.Parameters.AddWithValue("@DebtId", newTransaction.DebtId.HasValue ? newTransaction.DebtId.Value : DBNull.Value);
 
             await connection.OpenAsync();
             var result = await command.ExecuteScalarAsync();
