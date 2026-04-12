@@ -1,5 +1,6 @@
 ﻿using Azure;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Users;
 using SpendWise.Domain.Entities;
 using SpendWise.Infrastructure.Global;
@@ -12,13 +13,18 @@ namespace SpendWise.Infrastructure.Repositories
 {
     public class UserRepository : IUserRepository
     {
+        private readonly string _connectionString;
+        public UserRepository(IConfiguration configuration)
+        {
+            _connectionString = DataAccessSettings.ConnectionString
+                                ?? throw new ArgumentNullException("Connection string is missing.");
+        }
         public async Task<User?> GetByIdAsync(int id)
         {
             User user = null;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
-            {
-                using (SqlCommand command = new SqlCommand("[Identity].[sp_GetUserById]", connection))
+            using var connection = new SqlConnection(_connectionString);
+            using (SqlCommand command = new SqlCommand("[Identity].[sp_GetUserById]", connection))
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@UserID", id);
@@ -38,7 +44,6 @@ namespace SpendWise.Infrastructure.Repositories
                         }
                     }
                     catch (Exception) { }
-                }
             }
             return user;
         }
@@ -46,9 +51,8 @@ namespace SpendWise.Infrastructure.Repositories
         {
             User user = null;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
-            {
-                using (SqlCommand command = new SqlCommand("[Identity].[sp_GetUserByUsername]", connection))
+            using var connection = new SqlConnection(_connectionString);
+            using (SqlCommand command = new SqlCommand("[Identity].[sp_GetUserByUsername]", connection))
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@Username", userName);
@@ -69,16 +73,14 @@ namespace SpendWise.Infrastructure.Repositories
                         }
                     }
                     catch (Exception) { }
-                }
             }
             return user;
         }
         public async Task<bool> IsUsernameExistAsync(string username)
         {
             bool found = false;
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
-            {
-                using (SqlCommand command = new SqlCommand("[Identity].[sp_CheckUsernameExists]", connection))
+            using var connection = new SqlConnection(_connectionString);
+            using (SqlCommand command = new SqlCommand("[Identity].[sp_CheckUsernameExists]", connection))
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@Username", username);
@@ -92,7 +94,6 @@ namespace SpendWise.Infrastructure.Repositories
                         }
                     }
                     catch (Exception) { }
-                }
             }
             return found;
         }
@@ -100,13 +101,12 @@ namespace SpendWise.Infrastructure.Repositories
         {
             int UserID = -1;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
-            {
-                using (SqlCommand command = new SqlCommand("[Identity].[sp_AddUser]", connection))
+            using var connection = new SqlConnection(_connectionString);
+            using (SqlCommand command = new SqlCommand("[Identity].[sp_AddUser]", connection))
                 {
                     command.CommandType = CommandType.StoredProcedure;
 
-                    command.Parameters.AddWithValue("@NewID", user.Id);
+                    command.Parameters.AddWithValue("@NewUserID", user.Id);
                     command.Parameters.AddWithValue("@Username", user.UserName);
                     command.Parameters.AddWithValue("@Password", user.HashedPassword);
                     command.Parameters.AddWithValue("@FirstName", user.FirstName);
@@ -116,18 +116,12 @@ namespace SpendWise.Infrastructure.Repositories
                     {
                         await connection.OpenAsync();
                         object result = await command.ExecuteScalarAsync();
-                        if (result != null && int.TryParse(result.ToString(), out int insertedID))
-                        {
-                            UserID = insertedID;
-                            user.Id = UserID;
-                        }
                     }
                     catch (Exception)
                     {
-                        return UserID;
+                        return user.Id;
                     }
-                }
-                return UserID;
+                return user.Id;
             }
         }
     }
