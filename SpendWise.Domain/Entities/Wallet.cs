@@ -10,14 +10,16 @@ namespace SpendWise.Domain.Entities
         public Currency Currency { get; set; } = new Currency(0, "SyrianPound");
         public decimal Balance { get; set; }
         public int UserId { get; set; }
+        public bool IsSaved { get; set; }
 
         //Add object (Currencies) => here and into Constructor
-        public Wallet(int walletId, Currency currency, decimal balance, int userId)
+        public Wallet(int walletId, Currency currency, decimal balance, int userId, bool isSaved)
         {
             WalletId = walletId;
             Currency = currency;
             Balance = balance;
             UserId = userId;
+            IsSaved = isSaved;
         }
 
         public Wallet() { }
