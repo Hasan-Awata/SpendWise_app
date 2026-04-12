@@ -1,8 +1,0 @@
-$kind: http-request
-name: /api/tags/:tagId
-url: "{{baseUrl}}/api/tags/:tagId"
-method: DELETE
-pathVariables:
-  tagId: "5843"
-examples: ./.resources/-api-tags-tagId-2.resources/examples
-order: 3000

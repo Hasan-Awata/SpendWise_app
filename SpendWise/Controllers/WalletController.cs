@@ -74,7 +74,7 @@ namespace SpendWise.Controllers
                 return BadRequest();
             }
 
-            return CreatedAtAction(nameof(GetWallet), createdWallet);
+            return CreatedAtAction(nameof(GetWallet), walletDTO);
         }
 
         [HttpPatch("{walletId}")]
@@ -92,7 +92,7 @@ namespace SpendWise.Controllers
                 return BadRequest();
             }
 
-            return CreatedAtAction(nameof(GetWallet), updatedWallet);
+            return CreatedAtAction(nameof(GetWallet), walletDTO);
         }
 
         [HttpDelete("{walletId}")]

@@ -1,8 +1,0 @@
-$kind: http-request
-name: /api/Saving_Goal/GetAllUserGoals
-url: "{{baseUrl}}/api/Saving_Goal/GetAllUserGoals"
-method: GET
-headers:
-  Accept: text/plain
-examples: ./.resources/-api-Saving_Goal-GetAllUserGoals.resources/examples
-order: 1000

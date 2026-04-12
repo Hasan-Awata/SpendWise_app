@@ -1,8 +1,0 @@
-$kind: http-request
-name: /api/expenses/:expenseId
-url: "{{baseUrl}}/api/expenses/:expenseId"
-method: GET
-pathVariables:
-  expenseId: "5843"
-examples: ./.resources/-api-expenses-expenseId.resources/examples
-order: 1000

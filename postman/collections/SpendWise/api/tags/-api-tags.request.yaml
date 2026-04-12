@@ -1,6 +1,0 @@
-$kind: http-request
-name: /api/tags
-url: "{{baseUrl}}/api/tags"
-method: GET
-examples: ./.resources/-api-tags.resources/examples
-order: 2000

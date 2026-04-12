@@ -1,8 +1,0 @@
-$kind: http-request
-name: /api/Shared_Debt/GetDebtsOwedToUser
-url: "{{baseUrl}}/api/Shared_Debt/GetDebtsOwedToUser"
-method: GET
-headers:
-  Accept: text/plain
-examples: ./.resources/-api-Shared_Debt-GetDebtsOwedToUser.resources/examples
-order: 1000
