@@ -39,41 +39,104 @@ END
 GO
 
 -- ==========================================
--- 3. Add a New Wallet
+-- Add Wallet (With Currency Check/Create)
 -- ==========================================
 CREATE OR ALTER PROCEDURE [Banking].[sp_AddWallet]
     @UserId INT,
-    @CurrencyId INT,
+    @CurrencyName NVARCHAR(50),
+    @ActualValue DECIMAL(18,4), -- Required for the Currencies table constraint
     @Balance DECIMAL(18,2)
 AS
 BEGIN
     SET NOCOUNT ON;
-    
-    INSERT INTO [Banking].Wallets (UserID, CurrencyID, Balance)
-    VALUES (@UserId, @CurrencyId, @Balance);
-    
-    SELECT CAST(SCOPE_IDENTITY() AS INT);
+    BEGIN TRY
+        BEGIN TRAN; -- Start Data Consistency Lock
+        
+        DECLARE @CurrencyId INT;
+
+        -- 1. Check if the Currency already exists
+        SELECT @CurrencyId = CurrencyID 
+        FROM [Config].Currencies 
+        WHERE CurrencyName = @CurrencyName;
+
+        -- 2. If it does not exist, create it
+        IF @CurrencyId IS NULL
+        BEGIN
+            INSERT INTO [Config].Currencies (CurrencyName, ActualValue)
+            VALUES (@CurrencyName, @ActualValue);
+            
+            -- Grab the newly generated CurrencyID
+            SET @CurrencyId = SCOPE_IDENTITY();
+        END
+
+        -- 3. Create the Wallet using the found/created CurrencyID
+        INSERT INTO [Banking].Wallets (UserID, CurrencyID, Balance)
+        VALUES (@UserId, @CurrencyId, @Balance);
+        
+        DECLARE @NewWalletID INT = SCOPE_IDENTITY();
+
+        COMMIT TRAN; -- Lock Released: Both operations succeeded
+        
+        -- Return the new WalletID to C#
+        SELECT @NewWalletID;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; -- Emergency Revert
+        THROW;
+    END CATCH
 END
 GO
 
 -- ==========================================
--- 4. Update an Existing Wallet
+-- Update Wallet (With Currency Check/Create)
 -- ==========================================
 CREATE OR ALTER PROCEDURE [Banking].[sp_UpdateWallet]
     @WalletId INT,
     @UserId INT,
-    @CurrencyId INT,
+    @CurrencyName NVARCHAR(50),
+    @ActualValue DECIMAL(18,4),
     @Balance DECIMAL(18,2)
 AS
 BEGIN
     SET NOCOUNT ON;
-    
-    UPDATE [Banking].Wallets
-    SET CurrencyID = @CurrencyId,
-        Balance = @Balance
-    WHERE WalletID = @WalletId AND UserID = @UserId;
-    
-    SELECT @@ROWCOUNT;
+    BEGIN TRY
+        BEGIN TRAN; -- Start Data Consistency Lock
+        
+        DECLARE @CurrencyId INT;
+
+        -- 1. Check if the Currency already exists
+        SELECT @CurrencyId = CurrencyID 
+        FROM [Config].Currencies 
+        WHERE CurrencyName = @CurrencyName;
+
+        -- 2. If it does not exist, create it
+        IF @CurrencyId IS NULL
+        BEGIN
+            INSERT INTO [Config].Currencies (CurrencyName, ActualValue)
+            VALUES (@CurrencyName, @ActualValue);
+            
+            SET @CurrencyId = SCOPE_IDENTITY();
+        END
+
+        -- 3. Update the Wallet using the found/created CurrencyID
+        UPDATE [Banking].Wallets
+        SET CurrencyID = @CurrencyId,
+            Balance = @Balance
+        WHERE WalletID = @WalletId AND UserID = @UserId;
+        
+        DECLARE @RowsAffected INT = @@ROWCOUNT;
+
+        COMMIT TRAN; -- Lock Released
+        
+        -- Return the number of rows affected
+        SELECT @RowsAffected;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; -- Emergency Revert
+        THROW;
+    END CATCH
 END
 GO
 
@@ -159,7 +222,7 @@ END
 GO
 
 -- ==========================================
--- 3. Add Income and Transaction (Atomic)
+-- 1. Add Income, Transaction, and Update Balance
 -- ==========================================
 CREATE OR ALTER PROCEDURE [Ledger].[sp_AddIncomeWithTransaction]
     @IncomeUserId INT,
@@ -169,7 +232,7 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_AddIncomeWithTransaction]
     @IncomeDate DATETIME,
     
     @TransTitle NVARCHAR(255),
-    @TransDescription NVARCHAR(255) = NULL,
+    @TransDescription NVARCHAR(MAX) = NULL,
     @TransType INT,
     @TransCategoryId INT = NULL,
     @TransTagId INT = NULL,
@@ -181,32 +244,45 @@ AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
-        BEGIN TRAN; -- Start Data Consistency Lock
+        BEGIN TRAN; 
         
         DECLARE @NewIncomeID INT;
 
+        -- 1. Insert Income
         INSERT INTO [Ledger].Incomes (UserID, WalletID, TagID, Amount, Date)
         VALUES (@IncomeUserId, @IncomeWalletId, @IncomeTagId, @IncomeAmount, @IncomeDate);
         
         SET @NewIncomeID = SCOPE_IDENTITY();
 
+        -- 2. Insert Transaction
         INSERT INTO [Ledger].Transactions 
         (UserID, WalletID, CategoryID, TagID, GoalID, FixedExpenseID, FixedIncomeID, DebtID, IncomeID, Title, Amount, TransactionDate, TransactionType, Description)
         VALUES 
         (@IncomeUserId, @IncomeWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewIncomeID, @TransTitle, @IncomeAmount, @IncomeDate, @TransType, @TransDescription);
 
-        COMMIT TRAN; -- Lock Released: Both Succeeded
+        -- 3. UPDATE WALLET BALANCE (Increase)
+        UPDATE [Banking].Wallets
+        SET Balance = Balance + @IncomeAmount
+        WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
+
+        -- Security Check: Ensure the wallet actually updated
+        IF @@ROWCOUNT = 0
+        BEGIN
+            THROW 50001, 'Wallet not found or access denied.', 1;
+        END
+
+        COMMIT TRAN; 
         SELECT @NewIncomeID;
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRAN; -- Emergency Revert: Data stays consistent
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
         THROW; 
     END CATCH
 END
 GO
 
 -- ==========================================
--- 4. Update Income and Transaction (Atomic)
+-- 2. Update Income, Transaction, and Adjust Balance
 -- ==========================================
 CREATE OR ALTER PROCEDURE [Ledger].[sp_UpdateIncomeWithTransaction]
     @IncomeId INT,
@@ -217,7 +293,7 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_UpdateIncomeWithTransaction]
     @IncomeDate DATETIME,
     
     @TransTitle NVARCHAR(255),
-    @TransDescription NVARCHAR(255) = NULL,
+    @TransDescription NVARCHAR(MAX) = NULL,
     @TransType INT,
     @TransCategoryId INT = NULL,
     @TransTagId INT = NULL,
@@ -229,8 +305,20 @@ AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
-        BEGIN TRAN; -- Start Data Consistency Lock
+        BEGIN TRAN; 
+
+        -- 1. Capture the OLD amount and wallet before modifying
+        DECLARE @OldAmount DECIMAL(18,2);
+        DECLARE @OldWalletId INT;
         
+        SELECT @OldAmount = Amount, @OldWalletId = WalletID 
+        FROM [Ledger].Incomes 
+        WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
+
+        IF @OldAmount IS NULL 
+            THROW 50002, 'Income record not found.', 1;
+        
+        -- 2. Update Income
         UPDATE [Ledger].Incomes
         SET WalletID = @IncomeWalletId,
             TagID = @IncomeTagId,
@@ -240,6 +328,7 @@ BEGIN
         
         DECLARE @RowsAffected INT = @@ROWCOUNT;
 
+        -- 3. Update Transaction and Re-calculate Balances
         IF @RowsAffected > 0
         BEGIN
             UPDATE [Ledger].Transactions
@@ -256,20 +345,35 @@ BEGIN
                 TransactionType = @TransType,
                 Description = @TransDescription
             WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
+
+            -- BALANCE MATH
+            IF @OldWalletId = @IncomeWalletId
+            BEGIN
+                -- If they kept the same wallet, just adjust the difference
+                UPDATE [Banking].Wallets
+                SET Balance = Balance - @OldAmount + @IncomeAmount
+                WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
+            END
+            ELSE
+            BEGIN
+                -- If they changed the wallet entirely, remove from old, add to new
+                UPDATE [Banking].Wallets SET Balance = Balance - @OldAmount WHERE WalletID = @OldWalletId AND UserID = @IncomeUserId;
+                UPDATE [Banking].Wallets SET Balance = Balance + @IncomeAmount WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
+            END
         END
 
-        COMMIT TRAN; -- Lock Released: Both Updated
+        COMMIT TRAN; 
         SELECT @RowsAffected;
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRAN; -- Emergency Revert
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
         THROW;
     END CATCH
 END
 GO
 
 -- ==========================================
--- 5. Delete Income and Transaction (Atomic)
+-- 3. Delete Income, Transaction, and Revert Balance
 -- ==========================================
 CREATE OR ALTER PROCEDURE [Ledger].[sp_DeleteIncome]
     @IncomeId INT
@@ -277,18 +381,35 @@ AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
-        BEGIN TRAN; -- Start Data Consistency Lock
+        BEGIN TRAN; 
         
+        -- 1. Capture the amount and wallet to revert
+        DECLARE @AmountToRevert DECIMAL(18,2);
+        DECLARE @WalletId INT;
+        
+        SELECT @AmountToRevert = Amount, @WalletId = WalletID 
+        FROM [Ledger].Incomes 
+        WHERE IncomeID = @IncomeId;
+
+        -- 2. Delete dependencies
         DELETE FROM [Ledger].Transactions WHERE IncomeID = @IncomeId;
         DELETE FROM [Ledger].Incomes WHERE IncomeID = @IncomeId;
         
         DECLARE @RowsAffected INT = @@ROWCOUNT;
 
-        COMMIT TRAN; -- Lock Released: Both Deleted
+        -- 3. Subtract the money from the wallet since the income was deleted
+        IF @RowsAffected > 0
+        BEGIN
+            UPDATE [Banking].Wallets 
+            SET Balance = Balance - @AmountToRevert 
+            WHERE WalletID = @WalletId;
+        END
+
+        COMMIT TRAN; 
         SELECT @RowsAffected;
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRAN; -- Emergency Revert
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
         THROW;
     END CATCH
 END
