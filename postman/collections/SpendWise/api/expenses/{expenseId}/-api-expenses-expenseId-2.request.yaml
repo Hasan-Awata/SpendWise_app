@@ -1,0 +1,8 @@
+$kind: http-request
+name: /api/expenses/:expenseId
+url: "{{baseUrl}}/api/expenses/:expenseId"
+method: DELETE
+pathVariables:
+  expenseId: "2824"
+examples: ./.resources/-api-expenses-expenseId-2.resources/examples
+order: 3000

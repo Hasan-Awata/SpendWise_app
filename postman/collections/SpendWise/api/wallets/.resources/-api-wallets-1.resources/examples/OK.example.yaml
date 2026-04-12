@@ -1,0 +1,30 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/wallets"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  body:
+    type: json
+    content: |-
+      {
+        "currency": {
+          "currencyName": "string",
+          "currencyId": 8890,
+          "liveValue": 2478.4154869632034
+        },
+        "userId": 3353,
+        "walletId": 1001,
+        "balance": 9.914444468355812e+307
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000

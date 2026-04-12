@@ -1,0 +1,44 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/Shared_Debt/UpdateDebt/:debtID"
+  method: PATCH
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Accept
+      value: text/plain
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  pathVariables:
+    debtID: "2824"
+  body:
+    type: json
+    content: |-
+      {
+        "creditorID": 2075,
+        "debtorID": 1411,
+        "dueDate": "2008-05-29T03:36:25.633Z",
+        "title": "string",
+        "amount": 6.52801991280382e+307,
+        "status": "string",
+        "createdAt": "1981-12-16T14:31:32.337Z"
+      }
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "type": "string",
+        "title": "string",
+        "status": 7942,
+        "detail": "string",
+        "instance": "string",
+        "key_0": "string",
+        "key_1": 5876
+      }
+order: 2000

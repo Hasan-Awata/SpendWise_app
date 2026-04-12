@@ -1,0 +1,28 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/Shared_Debt/GetDebtsOwedToUser"
+  method: GET
+  headers:
+    - key: Accept
+      value: text/plain
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+response:
+  statusCode: 404
+  statusText: Not Found
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "type": "string",
+        "title": "string",
+        "status": 7942,
+        "detail": "string",
+        "instance": "string",
+        "key_0": "string",
+        "key_1": 5876
+      }
+order: 2000

@@ -1,0 +1,29 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/Saving_Goal/AddGoal/:goalDTo"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  pathVariables:
+    goalDTo: string
+  body:
+    type: json
+    content: |-
+      {
+        "currentAmount": 1.7431041932560571e+308,
+        "deadlineDate": "1977-11-18",
+        "targetAmount": 2.620648613863564e+307,
+        "title": "string",
+        "userId": 3440
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000

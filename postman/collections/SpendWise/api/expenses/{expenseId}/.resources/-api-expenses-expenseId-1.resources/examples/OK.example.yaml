@@ -1,0 +1,51 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/expenses/:expenseId"
+  method: PATCH
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  pathVariables:
+    expenseId: "2824"
+  body:
+    type: json
+    content: |-
+      {
+        "amount": 1.4719553710303272e+308,
+        "category": {
+          "name": "string",
+          "categoryId": 2815,
+          "priority": 3
+        },
+        "date": "1975-01-02T06:27:24.811Z",
+        "title": "string",
+        "userId": 5848,
+        "wallet": {
+          "currency": {
+            "currencyName": "string",
+            "currencyId": 4783,
+            "liveValue": 3967.543400531879
+          },
+          "userId": 6771,
+          "walletId": 6322,
+          "balance": 8.054657868877769e+307
+        },
+        "expenseId": 2404,
+        "expenseTag": {
+          "id": 8718,
+          "label": "string",
+          "ownerId": 9323
+        },
+        "description": "string",
+        "products": "string"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000

@@ -1,0 +1,8 @@
+$kind: http-request
+name: /api/incomes/:incomeId
+url: "{{baseUrl}}/api/incomes/:incomeId"
+method: GET
+pathVariables:
+  incomeId: "2824"
+examples: ./.resources/-api-incomes-incomeId.resources/examples
+order: 1000

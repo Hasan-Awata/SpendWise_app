@@ -1,0 +1,34 @@
+$kind: http-request
+name: /api/incomes
+url: "{{baseUrl}}/api/incomes"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": 1.7752429872974833e+308,
+      "date": "1950-07-03T06:55:41.268Z",
+      "title": "string",
+      "userId": 2801,
+      "wallet": {
+        "currency": {
+          "currencyName": "string",
+          "currencyId": 4993,
+          "liveValue": 4623.067726566985
+        },
+        "userId": 1688,
+        "walletId": 2043,
+        "balance": 9.438731846296358e+307
+      },
+      "id": 3728,
+      "incomeTag": {
+        "id": 7631,
+        "label": "string",
+        "ownerId": 7109
+      },
+      "description": "string"
+    }
+examples: ./.resources/-api-incomes-1.resources/examples
+order: 3000

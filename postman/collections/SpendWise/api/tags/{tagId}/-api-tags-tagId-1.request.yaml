@@ -1,0 +1,18 @@
+$kind: http-request
+name: /api/tags/:tagId
+url: "{{baseUrl}}/api/tags/:tagId"
+method: PATCH
+headers:
+  Content-Type: application/json
+pathVariables:
+  tagId: "2824"
+body:
+  type: json
+  content: |-
+    {
+      "id": 7753,
+      "label": "string",
+      "ownerId": 7188
+    }
+examples: ./.resources/-api-tags-tagId-1.resources/examples
+order: 2000

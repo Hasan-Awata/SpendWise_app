@@ -1,0 +1,31 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/Shared_Debt/AddDebt/:debtDto"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  pathVariables:
+    debtDto: string
+  body:
+    type: json
+    content: |-
+      {
+        "creditorID": 2075,
+        "debtorID": 1411,
+        "dueDate": "2008-05-29T03:36:25.633Z",
+        "title": "string",
+        "amount": 6.52801991280382e+307,
+        "status": "string",
+        "createdAt": "1981-12-16T14:31:32.337Z"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000

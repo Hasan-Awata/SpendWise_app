@@ -3626,21 +3626,6 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\SpendWis
 </Project>
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Global\DataAccessSettings.cs
-----------------------------------------
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SpendWise.Infrastructure.Global
-{
-    public static class DataAccessSettings
-    {
-        public static string ConnectionString = "Server=.;Database=SpendWiseDB;User Id=sa;Password=sa123456;TrustServerCertificate=True;";
-    }
-}
-
-
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Global\Exsiptions.cs
 ----------------------------------------
 ﻿using System;
@@ -3662,7 +3647,6 @@ using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
-using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -3674,8 +3658,8 @@ public class IncomeRepository : IIncomeRepository
 
     public IncomeRepository(IConfiguration configuration)
     {
-        _connectionString = DataAccessSettings.ConnectionString
-                            ?? throw new ArgumentNullException("Connection string missing.");
+        _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                        ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
     }
 
     public async Task<int> AddIncomeAsync(Income newIncome, Transaction newTransaction)
@@ -3906,9 +3890,9 @@ public class IncomeRepository : IIncomeRepository
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Repositories\SavingGoalRepository.cs
 ----------------------------------------
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.SavingGoals;
 using SpendWise.Domain.Entities;
-using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -3918,11 +3902,18 @@ namespace SpendWise.Infrastructure.Repositories
 {
     public class SavingGoalRepository : ISavingGoalRepository
     {
+        private readonly string _connectionString;
+
+        public SavingGoalRepository(IConfiguration configuration)
+        {
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+        }
         public async Task<int> AddGoalAsync(SavingGoal goal)
         {
             int GoalID = -1;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_CreateSavingsGoal]", connection))
                 {
@@ -3957,7 +3948,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<bool> UpdateGoalAsync(SavingGoal updatedGoal)
         {
             int rowsAffected = 0;
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_UpdateSavingsGoal]", connection))
                 {
@@ -3987,7 +3978,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<bool> DeleteGoalAsync(int goalId)
         {
             int rowsAffected = 0;
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_DeleteSavingsGoal]", connection))
                 {
@@ -4012,7 +4003,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             SavingGoal? goal = null;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_GetSavingsGoalByID]", connection))
                 {
@@ -4047,7 +4038,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             List<SavingGoal> goals = new List<SavingGoal>();
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_GetAllUserGoals]", connection))
                 {
@@ -4084,7 +4075,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             List<SavingGoal> goals = new List<SavingGoal>();
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_GetAchievedGoals]", connection))
                 {
@@ -4121,7 +4112,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             bool exists = false;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_IsGoalExist]", connection))
                 {
@@ -4152,9 +4143,9 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Reposito
 ----------------------------------------
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Tags;
 using SpendWise.Domain.Entities;
-using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -4165,11 +4156,18 @@ namespace SpendWise.Infrastructure.Repositories
 {
     public class TagRepository : ITagRepository
     {
+        private readonly string _connectionString;
+
+        public TagRepository(IConfiguration configuration)
+        {
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+        }
         public async Task<int> AddTagAsync(Tag NewTag)
         {
             int TagID = -1;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[cfg].[sp_CreateTag]", connection))
                 {
@@ -4201,7 +4199,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<bool> UpdateTagAsync(Tag UpdatedTag)
         {
             int rowsAffected = 0;
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[cfg].[sp_UpdateTag]", connection))
                 {
@@ -4228,7 +4226,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<bool> DeleteTagAsync(int TagID)
         {
             int rowsAffected = 0;
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[cfg].[sp_DeleteTag]", connection))
                 {
@@ -4253,7 +4251,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             Tag tag = null;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[cfg].[sp_GetTag]", connection))
                 {
@@ -4285,7 +4283,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             List<Tag?> tags = new List<Tag?>(); // Fixed initialization
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[cfg].[sp_GetTagsByUserID]", connection))
                 {
@@ -4327,7 +4325,6 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Users;
 using SpendWise.Domain.Entities;
-using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -4340,8 +4337,8 @@ namespace SpendWise.Infrastructure.Repositories
         private readonly string _connectionString;
         public UserRepository(IConfiguration configuration)
         {
-            _connectionString = DataAccessSettings.ConnectionString
-                                ?? throw new ArgumentNullException("Connection string is missing.");
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
         }
         public async Task<User?> GetByIdAsync(int id)
         {
@@ -4440,10 +4437,15 @@ namespace SpendWise.Infrastructure.Repositories
                     {
                         await connection.OpenAsync();
                         object result = await command.ExecuteScalarAsync();
-                    }
+
+                        if (result != null && int.TryParse(result.ToString(), out int insertedID))
+                        {
+                            user.Id = insertedID;
+                        }
+                }
                     catch (Exception)
                     {
-                        return user.Id;
+                        throw;
                     }
                 return user.Id;
             }
@@ -4457,7 +4459,6 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Wallets;
 using SpendWise.Domain.Entities;
-using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -4469,8 +4470,8 @@ public class WalletRepository : IWalletRepository
 
     public WalletRepository(IConfiguration configuration)
     {
-        _connectionString = DataAccessSettings.ConnectionString
-                            ?? throw new ArgumentNullException("Connection string is missing.");
+        _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                        ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
     }
 
     public async Task<Wallet?> GetWalletByIdAsync(int walletId, int userId)

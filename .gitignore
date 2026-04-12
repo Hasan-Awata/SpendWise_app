@@ -46,3 +46,58 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ==============================================================================
+# .NET Core / ASP.NET Core Ignore File
+# ==============================================================================
+
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio specific files
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+
+# Visual Studio Code specific files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Local Environment & Secrets
+# Note: Track appsettings.json as a template, but ignore local overrides
+appsettings.Development.json
+appsettings.Local.json
+*.env
+
+# SQLite Databases (if used for local testing)
+*.db
+*.db-shm
+*.db-wal
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==============================================================================
+# Postman
+# ==============================================================================
+
+# Ignore all Postman environment files (to protect active JWTs and local secrets)
+*.postman_environment.json
+
+# Exception: Allow environment template files so you can share the variable structure
+!*template.postman_environment.json
