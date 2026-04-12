@@ -11,5 +11,6 @@ namespace SpendWise.Application.DTOs.Wallet
         public CurrencyResponse Currency { get; set; } = new CurrencyResponse();
         public decimal Balance { get; set; }
         public int UserId { get; set; }
+        public bool IsSaved { get; set; }
     }
 }

@@ -18,5 +18,8 @@ namespace SpendWise.Application.DTOs.NewFolder
 
         [Required(ErrorMessage = "Wallet must belong to a user!")]
         public int UserId { get; set; }
+
+        [Required(ErrorMessage = "Wallet must be specified as saved or not!")]
+        public bool IsSaved { get; set; }
     }
 }

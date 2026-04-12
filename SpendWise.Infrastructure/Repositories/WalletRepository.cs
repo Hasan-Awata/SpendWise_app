@@ -89,6 +89,7 @@ public class WalletRepository : IWalletRepository
 
             command.Parameters.AddWithValue("@UserId", wallet.UserId);
             command.Parameters.AddWithValue("@Balance", wallet.Balance);
+            command.Parameters.AddWithValue("@IsSaved", wallet.IsSaved);
             command.Parameters.AddWithValue("@CurrencyName", wallet.Currency.CurrencyName);
             command.Parameters.AddWithValue("@ActualValue", wallet.Currency.LiveValue);
 
@@ -182,7 +183,8 @@ public class WalletRepository : IWalletRepository
             walletId: Convert.ToInt32(reader["WalletID"]),
             currency: currency,
             balance: Convert.ToDecimal(reader["Balance"]),
-            userId: Convert.ToInt32(reader["UserID"])
+            userId: Convert.ToInt32(reader["UserID"]),
+            isSaved: Convert.ToBoolean(reader["IsSaved"])
         );
     }
 }
