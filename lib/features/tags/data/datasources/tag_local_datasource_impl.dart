@@ -18,23 +18,27 @@ class TagLocalDatasourceImpl implements TagLocalDatasource {
     try {
       _box = await Hive.openBox(_boxName);
     } catch (e) {
-      throw Exception(e.toString());
+      rethrow;
     }
   }
 
   @override
   Future<void> addTagLocally(TagModel? tag) async {
     try {
-      final tags = await getMyTags();
+      final List<TagModel> tags = await getMyTags();
       tags.add(tag!);
       await _box.put(_tagKey, tags);
     } catch (e) {
-      throw Exception(e.toString());
+      rethrow;
     }
   }
 
   @override
   Future<List<TagModel>> getMyTags() async {
-    return await _box.get(_tagKey) ?? <TagModel>[];
+    final List? data = _box.get(_tagKey);
+    if (data != null) {
+      return List<TagModel>.from(data);
+    }
+    return <TagModel>[];
   }
 }

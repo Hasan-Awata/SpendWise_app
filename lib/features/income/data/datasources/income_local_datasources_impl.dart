@@ -26,15 +26,36 @@ class IncomeLocalDataSourceImpl implements IncomeLocalDataSource {
 
   @override
   Future<void> addIncome(IncomeModel income) async {
-    List<IncomeModel> incomes = getIncomes();
+    List<IncomeModel> incomes = await getIncomes();
     incomes.insert(0, income);
     await saveIncomes(incomes);
   }
 
   @override
-  List<IncomeModel> getIncomes() {
-    final List? data = _box.get(_incomeKey);
+  Future<List<IncomeModel>> getIncomes() async {
+    final List? data = await _box.get(_incomeKey);
     return data != null ? List<IncomeModel>.from(data) : <IncomeModel>[];
+  }
+
+  @override
+  Future<void> deleteIncome(int incomeId) async {
+    List<IncomeModel> incomes = await getIncomes();
+
+    incomes.removeWhere((element) => element.id == incomeId);
+
+    await saveIncomes(incomes);
+  }
+
+  @override
+  Future<void> updateIncome(IncomeModel income) async {
+    List<IncomeModel> incomes = await getIncomes();
+
+    int index = incomes.indexWhere((element) => element.id == income.id);
+
+    if (index != -1) {
+      incomes[index] = income;
+      await saveIncomes(incomes);
+    }
   }
 
   @override

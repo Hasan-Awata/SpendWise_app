@@ -48,7 +48,7 @@ class WalletsView extends GetView<WalletController> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "currency",
+                        wallet.currency.currencyName,
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 16,
@@ -56,7 +56,7 @@ class WalletsView extends GetView<WalletController> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'SAR ${wallet.balance}',
+                        '${wallet.currency.code} ${wallet.balance}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -78,7 +78,7 @@ class WalletsView extends GetView<WalletController> {
       }),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF43C5F3),
-        onPressed: () => Get.to(() => const AddWalletView()),
+        onPressed: () => Get.toNamed('/add-wallet'),
         child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
     );

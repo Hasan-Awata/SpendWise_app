@@ -2,6 +2,7 @@ import 'package:spendwise/features/tags/data/models/tag_model.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 
 class IncomeEntity {
+  final int? id;
   final String title;
 
   final double amount;
@@ -20,5 +21,6 @@ class IncomeEntity {
     required this.tag,
     required this.description,
     this.wallet,
+    this.id,
   });
 }

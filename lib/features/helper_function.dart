@@ -3,13 +3,12 @@ import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
 
 class HelperFunction {
-  static Future<DateTime?>? chooseDate(BuildContext context) async {
+  static Future<DateTime?> chooseDate(BuildContext context) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-
       builder: (context, child) {
         return Theme(
           data: ThemeData.dark().copyWith(
@@ -24,7 +23,7 @@ class HelperFunction {
         );
       },
     );
-    return pickedDate!;
+    return pickedDate;
   }
 
   static String? validatePassword(String? value) {

@@ -8,7 +8,7 @@ class CustomTextField extends StatefulWidget {
   final String hint;
   final Widget? prefixIcon;
   final bool isNumber; // هل الحقل للأرقام فقط؟
-  final TextEditingController textEditingController;
+  final TextEditingController? textEditingController;
   final String? Function(String?)? validator;
   final bool obscureText;
   final Function(String)? onChanged;
@@ -21,7 +21,7 @@ class CustomTextField extends StatefulWidget {
     required this.label,
     required this.hint,
     this.prefixIcon,
-    required this.textEditingController,
+    this.textEditingController,
     this.isNumber = false,
     this.validator,
     this.obscureText = false,

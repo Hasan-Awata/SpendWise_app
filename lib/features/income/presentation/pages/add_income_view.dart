@@ -53,7 +53,7 @@ class AddIncomeView extends StatelessWidget {
                   textColor: SpColor.incomeGreen,
                 ),
                 const SizedBox(height: 25),
-                _buildDatePicker(context),
+                _buildDatePicker(Get.context!),
                 const SizedBox(height: 30),
                 const Divider(color: Colors.white10),
                 const SizedBox(height: 30),
@@ -81,11 +81,14 @@ class AddIncomeView extends StatelessWidget {
       style: TextStyle(color: SpColor.incomeGreen, fontWeight: FontWeight.bold),
     ),
     backgroundColor: Colors.transparent,
+    foregroundColor: SpColor.incomeGreen,
     centerTitle: true,
     actions: [
       IconButton(
-        onPressed: () => Get.toNamed('/income-list'),
-        icon: Icon(Icons.all_inbox),
+        onPressed: () {
+          Get.toNamed('/income-list');
+        },
+        icon: Icon(Icons.all_inbox, color: SpColor.incomeGreen),
       ),
     ],
   );
@@ -143,23 +146,21 @@ class AddIncomeView extends StatelessWidget {
   );
 
   Widget _buildWalletDropdown() {
-    return Obx(() {
-      return SPDropdownButton(
-        title: "Select Wallet",
-        hint: "Choose wallet",
-        textColor: SpColor.incomeGreen,
-        prefixIcon: const Icon(Icons.wallet, color: SpColor.incomeGreen),
-        values: controller.walletController.wallets
-            .map((w) => w.currencyId.toString())
-            .toList(),
-        textEditingController: controller.walletTextController,
-        // // تعليق: تم إلغاء onChanged والاعتماد على Listener في الكنترولر
-        suffixIcon: IconButton(
-          onPressed: () => Get.toNamed('/add-wallet'),
-          icon: Icon(Icons.add),
-        ),
-      );
-    });
+    return SPDropdownButton(
+      title: "Select Wallet",
+      hint: "Choose wallet",
+      textColor: SpColor.incomeGreen,
+      prefixIcon: const Icon(Icons.wallet, color: SpColor.incomeGreen),
+      values: controller.walletController.wallets
+          .map((w) => w.currency.currencyName)
+          .toList(),
+      textEditingController: controller.walletTextController,
+
+      suffixIcon: IconButton(
+        onPressed: () => Get.toNamed('/add-wallet'),
+        icon: Icon(Icons.add),
+      ),
+    );
   }
 
   Widget _buildTagDropdown() {
@@ -200,7 +201,7 @@ class AddIncomeView extends StatelessWidget {
   Widget _buildSubmitButton() => SizedBox(
     width: double.infinity,
     child: Obx(
-      () => controller.isLoading.value
+      () => controller.isLoadingSave.value
           ? const Center(child: CircularProgressIndicator())
           : CustomButton(
               text: "SAVE",

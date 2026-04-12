@@ -1,9 +1,10 @@
 import 'package:hive/hive.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
-
+import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/models/user_model.dart';
 
-class AppUserLocalDatasourceImpl implements AppUserLocalDatasource {
+class AppUserLocalDatasourceImpl extends GetxService
+    implements AppUserLocalDatasource {
   static final AppUserLocalDatasourceImpl _instance =
       AppUserLocalDatasourceImpl._internal();
   AppUserLocalDatasourceImpl._internal();
@@ -14,10 +15,15 @@ class AppUserLocalDatasourceImpl implements AppUserLocalDatasource {
 
   late Box _box;
 
+  int? _cachedUserId;
+
   @override
   Future<void> init() async {
     try {
       _box = await Hive.openBox(_boxName);
+      // جلب المعرف وتخزينه في الذاكرة فور تشغيل التطبيق
+      final user = _box.get(_userKey) as UserModel?;
+      _cachedUserId = user?.userId;
     } catch (e) {
       throw Exception("Failed to initialize local storage: $e");
     }
@@ -46,12 +52,21 @@ class AppUserLocalDatasourceImpl implements AppUserLocalDatasource {
     return await _box.get(_userKey);
   }
 
+  // الآن هذه الدالة سريعة جداً لأنها تعيد القيمة من الذاكرة مباشرة
   @override
   Future<int> getUserId() async {
+    if (_cachedUserId != null) {
+      return _cachedUserId!;
+    }
+    // محاولة أخيرة للقراءة من الـ Box إذا كانت الذاكرة فارغة
     final user = await getUser();
     if (user != null) {
+      _cachedUserId = user.userId;
       return user.userId!;
     }
     throw Exception("User not found");
   }
+
+  // دالة إضافية للوصول المباشر (Synchronous) بدون await
+  int? get currentUserId => _cachedUserId;
 }

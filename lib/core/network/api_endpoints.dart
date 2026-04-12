@@ -6,4 +6,8 @@ class ApiEndpoints {
   static const String logout = "/auth/logout";
   static const String addWallet = "/api/wallet/add";
   static const String getWallets = "/api/wallet/get";
+  static const String addIncome = '/api/Income/AddIncome';
+  static const String updateIncome = '/api/Income/updateIncome';
+  static const String deleteIncome = '/api/Income/deleteIncome';
+  static const String getIncomeByUser = '/api/Income/GetIncomeByUser';
 }

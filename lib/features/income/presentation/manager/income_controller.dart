@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/helper_function.dart';
+import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
+import 'package:spendwise/features/income/domain/usecases/delete_income_usecase.dart';
+import 'package:spendwise/features/income/domain/usecases/update_income_usecase.dart';
+import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
 import 'package:spendwise/features/tags/presentation/manager/tag_controller.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
@@ -10,16 +15,18 @@ import '../../domain/usecases/add_income_usecase.dart';
 import '../../domain/usecases/get_incomes_usecase.dart';
 
 class IncomeController extends GetxController {
-  // // Dependencies
   final AddIncomeUsecase addIncomeUseCase;
   final GetIncomesUsecase getIncomesUseCase;
-
+  final UpdateIncomeUseCase updateIncomeUseCase;
+  final DeleteIncomeUseCase deleteIncomeUseCase;
   final WalletController walletController;
   final TagController tagController;
 
   IncomeController({
     required this.addIncomeUseCase,
     required this.getIncomesUseCase,
+    required this.updateIncomeUseCase,
+    required this.deleteIncomeUseCase,
     required this.walletController,
     required this.tagController,
   });
@@ -40,10 +47,25 @@ class IncomeController extends GetxController {
   final RxString newTagName = "".obs;
   final Rx<DateTime> selectedDate = DateTime.now().obs;
   final RxBool isLoading = false.obs;
+  final RxBool isLoadingSave = false.obs;
+  final RxBool isLoadingUpdate = false.obs;
+  final RxBool isLoadingDelete = false.obs;
+  final RxInt currentPage = 1.obs;
+  final RxBool hasMoreData = true.obs;
+  int? userId = AppUserLocalDatasourceImpl().currentUserId;
+  final ScrollController scrollController = ScrollController();
+  final GlobalKey<RefreshIndicatorState> refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
 
   @override
   void onInit() {
     super.onInit();
+    scrollController.addListener(() {
+      if (scrollController.position.pixels >=
+          scrollController.position.maxScrollExtent * 0.8) {
+        fetchAllIncomes();
+      }
+    });
     fetchAllIncomes();
   }
 
@@ -59,11 +81,33 @@ class IncomeController extends GetxController {
   }
 
   // // Data Fetching
-  Future<void> fetchAllIncomes() async {
+  Future<void> fetchAllIncomes({bool isRefresh = false}) async {
+    // إذا كان المستخدم يسحب الشاشة للأعلى (Refresh)، نبدأ من الصفحة 1
+    if (isRefresh) {
+      currentPage.value = 1;
+      hasMoreData.value = true;
+      incomesList.clear(); // نمسح القائمة القديمة
+    }
+    // إذا لم يكن هناك بيانات إضافية أو كنا نحمل بالفعل، نوقف العملية
+    if (!hasMoreData.value || (isLoading.value && !isRefresh)) return;
     isLoading.value = true;
     try {
-      final results = await getIncomesUseCase();
-      incomesList.assignAll(results);
+      PageRequest page = PageRequest(
+        pageNumber: currentPage.value,
+        pageSize: 10,
+      );
+      final results = await getIncomesUseCase.call(userId, page);
+      if (results.isEmpty) {
+        hasMoreData.value = false;
+      } else {
+        if (isRefresh) {
+          incomesList.assignAll(results);
+        } else {
+          incomesList.addAll(results);
+        }
+        incomesList.refresh();
+        currentPage.value++;
+      }
     } catch (e) {
       _handleError("Load Error", e.toString());
     } finally {
@@ -71,9 +115,17 @@ class IncomeController extends GetxController {
     }
   }
 
+  Future<void> clearAllIncomes() async {
+    await IncomeLocalDataSourceImpl().clear();
+    incomesList.clear();
+    hasMoreData.value = true;
+    currentPage.value = 1;
+    refreshIndicatorKey.currentState?.show();
+  }
+
   // // Date Picker
   Future<void> fetchDate(BuildContext context) async {
-    final DateTime? pickedDate = await HelperFunction.chooseDate(context);
+    final DateTime? pickedDate = await HelperFunction.chooseDate(Get.context!);
     if (pickedDate != null && pickedDate != selectedDate.value) {
       selectedDate.value = pickedDate;
     }
@@ -81,15 +133,20 @@ class IncomeController extends GetxController {
 
   // // Save Income
   Future<void> saveIncome() async {
+    if (!_isInputValid()) return;
     final String tagName = tagTextController.text.trim();
-
     var foundTag = tagController.myTags.firstWhereOrNull(
       (t) => t.name == tagName,
     );
 
-    if (!_isInputValid()) return;
+    final String walletName = walletTextController.text.trim();
 
-    isLoading.value = true;
+    var foundWallet = walletController.wallets.firstWhereOrNull(
+      (w) => w.currency.currencyName == walletName,
+    );
+
+    selectedWallet.value = foundWallet;
+    isLoadingSave.value = true;
     try {
       if (foundTag == null && tagName.isNotEmpty) {
         tagController.tag.value = TagModel(userId: 0, name: tagName);
@@ -99,9 +156,9 @@ class IncomeController extends GetxController {
           (t) => t.name == tagName,
         );
       }
+
       final double amount =
           double.tryParse(amountController.text.trim()) ?? 0.0;
-
       final incomeData = IncomeModel(
         wallet: selectedWallet.value,
         tag: selectedTag.value,
@@ -121,11 +178,55 @@ class IncomeController extends GetxController {
         "Income added successfully",
         isError: false,
       );
-      _resetFields();
+      // _resetFields();
     } catch (e) {
       _handleError("Save Failed", e.toString());
     } finally {
-      isLoading.value = false;
+      isLoadingSave.value = false;
+    }
+  }
+
+  Future<void> updateIncome(int incomeId, IncomeModel updatedData) async {
+    isLoadingUpdate.value = true;
+    try {
+      await updateIncomeUseCase(incomeId, updatedData);
+
+      // تحديث العنصر في القائمة المحلية فوراً
+      int index = incomesList.indexWhere((element) => element.id == incomeId);
+      if (index != -1) {
+        incomesList[index] = updatedData;
+      }
+
+      HelperFunction.showSnackBar(
+        "Success",
+        "Income updated successfully",
+        isError: false,
+      );
+    } catch (e) {
+      _handleError("Update Failed", e.toString());
+    } finally {
+      isLoadingUpdate.value = false;
+    }
+  }
+
+  // // Delete Income
+  Future<void> deleteIncome(int incomeId) async {
+    isLoadingDelete.value = true;
+    try {
+      await deleteIncomeUseCase(incomeId);
+
+      // حذف العنصر من القائمة المحلية فوراً لتحديث الواجهة
+      incomesList.removeWhere((element) => element.id == incomeId);
+
+      HelperFunction.showSnackBar(
+        "Deleted",
+        "Income removed successfully",
+        isError: false,
+      );
+    } catch (e) {
+      _handleError("Delete Failed", e.toString());
+    } finally {
+      isLoadingDelete.value = false;
     }
   }
 
@@ -136,10 +237,14 @@ class IncomeController extends GetxController {
       _handleError("Validation Error", "Please enter a valid amount.");
       return false;
     }
-    if (selectedWallet.value == null) {
-      _handleError("Validation Error", "Please select a wallet.");
+    var foundWallet = walletController.wallets.firstWhereOrNull(
+      (w) => w.currency.currencyName == walletTextController.text,
+    );
+    if (foundWallet == null) {
+      _handleError("Error", "Not wallet in this name");
       return false;
     }
+
     if (selectedTag.value == null && tagTextController.text.isEmpty) {
       _handleError("Validation Error", "Please select or type a tag.");
       return false;
@@ -148,7 +253,6 @@ class IncomeController extends GetxController {
   }
 
   void _resetFields() {
-    // // تعليق: تنظيف كافة الحقول النصية والقيم المختارة بعد عملية الحفظ الناجحة
     amountController.clear();
     sourceController.clear();
     repeatController.clear();

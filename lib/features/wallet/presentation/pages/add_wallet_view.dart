@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
+import 'package:spendwise/features/wallet/domain/entities/currency_model.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallet_controller.dart';
+import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.dart';
 
 // // تعليق: واجهة إضافة محفظة جديدة مع حقول إدخال مطابقة لتصميم الـ SignUp في التطبيق
 class AddWalletView extends StatefulWidget {
@@ -12,15 +15,22 @@ class AddWalletView extends StatefulWidget {
 }
 
 class _AddWalletViewState extends State<AddWalletView> {
-  final nameController = TextEditingController();
-  final balanceController = TextEditingController();
   final controller = Get.find<WalletController>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B121E),
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () => Get.toNamed('/list-wallet'),
+            icon: Icon(Icons.wallet),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
@@ -35,16 +45,12 @@ class _AddWalletViewState extends State<AddWalletView> {
               ),
             ),
             const SizedBox(height: 40),
-            _buildTextField(
-              hint: 'اسم المحفظة',
-              icon: Icons.edit,
-              controller: nameController,
-            ),
+            _buildDropTextButton(),
             const SizedBox(height: 20),
             _buildTextField(
               hint: 'الرصيد الابتدائي',
               icon: Icons.attach_money,
-              controller: balanceController,
+              controller: controller.balance,
               isNumber: true,
             ),
             const Spacer(),
@@ -59,12 +65,6 @@ class _AddWalletViewState extends State<AddWalletView> {
                   ),
                 ),
                 onPressed: () {
-                  // // تعليق: إنشاء موديل جديد واستدعاء الكنترولر لحفظ البيانات في Hive والعودة للواجهة السابقة
-                  final newWallet = WalletModel(
-                    balance: double.tryParse(balanceController.text) ?? 0.0,
-                    currencyId: 0,
-                  );
-                  controller.wallet.value = newWallet;
                   controller.addNewWallet();
                 },
                 child: const Text(
@@ -81,6 +81,19 @@ class _AddWalletViewState extends State<AddWalletView> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDropTextButton() {
+    return SPDropdownButton(
+      title: "العملة",
+      hint: "العملة",
+      values: controller.listNameCurrency,
+
+      onSelected: (index, value) {
+        controller.selectedCurrency.value = index;
+      },
+      textEditingController: controller.currencySearchController,
     );
   }
 

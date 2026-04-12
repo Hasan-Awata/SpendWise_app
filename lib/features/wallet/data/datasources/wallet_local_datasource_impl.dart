@@ -7,7 +7,6 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
       WalletLocalDatasourceImpl._internal();
   WalletLocalDatasourceImpl._internal();
   factory WalletLocalDatasourceImpl() => _instance;
-
   static const String _boxName = 'WALLET';
   static const String _walletKey = 'wallet_key';
 
@@ -29,7 +28,7 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
     final wallets = await myWallets();
 
     try {
-      final updatedWallets = List<WalletModel>.from(wallets)..add(wallet);
+      final updatedWallets = List<WalletModel>.from(wallets)..insert(0, wallet);
 
       await _box.put(_walletKey, updatedWallets);
     } catch (e) {

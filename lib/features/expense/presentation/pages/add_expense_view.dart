@@ -98,7 +98,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
       title: "source expense",
       hint: 'Select or enter',
       textColor: SpColor.expenseRed,
-      onChanged: (v) => controller.selectedValue.value,
+      // onChanged: (v) => controller.selectedValue.value,
       values: controller.values,
       textEditingController: controller.selectedValue,
     );
@@ -118,7 +118,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
         autofocus: true,
         highlightColor: SpColor.expenseRed.withAlpha(60),
       ),
-      onChanged: (v) => controller.selectedValue.value,
+      // onChanged: (v) => controller.selectedValue.value,
       values: controller.tags.map((val) => val.name).toList(),
       textEditingController: TextEditingController(),
     );

@@ -5,14 +5,11 @@ import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
 import '../manager/income_controller.dart';
 
-class IncomeListView extends StatelessWidget {
+class IncomeListView extends GetView<IncomeController> {
   const IncomeListView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // // Logic: العثور على الكنترولر المحقون مسبقاً عبر الـ Binding
-    final controller = Get.find<IncomeController>();
-
     return Scaffold(
       backgroundColor: SpColor.primaryDark2,
       appBar: AppBar(
@@ -31,8 +28,7 @@ class IncomeListView extends StatelessWidget {
               color: SpColor.incomeGreen,
             ),
             onPressed: () {
-              IncomeLocalDataSourceImpl().clear();
-              controller.fetchAllIncomes();
+              controller.clearAllIncomes();
             }, // Navigation: للانتقال لصفحة الإضافة
           ),
         ],
@@ -45,8 +41,11 @@ class IncomeListView extends StatelessWidget {
         },
       ),
       body: RefreshIndicator(
+        key: controller.refreshIndicatorKey,
         color: SpColor.incomeGreen,
-        onRefresh: () => controller.fetchAllIncomes(),
+        onRefresh: () async {
+          controller.fetchAllIncomes(isRefresh: true);
+        },
         child: Obx(() {
           if (controller.isLoading.value && controller.incomesList.isEmpty) {
             return const Center(
@@ -59,10 +58,13 @@ class IncomeListView extends StatelessWidget {
           }
 
           return ListView.builder(
+            controller: controller.scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             itemCount: controller.incomesList.length,
             itemBuilder: (context, index) {
               final income = controller.incomesList[index];
+
               return _buildIncomeCard(income);
             },
           );
@@ -143,21 +145,30 @@ class IncomeListView extends StatelessWidget {
     );
   }
 
-  // // UI Component: واجهة تظهر عند عدم وجود بيانات
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return LayoutBuilder(
+      builder: (context, constraints) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(), // هذا السطر هو المفتاح
         children: [
-          Icon(
-            Icons.inbox_rounded,
-            size: 80,
-            color: Colors.white.withOpacity(0.1),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            "No income records found",
-            style: TextStyle(color: Colors.white38),
+          Container(
+            height: constraints.maxHeight, // لضمان توسيط المحتوى
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inbox_rounded,
+                    size: 80,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "No income records found",
+                    style: TextStyle(color: Colors.white38),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

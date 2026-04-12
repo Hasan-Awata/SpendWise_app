@@ -20,9 +20,9 @@ class DatePickerWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      shape: OutlineInputBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
-        borderSide: BorderSide(color: color),
+        side: BorderSide(color: color), // هنا نضع الحدود
       ),
       title: Text(title, style: TextStyle(color: SpColor.mutedGrey)),
       subtitle: Text(
@@ -30,7 +30,7 @@ class DatePickerWidget extends StatelessWidget {
         style: const TextStyle(color: SpColor.offWhite, fontSize: 15),
       ),
       trailing: Icon(Icons.calendar_today, color: color),
-      onTap: () => onTap,
+      onTap: onTap,
     );
   }
 }
