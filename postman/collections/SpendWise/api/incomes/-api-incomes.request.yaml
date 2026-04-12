@@ -1,0 +1,9 @@
+$kind: http-request
+name: /api/incomes
+url: "{{baseUrl}}/api/incomes?PageSize=63&PageNumber=1978579119"
+method: GET
+queryParams:
+  PageSize: "63"
+  PageNumber: "1978579119"
+examples: ./.resources/-api-incomes.resources/examples
+order: 2000

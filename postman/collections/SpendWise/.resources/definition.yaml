@@ -1,0 +1,11 @@
+$kind: collection
+name: SpendWise
+variables:
+  baseUrl: /
+  bearerToken: ""
+auth:
+  - id: 87220877-77f8-4c55-9a36-38df56e8af5f
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{bearerToken}}"

@@ -1,0 +1,16 @@
+$kind: http-request
+name: /api/tags
+url: "{{baseUrl}}/api/tags"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": 5701,
+      "label": "string",
+      "ownerId": 1686
+    }
+examples: ./.resources/-api-tags-1.resources/examples
+order: 3000

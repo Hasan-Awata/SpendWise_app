@@ -1,0 +1,42 @@
+$kind: http-request
+name: /api/expenses/:expenseId
+url: "{{baseUrl}}/api/expenses/:expenseId"
+method: PATCH
+headers:
+  Content-Type: application/json
+pathVariables:
+  expenseId: "5843"
+body:
+  type: json
+  content: |-
+    {
+      "amount": 1.7756879172495925e+308,
+      "category": {
+        "name": "string",
+        "categoryId": 2568,
+        "priority": 2
+      },
+      "date": "2024-04-23T20:50:53.302Z",
+      "title": "string",
+      "userId": 1516,
+      "wallet": {
+        "currency": {
+          "currencyName": "string",
+          "currencyId": 6011,
+          "liveValue": 6317.361495217757
+        },
+        "userId": 5866,
+        "walletId": 9417,
+        "balance": 9.05969466152082e+307
+      },
+      "expenseId": 3639,
+      "expenseTag": {
+        "id": 2123,
+        "label": "string",
+        "ownerId": 3929
+      },
+      "description": "string",
+      "products": "string"
+    }
+examples: ./.resources/-api-expenses-expenseId-1.resources/examples
+order: 2000

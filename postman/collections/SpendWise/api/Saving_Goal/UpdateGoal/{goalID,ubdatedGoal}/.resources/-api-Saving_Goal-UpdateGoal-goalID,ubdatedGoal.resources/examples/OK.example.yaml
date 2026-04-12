@@ -1,0 +1,30 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/Saving_Goal/UpdateGoal/:goalID,ubdatedGoal"
+  method: PATCH
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  pathVariables:
+    goalID: "5843"
+    goalID,ubdatedGoal: string
+  body:
+    type: json
+    content: |-
+      {
+        "currentAmount": 1.7606812138633278e+308,
+        "deadlineDate": "1967-05-27",
+        "targetAmount": 1.4586975372017807e+308,
+        "title": "string",
+        "userId": 1669
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000
