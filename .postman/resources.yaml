@@ -8,4 +8,5 @@ localResources:
 # Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
 
 cloudResources:
-  collections: {}
+  collections:
+    ..\postman\collections\SpendWise: 7fde14c9-123b-4d32-95d6-83b0a2fe94a9

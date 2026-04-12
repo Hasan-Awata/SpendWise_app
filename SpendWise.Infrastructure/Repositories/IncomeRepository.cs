@@ -3,7 +3,6 @@ using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
-using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -15,8 +14,8 @@ public class IncomeRepository : IIncomeRepository
 
     public IncomeRepository(IConfiguration configuration)
     {
-        _connectionString = DataAccessSettings.ConnectionString
-                            ?? throw new ArgumentNullException("Connection string missing.");
+        _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                        ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
     }
 
     public async Task<int> AddIncomeAsync(Income newIncome, Transaction newTransaction)

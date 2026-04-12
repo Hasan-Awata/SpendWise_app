@@ -2,7 +2,6 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Wallets;
 using SpendWise.Domain.Entities;
-using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -14,8 +13,8 @@ public class WalletRepository : IWalletRepository
 
     public WalletRepository(IConfiguration configuration)
     {
-        _connectionString = DataAccessSettings.ConnectionString
-                            ?? throw new ArgumentNullException("Connection string is missing.");
+        _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                        ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
     }
 
     public async Task<Wallet?> GetWalletByIdAsync(int walletId, int userId)

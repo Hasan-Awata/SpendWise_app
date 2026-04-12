@@ -1,8 +1,8 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Tags;
 using SpendWise.Domain.Entities;
-using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -13,11 +13,18 @@ namespace SpendWise.Infrastructure.Repositories
 {
     public class TagRepository : ITagRepository
     {
+        private readonly string _connectionString;
+
+        public TagRepository(IConfiguration configuration)
+        {
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+        }
         public async Task<int> AddTagAsync(Tag NewTag)
         {
             int TagID = -1;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[cfg].[sp_CreateTag]", connection))
                 {
@@ -49,7 +56,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<bool> UpdateTagAsync(Tag UpdatedTag)
         {
             int rowsAffected = 0;
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[cfg].[sp_UpdateTag]", connection))
                 {
@@ -76,7 +83,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<bool> DeleteTagAsync(int TagID)
         {
             int rowsAffected = 0;
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[cfg].[sp_DeleteTag]", connection))
                 {
@@ -101,7 +108,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             Tag tag = null;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[cfg].[sp_GetTag]", connection))
                 {
@@ -133,7 +140,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             List<Tag?> tags = new List<Tag?>(); // Fixed initialization
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[cfg].[sp_GetTagsByUserID]", connection))
                 {

@@ -1,7 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.SavingGoals;
 using SpendWise.Domain.Entities;
-using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -11,11 +11,18 @@ namespace SpendWise.Infrastructure.Repositories
 {
     public class SavingGoalRepository : ISavingGoalRepository
     {
+        private readonly string _connectionString;
+
+        public SavingGoalRepository(IConfiguration configuration)
+        {
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+        }
         public async Task<int> AddGoalAsync(SavingGoal goal)
         {
             int GoalID = -1;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_CreateSavingsGoal]", connection))
                 {
@@ -50,7 +57,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<bool> UpdateGoalAsync(SavingGoal updatedGoal)
         {
             int rowsAffected = 0;
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_UpdateSavingsGoal]", connection))
                 {
@@ -80,7 +87,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<bool> DeleteGoalAsync(int goalId)
         {
             int rowsAffected = 0;
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_DeleteSavingsGoal]", connection))
                 {
@@ -105,7 +112,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             SavingGoal? goal = null;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_GetSavingsGoalByID]", connection))
                 {
@@ -140,7 +147,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             List<SavingGoal> goals = new List<SavingGoal>();
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_GetAllUserGoals]", connection))
                 {
@@ -177,7 +184,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             List<SavingGoal> goals = new List<SavingGoal>();
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_GetAchievedGoals]", connection))
                 {
@@ -214,7 +221,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             bool exists = false;
 
-            using (SqlConnection connection = new SqlConnection(DataAccessSettings.ConnectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 using (SqlCommand command = new SqlCommand("[pln].[sp_IsGoalExist]", connection))
                 {

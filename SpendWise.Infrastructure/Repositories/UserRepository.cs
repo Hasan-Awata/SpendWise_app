@@ -3,7 +3,6 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Users;
 using SpendWise.Domain.Entities;
-using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -16,8 +15,8 @@ namespace SpendWise.Infrastructure.Repositories
         private readonly string _connectionString;
         public UserRepository(IConfiguration configuration)
         {
-            _connectionString = DataAccessSettings.ConnectionString
-                                ?? throw new ArgumentNullException("Connection string is missing.");
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
         }
         public async Task<User?> GetByIdAsync(int id)
         {
@@ -116,10 +115,15 @@ namespace SpendWise.Infrastructure.Repositories
                     {
                         await connection.OpenAsync();
                         object result = await command.ExecuteScalarAsync();
-                    }
+
+                        if (result != null && int.TryParse(result.ToString(), out int insertedID))
+                        {
+                            user.Id = insertedID;
+                        }
+                }
                     catch (Exception)
                     {
-                        return user.Id;
+                        throw;
                     }
                 return user.Id;
             }
