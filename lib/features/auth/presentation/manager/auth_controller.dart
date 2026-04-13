@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/domain/entities/user_entity.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_params.dart';
@@ -74,6 +75,7 @@ class AuthController extends GetxController {
       },
       (user) {
         currentUser.value = user;
+        CurrentUser.currentUser = user;
         HelperFunction.showSnackBar("Success", "Account created successfully!");
         Get.offAllNamed('/main-screen');
       },
@@ -105,6 +107,8 @@ class AuthController extends GetxController {
       },
       (user) {
         currentUser.value = user;
+        CurrentUser.currentUser = user;
+
         HelperFunction.showSnackBar("Success", "Welcome back!");
         Get.offAllNamed('/main-screen');
       },

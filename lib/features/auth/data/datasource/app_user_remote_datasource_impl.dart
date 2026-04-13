@@ -36,9 +36,9 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
     try {
       final dto = LoginDto.fromParams(params);
       final response = await dio.post(ApiEndpoints.login, data: dto.toJson());
-
+      print('Response Data: ${response.data}');
       return UserModel.fromJson(response.data);
-    } on DioException catch (e) {
+    } on DioException catch (_) {
       rethrow;
     }
   }
@@ -47,7 +47,7 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
   Future<void> logOut() async {
     try {
       await dio.post(ApiEndpoints.logout);
-    } on DioException catch (e) {
+    } on DioException catch (_) {
       rethrow;
     }
   }

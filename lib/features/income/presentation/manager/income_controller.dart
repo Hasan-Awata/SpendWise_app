@@ -132,7 +132,8 @@ class IncomeController extends GetxController {
     }
 
     final incomeData = IncomeModel(
-      wallet: selectedWallet.value,
+      userId: userId,
+      wallet: selectedWallet.value!,
       tag: foundTag ?? selectedTag.value,
       description: descriptionController.text.trim(),
       date: selectedDate.value,
@@ -208,7 +209,10 @@ class IncomeController extends GetxController {
               .trim() ==
           walletName,
     );
-
+    if (userId == null) {
+      _handleError("Faild", "No User id");
+      return false;
+    }
     if (selectedWallet.value == null) {
       _handleError("خطأ في التحقق", "يرجى اختيار محفظة صحيحة");
       return false;

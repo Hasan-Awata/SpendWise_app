@@ -6,7 +6,7 @@ class UserEntity {
 
   final String? userName;
 
-  final String? token;
+  final String token;
 
   final DateTime? expiry;
 
@@ -15,7 +15,7 @@ class UserEntity {
     this.lastName,
     this.userName,
     this.userId,
-    this.token,
+    required this.token,
     this.expiry,
   });
 }

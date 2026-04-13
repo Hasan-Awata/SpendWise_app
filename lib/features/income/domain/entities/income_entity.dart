@@ -3,6 +3,9 @@ import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 
 class IncomeEntity {
   final int? id;
+
+  final int? userId;
+
   final String title;
 
   final double amount;
@@ -15,12 +18,13 @@ class IncomeEntity {
 
   final WalletModel? wallet;
   IncomeEntity({
+    this.id,
+    this.userId,
+    this.wallet,
     required this.title,
     required this.amount,
     required this.date,
     required this.tag,
     required this.description,
-    this.wallet,
-    this.id,
   });
 }

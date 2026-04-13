@@ -11,8 +11,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:spendwise/core/network/initial_binding.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
+import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/auth/data/models/user_adapter.dart';
+import 'package:spendwise/features/auth/presentation/pages/login_page.dart';
+import 'package:spendwise/features/home/presentation/pages/main_screen.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
 import 'package:spendwise/features/income/data/models/income_adapter.dart';
 import 'package:spendwise/features/splash/introduction.dart';
@@ -23,7 +26,6 @@ import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasour
 import 'package:spendwise/features/wallet/data/models/wallet_adapter.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:spendwise/features/wallet/domain/entities/currency_adapter.dart';
-import 'package:spendwise/features/wallet/domain/entities/currency_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +51,7 @@ void main() async {
 
   await CurrencyLocal().initializaCurrencies();
 
-  runApp(DevicePreview(enabled: true, builder: (context) => const MyApp()));
+  runApp(DevicePreview(enabled: false, builder: (context) => const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -93,7 +95,6 @@ class MyApp extends StatelessWidget {
           selectionHandleColor: SpColor.accentBlue,
         ),
       ),
-      home: const Introduction(),
     );
   }
 }

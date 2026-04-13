@@ -27,6 +27,7 @@ class UserRepositoryImpl implements UserRepository {
       final user = await appUserRemoteDatasource.register(params);
       // حفظ البيانات محلياً فور النجاح
       await appUserLocalDatasource.registerLocal(user);
+
       return Right(user);
     } on DioException catch (e) {
       return Left(_mapDioErrorToFailure(e));

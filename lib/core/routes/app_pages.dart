@@ -32,7 +32,7 @@ class AppPages {
   static const INITIAL = Routes.INITIAL;
 
   static final routes = [
-    GetPage(name: Routes.INITIAL, page: () => const Introduction()),
+    GetPage(name: Routes.INITIAL, page: () => Introduction()),
 
     // Auth Routes
     GetPage(
@@ -62,7 +62,7 @@ class AppPages {
     GetPage(
       name: Routes.MAIN_SCREEN,
       page: () => const MainScreen(),
-      bindings: [AuthBinding(), TagBinding(), WalletBinding(), IncomeBinding()],
+      bindings: [AuthBinding(), WalletBinding(), TagBinding(), IncomeBinding()],
     ),
     GetPage(
       name: Routes.ADD_TAG,

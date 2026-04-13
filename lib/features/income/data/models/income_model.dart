@@ -6,6 +6,7 @@ class IncomeModel extends IncomeEntity {
   bool isSynced;
   IncomeModel({
     super.id,
+    super.userId,
     required super.title,
     required super.amount,
     required super.date,
@@ -30,7 +31,6 @@ class IncomeModel extends IncomeEntity {
   }
 
   static WalletModel? _walletFromJson(dynamic raw) {
-    if (raw == null) return null;
     if (raw is WalletModel) return raw;
     if (raw is Map) {
       return WalletModel.fromJson(Map<dynamic, dynamic>.from(raw));
@@ -64,12 +64,13 @@ class IncomeModel extends IncomeEntity {
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
-      'title': title,
-      'amount': amount,
-      'date': date.toIso8601String(),
+      'UserId': userId,
+      'Title': title,
+      'Wallet': wallet!.toJson(),
+      'Amount': amount,
+      'Date': date.toIso8601String(),
       'IncomeTag': tag?.toJson(),
       'description': description ?? '',
-      'Wallet': wallet?.toJson(),
       'isSynced': isSynced,
     };
   }

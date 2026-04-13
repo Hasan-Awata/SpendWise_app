@@ -48,7 +48,7 @@ class AppUserLocalDatasourceImpl extends GetxService
   }
 
   @override
-  Future<UserModel?> getUser() async {
+  Future<UserModel>? getUser() async {
     return await _box.get(_userKey);
   }
 

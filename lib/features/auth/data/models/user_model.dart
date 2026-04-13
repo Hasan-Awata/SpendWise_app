@@ -6,7 +6,7 @@ class UserModel extends UserEntity {
     super.firstName,
     super.lastName,
     super.userName,
-    super.token,
+    required super.token,
     super.expiry,
   });
 
@@ -19,5 +19,10 @@ class UserModel extends UserEntity {
   }
   Map<String, dynamic> toJson() {
     return {"FirstName": firstName, "LastName": lastName, "UserName": userName};
+  }
+
+  @override
+  String toString() {
+    return 'UserModel(userId: $userId, firstName: $firstName, lastName: $lastName, userName: $userName, token: $token, expiry: $expiry)';
   }
 }

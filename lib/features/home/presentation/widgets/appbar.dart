@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spendwise/core/utils/colors.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 
 class SPAppbar extends StatelessWidget implements PreferredSizeWidget {
   const SPAppbar({super.key});
