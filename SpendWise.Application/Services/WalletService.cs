@@ -109,6 +109,7 @@ namespace SpendWise.Application.Services
                 WalletId = walletDTO.WalletId,
                 UserId = walletDTO.UserId,
                 Balance = walletDTO.Balance,
+                IsSaved = walletDTO.IsSaved,
                 Currency = new Currency
                 {
                     Id = walletDTO.Currency.CurrencyId,
