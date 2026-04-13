@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
@@ -11,6 +12,7 @@ class SPDropdownButton extends StatefulWidget {
   final Widget? suffixIcon;
   final bool isTextField;
   final List<String> values;
+
   final dynamic Function(String)? onChanged;
   final Function(int index, String value)? onSelected;
   final int? selectedIndex;
@@ -54,6 +56,23 @@ class _SPDropdownButtonState extends State<SPDropdownButton> {
       selectedtext = widget.values[0];
     } else {
       selectedtext = widget.hint;
+    }
+  }
+
+  @override
+  void didUpdateWidget(SPDropdownButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.values, widget.values)) {
+      final q = widget.textEditingController?.text ?? '';
+      setState(() {
+        if (q.isEmpty) {
+          filteredValues = List<String>.from(widget.values);
+        } else {
+          filteredValues = widget.values
+              .where((item) => item.toLowerCase().startsWith(q.toLowerCase()))
+              .toList();
+        }
+      });
     }
   }
 
@@ -149,9 +168,7 @@ class _SPDropdownButtonState extends State<SPDropdownButton> {
                         onTap: () {
                           widget.textEditingController?.text = itemKey;
 
-                          // // تعليق: إيجاد الـ index الأصلي من القائمة الكاملة قبل إرساله للخارج
                           int originalIndex = widget.values.indexOf(itemKey);
-
                           setState(() {
                             selectedtext = itemKey;
                             show = false;

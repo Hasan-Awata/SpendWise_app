@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart'; // // Helper: لتنسيق التاريخ والعملة
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
+import 'package:spendwise/features/income/data/models/income_model.dart';
 import '../manager/income_controller.dart';
 
 class IncomeListView extends GetView<IncomeController> {
@@ -74,12 +74,12 @@ class IncomeListView extends GetView<IncomeController> {
   }
 
   // // UI Component: بطاقة عرض الدخل بشكل احترافي
-  Widget _buildIncomeCard(dynamic income) {
+  Widget _buildIncomeCard(IncomeModel income) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white10),
       ),
@@ -89,7 +89,7 @@ class IncomeListView extends GetView<IncomeController> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: SpColor.incomeGreen.withOpacity(0.1),
+              color: SpColor.incomeGreen.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -132,10 +132,7 @@ class IncomeListView extends GetView<IncomeController> {
                 ),
               ),
               Text(
-                //   {
-                //   income.currencyId == 0 ? "USD" : "SYP",
-                // }
-                "currencyId",
+                income.wallet?.currency.currencyName ?? "—",
                 style: const TextStyle(color: Colors.white38, fontSize: 10),
               ),
             ],
@@ -150,8 +147,8 @@ class IncomeListView extends GetView<IncomeController> {
       builder: (context, constraints) => ListView(
         physics: const AlwaysScrollableScrollPhysics(), // هذا السطر هو المفتاح
         children: [
-          Container(
-            height: constraints.maxHeight, // لضمان توسيط المحتوى
+          SizedBox(
+            height: constraints.maxHeight,
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -159,7 +156,7 @@ class IncomeListView extends GetView<IncomeController> {
                   Icon(
                     Icons.inbox_rounded,
                     size: 80,
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                   ),
                   const SizedBox(height: 16),
                   const Text(

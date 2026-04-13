@@ -10,26 +10,27 @@ import 'package:spendwise/features/wallet/presentation/manager/wallet_controller
 class WalletBinding implements Bindings {
   @override
   void dependencies() {
-    // // تعليق: إعداد وحقن جميع التبعيات المطلوبة لعمل وحدة المحافظ بترتيب صحيح
-
-    // 1. Datasource (Singleton)
-    Get.lazyPut<WalletLocalDatasource>(() => WalletLocalDatasourceImpl());
-
-    // 2. Repository
-    Get.lazyPut<WalletRepository>(
-      () => WalletRepositoryImpl(localDatasource: Get.find()),
-    );
-
-    // 3. Use Cases
-    Get.lazyPut(() => GetWalletsUseCase(Get.find()));
-    Get.lazyPut(() => AddWalletUseCase(Get.find()));
-
-    // 4. Controller
-    Get.lazyPut(
-      () => WalletController(
-        getWalletsUseCase: Get.find(),
-        addWalletUseCase: Get.find(),
-      ),
-    );
+    if (!Get.isRegistered<WalletLocalDatasource>()) {
+      Get.lazyPut<WalletLocalDatasource>(() => WalletLocalDatasourceImpl());
+    }
+    if (!Get.isRegistered<WalletRepository>()) {
+      Get.lazyPut<WalletRepository>(
+        () => WalletRepositoryImpl(localDatasource: Get.find()),
+      );
+    }
+    if (!Get.isRegistered<GetWalletsUseCase>()) {
+      Get.lazyPut(() => GetWalletsUseCase(Get.find()));
+    }
+    if (!Get.isRegistered<AddWalletUseCase>()) {
+      Get.lazyPut(() => AddWalletUseCase(Get.find()));
+    }
+    if (!Get.isRegistered<WalletController>()) {
+      Get.lazyPut(
+        () => WalletController(
+          getWalletsUseCase: Get.find(),
+          addWalletUseCase: Get.find(),
+        ),
+      );
+    }
   }
 }

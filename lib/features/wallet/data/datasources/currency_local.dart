@@ -833,4 +833,12 @@ class CurrencyLocal {
       rethrow;
     }
   }
+
+  /// يطابق معرف العملة كما يُخزَّن في المحفظة (CurrencyId) مع القائمة المحلية.
+  Currency? tryCurrencyById(int id) {
+    for (final c in allCurrencies) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
 }

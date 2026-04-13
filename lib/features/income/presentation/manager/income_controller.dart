@@ -12,11 +12,13 @@ import 'package:spendwise/features/tags/presentation/manager/tag_controller.dart
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallet_controller.dart';
 import '../../domain/usecases/add_income_usecase.dart';
+import '../../domain/usecases/get_all_local_incomes_usecase.dart';
 import '../../domain/usecases/get_incomes_usecase.dart';
 
 class IncomeController extends GetxController {
   final AddIncomeUsecase addIncomeUseCase;
   final GetIncomesUsecase getIncomesUseCase;
+  final GetAllLocalIncomesUsecase getAllLocalIncomesUsecase;
   final UpdateIncomeUseCase updateIncomeUseCase;
   final DeleteIncomeUseCase deleteIncomeUseCase;
   final WalletController walletController;
@@ -25,6 +27,7 @@ class IncomeController extends GetxController {
   IncomeController({
     required this.addIncomeUseCase,
     required this.getIncomesUseCase,
+    required this.getAllLocalIncomesUsecase,
     required this.updateIncomeUseCase,
     required this.deleteIncomeUseCase,
     required this.walletController,
@@ -46,6 +49,13 @@ class IncomeController extends GetxController {
 
   final RxString newTagName = "".obs;
   final Rx<DateTime> selectedDate = DateTime.now().obs;
+
+  /// الشهر المعتمد لحساب إجمالي الدخل في الشاشة الرئيسية (يوم 1 من الشهر).
+  final Rx<DateTime> dashboardMonth = Rx<DateTime>(
+    DateTime(DateTime.now().year, DateTime.now().month, 1),
+  );
+  final RxDouble monthlyIncomeTotal = 0.0.obs;
+
   final RxBool isLoading = false.obs;
   final RxBool isLoadingSave = false.obs;
   final RxBool isLoadingUpdate = false.obs;
@@ -112,6 +122,33 @@ class IncomeController extends GetxController {
       _handleError("Load Error", e.toString());
     } finally {
       isLoading.value = false;
+      refreshMonthlyIncomeTotal();
+    }
+  }
+
+  Future<void> refreshMonthlyIncomeTotal() async {
+    try {
+      final all = await getAllLocalIncomesUsecase();
+      final y = dashboardMonth.value.year;
+      final m = dashboardMonth.value.month;
+      monthlyIncomeTotal.value = all
+          .where((e) => e.date.year == y && e.date.month == m)
+          .fold<double>(0, (sum, e) => sum + e.amount);
+    } catch (_) {
+      monthlyIncomeTotal.value = 0;
+    }
+  }
+
+  Future<void> pickDashboardMonth(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: dashboardMonth.value,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100, 12, 31),
+    );
+    if (picked != null) {
+      dashboardMonth.value = DateTime(picked.year, picked.month, 1);
+      await refreshMonthlyIncomeTotal();
     }
   }
 
@@ -120,6 +157,7 @@ class IncomeController extends GetxController {
     incomesList.clear();
     hasMoreData.value = true;
     currentPage.value = 1;
+    await refreshMonthlyIncomeTotal();
     refreshIndicatorKey.currentState?.show();
   }
 
@@ -139,13 +177,6 @@ class IncomeController extends GetxController {
       (t) => t.name == tagName,
     );
 
-    final String walletName = walletTextController.text.trim();
-
-    var foundWallet = walletController.wallets.firstWhereOrNull(
-      (w) => w.currency.currencyName == walletName,
-    );
-
-    selectedWallet.value = foundWallet;
     isLoadingSave.value = true;
     try {
       if (foundTag == null && tagName.isNotEmpty) {
@@ -161,7 +192,7 @@ class IncomeController extends GetxController {
           double.tryParse(amountController.text.trim()) ?? 0.0;
       final incomeData = IncomeModel(
         wallet: selectedWallet.value,
-        tag: selectedTag.value,
+        tag: foundTag ?? selectedTag.value,
         description: descriptionController.text.trim(),
         date: selectedDate.value,
         title: sourceController.text.isEmpty
@@ -170,8 +201,9 @@ class IncomeController extends GetxController {
         amount: amount,
       );
 
-      await addIncomeUseCase(incomeData);
+      await addIncomeUseCase.call(incomeData);
       incomesList.insert(0, incomeData);
+      await refreshMonthlyIncomeTotal();
 
       HelperFunction.showSnackBar(
         "Success",
@@ -189,13 +221,14 @@ class IncomeController extends GetxController {
   Future<void> updateIncome(int incomeId, IncomeModel updatedData) async {
     isLoadingUpdate.value = true;
     try {
-      await updateIncomeUseCase(incomeId, updatedData);
+      await updateIncomeUseCase.call(incomeId, updatedData);
 
       // تحديث العنصر في القائمة المحلية فوراً
       int index = incomesList.indexWhere((element) => element.id == incomeId);
       if (index != -1) {
         incomesList[index] = updatedData;
       }
+      await refreshMonthlyIncomeTotal();
 
       HelperFunction.showSnackBar(
         "Success",
@@ -209,14 +242,34 @@ class IncomeController extends GetxController {
     }
   }
 
+  bool _addWallet() {
+    final String walletName = walletTextController.text.trim();
+    var foundWallet = walletController.wallets.firstWhereOrNull((w) {
+      String name = w.currency.currencyName;
+      String? code = w.currency.code;
+      double? balance = w.balance;
+      if ("${name}      ($code $balance)".trim() == walletName) {
+        return true;
+      }
+      return false;
+    });
+    selectedWallet.value = foundWallet;
+    if (selectedWallet.value == null) {
+      _handleError("Validation Error", "Not wallet in this name");
+      return false;
+    }
+    return true;
+  }
+
   // // Delete Income
   Future<void> deleteIncome(int incomeId) async {
     isLoadingDelete.value = true;
     try {
-      await deleteIncomeUseCase(incomeId);
+      await deleteIncomeUseCase.call(incomeId);
 
       // حذف العنصر من القائمة المحلية فوراً لتحديث الواجهة
       incomesList.removeWhere((element) => element.id == incomeId);
+      await refreshMonthlyIncomeTotal();
 
       HelperFunction.showSnackBar(
         "Deleted",
@@ -233,26 +286,21 @@ class IncomeController extends GetxController {
   // // Validation
   bool _isInputValid() {
     final double amount = double.tryParse(amountController.text.trim()) ?? 0.0;
-    if (amount <= 0) {
+    if (!amountController.text.isNum || amount <= 0) {
       _handleError("Validation Error", "Please enter a valid amount.");
       return false;
     }
-    var foundWallet = walletController.wallets.firstWhereOrNull(
-      (w) => w.currency.currencyName == walletTextController.text,
-    );
-    if (foundWallet == null) {
-      _handleError("Error", "Not wallet in this name");
+    if (!_addWallet()) {
       return false;
     }
-
-    if (selectedTag.value == null && tagTextController.text.isEmpty) {
-      _handleError("Validation Error", "Please select or type a tag.");
+    if (tagTextController.text.isEmpty) {
+      _handleError("Validation Error", "Please select or write a tag.");
       return false;
     }
     return true;
   }
 
-  void _resetFields() {
+  void resetFields() {
     amountController.clear();
     sourceController.clear();
     repeatController.clear();
@@ -263,7 +311,6 @@ class IncomeController extends GetxController {
     selectedTag.value = null;
     selectedWallet.value = null;
     selectedDate.value = DateTime.now();
-    tagController.myTags.clear();
   }
 
   void _handleError(String title, String message) {

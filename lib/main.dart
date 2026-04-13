@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
@@ -26,11 +27,10 @@ import 'package:spendwise/features/wallet/domain/entities/currency_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ar', null);
 
   final supportDir = await getApplicationSupportDirectory();
-  final hiveDir = Directory(
-    '${supportDir.path}${Platform.pathSeparator}hive',
-  );
+  final hiveDir = Directory('${supportDir.path}${Platform.pathSeparator}hive');
   if (!await hiveDir.exists()) {
     await hiveDir.create(recursive: true);
   }
@@ -49,7 +49,7 @@ void main() async {
 
   await CurrencyLocal().initializaCurrencies();
 
-  runApp(DevicePreview(enabled: false, builder: (context) => const MyApp()));
+  runApp(DevicePreview(enabled: true, builder: (context) => const MyApp()));
 }
 
 class MyApp extends StatelessWidget {

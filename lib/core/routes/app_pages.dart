@@ -50,8 +50,7 @@ class AppPages {
     GetPage(
       name: Routes.INCOME_LIST,
       page: () => const IncomeListView(),
-      binding: IncomeBinding(),
-      // middlewares: [AuthGuard()], // // سنضيف هذا لاحقاً لحماية الصفحة
+      bindings: [TagBinding(), WalletBinding(), IncomeBinding()],
     ),
     GetPage(
       name: Routes.ADD_INCOME,
@@ -60,16 +59,20 @@ class AppPages {
       //يجب الترتيب
       bindings: [TagBinding(), WalletBinding(), IncomeBinding()],
     ),
-    GetPage(name: Routes.MAIN_SCREEN, page: () => MainScreen()),
+    GetPage(
+      name: Routes.MAIN_SCREEN,
+      page: () => const MainScreen(),
+      bindings: [TagBinding(), WalletBinding(), IncomeBinding()],
+    ),
     GetPage(
       name: Routes.ADD_TAG,
       page: () => AddtagPage(),
       binding: TagBinding(),
     ),
     GetPage(
-      name: Routes.HOME, // أو المسار الخاص بصفحتك الرئيسية
+      name: Routes.HOME,
       page: () => const MainScreen(),
-      // binding: OcrBinding(), // تأكد من وجود هذا السطر هنا!
+      bindings: [TagBinding(), WalletBinding(), IncomeBinding()],
     ),
     GetPage(
       name: Routes.ADDWALLET,

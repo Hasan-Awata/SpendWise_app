@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:spendwise/core/utils/colors.dart';
 
 class ShowTagWidget extends StatelessWidget {
   final String tagName;
@@ -23,9 +22,9 @@ class ShowTagWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         // // Visual: Subtle background color based on the tag color with low opacity
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
       ),
       child: Row(
         children: [
@@ -34,7 +33,7 @@ class ShowTagWidget extends StatelessWidget {
             height: 45,
             width: 45,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 22, color: color),
@@ -46,7 +45,7 @@ class ShowTagWidget extends StatelessWidget {
             child: Text(
               tagName,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
                 letterSpacing: 0.5,

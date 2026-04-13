@@ -15,8 +15,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  MainController controller = MainController.insatnce;
-  int currentIndex = 0;
+  final MainController controller = MainController.insatnce;
 
   final List<Widget> pages = [
     const Home(),

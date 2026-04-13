@@ -20,52 +20,58 @@ class AddIncomeView extends StatelessWidget {
     return Scaffold(
       backgroundColor: SpColor.primaryDark2,
       appBar: _buildAppBar(),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                _buildField(
-                  "Amount",
-                  controller.amountController,
-                  Icons.monetization_on_outlined,
-                ),
-                const SizedBox(height: 30),
-                _buildField(
-                  "Source",
-                  controller.sourceController,
-                  Icons.source_outlined,
-                ),
-                const SizedBox(height: 25),
-                _buildFixedToggle(),
-                const SizedBox(height: 15),
-                _buildRepetitionField(),
-                const SizedBox(height: 25),
-                CustomTextFieldDescription(
-                  label: "Description",
-                  hint: "Details...",
-                  textEditingController: controller.descriptionController,
-                  textColor: SpColor.incomeGreen,
-                ),
-                const SizedBox(height: 25),
-                _buildDatePicker(Get.context!),
-                const SizedBox(height: 30),
-                const Divider(color: Colors.white10),
-                const SizedBox(height: 30),
-                _buildWalletDropdown(),
-                const SizedBox(height: 25),
-                _buildTagDropdown(),
-                const SizedBox(height: 15),
-                _buildTagPreview(),
-                const SizedBox(height: 50),
-                _buildSubmitButton(),
-                const SizedBox(height: 50),
-              ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          controller.resetFields();
+          await controller.walletController.loadWallets();
+        },
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 25.0),
+            child: SingleChildScrollView(
+              physics: null,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  _buildField(
+                    "Amount",
+                    controller.amountController,
+                    Icons.monetization_on_outlined,
+                  ),
+                  const SizedBox(height: 30),
+                  _buildField(
+                    "Source",
+                    controller.sourceController,
+                    Icons.source_outlined,
+                  ),
+                  const SizedBox(height: 25),
+                  _buildFixedToggle(),
+                  const SizedBox(height: 15),
+                  _buildRepetitionField(),
+                  const SizedBox(height: 25),
+                  CustomTextFieldDescription(
+                    label: "Description",
+                    hint: "Details...",
+                    textEditingController: controller.descriptionController,
+                    textColor: SpColor.incomeGreen,
+                  ),
+                  const SizedBox(height: 25),
+                  _buildDatePicker(Get.context!),
+                  const SizedBox(height: 30),
+                  const Divider(color: Colors.white10),
+                  const SizedBox(height: 30),
+                  _buildWalletDropdown(),
+                  const SizedBox(height: 25),
+                  _buildTagDropdown(),
+                  const SizedBox(height: 15),
+                  _buildTagPreview(),
+                  const SizedBox(height: 50),
+                  _buildSubmitButton(),
+                  const SizedBox(height: 50),
+                ],
+              ),
             ),
           ),
         ),
@@ -118,7 +124,7 @@ class AddIncomeView extends StatelessWidget {
               "Fixed Income",
               style: TextStyle(color: Colors.white),
             ),
-            activeColor: SpColor.incomeGreen,
+            activeThumbColor: SpColor.incomeGreen,
             value: isFixed.value,
             onChanged: (v) => isFixed.value = v,
           ),
@@ -146,19 +152,27 @@ class AddIncomeView extends StatelessWidget {
   );
 
   Widget _buildWalletDropdown() {
-    return SPDropdownButton(
-      title: "Select Wallet",
-      hint: "Choose wallet",
-      textColor: SpColor.incomeGreen,
-      prefixIcon: const Icon(Icons.wallet, color: SpColor.incomeGreen),
-      values: controller.walletController.wallets
-          .map((w) => w.currency.currencyName)
-          .toList(),
-      textEditingController: controller.walletTextController,
+    return Obx(
+      () => SPDropdownButton(
+        title: "Select Wallet",
+        hint: "Choose wallet",
+        textColor: SpColor.incomeGreen,
+        prefixIcon: const Icon(Icons.wallet, color: SpColor.incomeGreen),
+        values: controller.walletController.wallets
+            .map(
+              (w) =>
+                  "${w.currency.currencyName}      (${w.currency.code} ${w.balance})",
+            )
+            .toList(),
+        textEditingController: controller.walletTextController,
 
-      suffixIcon: IconButton(
-        onPressed: () => Get.toNamed('/add-wallet'),
-        icon: Icon(Icons.add),
+        suffixIcon: IconButton(
+          onPressed: () async {
+            await Get.toNamed('/add-wallet');
+            await controller.walletController.loadWallets();
+          },
+          icon: const Icon(Icons.add),
+        ),
       ),
     );
   }
