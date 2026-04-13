@@ -89,19 +89,22 @@ public class WalletRepository : IWalletRepository
             command.Parameters.AddWithValue("@UserId", wallet.UserId);
             command.Parameters.AddWithValue("@Balance", wallet.Balance);
             command.Parameters.AddWithValue("@IsSaved", wallet.IsSaved);
-            command.Parameters.AddWithValue("@CurrencyName", wallet.Currency.CurrencyName);
-            command.Parameters.AddWithValue("@ActualValue", wallet.Currency.LiveValue);
+            command.Parameters.AddWithValue("@CurrencyID", wallet.Currency.Id);
 
             await connection.OpenAsync();
-            var result = await command.ExecuteScalarAsync();
+            object result = await command.ExecuteScalarAsync();
 
-            return Convert.ToInt32(result);
+            if (result != null && int.TryParse(result.ToString(), out int insertedID))
+            {
+                wallet.WalletId = insertedID;
+            }
         }
         catch (SqlException ex)
         {
             HandleSqlException(ex);
             throw;
         }
+        return wallet.WalletId;
     }
 
     public async Task<int> UpdateWalletAsync(Wallet wallet)
