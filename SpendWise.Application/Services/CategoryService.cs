@@ -1,5 +1,6 @@
 ﻿using SpendWise.Application.DTOs.Category;
-using SpendWise.Application.Interfaces.Categorys;
+using SpendWise.Application.Interfaces;
+using SpendWise.Application.Interfaces.CategoryBudget;
 using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,7 @@ namespace SpendWise.Application.Services
         public async Task<bool> AddCategoryAsync(CategoryDTO categoryDto)
         {
             bool  IsDone =false;
-            Category NewCategory =new Category(categoryDto.CategoryId ,categoryDto.Name,categoryDto.Priority,categoryDto.LimitAmount,categoryDto.Percentage,categoryDto.Month,categoryDto.Year,categoryDto.categoryType);
+            Category NewCategory =new Category(categoryDto.CategoryId ,categoryDto.Name,categoryDto.Priority);
 
             //IsDone =await _categoryRepo.AddCategoryAsync(NewCategory);
             return IsDone;
@@ -24,7 +25,7 @@ namespace SpendWise.Application.Services
         public async Task<bool> UpdateCategoryAsync(CategoryDTO categoryDto)
         {
             bool isDone = false;
-            Category NewCategory = new Category(categoryDto.CategoryId, categoryDto.Name, categoryDto.Priority, categoryDto.LimitAmount, categoryDto.Percentage, categoryDto.Month, categoryDto.Year, categoryDto.categoryType);
+            Category NewCategory = new Category(categoryDto.CategoryId, categoryDto.Name, categoryDto.Priority);
             //isDone =await _categoryRepo.UpdateCategoryAsync(NewCategory);
             return isDone;
         }
