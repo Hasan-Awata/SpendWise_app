@@ -1,3 +1,5 @@
+// lib/features/income/presentation/pages/add_income_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
@@ -30,7 +32,7 @@ class AddIncomeView extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 25.0),
             child: SingleChildScrollView(
-              physics: null,
+              physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -39,6 +41,7 @@ class AddIncomeView extends StatelessWidget {
                     "Amount",
                     controller.amountController,
                     Icons.monetization_on_outlined,
+                    keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 30),
                   _buildField(
@@ -58,7 +61,7 @@ class AddIncomeView extends StatelessWidget {
                     textColor: SpColor.incomeGreen,
                   ),
                   const SizedBox(height: 25),
-                  _buildDatePicker(Get.context!),
+                  _buildDatePicker(context),
                   const SizedBox(height: 30),
                   const Divider(color: Colors.white10),
                   const SizedBox(height: 30),
@@ -91,22 +94,24 @@ class AddIncomeView extends StatelessWidget {
     centerTitle: true,
     actions: [
       IconButton(
-        onPressed: () {
-          Get.toNamed('/income-list');
-        },
-        icon: Icon(Icons.all_inbox, color: SpColor.incomeGreen),
+        onPressed: () => Get.toNamed('/income-list'),
+        icon: const Icon(Icons.all_inbox, color: SpColor.incomeGreen),
       ),
     ],
   );
 
-  Widget _buildField(String label, TextEditingController ctr, IconData icon) =>
-      CustomTextField(
-        textColor: SpColor.incomeGreen,
-        label: label,
-        hint: "...",
-        prefixIcon: Icon(icon, color: SpColor.incomeGreen),
-        textEditingController: ctr,
-      );
+  Widget _buildField(
+    String label,
+    TextEditingController ctr,
+    IconData icon, {
+    TextInputType keyboardType = TextInputType.text,
+  }) => CustomTextField(
+    textColor: SpColor.incomeGreen,
+    label: label,
+    hint: "...",
+    prefixIcon: Icon(icon, color: SpColor.incomeGreen),
+    textEditingController: ctr,
+  );
 
   Widget _buildFixedToggle() => Obx(
     () => Container(
@@ -115,16 +120,15 @@ class AddIncomeView extends StatelessWidget {
         border: Border.all(color: SpColor.incomeGreen),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadiusGeometry.circular(15),
+        borderRadius: BorderRadius.circular(15),
         child: Material(
-          borderRadius: BorderRadius.circular(15),
           color: Colors.transparent,
           child: SwitchListTile(
             title: const Text(
               "Fixed Income",
               style: TextStyle(color: Colors.white),
             ),
-            activeThumbColor: SpColor.incomeGreen,
+            activeColor: SpColor.incomeGreen,
             value: isFixed.value,
             onChanged: (v) => isFixed.value = v,
           ),
@@ -139,6 +143,7 @@ class AddIncomeView extends StatelessWidget {
             "Repeat Every (Days)",
             controller.repeatController,
             Icons.calendar_month,
+            keyboardType: TextInputType.number,
           )
         : const SizedBox.shrink(),
   );
@@ -165,21 +170,30 @@ class AddIncomeView extends StatelessWidget {
             )
             .toList(),
         textEditingController: controller.walletTextController,
-
         suffixIcon: IconButton(
           onPressed: () async {
             await Get.toNamed('/add-wallet');
             await controller.walletController.loadWallets();
           },
-          icon: const Icon(Icons.add),
+          icon: const Icon(Icons.add, color: SpColor.incomeGreen),
         ),
       ),
     );
   }
 
   Widget _buildTagDropdown() {
-    return Obx(
-      () => Column(
+    return Obx(() {
+      // منطق التحقق ما إذا كان التاج المكتوب جديداً كلياً
+      bool isNewTag =
+          controller.tagTextController.text.isNotEmpty &&
+          !controller.tagController.myTags.any(
+            (t) =>
+                t.name.toLowerCase() ==
+                controller.tagTextController.text.trim().toLowerCase(),
+          );
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SPDropdownButton(
             title: "Select Tag",
@@ -189,16 +203,22 @@ class AddIncomeView extends StatelessWidget {
             prefixIcon: const Icon(Icons.tag, color: SpColor.incomeGreen),
             values: controller.tagController.myTags.map((t) => t.name).toList(),
             textEditingController: controller.tagTextController,
-            // // تعليق: تم إلغاء onChanged والاعتماد على Listener في الكنترولر
           ),
-          if (controller.tagController.myTags.isEmpty)
-            const Text(
-              "✨ New tag will be created",
-              style: TextStyle(color: SpColor.incomeGreen, fontSize: 11),
+          if (isNewTag)
+            const Padding(
+              padding: EdgeInsets.only(top: 8.0, left: 4.0),
+              child: Text(
+                "✨ This tag doesn't exist, it will be created.",
+                style: TextStyle(
+                  color: SpColor.incomeGreen,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w300,
+                ),
+              ),
             ),
         ],
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildTagPreview() => Obx(
@@ -207,7 +227,10 @@ class AddIncomeView extends StatelessWidget {
             tagName: controller.selectedTag.value!.name,
             icon: Icons.check,
             color: SpColor.incomeGreen,
-            onDelete: () => controller.tagTextController.clear(),
+            onDelete: () {
+              controller.selectedTag.value = null;
+              controller.tagTextController.clear();
+            },
           )
         : const SizedBox.shrink(),
   );
@@ -216,12 +239,12 @@ class AddIncomeView extends StatelessWidget {
     width: double.infinity,
     child: Obx(
       () => controller.isLoadingSave.value
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: SpColor.incomeGreen),
+            )
           : CustomButton(
-              text: "SAVE",
-              onPressed: () {
-                controller.saveIncome();
-              },
+              text: "SAVE INCOME",
+              onPressed: () => controller.saveIncome(),
               color: SpColor.incomeGreen,
             ),
     ),

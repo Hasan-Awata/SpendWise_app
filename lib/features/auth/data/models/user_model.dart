@@ -3,22 +3,21 @@ import 'package:spendwise/features/auth/domain/entities/user_entity.dart';
 class UserModel extends UserEntity {
   UserModel({
     super.userId,
-    required super.firstName,
-    required super.lastName,
-    required super.userName,
+    super.firstName,
+    super.lastName,
+    super.userName,
     super.token,
+    super.expiry,
   });
 
   factory UserModel.fromJson(Map<dynamic, dynamic> json) {
     return UserModel(
-      userId: json["userId"] ?? 0,
-      firstName: json["firstName"] ?? "",
-      lastName: json["lastName"] ?? "",
-      userName: json["UserName"] ?? "",
       token: json["Token"] ?? "",
+      userName: json["UserName"] ?? "",
+      expiry: json["Expiry"] ?? DateTime.now(),
     );
   }
   Map<String, dynamic> toJson() {
-    return {"firstName": firstName, "lastName": lastName, "userName": userName};
+    return {"FirstName": firstName, "LastName": lastName, "UserName": userName};
   }
 }

@@ -1,11 +1,13 @@
-import 'package:spendwise/features/auth/data/repositories/user_repository.dart';
-import 'package:spendwise/features/auth/domain/entities/user_entity.dart';
+import 'package:dartz/dartz.dart';
+import 'package:spendwise/core/error/failure.dart';
+import 'package:spendwise/features/auth/data/models/user_model.dart';
+import 'package:spendwise/features/auth/domain/repositories/user_repository.dart';
 
 class GetUserUsecase {
   final UserRepository userRepository;
   GetUserUsecase(this.userRepository);
 
-  Future<UserEntity?> getUser() async {
+  Future<Either<Failure, UserModel>> getUser() async {
     return await userRepository.getUser();
   }
 }

@@ -62,7 +62,7 @@ class AppPages {
     GetPage(
       name: Routes.MAIN_SCREEN,
       page: () => const MainScreen(),
-      bindings: [TagBinding(), WalletBinding(), IncomeBinding()],
+      bindings: [AuthBinding(), TagBinding(), WalletBinding(), IncomeBinding()],
     ),
     GetPage(
       name: Routes.ADD_TAG,

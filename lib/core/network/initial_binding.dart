@@ -2,7 +2,6 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/network/api_endpoints.dart';
-import 'package:spendwise/features/auth/domain/usecases/signup_usecase.dart';
 
 class InitialBinding extends Bindings {
   @override
@@ -21,7 +20,5 @@ class InitialBinding extends Bindings {
       ),
       permanent: true, // // تعليق: جعل الكائن دائماً ولا يتم حذفه من الذاكرة
     );
-
-    SignupUsecase.tempUser();
   }
 }

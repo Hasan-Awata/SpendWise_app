@@ -1,3 +1,5 @@
+import 'package:dartz/dartz.dart';
+import 'package:spendwise/core/error/failure.dart';
 import 'package:spendwise/features/income/data/repositories/income_repository.dart';
 
 class DeleteIncomeUseCase {
@@ -5,7 +7,7 @@ class DeleteIncomeUseCase {
 
   DeleteIncomeUseCase(this.repository);
 
-  Future<void> call(int incomeId) async {
+  Future<Either<Failure, Unit>> call(int incomeId) async {
     return await repository.deleteIncome(incomeId);
   }
 }

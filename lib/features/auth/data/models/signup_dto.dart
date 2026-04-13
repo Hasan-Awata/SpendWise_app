@@ -27,10 +27,10 @@ class SignupDto {
 
   Map<String, dynamic> toJson() {
     return {
-      "firstName": firstName,
-      "lastName": lastName,
-      "userName": userName,
-      "password": password,
+      "FirstName": firstName,
+      "LastName": lastName,
+      "UserName": userName,
+      "Password": password,
     };
   }
 }

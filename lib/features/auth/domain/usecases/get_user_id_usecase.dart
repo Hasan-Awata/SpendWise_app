@@ -1,5 +1,7 @@
+import 'package:dartz/dartz.dart';
+import 'package:spendwise/core/error/failure.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
-import 'package:spendwise/features/auth/data/repositories/user_repository.dart';
+import 'package:spendwise/features/auth/domain/repositories/user_repository.dart';
 
 class GetUserIdUsecase {
   // // Logic: إنشاء نسخة ثابتة ووحيدة من الكلاس للوصول السريع
@@ -11,7 +13,7 @@ class GetUserIdUsecase {
     return AppUserLocalDatasourceImpl().getUserId();
   }
 
-  Future<int> getUserId() async {
+  Future<Either<Failure, int>> getUserId() async {
     return userRepository.getUserId();
   }
 }

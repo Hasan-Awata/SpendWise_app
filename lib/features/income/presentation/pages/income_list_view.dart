@@ -21,17 +21,6 @@ class IncomeListView extends GetView<IncomeController> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.delete_sweep_sharp,
-              color: SpColor.incomeGreen,
-            ),
-            onPressed: () {
-              controller.clearAllIncomes();
-            }, // Navigation: للانتقال لصفحة الإضافة
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: SpColor.incomeGreen,
@@ -41,7 +30,6 @@ class IncomeListView extends GetView<IncomeController> {
         },
       ),
       body: RefreshIndicator(
-        key: controller.refreshIndicatorKey,
         color: SpColor.incomeGreen,
         onRefresh: () async {
           controller.fetchAllIncomes(isRefresh: true);

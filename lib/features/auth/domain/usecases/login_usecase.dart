@@ -1,5 +1,7 @@
-import 'package:spendwise/features/auth/data/repositories/user_repository.dart';
-import 'package:spendwise/features/auth/domain/entities/user_entity.dart';
+import 'package:dartz/dartz.dart';
+import 'package:spendwise/core/error/failure.dart';
+import 'package:spendwise/features/auth/data/models/user_model.dart';
+import 'package:spendwise/features/auth/domain/repositories/user_repository.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_params.dart';
 
 class LoginUsecase {
@@ -7,7 +9,7 @@ class LoginUsecase {
 
   LoginUsecase(this.userRepository);
 
-  Future<UserEntity> login(LoginParams params) async {
+  Future<Either<Failure, UserModel>> login(LoginParams params) async {
     return await userRepository.logIn(params);
   }
 }

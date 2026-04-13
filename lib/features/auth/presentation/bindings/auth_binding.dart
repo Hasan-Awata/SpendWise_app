@@ -5,7 +5,7 @@ import 'package:spendwise/features/auth/data/datasource/app_user_local_datasourc
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource_impl.dart';
-import 'package:spendwise/features/auth/data/repositories/user_repository.dart';
+import 'package:spendwise/features/auth/domain/repositories/user_repository.dart';
 import 'package:spendwise/features/auth/data/repositories/user_repository_impl.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_usecase.dart';

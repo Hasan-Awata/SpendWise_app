@@ -21,10 +21,10 @@ class PagedResponse<T> {
   ) {
     return PagedResponse<T>(
       data: (json['data'] as List).map((item) => fromJsonT(item)).toList(),
-      pageNumber: json['pageNumber'],
-      pageSize: json['pageSize'],
-      totalRecords: json['totalRecords'],
-      totalPages: json['totalPages'],
+      pageNumber: json['PageNumber'],
+      pageSize: json['PageSize'],
+      totalRecords: json['TotalRecords'],
+      totalPages: json['TotalPages'],
     );
   }
 }

@@ -12,6 +12,6 @@ class LoginDto {
   }
 
   Map<String, dynamic> toJson() {
-    return {"userName": userName, "password": password};
+    return {"UserName": userName, "Password": password};
   }
 }

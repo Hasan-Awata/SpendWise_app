@@ -25,8 +25,9 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
       );
 
       return UserModel.fromJson(response.data);
-    } on DioException catch (e) {
-      throw _handleError(e);
+    } on DioException catch (_) {
+      rethrow;
+      // throw _handleError(e);
     }
   }
 
@@ -38,7 +39,7 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
 
       return UserModel.fromJson(response.data);
     } on DioException catch (e) {
-      throw _handleError(e);
+      rethrow;
     }
   }
 
@@ -47,15 +48,7 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
     try {
       await dio.post(ApiEndpoints.logout);
     } on DioException catch (e) {
-      throw _handleError(e);
+      rethrow;
     }
-  }
-
-  // دالة بسيطة للتعامل مع أخطاء Dio
-  Exception _handleError(DioException e) {
-    if (e.response != null) {
-      return Exception("Server Error: ${e.response?.data['message']}");
-    }
-    return Exception("Network Error: ${e.message}");
   }
 }
