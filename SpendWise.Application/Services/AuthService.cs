@@ -53,6 +53,7 @@ namespace SpendWise.Application.Services
             return new ResponseAuthDto
             {
                 Token = tokenString,
+                UserId = user.Id,
                 UserName = user.UserName,
                 Expiry = expiry
             };
