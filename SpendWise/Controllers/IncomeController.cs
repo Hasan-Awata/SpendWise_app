@@ -96,7 +96,7 @@ namespace SpendWise.Controllers
                 return BadRequest();
             }
 
-            return CreatedAtAction("Income was updated successfully", new { incomeId = updatedIncome.Id }, updatedIncome);
+            return Ok(updatedIncome);
         }
 
         [HttpDelete("{incomeId}")]
