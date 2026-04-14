@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/core/network/api_endpoints.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource.dart';
@@ -15,37 +14,68 @@ import 'package:spendwise/features/auth/domain/usecases/signup_usecase.dart';
 import 'package:spendwise/features/auth/presentation/manager/auth_controller.dart';
 
 class AuthBinding extends Bindings {
+  AuthBinding({this.permanentAuthController = false});
+
+  final bool permanentAuthController;
+
   @override
   void dependencies() {
-    Get.lazyPut<AppUserLocalDatasource>(() {
-      final datasource = AppUserLocalDatasourceImpl();
-      return datasource;
-    });
-    Get.lazyPut<AppUserRemoteDatasource>(
-      () => AppUserRemoteDatasourceImpl(dio: Get.find()),
-    );
-    Get.lazyPut<UserRepository>(
-      () => UserRepositoryImpl(
-        appUserLocalDatasource: Get.find(),
-        // تأكد أن UserRepositoryImpl يستقبل Remote أيضاً في مشيده
-        appUserRemoteDatasource: Get.find(),
-      ),
-    );
-    Get.lazyPut(() => SignupUsecase(Get.find<UserRepository>()));
-    Get.lazyPut(() => LoginUsecase(Get.find<UserRepository>()));
-    Get.lazyPut(() => LogoutUsecase(Get.find<UserRepository>()));
-    Get.lazyPut(() => GetUserUsecase(Get.find<UserRepository>()));
-    Get.lazyPut(() => GetUserIdUsecase(Get.find<UserRepository>()));
+    if (!Get.isRegistered<AppUserLocalDatasource>()) {
+      Get.lazyPut<AppUserLocalDatasource>(() => AppUserLocalDatasourceImpl());
+    }
+    if (!Get.isRegistered<AppUserRemoteDatasource>()) {
+      Get.lazyPut<AppUserRemoteDatasource>(
+        () => AppUserRemoteDatasourceImpl(dio: Get.find<Dio>()),
+      );
+    }
+    if (!Get.isRegistered<UserRepository>()) {
+      Get.lazyPut<UserRepository>(
+        () => UserRepositoryImpl(
+          appUserLocalDatasource: Get.find(),
+          appUserRemoteDatasource: Get.find(),
+        ),
+      );
+    }
+    if (!Get.isRegistered<SignupUsecase>()) {
+      Get.lazyPut(() => SignupUsecase(Get.find<UserRepository>()));
+    }
+    if (!Get.isRegistered<LoginUsecase>()) {
+      Get.lazyPut(() => LoginUsecase(Get.find<UserRepository>()));
+    }
+    if (!Get.isRegistered<LogoutUsecase>()) {
+      Get.lazyPut(() => LogoutUsecase(Get.find<UserRepository>()));
+    }
+    if (!Get.isRegistered<GetUserUsecase>()) {
+      Get.lazyPut(() => GetUserUsecase(Get.find<UserRepository>()));
+    }
+    if (!Get.isRegistered<GetUserIdUsecase>()) {
+      Get.lazyPut(() => GetUserIdUsecase(Get.find<UserRepository>()));
+    }
 
-    Get.lazyPut<AuthController>(
-      () => AuthController(
-        signupUsecase: Get.find<SignupUsecase>(),
-        loginUsecase: Get.find<LoginUsecase>(),
-        logoutUsecase: Get.find<LogoutUsecase>(),
-        getUserIdUsecase: Get.find<GetUserIdUsecase>(),
-        getUserUsecase: Get.find<GetUserUsecase>(),
-      ),
-      fenix: true,
-    );
+    if (!Get.isRegistered<AuthController>()) {
+      if (permanentAuthController) {
+        Get.put<AuthController>(
+          AuthController(
+            signupUsecase: Get.find<SignupUsecase>(),
+            loginUsecase: Get.find<LoginUsecase>(),
+            logoutUsecase: Get.find<LogoutUsecase>(),
+            getUserIdUsecase: Get.find<GetUserIdUsecase>(),
+            getUserUsecase: Get.find<GetUserUsecase>(),
+          ),
+          permanent: true,
+        );
+      } else {
+        Get.lazyPut<AuthController>(
+          () => AuthController(
+            signupUsecase: Get.find<SignupUsecase>(),
+            loginUsecase: Get.find<LoginUsecase>(),
+            logoutUsecase: Get.find<LogoutUsecase>(),
+            getUserIdUsecase: Get.find<GetUserIdUsecase>(),
+            getUserUsecase: Get.find<GetUserUsecase>(),
+          ),
+          fenix: true,
+        );
+      }
+    }
   }
 }

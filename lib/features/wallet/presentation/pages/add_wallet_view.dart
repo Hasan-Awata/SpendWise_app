@@ -1,12 +1,9 @@
+// // تعليق: واجهة إضافة محفظة جديدة مع ربط المتغيرات المحدثة في الـ Controller وحالة التحميل
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
-import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
-import 'package:spendwise/features/wallet/domain/entities/currency_model.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallet_controller.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.dart';
 
-// // تعليق: واجهة إضافة محفظة جديدة مع حقول إدخال مطابقة لتصميم الـ SignUp في التطبيق
 class AddWalletView extends StatefulWidget {
   const AddWalletView({super.key});
 
@@ -15,6 +12,7 @@ class AddWalletView extends StatefulWidget {
 }
 
 class _AddWalletViewState extends State<AddWalletView> {
+  // استخدام Get.find للوصول للمتحكم المحقون عبر الـ Binding
   final controller = Get.find<WalletController>();
 
   @override
@@ -27,14 +25,18 @@ class _AddWalletViewState extends State<AddWalletView> {
         actions: [
           IconButton(
             onPressed: () => Get.toNamed('/list-wallet'),
-            icon: Icon(Icons.wallet),
+            icon: const Icon(
+              Icons.account_balance_wallet_rounded,
+              color: Colors.white,
+            ),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
           children: [
             const Text(
               'إضافة محفظة جديدة',
@@ -45,35 +47,55 @@ class _AddWalletViewState extends State<AddWalletView> {
               ),
             ),
             const SizedBox(height: 40),
-            _buildDropTextButton(),
+
+            // // تعليق: استخدام قائمة العملات المفلترة من الـ Controller
+            SPDropdownButton(
+              title: "العملة",
+              hint: "اختر العملة",
+              values: controller.filteredCurrencies,
+              onSelected: (index, value) {
+                controller.currencySearchController.text = value;
+                controller.selectedCurrencyId.value = index;
+              },
+              textEditingController: controller.currencySearchController,
+            ),
             const SizedBox(height: 20),
+
             _buildTextField(
               hint: 'الرصيد الابتدائي',
               icon: Icons.attach_money,
-              controller: controller.balance,
+              controller: controller
+                  .balanceController, // تم تعديل الاسم ليتوافق مع الـ Controller الجديد
               isNumber: true,
             ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF43C5F3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+
+            const SizedBox(height: 60),
+
+            // // تعليق: تغيير زر الحفظ ليظهر مؤشر تحميل عند معالجة الطلب
+            Obx(
+              () => SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF43C5F3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                   ),
-                ),
-                onPressed: () {
-                  controller.addNewWallet();
-                },
-                child: const Text(
-                  'حفظ المحفظة',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  onPressed: controller.isLoading.value
+                      ? null
+                      : () => controller.addNewWallet(),
+                  child: controller.isLoading.value
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'حفظ المحفظة',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -81,19 +103,6 @@ class _AddWalletViewState extends State<AddWalletView> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildDropTextButton() {
-    return SPDropdownButton(
-      title: "العملة",
-      hint: "العملة",
-      values: controller.listNameCurrency,
-
-      onSelected: (index, value) {
-        controller.selectedCurrency.value = index;
-      },
-      textEditingController: controller.currencySearchController,
     );
   }
 
@@ -105,7 +114,9 @@ class _AddWalletViewState extends State<AddWalletView> {
   }) {
     return TextField(
       controller: controller,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      keyboardType: isNumber
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.text,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         filled: true,

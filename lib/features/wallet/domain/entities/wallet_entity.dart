@@ -5,13 +5,13 @@ class WalletEntity {
   final int? userId;
   final Currency currency;
   final double balance;
-  final String? title;
+  final bool isSaved;
 
   WalletEntity({
     this.walletId,
-    this.userId,
+    required this.userId,
     required this.currency,
     required this.balance,
-    this.title,
+    required this.isSaved,
   });
 }

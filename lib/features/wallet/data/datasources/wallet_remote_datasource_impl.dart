@@ -1,3 +1,4 @@
+// Implementation for WalletRemoteDatasource with clean design pattern
 import 'package:dio/dio.dart';
 import 'package:spendwise/core/network/api_endpoints.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
@@ -10,23 +11,10 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
   WalletRemoteDatasourceImpl({required this.dio});
 
   @override
-  Future<WalletModel> addWalet(WalletModel wallet) async {
-    try {
-      final response = await dio.post(
-        ApiEndpoints.addWallet,
-        data: wallet.toJson(),
-      );
-      return WalletModel.fromJson(response.data);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  @override
   Future<PagedResponse<WalletModel>> getMyWallet(PageRequest page) async {
     try {
       final response = await dio.get(
-        ApiEndpoints.getWallets,
+        ApiEndpoints.wallet,
         queryParameters: {
           'PageNumber': page.pageNumber,
           'PageSize': page.pageSize,
@@ -36,15 +24,50 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
         response.data,
         (json) => WalletModel.fromJson(json),
       );
-    } on DioException catch (e) {
-      throw _handleError(e);
+    } on DioException {
+      rethrow;
     }
   }
 
-  Exception _handleError(DioException e) {
-    if (e.response != null) {
-      return Exception("Server Error: ${e.response?.data['message']}");
+  @override
+  Future<WalletModel> addWalet(WalletModel wallet) async {
+    try {
+      final response = await dio.post(
+        ApiEndpoints.wallet,
+        data: wallet.toJson(),
+      );
+
+      print(response.statusCode);
+      return WalletModel.fromJson(response.data);
+    } on DioException {
+      rethrow;
     }
-    return Exception("Network Error: ${e.message}");
+  }
+
+  @override
+  Future<WalletModel> updateWallet(int walletId, WalletModel wallet) async {
+    try {
+      final response = await dio.patch(
+        "${ApiEndpoints.wallet}/$walletId",
+        data: wallet.toJson(),
+      );
+      return WalletModel.fromJson(response.data);
+    } on DioException {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<bool> deleteWallet(int walletId) async {
+    try {
+      final response = await dio.delete("${ApiEndpoints.wallet}/$walletId");
+
+      if (response.data is bool) {
+        return response.data;
+      }
+      return response.statusCode == 200 || response.statusCode == 204;
+    } on DioException {
+      rethrow;
+    }
   }
 }

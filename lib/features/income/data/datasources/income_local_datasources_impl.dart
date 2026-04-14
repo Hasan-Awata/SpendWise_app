@@ -21,7 +21,11 @@ class IncomeLocalDataSourceImpl implements IncomeLocalDataSource {
 
   @override
   Future<void> saveIncomes(List<IncomeModel> incomes) async {
-    await _box.put(_incomeKey, incomes);
+    try {
+      await _box.put(_incomeKey, incomes);
+    } catch (_) {
+      rethrow;
+    }
   }
 
   @override

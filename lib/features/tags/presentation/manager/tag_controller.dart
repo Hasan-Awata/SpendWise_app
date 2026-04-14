@@ -33,10 +33,7 @@ class TagController extends GetxController {
     try {
       isLoading.value = true;
       final tags = await getMyTagsUsecase.call();
-      if (tags.isNotEmpty) {
-        myTags.addAll(tags);
-        return;
-      }
+      myTags.assignAll(tags);
     } on Exception catch (e) {
       HelperFunction.showSnackBar("Error", e.toString());
     } finally {

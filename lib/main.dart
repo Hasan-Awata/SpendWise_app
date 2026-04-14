@@ -4,11 +4,8 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:hive/hive.dart';
-import 'package:hive_flutter/adapters.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spendwise/core/network/initial_binding.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/services/shared_service.dart';
@@ -16,11 +13,8 @@ import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/auth/data/models/user_adapter.dart';
-import 'package:spendwise/features/auth/presentation/pages/login_page.dart';
-import 'package:spendwise/features/home/presentation/pages/main_screen.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
 import 'package:spendwise/features/income/data/models/income_adapter.dart';
-import 'package:spendwise/features/splash/introduction.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_local_datasource_impl.dart';
 import 'package:spendwise/features/tags/data/models/tag_adapter.dart';
 import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
@@ -51,10 +45,10 @@ void main() async {
   await WalletLocalDatasourceImpl().init();
   await IncomeLocalDataSourceImpl().init();
   await CurrencyLocal().initializaCurrencies();
-  await Get.putAsync(() => SharedPreferencesService().init());
+  await Get.putAsync(() => SharedPreferencesService().init(), permanent: true);
   CurrentUser.initializeUser();
 
-  runApp(DevicePreview(enabled: false, builder: (context) => const MyApp()));
+  runApp(DevicePreview(enabled: true, builder: (context) => const MyApp()));
 }
 
 class MyApp extends StatelessWidget {

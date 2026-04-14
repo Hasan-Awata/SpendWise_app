@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 
@@ -44,7 +45,56 @@ class SPAppbar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         IconButton(
           icon: const Icon(Icons.notifications_outlined),
-          onPressed: () {},
+          onPressed: () async {
+            final user = await AppUserLocalDatasourceImpl().getUser();
+            if (user == null) {
+              Get.snackbar(
+                'No Local User',
+                'لا يوجد مستخدم محفوظ محليا',
+                snackPosition: SnackPosition.BOTTOM,
+              );
+              return;
+            }
+
+            Get.defaultDialog(
+              title: 'Local User Info',
+              titleStyle: const TextStyle(color: SpColor.offWhite),
+              backgroundColor: SpColor.surfaceNavy,
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'User ID: ${user.userId}',
+                    style: const TextStyle(color: SpColor.offWhite),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'First Name: ${user.firstName ?? '-'}',
+                    style: const TextStyle(color: SpColor.offWhite),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Last Name: ${user.lastName ?? '-'}',
+                    style: const TextStyle(color: SpColor.offWhite),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Username: ${user.userName ?? '-'}',
+                    style: const TextStyle(color: SpColor.offWhite),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Token: ${user.token.isEmpty ? '-' : user.token}',
+                    style: const TextStyle(color: SpColor.offWhite),
+                  ),
+                ],
+              ),
+              textConfirm: 'OK',
+              confirmTextColor: Colors.white,
+              buttonColor: SpColor.accentBlue,
+              onConfirm: Get.back,
+            );
+          },
         ),
       ],
       iconTheme: IconThemeData(color: Colors.white),

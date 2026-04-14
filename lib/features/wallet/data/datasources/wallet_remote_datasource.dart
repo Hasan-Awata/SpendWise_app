@@ -6,4 +6,8 @@ abstract class WalletRemoteDatasource {
   Future<WalletModel> addWalet(WalletModel wallet);
 
   Future<PagedResponse<WalletModel>> getMyWallet(PageRequest page);
+
+  Future<WalletModel> updateWallet(int walletId, WalletModel wallet);
+
+  Future<bool> deleteWallet(int walletId);
 }

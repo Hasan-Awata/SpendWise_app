@@ -5,10 +5,10 @@ import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 class WalletModel extends WalletEntity {
   WalletModel({
     super.walletId,
-    super.userId,
+    required super.userId,
     required super.currency,
     required super.balance,
-    super.title = "",
+    required super.isSaved,
   });
 
   factory WalletModel.fromJson(Map<dynamic, dynamic> json) {
@@ -17,7 +17,7 @@ class WalletModel extends WalletEntity {
       userId: json["UserId"] as int?,
       currency: _currencyFromWalletJson(json),
       balance: (json["Balance"] as num).toDouble(),
-      title: json["Title"] as String? ?? "",
+      isSaved: json['IsSaved'] ?? false,
     );
   }
 
@@ -37,10 +37,10 @@ class WalletModel extends WalletEntity {
 
   Map<dynamic, dynamic> toJson() {
     return {
-      "WalletId": walletId,
       "UserId": userId,
-      "CurrencyId": currency.id,
+      "Currency": currency.toJson(),
       "Balance": balance,
+      "IsSaved": isSaved,
     };
   }
 }

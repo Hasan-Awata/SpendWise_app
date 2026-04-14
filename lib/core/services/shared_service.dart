@@ -19,7 +19,7 @@ class SharedPreferencesService extends GetxService {
     await _prefs.setString('token', value);
   }
 
-  String get token => _prefs.getString('token') ?? "no Token";
+  String get token => _prefs.getString('token') ?? '';
 
   Future<void> clear() async {
     await _prefs.clear();

@@ -66,7 +66,7 @@ class IncomeModel extends IncomeEntity {
       if (id != null) 'id': id,
       'UserId': userId,
       'Title': title,
-      'Wallet': wallet!.toJson(),
+      'Wallet': wallet != null ? wallet!.toJson() : null,
       'Amount': amount,
       'Date': date.toIso8601String(),
       'IncomeTag': tag?.toJson(),

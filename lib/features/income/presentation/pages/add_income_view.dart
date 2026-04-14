@@ -23,6 +23,7 @@ class AddIncomeView extends StatelessWidget {
       backgroundColor: SpColor.primaryDark2,
       appBar: _buildAppBar(),
       body: RefreshIndicator(
+        color: SpColor.incomeGreen,
         onRefresh: () async {
           controller.resetFields();
           await controller.walletController.loadWallets();

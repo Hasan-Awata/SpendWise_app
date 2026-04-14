@@ -1,13 +1,11 @@
 import 'package:get/get.dart';
-import 'package:spendwise/core/utils/current_user.dart';
+
 import 'package:spendwise/features/auth/presentation/bindings/auth_binding.dart';
 import 'package:spendwise/features/auth/presentation/pages/login_page.dart';
 import 'package:spendwise/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:spendwise/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:spendwise/features/home/presentation/pages/main_screen.dart';
 import 'package:spendwise/features/splash/initial_page.dart';
-
-import 'package:spendwise/features/splash/introduction.dart';
 import 'package:spendwise/features/tags/presentation/bindings/tag_binding.dart';
 import 'package:spendwise/features/tags/presentation/pages/add_tag_page.dart';
 import 'package:spendwise/features/wallet/presentation/bindings/wallet_binding.dart';
@@ -36,11 +34,7 @@ class AppPages {
   static const INITIAL = Routes.INITIAL;
 
   static final routes = [
-    GetPage(
-      name: Routes.INITIAL,
-      page: () => InitialPage(),
-      bindings: [AuthBinding()],
-    ),
+    GetPage(name: Routes.INITIAL, page: () => InitialPage()),
     GetPage(
       name: Routes.SIGNUP,
       page: () => SignUpPage(),
@@ -55,19 +49,23 @@ class AppPages {
     GetPage(
       name: Routes.INCOME_LIST,
       page: () => const IncomeListView(),
-      binding: IncomeBinding(),
+      bindings: [WalletBinding(), TagBinding(), IncomeBinding()],
     ),
     GetPage(
       name: Routes.ADD_INCOME,
       page: () => AddIncomeView(),
-      binding: IncomeBinding(),
+      bindings: [WalletBinding(), TagBinding(), IncomeBinding()],
     ),
     GetPage(
       name: Routes.MAIN_SCREEN,
       page: () => const MainScreen(),
       bindings: [IncomeBinding(), WalletBinding(), TagBinding()],
     ),
-    GetPage(name: Routes.ADD_TAG, page: () => AddtagPage()),
+    GetPage(
+      name: Routes.ADD_TAG,
+      page: () => AddtagPage(),
+      binding: TagBinding(),
+    ),
     GetPage(
       name: Routes.HOME,
       page: () => const MainScreen(),

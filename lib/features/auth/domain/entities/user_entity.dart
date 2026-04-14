@@ -1,5 +1,5 @@
 class UserEntity {
-  final int? userId;
+  final int userId;
   final String? firstName;
 
   final String? lastName;
@@ -14,7 +14,7 @@ class UserEntity {
     this.firstName,
     this.lastName,
     this.userName,
-    this.userId,
+    required this.userId,
     required this.token,
     this.expiry,
   });

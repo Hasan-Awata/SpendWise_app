@@ -10,7 +10,7 @@ class GetUserIdUsecase {
   GetUserIdUsecase(this.userRepository);
 
   static Future<int> get userId async {
-    return AppUserLocalDatasourceImpl().getUserId();
+    return await AppUserLocalDatasourceImpl().getUserId();
   }
 
   Future<Either<Failure, int>> getUserId() async {

@@ -18,19 +18,19 @@ class Currency extends HiveObject {
 
   factory Currency.fromJson(Map<dynamic, dynamic> json) {
     return Currency(
-      id: (json['id'] as num).toInt(),
+      id: json['id'],
       code: json['Code'],
       currencyName: json['CurrencyName'] as String,
-      actualValue: (json['ActualValue'] as num).toDouble(),
+      actualValue: json['LiveValue'] ?? 0.0,
     );
   }
 
   Map<dynamic, dynamic> toJson() {
     return {
-      "id": id,
-      'Code': code,
+      "CurrencyId": id,
+      // 'Code': code,
       "CurrencyName": currencyName,
-      "ActualValue": actualValue,
+      "LiveValue": actualValue,
     };
   }
 }

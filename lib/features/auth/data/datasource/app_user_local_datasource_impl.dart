@@ -33,6 +33,7 @@ class AppUserLocalDatasourceImpl extends GetxService
   Future<void> registerLocal(UserModel user) async {
     try {
       await _box.put(_userKey, user);
+      _cachedUserId = user.userId;
     } catch (e) {
       throw Exception("Failed to save user data locally: $e");
     }
@@ -42,14 +43,15 @@ class AppUserLocalDatasourceImpl extends GetxService
   Future<void> logOut() async {
     try {
       await _box.delete(_userKey);
+      _cachedUserId = null;
     } catch (e) {
       throw Exception("Failed to clear local user session: $e");
     }
   }
 
   @override
-  Future<UserModel>? getUser() async {
-    return await _box.get(_userKey);
+  Future<UserModel?> getUser() async {
+    return _box.get(_userKey) as UserModel?;
   }
 
   // الآن هذه الدالة سريعة جداً لأنها تعيد القيمة من الذاكرة مباشرة
@@ -62,7 +64,7 @@ class AppUserLocalDatasourceImpl extends GetxService
     final user = await getUser();
     if (user != null) {
       _cachedUserId = user.userId;
-      return user.userId!;
+      return user.userId;
     }
     throw Exception("User not found");
   }

@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:spendwise/core/services/shared_service.dart';
-import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/domain/entities/user_entity.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_usecase.dart';
@@ -128,13 +127,16 @@ class AuthController extends GetxController {
 
     final result = await logoutUsecase.logout();
 
-    result.fold(
-      (failure) => HelperFunction.showSnackBar(
+    await result.fold(
+      (failure) async => HelperFunction.showSnackBar(
         "Logout Failed",
         failure.message,
         isError: true,
       ),
-      (_) {
+      (_) async {
+        final prefs = Get.find<SharedPreferencesService>();
+        await prefs.setLoggedIn(false);
+        await prefs.setToken('');
         currentUser.value = null;
         HelperFunction.showSnackBar("Success", "Logged out successfully");
         Get.offAllNamed('/login'); // الانتقال لصفحة التسجيل
