@@ -30,6 +30,7 @@ class WalletBinding implements Bindings {
           getWalletsUseCase: Get.find(),
           addWalletUseCase: Get.find(),
         ),
+        fenix: true,
       );
     }
   }

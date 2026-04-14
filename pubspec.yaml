@@ -46,7 +46,7 @@ dependencies:
   google_generative_ai: ^0.4.7
   dartz: ^0.10.1
   shimmer: ^3.0.0
-
+  shared_preferences: ^2.5.5
 dev_dependencies:
   flutter_test:
     sdk: flutter

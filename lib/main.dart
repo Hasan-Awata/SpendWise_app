@@ -8,8 +8,10 @@ import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spendwise/core/network/initial_binding.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
+import 'package:spendwise/core/services/shared_service.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
@@ -48,8 +50,9 @@ void main() async {
   await TagLocalDatasourceImpl().init();
   await WalletLocalDatasourceImpl().init();
   await IncomeLocalDataSourceImpl().init();
-
   await CurrencyLocal().initializaCurrencies();
+  await Get.putAsync(() => SharedPreferencesService().init());
+  CurrentUser.initializeUser();
 
   runApp(DevicePreview(enabled: false, builder: (context) => const MyApp()));
 }
@@ -71,6 +74,7 @@ class MyApp extends StatelessWidget {
         Locale('ar', 'SA'),
       ],
       textDirection: TextDirection.ltr,
+
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
       builder: DevicePreview.appBuilder,

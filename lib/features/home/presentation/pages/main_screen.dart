@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/home/presentation/pages/home.dart';
 import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
@@ -40,7 +41,7 @@ class _MainScreenState extends State<MainScreen> {
       // 6. الزر العائم (إضافة مصروف يدوياً)
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Get.to(() => const DashboardPage());
+          Get.toNamed(Routes.DASHBOARD);
         },
         backgroundColor: SpColor.accentBlue.withValues(alpha: 0.84),
         child: const Icon(Icons.add, color: Colors.white, size: 30),

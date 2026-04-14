@@ -30,6 +30,7 @@ class TagBinding extends Bindings {
           addTagUsecase: Get.find<AddTagUsecase>(),
           getMyTagsUsecase: Get.find<GetMyTagsUsecase>(),
         ),
+        fenix: true,
       );
     }
   }

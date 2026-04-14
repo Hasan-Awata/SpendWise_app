@@ -1,8 +1,10 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:spendwise/core/services/shared_service.dart';
 import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/domain/entities/user_entity.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
+import 'package:spendwise/features/auth/domain/usecases/get_user_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_params.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/logout_usecase.dart';
@@ -15,12 +17,13 @@ class AuthController extends GetxController {
   final LoginUsecase loginUsecase;
   final LogoutUsecase logoutUsecase;
   final GetUserIdUsecase getUserIdUsecase;
-
+  final GetUserUsecase getUserUsecase;
   AuthController({
     required this.signupUsecase,
     required this.loginUsecase,
     required this.logoutUsecase,
     required this.getUserIdUsecase,
+    required this.getUserUsecase,
   });
 
   static AuthController get instance => Get.find<AuthController>();
@@ -73,9 +76,11 @@ class AuthController extends GetxController {
           isError: true,
         );
       },
-      (user) {
+      (user) async {
         currentUser.value = user;
-        CurrentUser.currentUser = user;
+        final prefs = Get.find<SharedPreferencesService>();
+        await prefs.setLoggedIn(true);
+        await prefs.setToken(user.token);
         HelperFunction.showSnackBar("Success", "Account created successfully!");
         Get.offAllNamed('/main-screen');
       },
@@ -105,10 +110,11 @@ class AuthController extends GetxController {
           isError: true,
         );
       },
-      (user) {
+      (user) async {
         currentUser.value = user;
-        CurrentUser.currentUser = user;
-
+        final prefs = Get.find<SharedPreferencesService>();
+        await prefs.setLoggedIn(true);
+        await prefs.setToken(user.token);
         HelperFunction.showSnackBar("Success", "Welcome back!");
         Get.offAllNamed('/main-screen');
       },
@@ -140,10 +146,12 @@ class AuthController extends GetxController {
 
   Future<void> fetchUserId() async {
     final result = await getUserIdUsecase.getUserId();
-    result.fold(
-      (failure) => null, // تعامل مع الخطأ حسب حاجتك
-      (id) => print("User ID: $id"),
-    );
+    result.fold((failure) => null, (id) => print("User ID: $id"));
+  }
+
+  Future<void> getUser() async {
+    final result = await getUserUsecase.getUser();
+    result.fold((failure) => null, (user) => currentUser.value = user);
   }
 
   @override

@@ -37,13 +37,15 @@ class AuthBinding extends Bindings {
     Get.lazyPut(() => GetUserUsecase(Get.find<UserRepository>()));
     Get.lazyPut(() => GetUserIdUsecase(Get.find<UserRepository>()));
 
-    Get.put(
-      AuthController(
-        signupUsecase: Get.find(),
-        loginUsecase: Get.find(),
-        logoutUsecase: Get.find(),
-        getUserIdUsecase: Get.find(),
+    Get.lazyPut<AuthController>(
+      () => AuthController(
+        signupUsecase: Get.find<SignupUsecase>(),
+        loginUsecase: Get.find<LoginUsecase>(),
+        logoutUsecase: Get.find<LogoutUsecase>(),
+        getUserIdUsecase: Get.find<GetUserIdUsecase>(),
+        getUserUsecase: Get.find<GetUserUsecase>(),
       ),
+      fenix: true,
     );
   }
 }

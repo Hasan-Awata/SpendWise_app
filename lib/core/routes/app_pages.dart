@@ -1,8 +1,11 @@
 import 'package:get/get.dart';
+import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/presentation/bindings/auth_binding.dart';
 import 'package:spendwise/features/auth/presentation/pages/login_page.dart';
 import 'package:spendwise/features/auth/presentation/pages/sign_up_page.dart';
+import 'package:spendwise/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:spendwise/features/home/presentation/pages/main_screen.dart';
+import 'package:spendwise/features/splash/initial_page.dart';
 
 import 'package:spendwise/features/splash/introduction.dart';
 import 'package:spendwise/features/tags/presentation/bindings/tag_binding.dart';
@@ -26,15 +29,18 @@ abstract class Routes {
   static const HOME = '/home';
   static const ADDWALLET = '/add-wallet';
   static const LISTWALLET = '/list-wallet';
+  static const DASHBOARD = '/dashboard';
 }
 
 class AppPages {
   static const INITIAL = Routes.INITIAL;
 
   static final routes = [
-    GetPage(name: Routes.INITIAL, page: () => Introduction()),
-
-    // Auth Routes
+    GetPage(
+      name: Routes.INITIAL,
+      page: () => InitialPage(),
+      bindings: [AuthBinding()],
+    ),
     GetPage(
       name: Routes.SIGNUP,
       page: () => SignUpPage(),
@@ -45,44 +51,29 @@ class AppPages {
       page: () => LogInPage(),
       binding: AuthBinding(),
     ),
-
-    // Protected Routes ( تحتاج لاحقاً لـ Middleware )
+    GetPage(name: Routes.DASHBOARD, page: () => const DashboardPage()),
     GetPage(
       name: Routes.INCOME_LIST,
       page: () => const IncomeListView(),
-      bindings: [TagBinding(), WalletBinding(), IncomeBinding()],
+      binding: IncomeBinding(),
     ),
     GetPage(
       name: Routes.ADD_INCOME,
       page: () => AddIncomeView(),
-
-      //يجب الترتيب
-      bindings: [TagBinding(), WalletBinding(), IncomeBinding()],
+      binding: IncomeBinding(),
     ),
     GetPage(
       name: Routes.MAIN_SCREEN,
       page: () => const MainScreen(),
-      bindings: [AuthBinding(), WalletBinding(), TagBinding(), IncomeBinding()],
+      bindings: [IncomeBinding(), WalletBinding(), TagBinding()],
     ),
-    GetPage(
-      name: Routes.ADD_TAG,
-      page: () => AddtagPage(),
-      binding: TagBinding(),
-    ),
+    GetPage(name: Routes.ADD_TAG, page: () => AddtagPage()),
     GetPage(
       name: Routes.HOME,
       page: () => const MainScreen(),
-      bindings: [TagBinding(), WalletBinding(), IncomeBinding()],
+      bindings: [IncomeBinding(), WalletBinding(), TagBinding()],
     ),
-    GetPage(
-      name: Routes.ADDWALLET,
-      page: () => const AddWalletView(),
-      binding: WalletBinding(),
-    ),
-    GetPage(
-      name: Routes.LISTWALLET,
-      page: () => const WalletsView(),
-      binding: WalletBinding(),
-    ),
+    GetPage(name: Routes.ADDWALLET, page: () => const AddWalletView()),
+    GetPage(name: Routes.LISTWALLET, page: () => const WalletsView()),
   ];
 }
