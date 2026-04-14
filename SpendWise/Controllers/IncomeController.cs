@@ -76,7 +76,7 @@ namespace SpendWise.Controllers
                 return BadRequest();
             }
 
-            return CreatedAtAction(nameof(GetIncome), incomeDTO);
+            return CreatedAtAction(nameof(GetIncome), new { incomeId = createdIncome.Id }, createdIncome);
         }
 
         [HttpPatch("{incomeId}")]
@@ -89,14 +89,14 @@ namespace SpendWise.Controllers
 
             incomeDTO.UserId = CurrentUserId;
 
-            var createdIncome = await _incomeService.AddIncomeAsync(incomeDTO);
+            var updatedIncome = await _incomeService.UpdateIncomeAsync(incomeDTO);
 
-            if (createdIncome == null)
+            if (updatedIncome == null)
             {
                 return BadRequest();
             }
 
-            return CreatedAtAction("Income was created successfully", createdIncome);
+            return CreatedAtAction("Income was updated successfully", new { incomeId = updatedIncome.Id }, updatedIncome);
         }
 
         [HttpDelete("{incomeId}")]

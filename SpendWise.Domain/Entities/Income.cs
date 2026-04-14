@@ -10,7 +10,7 @@ namespace SpendWise.Domain.Entities
         public int Id { get; set; }
         public int UserId { get; set; }
         public decimal Amount { get; set; }
-        public DateTime Date { get; set; }
+        public DateTime Date { get; set; } = DateTime.Now;
         public Wallet Wallet { get; set; } = new Wallet();
         public Tag? IncomeTag { get; set; } = null;
         public Transaction LinkedTransaction { get; set; } = new Transaction();

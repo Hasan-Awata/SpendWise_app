@@ -198,6 +198,18 @@ namespace SpendWise.Application.Services
                 Id = incomeDto.Id,
                 UserId = incomeDto.UserId,
                 Amount = incomeDto.Amount,
+                Wallet = new Wallet
+                {
+                    WalletId = incomeDto.Wallet.WalletId,
+                    UserId = incomeDto.UserId,
+                    Balance = incomeDto.Wallet.Balance,
+                    Currency = new Currency
+                    {
+                        Id = incomeDto.Wallet.Currency.CurrencyId,
+                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
+                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
+                    },
+                },
             };
 
             // 2 - Check if the non-essential data existed in the incomeDTO
