@@ -19,6 +19,7 @@ BEGIN
     
     -- Return the newly generated UserID
     SET @NewUserID = CAST(SCOPE_IDENTITY() AS INT);
+    SELECT @NewUserID;
 END
 GO
 

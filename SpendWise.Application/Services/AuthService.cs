@@ -53,7 +53,7 @@ namespace SpendWise.Application.Services
             return new ResponseAuthDto
             {
                 Token = tokenString,
-                UserId = user.Id,
+                UserId = -1,
                 UserName = user.UserName,
                 Expiry = expiry
             };
@@ -74,9 +74,13 @@ namespace SpendWise.Application.Services
 
             var user = new User(registerDto.UserName, Hashedpassword, registerDto.FirstName, registerDto.LastName);
 
-            await _userRepo.AddUserAsync(user);
+            int userId = await _userRepo.AddUserAsync(user);
 
-            return GenerateToken(user);
+            var responseAuth = GenerateToken(user);
+
+            responseAuth.UserId = userId;
+
+            return responseAuth;
         }
 
         public async Task<ResponseAuthDto?> LoginAsync(LoginDto loginDto)
@@ -89,7 +93,11 @@ namespace SpendWise.Application.Services
 
             if (!passwordIsValid) return null;
 
-            return GenerateToken(user);
+            var responseAuth = GenerateToken(user);
+
+            responseAuth.UserId = user.Id; 
+            
+            return responseAuth;
         }
     }
 }

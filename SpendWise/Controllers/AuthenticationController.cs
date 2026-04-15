@@ -22,7 +22,8 @@ namespace SpendWise.Controllers
 
             var response = await _authService.RegisterAsync(registerDto);
 
-            return CreatedAtAction(nameof(Register), response);
+            //return CreatedAtAction(nameof(Register), null ,response);
+            return Ok(response);
         }
 
         [HttpPost("login")]
