@@ -71,7 +71,15 @@ class AppPages {
       page: () => const MainScreen(),
       bindings: [IncomeBinding(), WalletBinding(), TagBinding()],
     ),
-    GetPage(name: Routes.ADDWALLET, page: () => const AddWalletView()),
-    GetPage(name: Routes.LISTWALLET, page: () => const WalletsView()),
+    GetPage(
+      name: Routes.ADDWALLET,
+      page: () => const AddWalletView(),
+      binding: WalletBinding(),
+    ),
+    GetPage(
+      name: Routes.LISTWALLET,
+      page: () => const WalletsView(),
+      binding: WalletBinding(),
+    ),
   ];
 }

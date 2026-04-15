@@ -35,12 +35,12 @@ class WalletModel extends WalletEntity {
     return CurrencyLocal().allCurrencies[143];
   }
 
-  Map<dynamic, dynamic> toJson() {
+  Map<String, dynamic> toJson() {
     return {
       "UserId": userId,
-      "Currency": currency.toJson(),
       "Balance": balance,
-      "IsSaved": isSaved,
+      "IsSaved": true,
+      "currency": currency.toJson(),
     };
   }
 }

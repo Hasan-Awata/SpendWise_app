@@ -11,11 +11,10 @@ import 'package:spendwise/features/income/domain/usecases/delete_income_usecase.
 import 'package:spendwise/features/income/domain/usecases/get_all_local_incomes_usecase.dart';
 import 'package:spendwise/features/income/domain/usecases/get_incomes_usecase.dart';
 import 'package:spendwise/features/income/domain/usecases/update_income_usecase.dart';
-import 'package:spendwise/features/income/presentation/manager/income_controller.dart';
-import 'package:spendwise/features/tags/presentation/manager/tag_controller.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallet_controller.dart';
-
-//binding مهمته الأساسية هي إعداد كل ما تحتاجه الشاشة من (Controllers, Use Cases, Repositories)
+import 'package:spendwise/features/income/presentation/manager/add_income_controller.dart';
+import 'package:spendwise/features/income/presentation/manager/delete_income_controller.dart';
+import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
+import 'package:spendwise/features/income/presentation/manager/update_income_controller.dart';
 
 class IncomeBinding extends Bindings {
   @override
@@ -53,16 +52,44 @@ class IncomeBinding extends Bindings {
     if (!Get.isRegistered<DeleteIncomeUseCase>()) {
       Get.lazyPut(() => DeleteIncomeUseCase(Get.find<IncomeRepository>()));
     }
-    if (!Get.isRegistered<IncomeController>()) {
+
+    if (!Get.isRegistered<IncomesListController>()) {
       Get.lazyPut(
-        () => IncomeController(
-          addIncomeUseCase: Get.find<AddIncomeUsecase>(),
-          getIncomesUseCase: Get.find<GetIncomesUsecase>(),
-          getAllLocalIncomesUsecase: Get.find<GetAllLocalIncomesUsecase>(),
-          walletController: Get.find<WalletController>(),
-          tagController: Get.find<TagController>(),
-          updateIncomeUseCase: Get.find<UpdateIncomeUseCase>(),
-          deleteIncomeUseCase: Get.find<DeleteIncomeUseCase>(),
+        () => IncomesListController(
+          getIncomesUseCase: Get.find(),
+          getAllLocalIncomesUsecase: Get.find(),
+        ),
+        fenix: true,
+      );
+    }
+
+    if (!Get.isRegistered<AddIncomeController>()) {
+      Get.lazyPut(
+        () => AddIncomeController(
+          addIncomeUseCase: Get.find(),
+          walletsListController: Get.find(),
+          tagController: Get.find(),
+          incomesListController: Get.find(),
+        ),
+        fenix: true,
+      );
+    }
+
+    if (!Get.isRegistered<UpdateIncomeController>()) {
+      Get.lazyPut(
+        () => UpdateIncomeController(
+          updateIncomeUseCase: Get.find(),
+          incomesListController: Get.find(),
+        ),
+        fenix: true,
+      );
+    }
+
+    if (!Get.isRegistered<DeleteIncomeController>()) {
+      Get.lazyPut(
+        () => DeleteIncomeController(
+          deleteIncomeUseCase: Get.find(),
+          incomesListController: Get.find(),
         ),
         fenix: true,
       );

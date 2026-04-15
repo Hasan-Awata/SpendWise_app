@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/auth/presentation/manager/auth_controller.dart';
+import 'package:spendwise/features/auth/presentation/manager/login_controller.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 
 class LogInPage extends StatelessWidget {
-  final controller = AuthController.instance;
+  final controller = Get.find<LoginController>();
   LogInPage({super.key});
   @override
   Widget build(BuildContext context) {

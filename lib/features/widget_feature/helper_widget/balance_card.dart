@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/income/presentation/manager/income_controller.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallet_controller.dart';
+import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
-class BalanceCard extends GetView<IncomeController> {
+class BalanceCard extends GetView<IncomesListController> {
   const BalanceCard({super.key});
 
   String _fmtMoney(double amount) {
@@ -14,10 +14,10 @@ class BalanceCard extends GetView<IncomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final walletController = Get.find<WalletController>();
+    final walletsListController = Get.find<WalletsListController>();
 
     return Obx(() {
-      final walletsTotal = walletController.wallets.fold<double>(
+      final walletsTotal = walletsListController.wallets.fold<double>(
         0,
         (sum, w) => sum + w.balance,
       );

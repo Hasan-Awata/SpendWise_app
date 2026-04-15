@@ -3,9 +3,9 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart'; // // Helper: لتنسيق التاريخ والعملة
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
-import '../manager/income_controller.dart';
+import '../manager/incomes_list_controller.dart';
 
-class IncomeListView extends GetView<IncomeController> {
+class IncomeListView extends GetView<IncomesListController> {
   const IncomeListView({super.key});
 
   @override

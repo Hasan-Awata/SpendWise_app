@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/route_manager.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/auth/presentation/manager/auth_controller.dart';
 
 class CustomTextField extends StatefulWidget {
   final String label;
@@ -36,8 +34,6 @@ class CustomTextField extends StatefulWidget {
 }
 
 class _CustomTextFieldState extends State<CustomTextField> {
-  AuthController textEditingController = AuthController.instance;
-
   @override
   Widget build(BuildContext context) {
     return TextFormField(

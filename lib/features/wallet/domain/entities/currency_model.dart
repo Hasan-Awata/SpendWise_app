@@ -17,20 +17,25 @@ class Currency extends HiveObject {
   });
 
   factory Currency.fromJson(Map<dynamic, dynamic> json) {
+    final rawValue = json['LiveValue'] ?? json['actualValue'] ?? 0.0;
     return Currency(
-      id: json['id'],
-      code: json['Code'],
-      currencyName: json['CurrencyName'] as String,
-      actualValue: json['LiveValue'] ?? 0.0,
+      id: (json['CurrencyId'] ?? json['id']) as int,
+      code: (json['Code'] ?? json['code']) as String?,
+      currencyName: (json['CurrencyName'] ?? json['currencyName']) as String,
+      actualValue: (rawValue as num).toDouble(),
     );
   }
 
-  Map<dynamic, dynamic> toJson() {
+  Map<String, dynamic> toJson() {
     return {
       "CurrencyId": id,
-      // 'Code': code,
       "CurrencyName": currencyName,
       "LiveValue": actualValue,
     };
+  }
+
+  @override
+  String toString() {
+    return 'Currency(id: $id, name: $currencyName, code: $code, value: $actualValue)';
   }
 }

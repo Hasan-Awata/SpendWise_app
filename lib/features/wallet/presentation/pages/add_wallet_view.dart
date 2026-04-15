@@ -1,7 +1,7 @@
 // // تعليق: واجهة إضافة محفظة جديدة مع ربط المتغيرات المحدثة في الـ Controller وحالة التحميل
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallet_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/add_wallet_controller.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.dart';
 
 class AddWalletView extends StatefulWidget {
@@ -13,7 +13,7 @@ class AddWalletView extends StatefulWidget {
 
 class _AddWalletViewState extends State<AddWalletView> {
   // استخدام Get.find للوصول للمتحكم المحقون عبر الـ Binding
-  final controller = Get.find<WalletController>();
+  final controller = Get.find<AddWalletController>();
 
   @override
   Widget build(BuildContext context) {
@@ -83,10 +83,10 @@ class _AddWalletViewState extends State<AddWalletView> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  onPressed: controller.isLoading.value
+                  onPressed: controller.isLoadingSave.value
                       ? null
                       : () => controller.addNewWallet(),
-                  child: controller.isLoading.value
+                  child: controller.isLoadingSave.value
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           'حفظ المحفظة',

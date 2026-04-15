@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/auth/presentation/manager/auth_controller.dart';
+import 'package:spendwise/features/auth/presentation/manager/sign_up_controller.dart';
 import 'package:spendwise/features/helper_function.dart';
-import 'package:spendwise/features/home/presentation/pages/main_screen.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 
 class SignUpPage extends StatelessWidget {
   SignUpPage({super.key});
-  final controller = AuthController.instance;
+  final controller = Get.find<SignUpController>();
 
   @override
   Widget build(BuildContext context) {

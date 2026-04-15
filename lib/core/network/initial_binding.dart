@@ -1,5 +1,6 @@
 // // تعليق: إعداد التبعيات المشتركة التي يحتاجها التطبيق بالكامل مرة واحدة عند التشغيل
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/network/api_endpoints.dart';
 import 'package:spendwise/core/services/shared_service.dart';
@@ -11,9 +12,6 @@ import 'package:spendwise/features/wallet/presentation/bindings/wallet_binding.d
 class InitialBinding extends Bindings {
   @override
   void dependencies() {
-    final prefs = Get.find<SharedPreferencesService>();
-    final token = prefs.token;
-    print(token);
     if (!Get.isRegistered<Dio>()) {
       Get.put<Dio>(
         Dio(
@@ -31,14 +29,20 @@ class InitialBinding extends Bindings {
             InterceptorsWrapper(
               onRequest: (options, handler) async {
                 final prefs = Get.find<SharedPreferencesService>();
-                final token = prefs.token;
-                options.headers['Authorization'] = 'Bearer $token';
+                final token = prefs.token.trim();
+                if (token.isNotEmpty) {
+                  options.headers['Authorization'] = 'Bearer $token';
+                } else {
+                  options.headers.remove('Authorization');
+                }
                 return handler.next(options);
               },
               onError: (DioException e, handler) {
-                // // تعليق: معالجة الأخطاء الشائعة مثل انتهاء صلاحية التوكن (401)
-                if (e.response?.statusCode == 401) {
-                  // منطق تسجيل الخروج أو تجديد التوكن
+                final statusCode = e.response?.statusCode;
+                if (statusCode == 401 || statusCode == 500) {
+                  debugPrint('Dio error status: $statusCode');
+                  debugPrint('Dio request path: ${e.requestOptions.path}');
+                  debugPrint('Dio response body: ${e.response?.data}');
                 }
                 return handler.next(e);
               },

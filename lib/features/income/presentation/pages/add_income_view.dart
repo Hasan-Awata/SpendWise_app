@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/expense/presentation/widgets/tag_widget.dart';
-import 'package:spendwise/features/income/presentation/manager/income_controller.dart';
+import 'package:spendwise/features/income/presentation/manager/add_income_controller.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field_description.dart';
@@ -14,7 +14,7 @@ import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.
 class AddIncomeView extends StatelessWidget {
   AddIncomeView({super.key});
 
-  final controller = Get.find<IncomeController>();
+  final controller = Get.find<AddIncomeController>();
   final RxBool isFixed = false.obs;
 
   @override
@@ -26,7 +26,7 @@ class AddIncomeView extends StatelessWidget {
         color: SpColor.incomeGreen,
         onRefresh: () async {
           controller.resetFields();
-          await controller.walletController.loadWallets();
+          await controller.walletsListController.loadWallets();
         },
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
@@ -164,7 +164,7 @@ class AddIncomeView extends StatelessWidget {
         hint: "Choose wallet",
         textColor: SpColor.incomeGreen,
         prefixIcon: const Icon(Icons.wallet, color: SpColor.incomeGreen),
-        values: controller.walletController.wallets
+        values: controller.walletsListController.wallets
             .map(
               (w) =>
                   "${w.currency.currencyName}      (${w.currency.code} ${w.balance})",
@@ -174,7 +174,7 @@ class AddIncomeView extends StatelessWidget {
         suffixIcon: IconButton(
           onPressed: () async {
             await Get.toNamed('/add-wallet');
-            await controller.walletController.loadWallets();
+            await controller.walletsListController.loadWallets();
           },
           icon: const Icon(Icons.add, color: SpColor.incomeGreen),
         ),

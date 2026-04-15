@@ -11,7 +11,10 @@ import 'package:spendwise/features/auth/domain/usecases/get_user_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/signup_usecase.dart';
-import 'package:spendwise/features/auth/presentation/manager/auth_controller.dart';
+import 'package:spendwise/features/auth/presentation/manager/auth_session_controller.dart';
+import 'package:spendwise/features/auth/presentation/manager/login_controller.dart';
+import 'package:spendwise/features/auth/presentation/manager/logout_controller.dart';
+import 'package:spendwise/features/auth/presentation/manager/sign_up_controller.dart';
 
 class AuthBinding extends Bindings {
   AuthBinding({this.permanentAuthController = false});
@@ -52,30 +55,43 @@ class AuthBinding extends Bindings {
       Get.lazyPut(() => GetUserIdUsecase(Get.find<UserRepository>()));
     }
 
-    if (!Get.isRegistered<AuthController>()) {
+    if (!Get.isRegistered<AuthSessionController>()) {
       if (permanentAuthController) {
-        Get.put<AuthController>(
-          AuthController(
-            signupUsecase: Get.find<SignupUsecase>(),
-            loginUsecase: Get.find<LoginUsecase>(),
-            logoutUsecase: Get.find<LogoutUsecase>(),
-            getUserIdUsecase: Get.find<GetUserIdUsecase>(),
-            getUserUsecase: Get.find<GetUserUsecase>(),
+        Get.put<AuthSessionController>(
+          AuthSessionController(
+            getUserIdUsecase: Get.find(),
+            getUserUsecase: Get.find(),
           ),
           permanent: true,
         );
       } else {
-        Get.lazyPut<AuthController>(
-          () => AuthController(
-            signupUsecase: Get.find<SignupUsecase>(),
-            loginUsecase: Get.find<LoginUsecase>(),
-            logoutUsecase: Get.find<LogoutUsecase>(),
-            getUserIdUsecase: Get.find<GetUserIdUsecase>(),
-            getUserUsecase: Get.find<GetUserUsecase>(),
+        Get.lazyPut<AuthSessionController>(
+          () => AuthSessionController(
+            getUserIdUsecase: Get.find(),
+            getUserUsecase: Get.find(),
           ),
           fenix: true,
         );
       }
+    }
+
+    if (!Get.isRegistered<LoginController>()) {
+      Get.lazyPut(
+        () => LoginController(loginUsecase: Get.find()),
+        fenix: true,
+      );
+    }
+    if (!Get.isRegistered<SignUpController>()) {
+      Get.lazyPut(
+        () => SignUpController(signupUsecase: Get.find()),
+        fenix: true,
+      );
+    }
+    if (!Get.isRegistered<LogoutController>()) {
+      Get.lazyPut(
+        () => LogoutController(logoutUsecase: Get.find()),
+        fenix: true,
+      );
     }
   }
 }

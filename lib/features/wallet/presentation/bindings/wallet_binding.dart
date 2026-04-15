@@ -10,12 +10,14 @@ import 'package:spendwise/features/wallet/domain/usecases/add_wallet_usecase.dar
 import 'package:spendwise/features/wallet/domain/usecases/delete_wallet_usecase.dart';
 import 'package:spendwise/features/wallet/domain/usecases/get_wallets_usecase.dart';
 import 'package:spendwise/features/wallet/domain/usecases/update_wallet_usecase.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallet_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/add_wallet_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/delete_wallet_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/update_wallet_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class WalletBinding implements Bindings {
   @override
   void dependencies() {
-    // 1. Datasources (Remote & Local)
     if (!Get.isRegistered<WalletRemoteDatasource>()) {
       Get.lazyPut<WalletRemoteDatasource>(
         () => WalletRemoteDatasourceImpl(dio: Get.find<Dio>()),
@@ -26,7 +28,6 @@ class WalletBinding implements Bindings {
       Get.lazyPut<WalletLocalDatasource>(() => WalletLocalDatasourceImpl());
     }
 
-    // 2. Repository
     if (!Get.isRegistered<WalletRepository>()) {
       Get.lazyPut<WalletRepository>(
         () => WalletRepositoryImpl(
@@ -36,21 +37,35 @@ class WalletBinding implements Bindings {
       );
     }
 
-    // 3. Use Cases
     Get.lazyPut(() => GetMyWalletsUseCase(Get.find()));
     Get.lazyPut(() => AddWalletUseCase(Get.find()));
     Get.lazyPut(() => UpdateWalletUseCase(Get.find()));
     Get.lazyPut(() => DeleteWalletUseCase(Get.find()));
 
-    // 4. Controller
-    if (!Get.isRegistered<WalletController>()) {
+    if (!Get.isRegistered<WalletsListController>()) {
       Get.lazyPut(
-        () => WalletController(
-          getMyWalletsUseCase: Get.find(),
-          addWalletUseCase: Get.find(),
-          updateWalletUseCase: Get.find(),
-          deleteWalletUseCase: Get.find(),
-        ),
+        () => WalletsListController(getMyWalletsUseCase: Get.find()),
+        fenix: true,
+      );
+    }
+
+    if (!Get.isRegistered<AddWalletController>()) {
+      Get.lazyPut(
+        () => AddWalletController(addWalletUseCase: Get.find()),
+        fenix: true,
+      );
+    }
+
+    if (!Get.isRegistered<DeleteWalletController>()) {
+      Get.lazyPut(
+        () => DeleteWalletController(deleteWalletUseCase: Get.find()),
+        fenix: true,
+      );
+    }
+
+    if (!Get.isRegistered<UpdateWalletController>()) {
+      Get.lazyPut(
+        () => UpdateWalletController(updateWalletUseCase: Get.find()),
         fenix: true,
       );
     }

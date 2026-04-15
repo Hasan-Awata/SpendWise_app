@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/auth/presentation/manager/auth_controller.dart';
+import 'package:spendwise/features/auth/presentation/manager/logout_controller.dart';
 import 'package:spendwise/features/home/presentation/pages/home.dart';
 import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
 import 'package:spendwise/features/home/presentation/widgets/appbar.dart';
@@ -19,7 +19,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   // استخدام instance الموحد للمتحكم
   final MainController controller = MainController.insatnce;
-  final AuthController authController = Get.find<AuthController>();
+  final LogoutController logoutController = Get.find<LogoutController>();
 
   // تعريف قائمة الصفحات - تأكد أنها تطابق عدد العناصر في SPBottomNavBar
   late final List<Widget> pages;
@@ -93,8 +93,7 @@ class _MainScreenState extends State<MainScreen> {
                 // // تعليق: إغلاق الحوار وتصفير الـ index قبل تسجيل الخروج
                 Get.back();
                 controller.currentIndex.value = 0;
-                await authController.logOut();
-                Get.offAllNamed(Routes.LOGIN);
+                await logoutController.logOut();
               },
             );
           },

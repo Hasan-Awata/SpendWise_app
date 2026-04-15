@@ -4,12 +4,10 @@ import 'package:shimmer/shimmer.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/core/utils/current_user.dart';
-import 'package:spendwise/features/auth/presentation/manager/auth_controller.dart';
-import 'package:spendwise/features/income/presentation/manager/income_controller.dart';
+import 'package:spendwise/features/auth/presentation/manager/auth_session_controller.dart';
+import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
 import 'package:spendwise/features/splash/introduction.dart';
 import 'package:spendwise/features/tags/presentation/manager/tag_controller.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallet_controller.dart';
-
 class InitialPage extends StatefulWidget {
   InitialPage({super.key});
 
@@ -34,16 +32,16 @@ class _InitialPageState extends State<InitialPage> {
       final token = CurrentUser.token;
       print("token isssssssss=> $token");
 
-      final authController = Get.find<AuthController>();
+      final authSession = Get.find<AuthSessionController>();
       final tagController = Get.find<TagController>();
 
-      final incomeController = Get.find<IncomeController>();
+      final incomesListController = Get.find<IncomesListController>();
 
       await Future.wait([
-        authController.getUser(),
+        authSession.getUser(),
         tagController.loadTags(),
 
-        incomeController.fetchAllIncomes(isRefresh: true),
+        incomesListController.fetchAllIncomes(isRefresh: true),
       ]);
 
       await Future.delayed(const Duration(milliseconds: 1200));

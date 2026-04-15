@@ -1,13 +1,17 @@
-// // تعليق: واجهة عرض المحافظ مع دعم ميزة السحب للحذف (Swipe to Delete) والتحديث التلقائي
+// // تعليق: قائمة المحافظ — يستخدم WalletsListController + DeleteWalletController
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallet_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/delete_wallet_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
-class WalletsView extends GetView<WalletController> {
+class WalletsView extends StatelessWidget {
   const WalletsView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final listController = Get.find<WalletsListController>();
+    final deleteController = Get.find<DeleteWalletController>();
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B121E),
       appBar: AppBar(
@@ -29,18 +33,18 @@ class WalletsView extends GetView<WalletController> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => controller.loadWallets(),
+            onPressed: () => listController.loadWallets(),
           ),
         ],
       ),
       body: Obx(() {
-        if (controller.isLoading.value && controller.wallets.isEmpty) {
+        if (listController.isLoading.value && listController.wallets.isEmpty) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFF43C5F3)),
           );
         }
 
-        if (controller.wallets.isEmpty) {
+        if (listController.wallets.isEmpty) {
           return const Center(
             child: Text(
               'لا توجد محافظ حالياً',
@@ -51,11 +55,10 @@ class WalletsView extends GetView<WalletController> {
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: controller.wallets.length,
+          itemCount: listController.wallets.length,
           itemBuilder: (context, index) {
-            final wallet = controller.wallets[index];
+            final wallet = listController.wallets[index];
 
-            // // تعليق: استخدام Dismissible للسماح بحذف المحفظة عبر السحب لليسار
             return Dismissible(
               key: Key(wallet.walletId.toString()),
               direction: DismissDirection.endToStart,
@@ -74,9 +77,8 @@ class WalletsView extends GetView<WalletController> {
                 ),
               ),
               onDismissed: (direction) {
-                // استدعاء دالة الحذف من الـ Controller
                 if (wallet.walletId != null) {
-                  controller.deleteWallet(wallet.walletId!);
+                  deleteController.deleteWallet(wallet.walletId!);
                 }
               },
               child: _buildWalletCard(wallet),
@@ -93,8 +95,7 @@ class WalletsView extends GetView<WalletController> {
     );
   }
 
-  // // تعليق: بناء بطاقة المحفظة بشكل منفصل لتحسين نظافة الكود
-  Widget _buildWalletCard(var wallet) {
+  Widget _buildWalletCard(dynamic wallet) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),

@@ -17,7 +17,7 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
     try {
       _box = await Hive.openBox(_boxName);
     } catch (e) {
-      throw Exception("Failed to initialize local storage: $e");
+      rethrow;
     }
   }
 
@@ -32,7 +32,7 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
 
       await _box.put(_walletKey, updatedWallets);
     } catch (e) {
-      throw Exception("Failed to save wallet data locally: $e");
+      rethrow;
     }
   }
 
@@ -45,7 +45,7 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
       }
       return wallets.firstWhere((wallet) => wallet.walletId == id);
     } catch (e) {
-      return null;
+      rethrow;
     }
   }
 
@@ -58,7 +58,7 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
       }
       return data.cast<WalletModel>().toList();
     } catch (e) {
-      return [];
+      rethrow;
     }
   }
 
@@ -67,7 +67,7 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
     try {
       await _box.put(_walletKey, []); // بدل delete
     } catch (e) {
-      throw Exception("Failed to clear wallet data: $e");
+      rethrow;
     }
   }
 }
