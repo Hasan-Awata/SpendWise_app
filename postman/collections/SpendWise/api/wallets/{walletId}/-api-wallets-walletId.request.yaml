@@ -3,6 +3,6 @@ name: /api/wallets/:walletId
 url: "{{baseUrl}}/api/wallets/:walletId"
 method: GET
 pathVariables:
-  walletId: "2824"
+  walletId: "1624"
 examples: ./.resources/-api-wallets-walletId.resources/examples
 order: 1000

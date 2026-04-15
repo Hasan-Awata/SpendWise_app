@@ -3,6 +3,6 @@ name: /api/tags/:tagId
 url: "{{baseUrl}}/api/tags/:tagId"
 method: GET
 pathVariables:
-  tagId: "2824"
+  tagId: "1624"
 examples: ./.resources/-api-tags-tagId.resources/examples
 order: 1000

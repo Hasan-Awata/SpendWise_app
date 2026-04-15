@@ -9,7 +9,7 @@ request:
       value: Bearer <token>
       description: "Added as a part of security scheme: bearer"
   pathVariables:
-    goalId: "2824"
+    goalId: "1624"
 response:
   statusCode: 400
   statusText: Bad Request
@@ -21,10 +21,8 @@ response:
       {
         "type": "string",
         "title": "string",
-        "status": 7942,
+        "status": 8859,
         "detail": "string",
-        "instance": "string",
-        "key_0": "string",
-        "key_1": 5876
+        "instance": "string"
       }
 order: 2000

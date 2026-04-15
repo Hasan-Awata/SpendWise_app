@@ -9,35 +9,36 @@ request:
       value: Bearer <token>
       description: "Added as a part of security scheme: bearer"
   pathVariables:
-    expenseId: "2824"
+    expenseId: "1624"
   body:
     type: json
     content: |-
       {
-        "amount": 1.4719553710303272e+308,
+        "amount": 1.4433553526572847e+308,
         "category": {
           "name": "string",
-          "categoryId": 2815,
-          "priority": 3
+          "categoryId": 2225,
+          "priority": 1
         },
-        "date": "1975-01-02T06:27:24.811Z",
+        "date": "1953-05-21T09:19:29.753Z",
         "title": "string",
-        "userId": 5848,
+        "userId": 1166,
         "wallet": {
           "currency": {
             "currencyName": "string",
-            "currencyId": 4783,
-            "liveValue": 3967.543400531879
+            "currencyId": 1632,
+            "liveValue": 8261.320554839212
           },
-          "userId": 6771,
-          "walletId": 6322,
-          "balance": 8.054657868877769e+307
+          "isSaved": true,
+          "userId": 1980,
+          "walletId": 7985,
+          "balance": 1.7310997289168443e+308
         },
-        "expenseId": 2404,
+        "expenseId": 8762,
         "expenseTag": {
-          "id": 8718,
+          "id": 3527,
           "label": "string",
-          "ownerId": 9323
+          "ownerId": 9385
         },
         "description": "string",
         "products": "string"

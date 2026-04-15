@@ -9,4 +9,4 @@ localResources:
 
 cloudResources:
   collections:
-    ..\postman\collections\SpendWise: 7fde14c9-123b-4d32-95d6-83b0a2fe94a9
+    ..\postman\collections\SpendWise: e33d1b04-e25b-4f3e-8f4a-fe9a44460543

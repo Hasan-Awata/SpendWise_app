@@ -9,7 +9,7 @@ body:
   content: |-
     {
       "password": "string",
-      "userName": "string"
+      "userName": "strin"
     }
 examples: ./.resources/-api-Authentication-login.resources/examples
 order: 1000

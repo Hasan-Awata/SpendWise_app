@@ -19,10 +19,8 @@ response:
       {
         "type": "string",
         "title": "string",
-        "status": 7942,
+        "status": 8859,
         "detail": "string",
-        "instance": "string",
-        "key_0": "string",
-        "key_1": 5876
+        "instance": "string"
       }
 order: 2000

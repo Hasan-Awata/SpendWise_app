@@ -12,25 +12,26 @@ request:
     type: json
     content: |-
       {
-        "amount": 1.7752429872974833e+308,
-        "date": "1950-07-03T06:55:41.268Z",
+        "amount": 1.500446627298631e+308,
+        "date": "1998-10-10T09:50:25.356Z",
         "title": "string",
-        "userId": 2801,
+        "userId": 5021,
         "wallet": {
           "currency": {
             "currencyName": "string",
-            "currencyId": 4993,
-            "liveValue": 4623.067726566985
+            "currencyId": 5001,
+            "liveValue": 6181.373437324553
           },
-          "userId": 1688,
-          "walletId": 2043,
-          "balance": 9.438731846296358e+307
+          "isSaved": false,
+          "userId": 4301,
+          "walletId": 2863,
+          "balance": 6.953543160164699e+307
         },
-        "id": 3728,
+        "id": 6911,
         "incomeTag": {
-          "id": 7631,
+          "id": 5031,
           "label": "string",
-          "ownerId": 7109
+          "ownerId": 8457
         },
         "description": "string"
       }

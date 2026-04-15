@@ -5,6 +5,6 @@ method: DELETE
 headers:
   Accept: text/plain
 pathVariables:
-  debtId: "2824"
+  debtId: "1624"
 examples: ./.resources/-api-Shared_Debt-DeleteDebt-debtId.resources/examples
 order: 1000
