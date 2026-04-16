@@ -88,8 +88,14 @@ builder.Services.AddCors(options =>
         builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
 
+// ── Register Global Exception Handling ─────────────────────────────────────
+builder.Services.AddExceptionHandler<SpendWise.Middlewares.GlobalExceptionHandler>();
+builder.Services.AddProblemDetails(); // Required to standardize the JSON output
 // ─────────────────────────────────────────────────────────────────────────
+
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
