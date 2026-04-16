@@ -37,6 +37,13 @@ class DashboardPage extends StatelessWidget {
             onTap: () => Get.toNamed('/add-tag'),
           ),
           _DashboardTile(
+            icon: Icons.wallet_outlined,
+            title: 'New wallet',
+            subtitle: 'Organize spending with wallet',
+            color: SpColor.accentBlue,
+            onTap: () => Get.toNamed('/add-wallet'),
+          ),
+          _DashboardTile(
             icon: Icons.savings_outlined,
             title: 'New saving goal',
             subtitle: 'Set a target and track progress',
@@ -55,7 +62,7 @@ class DashboardPage extends StatelessWidget {
             title: 'New expense',
             subtitle: 'Record money out',
             color: SpColor.expenseRed,
-            onTap: () => Get.to(() => const AddExpenseView()),
+            onTap: () => Get.toNamed('/add-expense'),
           ),
         ],
       ),

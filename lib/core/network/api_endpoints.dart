@@ -10,9 +10,9 @@ class ApiEndpoints {
   // Wallet Endpoints
   static const String wallet = "wallets";
   // Income Endpoints
-  static const String addIncome = 'Incomes/AddIncome';
-  static const String updateIncome = 'Incomes/updateIncome';
-  static const String deleteIncome = 'Incomes/deleteIncome';
-  static const String getIncomeByUser =
-      'Incomes/GetIncomeByUser'; // تم تعديلها لتصبح Incomes بالجمع لتناسب السياق
+  static const String income = 'Incomes';
+
+  static const String expense = 'Expenses';
+
+  static const String tag = 'tags';
 }

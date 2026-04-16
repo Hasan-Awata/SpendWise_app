@@ -6,6 +6,7 @@ import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/auth/presentation/manager/logout_controller.dart';
 import 'package:spendwise/features/home/presentation/pages/home.dart';
 import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
+import 'package:spendwise/features/home/presentation/pages/profile.dart';
 import 'package:spendwise/features/home/presentation/widgets/appbar.dart';
 import 'package:spendwise/features/home/presentation/widgets/bottom_nav_bar.dart';
 
@@ -31,8 +32,9 @@ class _MainScreenState extends State<MainScreen> {
       const Home(), // Index 0
       const Center(
         child: Text("Search", style: TextStyle(color: Colors.white)),
-      ), // Index 1
-      _buildProfilePage(), // Index 2
+      ),
+      SizedBox(),
+      Profile(), // Index 2
     ];
 
     // // تعليق: حماية إضافية - إذا كان الـ index المحفوظ أكبر من عدد الصفحات، نعيده للصفر
@@ -64,41 +66,6 @@ class _MainScreenState extends State<MainScreen> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: const SPBottomNavBar(),
-    );
-  }
-
-  Widget _buildProfilePage() {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Center(
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 30),
-          leading: const Icon(Icons.logout, color: Colors.redAccent),
-          title: const Text(
-            'تسجيل الخروج',
-            style: TextStyle(color: Colors.white, fontSize: 18),
-          ),
-          onTap: () async {
-            Get.defaultDialog(
-              title: "تسجيل الخروج",
-              middleText: "هل أنت متأكد أنك تريد تسجيل الخروج؟",
-              backgroundColor: const Color(0xFF162030),
-              titleStyle: const TextStyle(color: Colors.white),
-              middleTextStyle: const TextStyle(color: Colors.white70),
-              textConfirm: "نعم",
-              textCancel: "إلغاء",
-              confirmTextColor: Colors.white,
-              buttonColor: Colors.redAccent,
-              onConfirm: () async {
-                // // تعليق: إغلاق الحوار وتصفير الـ index قبل تسجيل الخروج
-                Get.back();
-                controller.currentIndex.value = 0;
-                await logoutController.logOut();
-              },
-            );
-          },
-        ),
-      ),
     );
   }
 }

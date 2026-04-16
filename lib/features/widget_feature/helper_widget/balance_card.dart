@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:spendwise/core/utils/colors.dart';
+import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class BalanceCard extends GetView<IncomesListController> {
   const BalanceCard({super.key});
@@ -14,18 +14,22 @@ class BalanceCard extends GetView<IncomesListController> {
 
   @override
   Widget build(BuildContext context) {
-    final walletsListController = Get.find<WalletsListController>();
+    final expensesController = Get.find<ExpensesListController>();
 
     return Obx(() {
-      final walletsTotal = walletsListController.wallets.fold<double>(
-        0,
-        (sum, w) => sum + w.balance,
-      );
+      // منطق الحساب التراكمي: (كل الدخل - كل المصاريف)
+      final grandTotalBalance =
+          controller.allTimeIncomeTotal.value -
+          expensesController.allTimeExpenseTotal.value;
+
+      // إحصائيات الشهر المختار فقط
+      final incomeMonth = controller.monthlyIncomeTotal.value;
+      final expenseMonth = expensesController.monthlyExpenseTotal.value;
+
       final monthLabel = DateFormat(
         'MMMM yyyy',
         'ar',
       ).format(controller.dashboardMonth.value);
-      final incomeMonth = controller.monthlyIncomeTotal.value;
 
       return Container(
         width: double.infinity,
@@ -54,7 +58,7 @@ class BalanceCard extends GetView<IncomesListController> {
               children: [
                 const Expanded(
                   child: Text(
-                    "إجمالي الرصيد",
+                    "إجمالي الرصيد الحقيقي",
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 14,
@@ -102,8 +106,9 @@ class BalanceCard extends GetView<IncomesListController> {
               ],
             ),
             const SizedBox(height: 8),
+            // الرصيد الإجمالي التراكمي
             Text(
-              _fmtMoney(walletsTotal),
+              _fmtMoney(grandTotalBalance),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 30,
@@ -113,7 +118,7 @@ class BalanceCard extends GetView<IncomesListController> {
             ),
             const SizedBox(height: 8),
             Text(
-              "الدخل المعروض حسب الشهر المحدد",
+              "إحصائيات شهر $monthLabel",
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.45),
                 fontSize: 11,
@@ -125,15 +130,15 @@ class BalanceCard extends GetView<IncomesListController> {
               children: [
                 _buildFlowStat(
                   Icons.arrow_downward,
-                  "الدخل (الشهر)",
+                  "دخل الشهر",
                   _fmtMoney(incomeMonth),
                   SpColor.incomeGreen,
                 ),
                 Container(width: 1, height: 30, color: Colors.white24),
                 _buildFlowStat(
                   Icons.arrow_upward,
-                  "المصاريف",
-                  "SAR 0.00",
+                  "مصاريف الشهر",
+                  _fmtMoney(expenseMonth),
                   SpColor.expenseRed,
                 ),
               ],
@@ -154,7 +159,7 @@ class BalanceCard extends GetView<IncomesListController> {
       children: [
         Container(
           padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: SpColor.primaryDark,
             shape: BoxShape.circle,
           ),

@@ -13,17 +13,21 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
   @override
   Future<PagedResponse<WalletModel>> getMyWallet(PageRequest page) async {
     try {
-      final response = await dio.get(
-        ApiEndpoints.wallet,
-        queryParameters: {
-          'PageNumber': page.pageNumber,
-          'PageSize': page.pageSize,
-        },
-      );
-      return PagedResponse<WalletModel>.fromJson(
-        response.data,
-        (json) => WalletModel.fromJson(json),
-      );
+      final response = await dio.get(ApiEndpoints.wallet);
+      if (response.data is List) {
+        List<dynamic> data = response.data;
+        final wallets = data.map((json) => WalletModel.fromJson(json)).toList();
+
+        return PagedResponse<WalletModel>(
+          data: wallets,
+          totalRecords: wallets.length,
+          pageNumber: page.pageNumber,
+          pageSize: page.pageSize,
+          totalPages: 1,
+        );
+      } else {
+        throw Exception("تنسيق البيانات غير مدعوم من السيرفر");
+      }
     } on DioException {
       rethrow;
     }
@@ -37,7 +41,7 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
         data: wallet.toJson(),
       );
 
-      print(response.statusCode);
+      // print("wallet status is => ${response.statusCode}");
       return WalletModel.fromJson(response.data);
     } on DioException {
       rethrow;
@@ -45,10 +49,10 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
   }
 
   @override
-  Future<WalletModel> updateWallet(int walletId, WalletModel wallet) async {
+  Future<WalletModel> updateWallet(WalletModel wallet) async {
     try {
       final response = await dio.patch(
-        "${ApiEndpoints.wallet}/$walletId",
+        "${ApiEndpoints.wallet}/${wallet.walletId}",
         data: wallet.toJson(),
       );
       return WalletModel.fromJson(response.data);
@@ -58,9 +62,11 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
   }
 
   @override
-  Future<bool> deleteWallet(int walletId) async {
+  Future<bool> deleteWallet(WalletModel wallet) async {
     try {
-      final response = await dio.delete("${ApiEndpoints.wallet}/$walletId");
+      final response = await dio.delete(
+        "${ApiEndpoints.wallet}/${wallet.walletId}",
+      );
 
       if (response.data is bool) {
         return response.data;

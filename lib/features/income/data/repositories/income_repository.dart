@@ -10,8 +10,9 @@ abstract class IncomeRepository {
     int? userId,
     PageRequest page,
   );
+
   Future<Either<Failure, List<IncomeModel>>> getAllIncomesLocal();
-  Future<Either<Failure, Unit>> deleteIncome(int incomeId);
-  Future<Either<Failure, Unit>> updateIncome(int incomeId, IncomeModel income);
+  Future<Either<Failure, Unit>> deleteIncome(IncomeModel income);
+  Future<Either<Failure, Unit>> updateIncome(IncomeModel income);
   Future<Either<Failure, Unit>> syncPendingIncomes(); // مضافة للمزامنة اليدوية
 }

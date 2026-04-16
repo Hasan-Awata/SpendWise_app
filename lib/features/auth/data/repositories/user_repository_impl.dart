@@ -2,6 +2,11 @@
 
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spendwise/core/error/failure.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource.dart';
@@ -62,10 +67,9 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<Either<Failure, Unit>> logOut() async {
     try {
-      // تسجيل الخروج من السيرفر
-      await appUserRemoteDatasource.logOut();
       // مسح البيانات المحلية
       await appUserLocalDatasource.logOut();
+
       return const Right(unit); // unit تعادل void في البرمجة الوظيفية
     } catch (e) {
       return Left(CacheFailure("حدث خطأ أثناء تسجيل الخروج"));

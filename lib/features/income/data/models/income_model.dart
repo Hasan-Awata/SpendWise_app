@@ -1,11 +1,16 @@
 import 'package:spendwise/features/income/domain/entities/income_entity.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
+import 'package:uuid/uuid.dart';
 
+// تم فصل منطق IncomeModel للتعامل بدقة مع قواعد البيانات المحلية وواجهة البرمجيات (API)
 class IncomeModel extends IncomeEntity {
+  String localId;
   bool isSynced;
+
   IncomeModel({
-    super.id,
+    String? localId,
+    super.remoteId,
     super.userId,
     required super.title,
     required super.amount,
@@ -14,18 +19,88 @@ class IncomeModel extends IncomeEntity {
     super.description,
     super.wallet,
     this.isSynced = false,
-  });
+  }) : localId = localId ?? const Uuid().v4();
+
+  // دالة مخصصة لاستقبال البيانات من السيرفر (Backend)
+  factory IncomeModel.fromJson(Map<dynamic, dynamic> json) {
+    final idVal = json['Id'] ?? json['id'];
+    return IncomeModel(
+      localId: const Uuid()
+          .v4(), // بيانات السيرفر لا تحتوي localId فننشئ واحداً جديداً
+      remoteId: idVal != null ? (idVal as num).toInt() : null,
+      title: (json['Title'] ?? json['title'] ?? '') as String,
+      amount: (json['Amount'] ?? json['amount'] ?? 0.0).toDouble(),
+      date: _dateFromJson(json),
+      tag: _tagFromJson(json['IncomeTag'] ?? json['tag']),
+      description: (json['Description'] ?? json['description'] ?? '') as String,
+      wallet: _walletFromJson(json['Wallet'] ?? json['wallet']),
+      isSynced: true, // البيانات القادمة من السيرفر متزامنة افتراضياً
+    );
+  }
+
+  // دالة مخصصة لاسترجاع البيانات من التخزين المحلي (SQLite/Hive)
+  factory IncomeModel.fromLocal(Map<dynamic, dynamic> map) {
+    return IncomeModel(
+      localId: map['localId'],
+      remoteId: map['remoteId'],
+      userId: map['userId'],
+      title: map['title'] ?? "",
+      amount: map['amount'] ?? 0.0,
+      date: DateTime.now(),
+      // date: map['date'] != null
+      //     ? DateTime.fromMillisecondsSinceEpoch(
+      //         int.parse(map['date'].toString()),
+      //       )
+      //     : DateTime.now(),
+      description: map['description'],
+      isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
+      // نفترض هنا أن البيانات المتداخلة تُخزن كـ Map أو يتم معالجتها عبر IDs
+      tag: map['tag'] != null
+          ? TagModel.fromLocal(Map<String, dynamic>.from(map['tag']))
+          : null,
+      wallet: map['wallet'] != null
+          ? WalletModel.fromLocal(Map<String, dynamic>.from(map['wallet']))
+          : null,
+    );
+  }
+
+  // لتحويل الكائن إلى صيغة يقبلها السيرفر (تجاهل الـ localId والبيانات غير الضرورية)
+  Map<dynamic, dynamic> toJson() {
+    return {
+      'UserId': userId,
+      'Id': remoteId,
+      'Title': title,
+      'Amount': amount,
+      'Date': date.toIso8601String(),
+      'Description': description ?? '',
+      'Wallet': wallet, // غالباً السيرفر يحتاج الـ ID فقط للكائنات المرتبطة
+      'Tag': tag,
+    };
+  }
+
+  // لتحويل الكائن إلى صيغة التخزين المحلي (حفظ الحالة الكاملة)
+  Map<dynamic, dynamic> toLocal() {
+    return {
+      'localId': localId,
+      'remoteId': remoteId,
+      'userId': userId,
+      'title': title,
+      'amount': amount,
+      'date': date.toIso8601String(),
+      'description': description,
+      'isSynced': isSynced ? 1 : 0,
+      'tag': tag is TagModel ? (tag as TagModel).toLocal() : null,
+      'wallet': wallet is WalletModel
+          ? (wallet as WalletModel).toLocal()
+          : null,
+    };
+  }
 
   static TagModel? _tagFromJson(dynamic raw) {
     if (raw == null) return null;
     if (raw is TagModel) return raw;
     if (raw is Map) {
-      final m = Map<dynamic, dynamic>.from(raw);
-      return TagModel(
-        id: m['TagID'] ?? m['id'],
-        userId: (m['userId'] as num?)?.toInt() ?? 0,
-        name: (m['name'] ?? '') as String,
-      );
+      return TagModel.fromJson(Map<String, dynamic>.from(raw));
     }
     return null;
   }
@@ -42,36 +117,6 @@ class IncomeModel extends IncomeEntity {
     final v = json['date'] ?? json['Date'];
     if (v == null) return DateTime.now();
     if (v is DateTime) return v;
-    return DateTime.parse(v.toString());
-  }
-
-  // // Logic: Creating the model from JSON with all descriptors included
-  factory IncomeModel.fromJson(Map<dynamic, dynamic> json) {
-    final idVal = json['Id'] ?? json['id'];
-    return IncomeModel(
-      id: idVal != null ? (idVal as num).toInt() : null,
-      title: (json['Title'] ?? json['title'] ?? '') as String,
-      amount: (json['amount'] ?? json['Amount'] ?? 0.0).toDouble(),
-      date: _dateFromJson(json),
-      tag: _tagFromJson(json['IncomeTag'] ?? json['tag']),
-      description: (json['description'] ?? '') as String,
-      wallet: _walletFromJson(json['Wallet'] ?? json['wallet']),
-      isSynced: json['isSynced'] == true,
-    );
-  }
-
-  // // Logic: Converting the model back to JSON including tag and description
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null) 'id': id,
-      'UserId': userId,
-      'Title': title,
-      'Wallet': wallet != null ? wallet!.toJson() : null,
-      'Amount': amount,
-      'Date': date.toIso8601String(),
-      'IncomeTag': tag?.toJson(),
-      'description': description ?? '',
-      'isSynced': isSynced,
-    };
+    return DateTime.tryParse(v.toString()) ?? DateTime.now();
   }
 }

@@ -1,7 +1,7 @@
 // // تعليق: إضافة محفظة واختيار العملة — منفصل عن قائمة المحافظ
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
@@ -24,9 +24,12 @@ class AddWalletController extends GetxController {
       .map((c) => c.currencyName)
       .toList();
 
+  int? userId = AppUserLocalDatasourceImpl().currentUserId;
+
   @override
   void onInit() {
     super.onInit();
+    print("userID is=> $userId");
     filteredCurrencies.assignAll(allCurrencyNames);
   }
 
@@ -57,8 +60,9 @@ class AddWalletController extends GetxController {
       final currency = await CurrencyLocal().getCurrency(
         currencySearchController.text,
       );
-      final userId = await GetUserIdUsecase.userId;
-      if (userId <= 0) {
+
+      print(currency.toString());
+      if (userId == 0) {
         HelperFunction.showSnackBar(
           "تنبيه",
           "لا يوجد مستخدم مسجل. يرجى تسجيل الدخول مجدداً",

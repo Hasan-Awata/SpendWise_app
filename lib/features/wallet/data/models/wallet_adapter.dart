@@ -7,11 +7,11 @@ class WalletAdapter extends TypeAdapter<WalletModel> {
 
   @override
   WalletModel read(BinaryReader reader) {
-    return WalletModel.fromJson(reader.read());
+    return WalletModel.fromLocal(reader.read());
   }
 
   @override
   void write(BinaryWriter writer, WalletModel obj) {
-    writer.write(obj.toJson());
+    writer.write(obj.toLocal());
   }
 }

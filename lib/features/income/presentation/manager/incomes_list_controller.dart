@@ -1,4 +1,4 @@
-// // تعليق: جلب الدخل مع التصفح + إحصائيات الشهر للوحة الرئيسية
+// // تعليق: المتحكم الخاص بقائمة الدخل مع دعم التشغيل بدون إنترنت (Offline) وإحصائيات اللوحة الرئيسية المحدثة
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
@@ -6,16 +6,19 @@ import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
 import 'package:spendwise/features/income/domain/usecases/get_all_local_incomes_usecase.dart';
 import 'package:spendwise/features/income/domain/usecases/get_incomes_usecase.dart';
+import 'package:spendwise/features/income/domain/usecases/synced_income_usecase.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 
 class IncomesListController extends GetxController {
   IncomesListController({
     required this.getIncomesUseCase,
     required this.getAllLocalIncomesUsecase,
+    required this.syncIncomesUsecase,
   });
 
   final GetIncomesUsecase getIncomesUseCase;
   final GetAllLocalIncomesUsecase getAllLocalIncomesUsecase;
+  final SyncPendingIncomesUsecase syncIncomesUsecase;
 
   final RxList<IncomeModel> incomesList = <IncomeModel>[].obs;
   final RxBool isLoading = false.obs;
@@ -25,7 +28,11 @@ class IncomesListController extends GetxController {
   final Rx<DateTime> dashboardMonth = Rx<DateTime>(
     DateTime(DateTime.now().year, DateTime.now().month, 1),
   );
+
+  // المتغيرات المالية المحدثة
   final RxDouble monthlyIncomeTotal = 0.0.obs;
+  final RxDouble allTimeIncomeTotal =
+      0.0.obs; // الإجمالي التراكمي لجميع الأوقات
 
   final ScrollController scrollController = ScrollController();
   int? userId = AppUserLocalDatasourceImpl().currentUserId;
@@ -53,6 +60,15 @@ class IncomesListController extends GetxController {
     if (!hasMoreData.value || (isLoading.value && !isRefresh)) return;
 
     isLoading.value = true;
+
+    // مزامنة البيانات المعلقة في الخلفية
+    syncIncomesUsecase.call().then((result) {
+      result.fold(
+        (l) => debugPrint("Background Sync Failed: ${l.message}"),
+        (r) => debugPrint("Background Sync Completed Successfully"),
+      );
+    });
+
     final pageRequest = PageRequest(
       pageNumber: currentPage.value,
       pageSize: 10,
@@ -64,7 +80,6 @@ class IncomesListController extends GetxController {
       pagedResponse,
     ) {
       if (isRefresh) incomesList.clear();
-
       incomesList.addAll(pagedResponse.data);
 
       if (currentPage.value >= pagedResponse.totalPages) {
@@ -75,18 +90,36 @@ class IncomesListController extends GetxController {
     });
 
     isLoading.value = false;
-    refreshMonthlyIncomeTotal();
+    await calculateTotals(); // تحديث الحسابات الشاملة بعد جلب البيانات
   }
 
-  Future<void> refreshMonthlyIncomeTotal() async {
+  // حساب الإجماليات (الشهري والكلي) من البيانات المحلية
+  Future<void> calculateTotals() async {
     final result = await getAllLocalIncomesUsecase.call();
-    result.fold((_) => monthlyIncomeTotal.value = 0.0, (all) {
-      final year = dashboardMonth.value.year;
-      final month = dashboardMonth.value.month;
-      monthlyIncomeTotal.value = all
-          .where((e) => e.date.year == year && e.date.month == month)
-          .fold<double>(0, (sum, e) => sum + e.amount);
-    });
+
+    result.fold(
+      (failure) {
+        monthlyIncomeTotal.value = 0.0;
+        allTimeIncomeTotal.value = 0.0;
+      },
+      (allLocalIncomes) {
+        final targetYear = dashboardMonth.value.year;
+        final targetMonth = dashboardMonth.value.month;
+
+        // 1. حساب الإجمالي التراكمي (لكل الأوقات)
+        allTimeIncomeTotal.value = allLocalIncomes.fold<double>(
+          0.0,
+          (sum, item) => sum + item.amount,
+        );
+
+        // 2. حساب إجمالي الشهر المحدد فقط
+        monthlyIncomeTotal.value = allLocalIncomes
+            .where(
+              (e) => e.date.year == targetYear && e.date.month == targetMonth,
+            )
+            .fold<double>(0.0, (sum, item) => sum + item.amount);
+      },
+    );
   }
 
   Future<void> pickDashboardMonth(BuildContext context) async {
@@ -95,10 +128,12 @@ class IncomesListController extends GetxController {
       initialDate: dashboardMonth.value,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      helpText: "اختر شهر الإحصائيات",
     );
+
     if (picked != null) {
       dashboardMonth.value = DateTime(picked.year, picked.month, 1);
-      await refreshMonthlyIncomeTotal();
+      await calculateTotals(); // إعادة الحساب بناءً على الشهر الجديد
     }
   }
 

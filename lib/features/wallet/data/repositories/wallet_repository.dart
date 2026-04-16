@@ -12,9 +12,9 @@ abstract class WalletRepository {
     PageRequest page,
   );
 
-  Future<Either<Failure, Unit>> updateWallet(int walletId, WalletModel wallet);
+  Future<Either<Failure, Unit>> updateWallet(WalletModel wallet);
 
-  Future<Either<Failure, Unit>> deleteWallet(int walletId);
+  Future<Either<Failure, Unit>> deleteWallet(WalletModel wallet);
 
   Future<Either<Failure, List<WalletModel>>> getAllWalletsLocal();
 

@@ -1,95 +1,133 @@
+// // تعليق: إصلاح الربط بين واجهة المستخدم والمتحكم لضمان عمل عمليات الحذف والتعديل بنجاح
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/tags/presentation/manager/tag_controller.dart'
-    show TagController;
-import 'package:spendwise/features/tags/presentation/pages/add_tag_page.dart'
-    show AddtagPage;
-import 'package:spendwise/features/tags/presentation/widgets/show_tag_widget.dart';
+import 'package:spendwise/features/tags/data/models/tag_model.dart';
+import 'package:spendwise/features/tags/presentation/manager/add_tag_controller.dart';
+import 'package:spendwise/features/tags/presentation/manager/tag_view_controller.dart';
 
-class TagsView extends StatelessWidget {
-  TagsView({super.key});
-
-  // // Logic: Using Get.find if the controller is already initialized, or Get.put if not.
-  final TagController _tagController = Get.find<TagController>();
+class TagsView extends GetView<TagViewController> {
+  const TagsView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // التأكد من وجود ActionController للقيام بالعمليات
+    final actionController = Get.find<TagActionController>();
+
     return Scaffold(
       backgroundColor: SpColor.primaryDark2,
       appBar: AppBar(
-        backgroundColor: SpColor.primaryDark2,
-        elevation: 0,
-        centerTitle: true,
         title: const Text(
-          "My Tags",
+          "الأوسمة الخاصة بي",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: SpColor.accentBlue,
-            size: 20,
-          ),
-          onPressed: () => Get.back(),
-        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      // // Logic: Using Obx to make the UI reactive so it updates when tags change
-      body: Obx(() {
-        // // UI: Show a placeholder if the list is empty
-        if (_tagController.myTags.isEmpty) {
-          return _buildEmptyState();
-        }
-
-        return ListView.separated(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(20),
-          itemCount: _tagController.myTags.length,
-          // // Layout: Better spacing between list items
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final tag = _tagController.myTags[index];
-
-            // // Logic: Dynamic data mapping from the model to the widget
-            return ShowTagWidget(
-              color: SpColor
-                  .accentBlue, // You can make this dynamic if TagModel has a color field
-              icon: Icons
-                  .tag_rounded, // Dynamic icon based on category if available
-              tagName: tag.name, // Displaying the actual tag name
-            );
-          },
-        );
-      }),
-      // // Design: Floating Action Button for quick access to add a new tag
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: SpColor.accentBlue,
-        child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () {
-          Get.to(() => const AddtagPage());
-        },
+      body: RefreshIndicator(
+        color: SpColor.accentBlue,
+        onRefresh: () async => controller.loadTags(isRefresh: true),
+        child: Obx(() {
+          if (controller.isLoading.value && controller.myTags.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            itemCount: controller.myTags.length,
+            itemBuilder: (context, index) {
+              final tag = controller.myTags[index];
+              return _buildTagCard(tag, actionController);
+            },
+          );
+        }),
       ),
     );
   }
 
-  // // UI Component: Clean helper widget for empty states
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildTagCard(TagModel tag, TagActionController actionController) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
         children: [
-          Icon(Icons.label_off_outlined, size: 80, color: Colors.white10),
-          const SizedBox(height: 16),
-          Text(
-            "No tags found",
-            style: TextStyle(color: Colors.white54, fontSize: 18),
+          const Icon(Icons.label_outline_rounded, color: SpColor.accentBlue),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(tag.name, style: const TextStyle(color: Colors.white)),
           ),
-          const SizedBox(height: 8),
-          Text(
-            "Create your first tag to organize expenses",
-            style: TextStyle(color: Colors.white38, fontSize: 14),
+          // // تعليق: ربط الأزرار بالدوال المصلحة
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit_note, color: Colors.blueGrey),
+                onPressed: () => _showUpdateTagDialog(tag, actionController),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_sweep_outlined,
+                  color: Colors.redAccent,
+                ),
+                onPressed: () => _showDeleteTagDialog(tag, actionController),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  // --- الحوارات المصلحة ---
+
+  void _showDeleteTagDialog(
+    TagModel tag,
+    TagActionController actionController,
+  ) {
+    Get.defaultDialog(
+      title: "حذف الوسم",
+      middleText: "هل أنت متأكد من حذف '${tag.name}'؟",
+      backgroundColor: SpColor.primaryDark2,
+      titleStyle: const TextStyle(color: Colors.redAccent),
+      middleTextStyle: const TextStyle(color: Colors.white70),
+      textConfirm: "حذف",
+      textCancel: "إلغاء",
+      onConfirm: () {
+        // // تعليق: استدعاء دالة الحذف من المتحكم المسؤول
+        actionController.deleteTag(tag);
+        Get.back();
+      },
+    );
+  }
+
+  void _showUpdateTagDialog(
+    TagModel tag,
+    TagActionController actionController,
+  ) {
+    final nameController = TextEditingController(text: tag.name);
+
+    Get.defaultDialog(
+      title: "تعديل الوسم",
+      backgroundColor: SpColor.primaryDark2,
+      titleStyle: const TextStyle(color: SpColor.accentBlue),
+      content: TextField(
+        controller: nameController,
+        style: const TextStyle(color: Colors.white),
+        decoration: const InputDecoration(labelText: "اسم الوسم الجديد"),
+      ),
+      confirm: ElevatedButton(
+        style: ElevatedButton.styleFrom(backgroundColor: SpColor.accentBlue),
+        onPressed: () {
+          // // تعليق: استدعاء التحديث وتمرير الاسم الجديد
+          actionController.updateTag(tag, nameController.text.trim());
+          Get.back();
+        },
+        child: const Text("تحديث"),
       ),
     );
   }

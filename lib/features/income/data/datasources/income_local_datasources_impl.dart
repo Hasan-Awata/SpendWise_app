@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasource.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
@@ -42,23 +43,29 @@ class IncomeLocalDataSourceImpl implements IncomeLocalDataSource {
   }
 
   @override
-  Future<void> deleteIncome(int incomeId) async {
+  Future<void> deleteIncome(IncomeModel income) async {
     List<IncomeModel> incomes = await getIncomes();
 
-    incomes.removeWhere((element) => element.id == incomeId);
-
-    await saveIncomes(incomes);
+    IncomeModel? newincome = incomes.firstWhereOrNull(
+      (element) => element.localId == income.localId,
+    );
+    if (newincome != null) {
+      newincome.localId = "REMOVE";
+    }
   }
 
   @override
   Future<void> updateIncome(IncomeModel income) async {
     List<IncomeModel> incomes = await getIncomes();
 
-    int index = incomes.indexWhere((element) => element.id == income.id);
-
-    if (index != -1) {
-      incomes[index] = income;
-      await saveIncomes(incomes);
+    try {
+      int index = incomes.indexWhere((w) => w.localId == income.localId);
+      if (index != -1) {
+        incomes[index] = income;
+      }
+      await _box.put(_incomeKey, incomes);
+    } on Exception catch (_) {
+      rethrow;
     }
   }
 

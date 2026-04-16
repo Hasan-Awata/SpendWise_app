@@ -19,10 +19,10 @@ class Currency extends HiveObject {
   factory Currency.fromJson(Map<dynamic, dynamic> json) {
     final rawValue = json['LiveValue'] ?? json['actualValue'] ?? 0.0;
     return Currency(
-      id: (json['CurrencyId'] ?? json['id']) as int,
-      code: (json['Code'] ?? json['code']) as String?,
-      currencyName: (json['CurrencyName'] ?? json['currencyName']) as String,
-      actualValue: (rawValue as num).toDouble(),
+      id: json['CurrencyId'] ?? 140,
+      code: json['Code'] ?? json['code'] ?? "SAR",
+      currencyName: json['CurrencyName'] ?? json['currencyName'] ?? "Syrian ",
+      actualValue: rawValue,
     );
   }
 

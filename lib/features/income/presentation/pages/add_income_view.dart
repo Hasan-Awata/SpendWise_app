@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/expense/presentation/widgets/tag_widget.dart';
 import 'package:spendwise/features/income/presentation/manager/add_income_controller.dart';
@@ -11,10 +12,24 @@ import 'package:spendwise/features/widget_feature/helper_widget/custom_text_fiel
 import 'package:spendwise/features/widget_feature/helper_widget/date_picker_widget.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.dart';
 
-class AddIncomeView extends StatelessWidget {
+class AddIncomeView extends StatefulWidget {
   AddIncomeView({super.key});
 
+  @override
+  State<AddIncomeView> createState() => _AddIncomeViewState();
+}
+
+class _AddIncomeViewState extends State<AddIncomeView> {
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    controller.walletsListController.loadWallets();
+    controller.tagController.loadTags();
+  }
+
   final controller = Get.find<AddIncomeController>();
+
   final RxBool isFixed = false.obs;
 
   @override
@@ -84,7 +99,6 @@ class AddIncomeView extends StatelessWidget {
   }
 
   // // --- Widgets ---
-
   PreferredSizeWidget _buildAppBar() => AppBar(
     title: const Text(
       "Add Income",
@@ -95,7 +109,7 @@ class AddIncomeView extends StatelessWidget {
     centerTitle: true,
     actions: [
       IconButton(
-        onPressed: () => Get.toNamed('/income-list'),
+        onPressed: () => Get.toNamed(Routes.LIST_INCOME),
         icon: const Icon(Icons.all_inbox, color: SpColor.incomeGreen),
       ),
     ],
@@ -158,26 +172,30 @@ class AddIncomeView extends StatelessWidget {
   );
 
   Widget _buildWalletDropdown() {
-    return Obx(
-      () => SPDropdownButton(
-        title: "Select Wallet",
-        hint: "Choose wallet",
-        textColor: SpColor.incomeGreen,
-        prefixIcon: const Icon(Icons.wallet, color: SpColor.incomeGreen),
-        values: controller.walletsListController.wallets
-            .map(
-              (w) =>
-                  "${w.currency.currencyName}      (${w.currency.code} ${w.balance})",
-            )
-            .toList(),
-        textEditingController: controller.walletTextController,
-        suffixIcon: IconButton(
-          onPressed: () async {
-            await Get.toNamed('/add-wallet');
-            await controller.walletsListController.loadWallets();
-          },
-          icon: const Icon(Icons.add, color: SpColor.incomeGreen),
-        ),
+    return SPDropdownButton(
+      title: "Select Wallet",
+      hint: "Choose wallet",
+      textColor: SpColor.incomeGreen,
+      prefixIcon: const Icon(Icons.wallet, color: SpColor.incomeGreen),
+      values: controller.walletsListController.wallets
+          .map(
+            (w) =>
+                "${w.currency.currencyName}      (${w.currency.code} ${w.balance})",
+          )
+          .toList(),
+      textEditingController: controller.walletTextController,
+      onSelected: (index, value) {
+        controller.selectedWallet.value =
+            controller.walletsListController.wallets[index];
+        controller.walletsListController.wallets[index].balance +=
+            double.tryParse(controller.amountController.text.trim()) ?? 0.0;
+      },
+      suffixIcon: IconButton(
+        onPressed: () async {
+          await Get.toNamed('/add-wallet');
+          await controller.walletsListController.loadWallets();
+        },
+        icon: const Icon(Icons.add, color: SpColor.incomeGreen),
       ),
     );
   }

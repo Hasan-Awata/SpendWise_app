@@ -7,11 +7,11 @@ class TagAdapter extends TypeAdapter<TagModel> {
 
   @override
   TagModel read(BinaryReader reader) {
-    return TagModel.froJson(reader.read());
+    return TagModel.fromLocal(reader.read());
   }
 
   @override
   void write(BinaryWriter writer, TagModel obj) {
-    writer.write(obj.toJson());
+    writer.write(obj.toLocal());
   }
 }

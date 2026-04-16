@@ -28,13 +28,20 @@ class InitialBinding extends Bindings {
           ..interceptors.add(
             InterceptorsWrapper(
               onRequest: (options, handler) async {
-                final prefs = Get.find<SharedPreferencesService>();
-                final token = prefs.token.trim();
-                if (token.isNotEmpty) {
-                  options.headers['Authorization'] = 'Bearer $token';
-                } else {
-                  options.headers.remove('Authorization');
+                try {
+                  final prefs = Get.find<SharedPreferencesService>();
+
+                  final token = prefs.token;
+
+                  if (token.isNotEmpty) {
+                    options.headers['Authorization'] = 'Bearer $token';
+                  } else {
+                    options.headers.remove('Authorization');
+                  }
+                } catch (e) {
+                  rethrow;
                 }
+
                 return handler.next(options);
               },
               onError: (DioException e, handler) {

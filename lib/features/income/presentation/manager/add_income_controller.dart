@@ -1,12 +1,14 @@
 // // تعليق: إضافة دخل — منفصل عن القائمة والتعديل والحذف
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
 import 'package:spendwise/features/income/domain/usecases/add_income_usecase.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
-import 'package:spendwise/features/tags/presentation/manager/tag_controller.dart';
+import 'package:spendwise/features/tags/presentation/manager/add_tag_controller.dart';
+import 'package:spendwise/features/tags/presentation/manager/tag_view_controller.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
@@ -17,11 +19,13 @@ class AddIncomeController extends GetxController {
     required this.walletsListController,
     required this.tagController,
     required this.incomesListController,
+    required this.tagActionController,
   });
 
   final AddIncomeUsecase addIncomeUseCase;
   final WalletsListController walletsListController;
-  final TagController tagController;
+  final TagViewController tagController;
+  final TagActionController tagActionController;
   final IncomesListController incomesListController;
 
   final amountController = TextEditingController();
@@ -39,6 +43,13 @@ class AddIncomeController extends GetxController {
 
   int? userId = AppUserLocalDatasourceImpl().currentUserId;
 
+  @override
+  void onInit() {
+    super.onInit();
+    walletsListController.loadWallets();
+    tagController.loadTags();
+  }
+
   Future<void> saveIncome() async {
     if (!_isInputValid()) return;
 
@@ -50,17 +61,18 @@ class AddIncomeController extends GetxController {
     );
 
     if (foundTag == null && tagName.isNotEmpty) {
-      tagController.tag.value = TagModel(userId: userId ?? 0, name: tagName);
-      await tagController.addtag();
+      tagActionController.nameController.text = tagName;
+      await tagActionController.addTag();
       foundTag = tagController.myTags.firstWhereOrNull(
         (t) => t.name == tagName,
       );
+      print(foundTag.toString());
     }
 
     final incomeData = IncomeModel(
       userId: userId,
       wallet: selectedWallet.value!,
-      tag: foundTag ?? selectedTag.value,
+      tag: foundTag,
       description: descriptionController.text.trim(),
       date: selectedDate.value,
       title: sourceController.text.isEmpty
@@ -73,7 +85,7 @@ class AddIncomeController extends GetxController {
 
     result.fold((failure) => _handleError("فشل الحفظ", failure.message), (_) {
       incomesListController.incomesList.insert(0, incomeData);
-      incomesListController.refreshMonthlyIncomeTotal();
+      incomesListController.calculateTotals();
       HelperFunction.showSnackBar("تم بنجاح", "تمت إضافة الدخل الجديد");
       resetFields();
     });
@@ -87,13 +99,13 @@ class AddIncomeController extends GetxController {
       return false;
     }
 
-    final walletName = walletTextController.text.trim();
-    selectedWallet.value = walletsListController.wallets.firstWhereOrNull(
-      (w) =>
-          "${w.currency.currencyName}      (${w.currency.code} ${w.balance})"
-              .trim() ==
-          walletName,
-    );
+    // final walletName = walletTextController.text.trim();
+    // selectedWallet.value = walletsListController.wallets.firstWhereOrNull(
+    //   (w) =>
+    //       "${w.currency.currencyName}      (${w.currency.code} ${w.balance})"
+    //           .trim() ==
+    //       walletName,
+    // );
     if (userId == null) {
       _handleError("Faild", "No User id");
       return false;

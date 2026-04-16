@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
+
+import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/balance_card.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/quick_actions_row.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/recent_transactions_list.dart';
@@ -11,48 +16,57 @@ class Home extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(
-        0x00000000,
-      ), // التأكد من أن خلفية الصفحة تتبع السمة الجديدة
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 10),
+      backgroundColor: Colors.transparent,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          // استدعاء الدوال المسؤولة عن تحديث البيانات من السيرفر والمزامنة
+          await Get.find<WalletsListController>().loadWallets();
+          await Get.find<IncomesListController>().fetchAllIncomes();
+          await Get.find<ExpensesListController>().fetchExpenses();
+        },
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
 
-            // 2. قسم الكارت الرئيسي (إجمالي الرصيد والدخل والمصاريف)
-            const BalanceCard(),
+              // كارت الرصيد المحدث (صافي الربح: دخل - مصاريف)
+              const BalanceCard(),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-            // 3. شريط العمليات السريعة (الميزات الأساسية: OCR & QR)
-            const QuickActionsRow(),
+              // شريط العمليات السريعة
+              const QuickActionsRow(),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-            // 4. قسم الأهداف الادخارية (مؤشر التقدم)
-            const SavingsGoalsSection(),
+              // قسم أهداف الادخار
+              const SavingsGoalsSection(),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-            // 5. قائمة العمليات الأخيرة
-            TitleWithShow(
-              title: "آخر العمليات",
-              onMorePressed: () {
-                // TODO: الانتقال لصفحة التقارير الكاملة
-              },
-            ),
-            const SizedBox(height: 15),
-            const RecentTransactionsList(),
+              // عنوان العمليات الأخيرة مع زر عرض المزيد
+              TitleWithShow(
+                title: "آخر العمليات",
+                onMorePressed: () {
+                  // يمكن توجيهه لصفحة السجل الكامل لاحقاً
+                },
+              ),
 
-            const SizedBox(height: 100), // مساحة إضافية لتجنب تداخل الـ FAB
-          ],
+              const SizedBox(height: 15),
+
+              // القائمة المدمجة (دخل + مصاريف) مرتبة زمنياً
+              const RecentTransactionsList(),
+
+              const SizedBox(height: 100),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-
-// Optimization: Using SpColor.primaryDark for the Scaffold background ensures no white flickering during transitions.

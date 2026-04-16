@@ -5,16 +5,20 @@ import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 import 'package:spendwise/features/wallet/domain/usecases/update_wallet_usecase.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
+// // تعليق: متحكم التعديل - تم توحيد البارامترات لتسهيل الاستدعاء من واجهة المستخدم مباشرة
 class UpdateWalletController extends GetxController {
   UpdateWalletController({required this.updateWalletUseCase});
 
   final UpdateWalletUseCase updateWalletUseCase;
-
   final isUpdating = false.obs;
 
-  Future<void> updateWallet(int walletId, WalletModel wallet) async {
+  // // إصلاح: جعل الدالة تقبل الموديل مباشرة واستخراج المعرف داخلياً
+  Future<void> updateWallet(WalletModel wallet) async {
+    if (wallet.walletId == null) return;
+
     isUpdating.value = true;
-    final result = await updateWalletUseCase.call(walletId, wallet);
+    // نمرر الـ ID والموديل لـ Usecase بناءً على توقيعها
+    final result = await updateWalletUseCase.call(wallet.walletId!, wallet);
 
     result.fold(
       (failure) {

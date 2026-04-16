@@ -8,7 +8,7 @@ class UpdateIncomeUseCase {
 
   UpdateIncomeUseCase(this.repository);
 
-  Future<Either<Failure, Unit>> call(int incomeId, IncomeModel income) async {
-    return await repository.updateIncome(incomeId, income);
+  Future<Either<Failure, Unit>> call(IncomeModel income) async {
+    return await repository.updateIncome(income);
   }
 }

@@ -1,7 +1,18 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spendwise/core/routes/app_pages.dart';
+import 'package:spendwise/core/services/shared_service.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/models/user_model.dart';
+import 'package:spendwise/features/expense/data/datasources/expense_local_datasource_impl.dart';
+import 'package:spendwise/features/helper_function.dart';
+import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
+import 'package:spendwise/features/tags/data/datasources/tag_local_datasource_impl.dart';
+import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource_impl.dart';
 
 class AppUserLocalDatasourceImpl extends GetxService
     implements AppUserLocalDatasource {
@@ -42,8 +53,7 @@ class AppUserLocalDatasourceImpl extends GetxService
   @override
   Future<void> logOut() async {
     try {
-      await _box.delete(_userKey);
-      _cachedUserId = null;
+      await resetAppCompletely();
     } catch (e) {
       throw Exception("Failed to clear local user session: $e");
     }
@@ -71,4 +81,36 @@ class AppUserLocalDatasourceImpl extends GetxService
 
   // دالة إضافية للوصول المباشر (Synchronous) بدون await
   int? get currentUserId => _cachedUserId;
+  // Logic: core/utils/database_helper.dart
+
+  Future<void> resetAppCompletely() async {
+    try {
+      clear();
+      IncomeLocalDataSourceImpl().clear();
+      WalletLocalDatasourceImpl().clearWallets();
+      TagLocalDatasourceImpl().clear();
+      ExpenseLocalDataSourceImpl().clear();
+
+      final sharedPrefs = await SharedPreferences.getInstance();
+      await sharedPrefs.clear();
+
+      HelperFunction.showSnackBar("نجاح", "تم تسجيل الخروج وتصفير البيانات");
+
+      await Get.putAsync(
+        () => SharedPreferencesService().init(),
+        permanent: true,
+      );
+
+      Get.offAllNamed(Routes.INITIAL);
+    } catch (e) {
+      debugPrint("❌ Error during force logout: $e");
+      // إذا فشل كل شيء، انتقل للبداية كحل أخير
+      Get.offAllNamed(Routes.INITIAL);
+    }
+  }
+
+  @override
+  Future<void> clear() async {
+    await _box.delete(_userKey);
+  }
 }

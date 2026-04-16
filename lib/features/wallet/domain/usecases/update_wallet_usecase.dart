@@ -9,6 +9,6 @@ class UpdateWalletUseCase {
   UpdateWalletUseCase(this.repository);
 
   Future<Either<Failure, Unit>> call(int walletId, WalletModel wallet) async {
-    return await repository.updateWallet(walletId, wallet);
+    return await repository.updateWallet(wallet);
   }
 }

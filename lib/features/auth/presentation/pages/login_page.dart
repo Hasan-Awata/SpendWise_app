@@ -53,7 +53,6 @@ class LogInPage extends StatelessWidget {
                 const SizedBox(height: 25),
 
                 Obx(
-                  
                   () => CustomTextField(
                     label: "Password",
                     hint: "Enter your password",
@@ -84,7 +83,7 @@ class LogInPage extends StatelessWidget {
                         )
                       : CustomButton(
                           text: "Login",
-                          onPressed: () => controller.logIn(),
+                          onPressed: () async => controller.logIn(),
                           color: SpColor.accentBlue,
                         ),
                 ),

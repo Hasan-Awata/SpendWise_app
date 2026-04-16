@@ -16,7 +16,7 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
   ) async {
     try {
       final response = await dio.get(
-        "${ApiEndpoints.getIncomeByUser}/$userId",
+        ApiEndpoints.income,
         queryParameters: {
           'PageNumber': page.pageNumber,
           'PageSize': page.pageSize,
@@ -37,7 +37,7 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
   Future<IncomeModel> addIncome(IncomeModel income) async {
     try {
       final response = await dio.post(
-        ApiEndpoints.addIncome,
+        ApiEndpoints.income,
         data: income.toJson(),
       );
       return IncomeModel.fromJson(response.data);
@@ -47,10 +47,10 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
   }
 
   @override
-  Future<IncomeModel> updateIncome(int incomeId, IncomeModel income) async {
+  Future<IncomeModel> updateIncome(IncomeModel income) async {
     try {
       final response = await dio.patch(
-        "${ApiEndpoints.updateIncome}/$incomeId",
+        "${ApiEndpoints.income}/${income.remoteId}",
         data: income.toJson(),
       );
       return IncomeModel.fromJson(response.data);
@@ -60,10 +60,10 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
   }
 
   @override
-  Future<bool> deleteIncome(int incomeId) async {
+  Future<bool> deleteIncome(IncomeModel income) async {
     try {
       final response = await dio.delete(
-        "${ApiEndpoints.deleteIncome}/$incomeId",
+        "${ApiEndpoints.income}/${income.remoteId}",
       );
 
       // التحقق من النجاح بناءً على محتوى الرد أو كود الحالة

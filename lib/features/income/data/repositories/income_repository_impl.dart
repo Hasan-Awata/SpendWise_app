@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:spendwise/core/error/failure.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasource.dart';
 import 'package:spendwise/features/income/data/datasources/income_remote_datasource.dart';
@@ -17,127 +18,136 @@ class IncomeRepositoryImpl implements IncomeRepository {
     required this.remoteDatasource,
   });
 
-  // --- Add Income ---
   @override
   Future<Either<Failure, Unit>> addIncome(IncomeModel income) async {
     try {
-      // حفظ محلي أولاً (Offline-First) لضمان سرعة الاستجابة للمستخدم
       await localDataSource.addIncome(income);
 
-      try {
-        await remoteDatasource.addIncome(income);
-        // إذا نجح الرفع للسيرفر، نحدث حالة المزامنة
-        income.isSynced = true;
-        await localDataSource.updateIncome(income);
-      } catch (_) {
-        // في حال فشل السيرفر، البيانات موجودة محلياً وسيتم مزامنتها لاحقاً
-      }
+      _safeRemoteCall(() async {
+        final remoteModel = await remoteDatasource.addIncome(income);
+        if (remoteModel != null) {
+          remoteModel.isSynced = true;
+          await localDataSource.updateIncome(remoteModel);
+        }
+      });
+
       return const Right(unit);
     } catch (e) {
-      return Left(CacheFailure("فشل حفظ الدخل محلياً"));
+      return Left(CacheFailure("فشل الحفظ المحلي"));
     }
   }
 
-  // --- Get Incomes (Remote & Local Mix) ---
   @override
   Future<Either<Failure, PagedResponse<IncomeModel>>> getIncomes(
     int? userId,
     PageRequest page,
   ) async {
-    if (userId == null) {
-      return _getLocalPagedIncomes(page);
-    }
+    if (userId == null) return _getLocalPagedIncomes(page);
 
     try {
       final remoteResponse = await remoteDatasource.getMyIncomes(userId, page);
 
-      // تحديث البيانات المحلية بالبيانات الجديدة القادمة من السيرفر
       for (var income in remoteResponse.data) {
         income.isSynced = true;
         await localDataSource.addIncome(income);
       }
 
       return Right(remoteResponse);
-    } on DioException {
-      // عند حدوث خطأ في الشبكة، نعرض البيانات المخزنة محلياً لضمان استمرارية العمل
+    } catch (e) {
       return await _getLocalPagedIncomes(page);
-    } catch (e) {
-      return Left(ServerFailure("حدث خطأ غير متوقع أثناء جلب البيانات"));
     }
   }
 
-  // --- Update Income ---
   @override
-  Future<Either<Failure, Unit>> updateIncome(
-    int incomeId,
-    IncomeModel income,
-  ) async {
+  Future<Either<Failure, Unit>> updateIncome(IncomeModel income) async {
     try {
+      income.isSynced = false;
       await localDataSource.updateIncome(income);
-      try {
-        await remoteDatasource.updateIncome(incomeId, income);
-      } catch (_) {}
+
+      _safeRemoteCall(() async {
+        if (income.remoteId != null) {
+          await remoteDatasource.updateIncome(income);
+          income.isSynced = true;
+          await localDataSource.updateIncome(income);
+        }
+      });
+
       return const Right(unit);
     } catch (e) {
-      return Left(CacheFailure("فشل تحديث البيانات محلياً"));
+      return Left(CacheFailure("فشل التحديث المحلي"));
     }
   }
 
-  // --- Delete Income ---
   @override
-  Future<Either<Failure, Unit>> deleteIncome(int incomeId) async {
+  Future<Either<Failure, Unit>> deleteIncome(IncomeModel income) async {
     try {
-      await localDataSource.deleteIncome(incomeId);
-      try {
-        await remoteDatasource.deleteIncome(incomeId);
-      } catch (_) {}
+      _safeRemoteCall(() async {
+        if (income.remoteId != null)
+          await remoteDatasource.deleteIncome(income);
+      });
+
+      await localDataSource.deleteIncome(income);
       return const Right(unit);
     } catch (e) {
-      return Left(CacheFailure("فشل حذف البيانات محلياً"));
+      return Left(CacheFailure("فشل الحذف المحلي"));
     }
   }
 
-  // --- Syncing Logic ---
   @override
   Future<Either<Failure, Unit>> syncPendingIncomes() async {
     try {
       final allLocal = await localDataSource.getIncomes();
-      final unsynced = allLocal.where((i) => i.isSynced != true).toList();
+      final pending = allLocal
+          .where((i) => i.isSynced != true || i.localId == "REMOVE")
+          .toList();
 
-      for (var income in unsynced) {
-        await remoteDatasource.addIncome(income);
-        income.isSynced = true;
-        await localDataSource.updateIncome(income);
+      for (var income in pending) {
+        try {
+          if (income.localId == "REMOVE") {
+            if (income.remoteId != null)
+              await remoteDatasource.deleteIncome(income);
+            await localDataSource.deleteIncome(income);
+          } else {
+            final remoteModel = await remoteDatasource.addIncome(income);
+            if (remoteModel != null) {
+              remoteModel.isSynced = true;
+              await localDataSource.updateIncome(remoteModel);
+            }
+          }
+        } catch (_) {
+          continue;
+        }
       }
       return const Right(unit);
-    } on DioException catch (_) {
-      return Left(ServerFailure("فشل الاتصال أثناء المزامنة، تأكد من الشبكة"));
     } catch (e) {
-      return Left(CacheFailure("خطأ في المزامنة المحلية"));
+      return Left(CacheFailure("فشل محرك المزامنة"));
     }
   }
 
-  // --- Helper Methods ---
+  Future<void> _safeRemoteCall(Future<void> Function() call) async {
+    try {
+      await call();
+    } catch (e) {
+      debugPrint("Silent Sync Error: $e");
+    }
+  }
 
-  // دالة مخصصة لتحويل البيانات المحلية إلى نظام الصفحات (Pagination) متوافق مع كلاس PagedResponse الجديد
   Future<Either<Failure, PagedResponse<IncomeModel>>> _getLocalPagedIncomes(
     PageRequest page,
   ) async {
     try {
       final all = await localDataSource.getIncomes();
       final start = (page.pageNumber - 1) * page.pageSize;
-
-      // حساب إجمالي الصفحات بناءً على البيانات المحلية
-      final calculatedTotalPages = (all.length / page.pageSize).ceil();
+      final totalPages = (all.length / page.pageSize).ceil();
 
       if (start >= all.length) {
         return Right(
           PagedResponse(
             data: [],
-            totalRecords: all.length, // الاسم الجديد
+            totalRecords: all.length,
             pageNumber: page.pageNumber,
             pageSize: page.pageSize,
-            totalPages: calculatedTotalPages, // الاسم الجديد
+            totalPages: totalPages,
           ),
         );
       }
@@ -148,10 +158,10 @@ class IncomeRepositoryImpl implements IncomeRepository {
       return Right(
         PagedResponse(
           data: sliced,
-          totalRecords: all.length, // مطابقة الحقل الجديد
+          totalRecords: all.length,
           pageNumber: page.pageNumber,
           pageSize: page.pageSize,
-          totalPages: calculatedTotalPages, // مطابقة الحقل الجديد
+          totalPages: totalPages,
         ),
       );
     } catch (e) {

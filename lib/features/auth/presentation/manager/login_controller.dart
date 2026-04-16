@@ -24,35 +24,40 @@ class LoginController extends GetxController {
   Future<void> logIn() async {
     if (!(loginFormKey.currentState?.validate() ?? false)) return;
 
-    isLoadingLogIn.value = true;
+    try {
+      isLoadingLogIn.value = true;
 
-    final params = LoginParams(
-      userName: loginUserNameController.text.trim(),
-      password: loginPasswordController.text.trim(),
-    );
+      final params = LoginParams(
+        userName: loginUserNameController.text.trim(),
+        password: loginPasswordController.text.trim(),
+      );
 
-    final result = await loginUsecase.login(params);
+      final result = await loginUsecase.login(params);
 
-    result.fold(
-      (failure) {
-        print(failure.message);
-        HelperFunction.showSnackBar(
-          "Login Failed",
-          failure.message,
-          isError: true,
-        );
-      },
-      (user) async {
-        Get.find<AuthSessionController>().currentUser.value = user;
-        final prefs = Get.find<SharedPreferencesService>();
-        await prefs.setLoggedIn(true);
-        await prefs.setToken(user.token);
-        HelperFunction.showSnackBar("Success", "Welcome back!");
-        Get.offAllNamed('/main-screen');
-      },
-    );
-
-    isLoadingLogIn.value = false;
+      result.fold(
+        (failure) {
+          print(failure.message);
+          HelperFunction.showSnackBar(
+            "Login Failed",
+            failure.message,
+            isError: true,
+          );
+        },
+        (user) async {
+          Get.find<AuthSessionController>().currentUser.value = user;
+          final prefs = Get.find<SharedPreferencesService>();
+          await prefs.setLoggedIn(true);
+          await prefs.setToken(user.token);
+          HelperFunction.showSnackBar("Success", "Welcome back!");
+          Get.offAllNamed('/main-screen');
+        },
+      );
+    } catch (e) {
+      HelperFunction.showSnackBar("خطأ", "خطأ في السيرفر", isError: true);
+      return;
+    } finally {
+      isLoadingLogIn.value = false;
+    }
   }
 
   @override

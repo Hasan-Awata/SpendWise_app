@@ -26,36 +26,44 @@ class SignUpController extends GetxController {
   Future<void> signUp() async {
     if (!(signUpFormKey.currentState?.validate() ?? false)) return;
 
-    isLoadingSignUp.value = true;
+    try {
+      isLoadingSignUp.value = true;
+      final params = SignupParams(
+        firstName: firstNameController.text.trim(),
+        lastName: lastNameController.text.trim(),
+        userName: signUpUserNameController.text.trim(),
+        password: signUpPasswordController.text.trim(),
+      );
 
-    final params = SignupParams(
-      firstName: firstNameController.text.trim(),
-      lastName: lastNameController.text.trim(),
-      userName: signUpUserNameController.text.trim(),
-      password: signUpPasswordController.text.trim(),
-    );
+      final result = await signupUsecase.signUp(params);
 
-    final result = await signupUsecase.signUp(params);
+      result.fold(
+        (failure) {
+          HelperFunction.showSnackBar(
+            "Sign Up Failed",
+            failure.message,
+            isError: true,
+          );
+        },
+        (user) async {
+          Get.find<AuthSessionController>().currentUser.value = user;
+          final prefs = Get.find<SharedPreferencesService>();
+          await prefs.setLoggedIn(true);
+          await prefs.setToken(user.token);
 
-    result.fold(
-      (failure) {
-        HelperFunction.showSnackBar(
-          "Sign Up Failed",
-          failure.message,
-          isError: true,
-        );
-      },
-      (user) async {
-        Get.find<AuthSessionController>().currentUser.value = user;
-        final prefs = Get.find<SharedPreferencesService>();
-        await prefs.setLoggedIn(true);
-        await prefs.setToken(user.token);
-        HelperFunction.showSnackBar("Success", "Account created successfully!");
-        Get.offAllNamed('/main-screen');
-      },
-    );
-
-    isLoadingSignUp.value = false;
+          HelperFunction.showSnackBar(
+            "Success",
+            "Account created successfully!",
+          );
+          Get.offAllNamed('/main-screen');
+        },
+      );
+    } catch (e) {
+      HelperFunction.showSnackBar("خطأ", "خطأ في السيرفر", isError: true);
+      return;
+    } finally {
+      isLoadingSignUp.value = false;
+    }
   }
 
   @override

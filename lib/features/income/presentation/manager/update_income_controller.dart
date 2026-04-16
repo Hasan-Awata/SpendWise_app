@@ -16,18 +16,18 @@ class UpdateIncomeController extends GetxController {
 
   final isLoadingUpdate = false.obs;
 
-  Future<void> updateIncome(int incomeId, IncomeModel updatedData) async {
+  Future<void> updateIncome(IncomeModel updatedData) async {
     isLoadingUpdate.value = true;
-    final result = await updateIncomeUseCase.call(incomeId, updatedData);
+    final result = await updateIncomeUseCase.call(updatedData);
 
     result.fold((failure) => _handleError("فشل التحديث", failure.message), (_) {
       final index = incomesListController.incomesList.indexWhere(
-        (e) => e.id == incomeId,
+        (e) => e.localId == updatedData.localId,
       );
       if (index != -1) {
         incomesListController.incomesList[index] = updatedData;
       }
-      incomesListController.refreshMonthlyIncomeTotal();
+      incomesListController.calculateTotals();
       HelperFunction.showSnackBar("تم بنجاح", "تم تحديث البيانات");
     });
     isLoadingUpdate.value = false;

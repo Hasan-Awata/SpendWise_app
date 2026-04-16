@@ -8,11 +8,11 @@ class IncomeAdapter extends TypeAdapter<IncomeModel> {
 
   @override
   IncomeModel read(BinaryReader reader) {
-    return IncomeModel.fromJson(reader.read());
+    return IncomeModel.fromLocal(reader.read());
   }
 
   @override
   void write(BinaryWriter writer, IncomeModel obj) {
-    writer.write(obj.toJson());
+    writer.write(obj.toLocal());
   }
 }

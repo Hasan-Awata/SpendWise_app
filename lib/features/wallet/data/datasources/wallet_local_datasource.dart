@@ -5,5 +5,7 @@ abstract class WalletLocalDatasource {
   Future<void> addWaletLocal(WalletModel wallet);
   Future<WalletModel?> getWallet(int id);
   Future<List<WalletModel>> myWallets();
+  Future<void> deleteWallet(WalletModel wallet);
+  Future<void> updateWallet(WalletModel wallet);
   Future<void> clearWallets();
 }

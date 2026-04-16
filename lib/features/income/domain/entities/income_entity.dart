@@ -2,23 +2,23 @@ import 'package:spendwise/features/tags/data/models/tag_model.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 
 class IncomeEntity {
-  final int? id;
+  final int? remoteId;
 
   final int? userId;
 
-  final String title;
+  String title;
 
-  final double amount;
+  double amount;
 
-  final String? description;
+  String? description;
 
-  final TagModel? tag;
+  TagModel? tag;
 
-  final DateTime date;
+  DateTime date;
 
-  final WalletModel? wallet;
+  WalletModel? wallet;
   IncomeEntity({
-    this.id,
+    this.remoteId,
     this.userId,
     this.wallet,
     required this.title,

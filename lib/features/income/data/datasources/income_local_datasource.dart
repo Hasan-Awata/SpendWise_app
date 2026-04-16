@@ -6,7 +6,7 @@ abstract class IncomeLocalDataSource {
   Future<void> saveIncomes(List<IncomeModel> incomes);
   Future<void> addIncome(IncomeModel income);
   Future<List<IncomeModel>> getIncomes();
-  Future<void> deleteIncome(int incomeId);
+  Future<void> deleteIncome(IncomeModel income);
   Future<void> updateIncome(IncomeModel income);
   Future<void> clear();
 }

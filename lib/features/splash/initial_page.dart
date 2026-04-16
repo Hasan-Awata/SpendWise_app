@@ -4,10 +4,8 @@ import 'package:shimmer/shimmer.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/core/utils/current_user.dart';
-import 'package:spendwise/features/auth/presentation/manager/auth_session_controller.dart';
-import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
 import 'package:spendwise/features/splash/introduction.dart';
-import 'package:spendwise/features/tags/presentation/manager/tag_controller.dart';
+
 class InitialPage extends StatefulWidget {
   InitialPage({super.key});
 
@@ -25,26 +23,17 @@ class _InitialPageState extends State<InitialPage> {
 
   Future<void> _checkLoginAndNavigate() async {
     final isLogged = CurrentUser.isUserLoggedIn;
+
     if (isLogged) {
+      CurrentUser.initializeUser();
+
       setState(() {
         isWaiting = true;
       });
-      final token = CurrentUser.token;
-      print("token isssssssss=> $token");
 
-      final authSession = Get.find<AuthSessionController>();
-      final tagController = Get.find<TagController>();
+      // إعطاء وقت كافٍ للمستخدم لرؤية شعار التطبيق وللنظام لإنهاء الحقن
+      await Future.delayed(const Duration(milliseconds: 2000));
 
-      final incomesListController = Get.find<IncomesListController>();
-
-      await Future.wait([
-        authSession.getUser(),
-        tagController.loadTags(),
-
-        incomesListController.fetchAllIncomes(isRefresh: true),
-      ]);
-
-      await Future.delayed(const Duration(milliseconds: 1200));
       if (!mounted) return;
       Get.offAllNamed(Routes.MAIN_SCREEN);
     } else {
