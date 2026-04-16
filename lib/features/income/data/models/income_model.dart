@@ -55,7 +55,7 @@ class IncomeModel extends IncomeEntity {
       description: map['description'],
       isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
       // نفترض هنا أن البيانات المتداخلة تُخزن كـ Map أو يتم معالجتها عبر IDs
-      tag: map['tag'] != null
+      tag: map['Tag'] != null
           ? TagModel.fromLocal(Map<String, dynamic>.from(map['tag']))
           : null,
       wallet: map['wallet'] != null
@@ -74,7 +74,7 @@ class IncomeModel extends IncomeEntity {
       'Date': date.toIso8601String(),
       'Description': description ?? '',
       'Wallet': wallet, // غالباً السيرفر يحتاج الـ ID فقط للكائنات المرتبطة
-      'Tag': tag,
+      'IncomeTag': tag,
     };
   }
 
