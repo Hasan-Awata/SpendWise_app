@@ -11,8 +11,8 @@ namespace SpendWise.Application.Interfaces.Tags
         public Task<TagResponse?> GetTagAsync(int tagId, int userId);
         public Task<IEnumerable<TagResponse?>> GetTagsByUserIdAsync(int UserId);
 
-        public Task AddTagAsync(TagDTO tag);
-        public Task UpdateTagAsync(TagDTO tag);
+        public Task<TagResponse?> AddTagAsync(TagDTO tag);
+        public Task<TagResponse?> UpdateTagAsync(TagDTO tag);
         public Task DeleteTagAsync(int tagId);
     }
 }

@@ -40,17 +40,40 @@ namespace SpendWise.Application.Services
             });
         }
 
-        public async Task AddTagAsync(TagDTO tagDto)
+        public async Task<TagResponse?> AddTagAsync(TagDTO tagDto)
         {
             var newTag = new Tag(tagDto.Id, tagDto.OwnerId, tagDto.Label);
 
-            await _tagRepo.AddTagAsync(newTag);
+            int newTagId = await _tagRepo.AddTagAsync(newTag);
+
+            if (newTagId == -1)
+            {
+                return null;
+            }
+
+            return new TagResponse
+            {
+                Id = newTagId,
+                Label = newTag.Label,
+                OwnerId = newTag.OwnerId,
+            };
         }
-        public async Task UpdateTagAsync(TagDTO tagDto)
+        public async Task<TagResponse?> UpdateTagAsync(TagDTO tagDto)
         {
             var updatedTag = new Tag(tagDto.Id, tagDto.OwnerId, tagDto.Label);
 
-            await _tagRepo.UpdateTagAsync(updatedTag);
+            if (await _tagRepo.UpdateTagAsync(updatedTag))
+            {
+                return null;
+            }
+
+            return new TagResponse
+            {
+                Id = updatedTag.Id,
+                Label = updatedTag.Label,
+                OwnerId = updatedTag.OwnerId,
+            };
+
         }
         public async Task DeleteTagAsync(int tagId)
         {

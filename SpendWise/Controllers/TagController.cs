@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.Tag;
 using SpendWise.Application.Interfaces.Tags;
@@ -69,14 +70,19 @@ namespace SpendWise.Controllers
         {
             tagDto.OwnerId = CurrentUserId;
 
-            await _tagService.AddTagAsync(tagDto);
+            var newTagResponse = await _tagService.AddTagAsync(tagDto);
+
+            if (newTagResponse == null)
+            {
+                return BadRequest("The tag creation process failed");
+            }
 
             // This generates a 201 status and a Location header like:
             // Location: https://mydomain.com/api/tags/5
             return CreatedAtAction(
                 nameof(GetTag),                // 1. Action Name
-                new {tagId = tagDto.Id },      // 2. Route Values
-                tagDto                         // 3. Response Body
+                new {tagId = newTagResponse.Id },      // 2. Route Values
+                newTagResponse                         // 3. Response Body
             );
         }
 
@@ -96,7 +102,8 @@ namespace SpendWise.Controllers
             tagDto.Id = tagId;
             tagDto.OwnerId = CurrentUserId;
 
-            await _tagService.UpdateTagAsync(tagDto);
+            if (await _tagService.UpdateTagAsync(tagDto) == null)
+                return BadRequest();
 
             return NoContent();
         }
