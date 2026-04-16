@@ -17,15 +17,15 @@ namespace SpendWise.Application.Interfaces
         public Task<bool> DeleteCategoryAsync(int id);
 
         // Retrieves a specific category by its ID
-        public Task<Category?> GetCategoryByIdAsync(int id);
+        public Task<Domain.Entities.Category?> GetCategoryByIdAsync(int id);
 
         // Retrieves all categories associated with a specific user
-        public Task<IEnumerable<Category>> GetAllCategoriesAsync(int userId);
+        public Task<IEnumerable<Domain.Entities.Category>> GetAllCategoriesAsync(int userId);
 
         // Searches for categories by name for a specific user
-        public Task<IEnumerable<Category>> SearchCategoriesByNameAsync(string name, int userId);
+        public Task<IEnumerable<Domain.Entities.Category>> SearchCategoriesByNameAsync(string name, int userId);
 
         // Retrieves a single category by its name for a specific user
-        public Task<Category?> GetCategoryByNameAsync(string name, int userId);
+        public Task<Domain.Entities.Category?> GetCategoryByNameAsync(string name, int userId);
     }
 }
