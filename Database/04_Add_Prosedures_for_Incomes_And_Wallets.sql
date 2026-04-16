@@ -244,6 +244,21 @@ AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
+        -- ==========================================
+        -- PRE-FLIGHT SECURITY CHECKS
+        -- ==========================================
+        -- 1. Check if Wallet Exists AT ALL
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId)
+        BEGIN
+            THROW 50001, 'Wallet not found.', 1;
+        END
+
+        -- 2. Check if the Wallet belongs to THIS User
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId)
+        BEGIN
+            THROW 50003, 'Access denied. You do not own this wallet.', 1;
+        END
+
         BEGIN TRAN; 
         
         DECLARE @NewIncomeID INT;
@@ -261,15 +276,10 @@ BEGIN
         (@IncomeUserId, @IncomeWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewIncomeID, @TransTitle, @IncomeAmount, @IncomeDate, @TransType, @TransDescription);
 
         -- 3. UPDATE WALLET BALANCE (Increase)
+        -- We no longer need the @@ROWCOUNT check here because we validated it at the top
         UPDATE [Banking].Wallets
         SET Balance = Balance + @IncomeAmount
         WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
-
-        -- Security Check: Ensure the wallet actually updated
-        IF @@ROWCOUNT = 0
-        BEGIN
-            THROW 50001, 'Wallet not found or access denied.', 1;
-        END
 
         COMMIT TRAN; 
         SELECT @NewIncomeID;
@@ -280,7 +290,6 @@ BEGIN
     END CATCH
 END
 GO
-
 -- ==========================================
 -- 2. Update Income, Transaction, and Adjust Balance
 -- ==========================================
@@ -305,6 +314,22 @@ AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
+        -- ==========================================
+        -- PRE-FLIGHT SECURITY CHECKS
+        -- ==========================================
+        -- 1. Check if the target Wallet Exists AT ALL
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId)
+        BEGIN
+            THROW 50001, 'Wallet not found.', 1;
+        END
+
+        -- 2. Check if the target Wallet belongs to THIS User
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId)
+        BEGIN
+            THROW 50003, 'Access denied. You do not own this wallet.', 1;
+        END
+
+        -- If security checks pass, start the transaction
         BEGIN TRAN; 
 
         -- 1. Capture the OLD amount and wallet before modifying
@@ -315,8 +340,9 @@ BEGIN
         FROM [Ledger].Incomes 
         WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
 
+        -- 3. Ensure the Income record actually exists and belongs to the user
         IF @OldAmount IS NULL 
-            THROW 50002, 'Income record not found.', 1;
+            THROW 50002, 'Income record was not found.', 1;
         
         -- 2. Update Income
         UPDATE [Ledger].Incomes
