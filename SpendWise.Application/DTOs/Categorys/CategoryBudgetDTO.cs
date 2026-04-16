@@ -13,7 +13,7 @@ namespace SpendWise.Application.DTOs.Category
         public int UserId { get; set; }
 
         [Required(ErrorMessage = "Please enter the category info of this budget")]
-        public CategoryDTO Category { get; set; } = new CategoryDTO();
+        public CategoryDTO CategoryDto { get; set; } = new CategoryDTO();
 
         [Required(ErrorMessage = "Please enter the consumption limit of this category")]
         public decimal PercentageLimit { get; set; }

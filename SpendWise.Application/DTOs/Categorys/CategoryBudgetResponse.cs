@@ -15,6 +15,19 @@ namespace SpendWise.Application.DTOs.Category
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public bool IsActive { get; set; }
+        public CategoryBudgetResponse(Domain.Entities.CategoryBudget categoryBudget)
+        {
+            CategoryBudgetId = categoryBudget.CategoryBudgetId;
+            UserId = categoryBudget.UserId;
+           Category=new CategoryDTO(categoryBudget.Category);
+            PercentageLimit = categoryBudget.PercentageLimit;
+            PercentageProgress = categoryBudget.PercentageProgress;
+            StartDate = categoryBudget.StartDate;
+            EndDate = categoryBudget.EndDate;
+            IsActive = categoryBudget.IsActive;
+
+
+        }
 
     }
 }

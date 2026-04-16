@@ -16,5 +16,14 @@ namespace SpendWise.Application.DTOs.Category
 
             [Range(1, 4, ErrorMessage = "Priority must be between 1 and 4!")]
             public int Priority { get; set; }
+        public CategoryDTO(Domain.Entities.Category category) { 
+                
+            CategoryId = category.CategoryId;
+            Name = category.Name;
+            Priority = category.Priority;
+
+        
+        }
+        public CategoryDTO() { }
     }
 }
