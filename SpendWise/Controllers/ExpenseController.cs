@@ -103,7 +103,7 @@ namespace SpendWise.Controllers
         [HttpDelete("{expenseId}")]
         public async Task<IActionResult> DeleteIncome([FromRoute] int expenseId)
         {
-            if (await _expenseService.DeleteExpenseAsync(expenseId))
+            if (await _expenseService.DeleteExpenseAsync(expenseId, CurrentUserId))
             {
                 return NoContent();
             }

@@ -11,7 +11,7 @@ namespace SpendWise.Application.Interfaces.Incomes
     {
         // Writing to database
         public Task<int> AddIncomeAsync(Income newIncome, Transaction newTransaction);
-        public Task<int> UpdateIncomeAsync(Income newIncome, Transaction newTransaction);
+        public Task<bool> UpdateIncomeAsync(Income newIncome, Transaction newTransaction);
         public Task<bool> DeleteIncomeAsync(int incomeId, int userId);
 
         // Reading from the database

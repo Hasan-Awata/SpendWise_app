@@ -110,7 +110,7 @@ public class WalletRepository : IWalletRepository
         return wallet.WalletId;
     }
 
-    public async Task<int> UpdateWalletAsync(Wallet wallet)
+    public async Task<bool> UpdateWalletAsync(Wallet wallet)
     {
         try
         {
@@ -127,7 +127,8 @@ public class WalletRepository : IWalletRepository
 
             await connection.OpenAsync();
             object? result = await command.ExecuteScalarAsync();
-            return result != null && int.TryParse(result.ToString(), out int rowsAffected) ? rowsAffected : -1;
+
+            return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
         }
         catch (SqlException ex)
         {

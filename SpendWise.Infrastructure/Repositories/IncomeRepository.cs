@@ -55,7 +55,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<int> UpdateIncomeAsync(Income newIncome, Transaction newTransaction)
+        public async Task<bool> UpdateIncomeAsync(Income newIncome, Transaction newTransaction)
         {
             try
             {
@@ -80,11 +80,11 @@ namespace SpendWise.Infrastructure.Repositories
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
 
-                return result != null && int.TryParse(result.ToString(), out int updatedId) ? updatedId : -1;
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
-                SqlExceptionHandler.Handle(ex); 
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }

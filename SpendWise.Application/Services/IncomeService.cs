@@ -136,10 +136,9 @@ namespace SpendWise.Application.Services
             };
 
             // 5 - store both the income and the transaction in the database
-            int updatedIncomeId = await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction);
 
             // 6 - Check if the update succeeded
-            if(updatedIncomeId == -1)
+            if(!await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction))
             {
                 return null;
             }
@@ -147,7 +146,7 @@ namespace SpendWise.Application.Services
             // 7 - Return the created item
             return new IncomeResponse
             {
-                Id = updatedIncomeId,
+                Id = incomeDto.Id,
                 UserId = incomeDto.UserId,
                 Title = updatedTransaction.Title,
                 Amount = updatedTransaction.Amount,

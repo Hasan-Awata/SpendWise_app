@@ -92,16 +92,12 @@ namespace SpendWise.Application.Services
                 CurrencyId = walletDTO.CurrencyId,
             };
 
-            int updatedWalletId = await _walletRepo.UpdateWalletAsync(updatedWallet);
-
-            if(updatedWalletId == -1)
-            {
+            if(!await _walletRepo.UpdateWalletAsync(updatedWallet))
                 return null;
-            }
 
             return new WalletResponse
             {
-                WalletId = updatedWalletId,
+                WalletId = walletDTO.WalletId,
                 UserId = walletDTO.UserId,
                 Balance = walletDTO.Balance,
                 CurrencyId = walletDTO.CurrencyId,

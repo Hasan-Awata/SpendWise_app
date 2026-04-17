@@ -147,7 +147,8 @@ namespace SpendWise.Application.Services
             };
 
             // 3 - store both the income and the transaction in the database
-            int updateExpenseId = await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction);
+            if (!await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction))
+                return null;
 
             // 4 - Return the created item
             return new ExpenseResponse
@@ -164,9 +165,9 @@ namespace SpendWise.Application.Services
             };
         }
 
-        public async Task<bool> DeleteExpenseAsync(int expenseId)
+        public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
         {
-            return await _expenseRepo.DeleteExpenseAsync(expenseId);
+            return await _expenseRepo.DeleteExpenseAsync(expenseId, userId);
         }
 
     }
