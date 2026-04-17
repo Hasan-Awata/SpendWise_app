@@ -14,7 +14,7 @@ namespace SpendWise.Application.Interfaces.Wallets
 
         public Task<int> AddWalletAsync(Wallet wallet);
 
-        public Task<int> UpdateWalletAsync(Wallet wallet);
+        public Task<bool> UpdateWalletAsync(Wallet wallet);
 
         public Task<bool> DeleteWalletAsync(int walletId);
 

@@ -209,7 +209,7 @@ namespace SpendWise.Application.Services
                         CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
                         LiveValue = incomeDto.Wallet.Currency.LiveValue,
                     },
-                },
+                }
             };
 
             // 2 - Check if the non-essential data existed in the incomeDTO
@@ -254,18 +254,13 @@ namespace SpendWise.Application.Services
             };
 
             // 5 - store both the income and the transaction in the database
-            int updatedIncomeId = await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction);
+            if (!await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction)) return null;
 
-            // 6 - Check if the update succeeded
-            if(updatedIncomeId == -1)
-            {
-                return null;
-            }
 
             // 7 - Return the created item
             return new IncomeResponse
             {
-                Id = updatedIncomeId,
+                Id = incomeDto.Id,
                 UserId = incomeDto.UserId,
                 Title = updatedTransaction.Title,
                 Amount = updatedTransaction.Amount,

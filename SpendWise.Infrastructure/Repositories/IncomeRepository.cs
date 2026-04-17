@@ -58,7 +58,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<int> UpdateIncomeAsync(Income newIncome, Transaction newTransaction)
+        public async Task<bool> UpdateIncomeAsync(Income newIncome, Transaction newTransaction)
         {
             try
             {
@@ -81,14 +81,9 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTag?.Id > 0 ? newTransaction.TransactionTag.Id : DBNull.Value);
 
                 await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
+                var rowsAffected = await command.ExecuteNonQueryAsync();
 
-                if (result != null && int.TryParse(result.ToString(), out int updatedId))
-                {
-                    return updatedId;
-                }
-
-                return -1;
+                return rowsAffected > 0;
             }
             catch (SqlException ex)
             {
@@ -143,43 +138,7 @@ namespace SpendWise.Infrastructure.Repositories
 
                 if (await reader.ReadAsync())
                 {
-                    var income = new Income
-                    {
-                        Id = Convert.ToInt32(reader["IncomeID"]),
-                        UserId = Convert.ToInt32(reader["IncomeUserID"]),
-                        Amount = Convert.ToDecimal(reader["IncomeAmount"]),
-                        Date = Convert.ToDateTime(reader["IncomeDate"]),
-                        Wallet = new Wallet { WalletId = Convert.ToInt32(reader["IncomeWalletID"]), Balance = Convert.ToDecimal(reader["IncomeWalletBalance"]) }
-                    };
-
-                    if (reader["IncomeTagID"] != DBNull.Value)
-                    {
-                        income.IncomeTag = new Tag { Id = Convert.ToInt32(reader["IncomeTagID"]), Label = reader["IncomeTagName"].ToString()! };
-                    }
-
-                    if (reader["TransactionID"] != DBNull.Value)
-                    {
-                        income.LinkedTransaction = new Transaction
-                        {
-                            TransactionId = Convert.ToInt32(reader["TransactionID"]),
-                            UserId = Convert.ToInt32(reader["TransUserID"]),
-                            Title = reader["Title"].ToString()!,
-                            Description = reader["Description"] != DBNull.Value ? reader["Description"].ToString()! : string.Empty,
-                            Amount = Convert.ToDecimal(reader["TransAmount"]),
-                            TransactionDate = Convert.ToDateTime(reader["TransactionDate"]),
-                            TransactionType = (enTransactionType)Convert.ToInt32(reader["TransactionType"]),
-                            Wallet = new Wallet { WalletId = Convert.ToInt32(reader["TransWalletID"]), Balance = Convert.ToDecimal(reader["TransWalletBalance"]) }
-                        };
-
-                        if (reader["TransTagID"] != DBNull.Value)
-                        {
-                            income.LinkedTransaction.TransactionTag = new Tag
-                            {
-                                Id = Convert.ToInt32(reader["TransTagID"]),
-                                Label = reader["TransTagName"].ToString()!
-                            };
-                        }
-                    }
+                    Income income = MapIncomeFromReader(reader);
                     return income;
                 }
 
@@ -221,20 +180,7 @@ namespace SpendWise.Infrastructure.Repositories
                 {
                     while (await reader.ReadAsync())
                     {
-                        var income = new Income
-                        {
-                            Id = Convert.ToInt32(reader["IncomeID"]),
-                            UserId = Convert.ToInt32(reader["UserID"]),
-                            Amount = Convert.ToDecimal(reader["Amount"]),
-                            Date = Convert.ToDateTime(reader["Date"]),
-                            Wallet = new Wallet { WalletId = Convert.ToInt32(reader["WalletID"]), Balance = Convert.ToDecimal(reader["Balance"]) }
-                        };
-
-                        if (reader["TagID"] != DBNull.Value)
-                        {
-                            income.IncomeTag = new Tag { Id = Convert.ToInt32(reader["TagID"]), Label = reader["TagName"].ToString()! };
-                        }
-                        incomes.Add(income);
+                        incomes.Add(MapIncomeFromReader(reader));
                     }
                 }
 
@@ -269,6 +215,49 @@ namespace SpendWise.Infrastructure.Repositories
                 default:
                     throw new Exception($"An unexpected database error occurred. Code: {ex.Number}");
             }
+        }
+        private static Income MapIncomeFromReader(SqlDataReader reader)
+        {
+            var wallet = new Wallet(
+                walletId: Convert.ToInt32(reader["IncomeWalletID"]),
+                balance: Convert.ToDecimal(reader["IncomeWalletBalance"]),
+                userId: Convert.ToInt32(reader["IncomeUserID"]),
+                isSaved: Convert.ToBoolean(reader["IsSavedWallet"])
+                );
+
+            var tag = new Tag(
+                id: Convert.ToInt32(reader["IncomeTagID"]),
+                ownerId: Convert.ToInt32(reader["IncomeUserID"]),
+                label: Convert.ToString(reader["IncomeTagName"])
+                );
+
+            var transaction = new Transaction(
+                transactionId: Convert.ToInt32(reader["TransactionID"]),
+                userId: Convert.ToInt32(reader["TransUserID"]),
+                title: Convert.ToString(reader["Title"]),
+                description: Convert.ToString(reader["Description"]),
+                amount: Convert.ToDecimal(reader["TransAmount"]),
+                transactionDate: Convert.ToDateTime(reader["TransactionDate"]),
+                transactionType: (enTransactionType)Convert.ToInt32(reader["TransactionType"]),
+                wallet: wallet,
+                transactionTag: tag,
+                transactionCategory: null,
+                savingGoal: null,
+                income: null,
+                expense: null
+                );
+            var income = new Income(
+                id: Convert.ToInt32(reader["IncomeID"]),
+                userId: Convert.ToInt32(reader["IncomeUserID"]),
+                amount: Convert.ToDecimal(reader["IncomeAmount"]),
+                date: Convert.ToDateTime(reader["IncomeDate"]),
+                wallet: wallet,
+                incomeTag: tag,
+                linkedTransaction: transaction
+                );
+            transaction.Income = income;
+
+            return income;
         }
     }
 }

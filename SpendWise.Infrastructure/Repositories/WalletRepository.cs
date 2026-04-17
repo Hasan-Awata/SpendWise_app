@@ -107,7 +107,7 @@ public class WalletRepository : IWalletRepository
         return wallet.WalletId;
     }
 
-    public async Task<int> UpdateWalletAsync(Wallet wallet)
+    public async Task<bool> UpdateWalletAsync(Wallet wallet)
     {
         try
         {
@@ -125,7 +125,8 @@ public class WalletRepository : IWalletRepository
             command.Parameters.AddWithValue("@ActualValue", wallet.Currency.LiveValue);
 
             await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync();
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+            return rowsAffected > 0;
         }
         catch (SqlException ex)
         {
