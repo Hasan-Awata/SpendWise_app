@@ -11,12 +11,12 @@ namespace SpendWise.Domain.Entities
         public int UserId { get; set; } = -1;
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public Wallet Wallet { get; set; } = new Wallet();
+        public int WalletId { get; set; } 
         public decimal Amount { get; set; } = 0.0m;
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
-        public Category? TransactionCategory { get; set; }
-        public Tag? TransactionTag { get; set; }
+        public int TransactionCategoryId { get; set; }
+        public int TransactionTagId { get; set; }
         public SavingGoal? SavingGoal { get; set; }
         //public FixedExpense? FixedExpense { get; set; }
         //public FixedIncome? FixedIncome { get; set; }

@@ -1,5 +1,4 @@
-﻿using SpendWise.Application.DTOs.NewFolder;
-using SpendWise.Application.DTOs.Tag;
+﻿using SpendWise.Application.DTOs.Tag;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
 using System;
@@ -20,8 +19,8 @@ namespace SpendWise.Application.DTOs.Income
         [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters!")]
         public string Title { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Please enter the wallet's id that you want to deduct from")]
-        public WalletDTO Wallet { get; set; } = new WalletDTO();
+        [Required(ErrorMessage = "Please enter the id of the wallet that you want to deduct from")]
+        public int WalletId { get; set; }
 
         [Required(ErrorMessage = "Enter the amount of your income")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
@@ -30,7 +29,7 @@ namespace SpendWise.Application.DTOs.Income
         [Required(ErrorMessage ="Please enter the date of the transaction")]
         public DateTime Date { get; set; }
         
-        public TagDTO? IncomeTag { get; set; } = null;
+        public int IncomeTagId { get; set; } 
         public string Description { get; set; } = string.Empty;
     }
 }

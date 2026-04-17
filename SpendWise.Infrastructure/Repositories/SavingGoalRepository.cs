@@ -38,7 +38,7 @@ namespace SpendWise.Infrastructure.Repositories
                     try
                     {
                         await connection.OpenAsync();
-                        object result = await command.ExecuteScalarAsync();
+                        object? result = await command.ExecuteScalarAsync();
                         if (result != null && int.TryParse(result.ToString(), out int insertedID))
                         {
                             GoalID = insertedID;

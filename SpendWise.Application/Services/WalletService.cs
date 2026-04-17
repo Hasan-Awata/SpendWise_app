@@ -5,7 +5,6 @@ using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using SpendWise.Application.DTOs.NewFolder;
 
 namespace SpendWise.Application.Services
 {
@@ -32,12 +31,7 @@ namespace SpendWise.Application.Services
                 WalletId = walletId,
                 UserId = userId,
                 Balance = wallet.Balance,
-                Currency = new CurrencyResponse
-                {
-                    Id = wallet.Currency.Id,
-                    CurrencyName = wallet.Currency.CurrencyName,
-                    LiveValue = wallet.Currency.LiveValue,
-                }
+                CurrencyId = wallet.CurrencyId,
             };
         }
 
@@ -55,12 +49,7 @@ namespace SpendWise.Application.Services
                 WalletId = item.WalletId,
                 UserId = item.UserId,
                 Balance = item.Balance,
-                Currency = new CurrencyResponse
-                {
-                    Id= item.Currency.Id,
-                    CurrencyName= item.Currency.CurrencyName,
-                    LiveValue= item.Currency.LiveValue,
-                },
+                CurrencyId = item.CurrencyId,
             });
         }
 
@@ -72,12 +61,7 @@ namespace SpendWise.Application.Services
                 UserId = walletDTO.UserId,
                 Balance = walletDTO.Balance,
                 IsSaved = walletDTO.IsSaved,
-                Currency = new Currency
-                {
-                    Id = walletDTO.Currency.CurrencyId,
-                    CurrencyName = walletDTO.Currency.CurrencyName,
-                    LiveValue = walletDTO.Currency.LiveValue,
-                }
+                CurrencyId = walletDTO.CurrencyId,
             };
 
             int newWalletId = await _walletRepo.AddWalletAsync(newWallet);
@@ -93,12 +77,7 @@ namespace SpendWise.Application.Services
                 UserId = walletDTO.UserId,
                 Balance = walletDTO.Balance,
                 IsSaved= walletDTO.IsSaved,
-                Currency = new CurrencyResponse
-                {
-                    Id = walletDTO.Currency.CurrencyId,
-                    CurrencyName = walletDTO.Currency.CurrencyName,
-                    LiveValue = walletDTO.Currency.LiveValue,
-                },
+                CurrencyId = walletDTO.CurrencyId,
             };
         }
 
@@ -110,12 +89,7 @@ namespace SpendWise.Application.Services
                 UserId = walletDTO.UserId,
                 Balance = walletDTO.Balance,
                 IsSaved = walletDTO.IsSaved,
-                Currency = new Currency
-                {
-                    Id = walletDTO.Currency.CurrencyId,
-                    CurrencyName = walletDTO.Currency.CurrencyName,
-                    LiveValue = walletDTO.Currency.LiveValue,
-                }
+                CurrencyId = walletDTO.CurrencyId,
             };
 
             int updatedWalletId = await _walletRepo.UpdateWalletAsync(updatedWallet);
@@ -130,18 +104,14 @@ namespace SpendWise.Application.Services
                 WalletId = updatedWalletId,
                 UserId = walletDTO.UserId,
                 Balance = walletDTO.Balance,
-                Currency = new CurrencyResponse
-                {
-                    Id = walletDTO.Currency.CurrencyId,
-                    CurrencyName = walletDTO.Currency.CurrencyName,
-                    LiveValue = walletDTO.Currency.LiveValue,
-                },
+                CurrencyId = walletDTO.CurrencyId,
+                IsSaved = walletDTO.IsSaved,
             };
         }
 
-        public async Task<bool> DeleteWalletAsync(int walletId)
+        public async Task<bool> DeleteWalletAsync(int walletId, int userId)
         {
-            return await _walletRepo.DeleteWalletAsync(walletId);
+            return await _walletRepo.DeleteWalletAsync(walletId, userId);
         }
     } 
 }

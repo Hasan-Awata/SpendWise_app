@@ -19,14 +19,14 @@ body:
           "liveValue": 6181.373437324553
         },
         "isSaved": false,
-        "userId": 4301,
-        "walletId": 2863,
+        "userId": 15,
+        "walletId": 61,
         "balance": 6.953543160164699e+307
       },
       "id": 6911,
       "incomeTag": {
-        "id": 5031,
-        "label": "string",
+        "id": 0,
+        "label": "null",
         "ownerId": 8457
       },
       "description": "string"

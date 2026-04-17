@@ -40,31 +40,11 @@ namespace SpendWise.Application.Services
                 UserId = expense.UserId,
                 Title = "Added expense",
                 Amount = expense.Amount,
+                Date = expense.Date,
                 Products = expense.Products,
-                Category = new CategoryResponse
-                {
-                    CategoryId = expense.Category.CategoryId,
-                    Name = expense.Category.Name,
-                    Priority = expense.Category.Priority,
-                },
-                Wallet = new WalletResponse
-                {
-                    WalletId = expense.Wallet.WalletId,
-                    UserId = expense.Wallet.UserId,
-                    Balance = expense.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = expense.Wallet.Currency.Id,
-                        CurrencyName = expense.Wallet.Currency.CurrencyName,
-                        LiveValue = expense.Wallet.Currency.LiveValue,
-                    },
-                },
-                ExpenseTag = expense.ExpenseTag == null ? null : new TagResponse
-                {
-                    Id = expense.ExpenseTag.Id,
-                    Label = expense.ExpenseTag.Label,
-                    OwnerId = expense.ExpenseTag.OwnerId,
-                },
+                CategoryId = expense.CategoryId,
+                WalletId = expense.WalletId,
+                ExpenseTagId = expense.ExpenseTagId == -1 ? -1 : expense.ExpenseTagId,
             };
         }
 
@@ -78,31 +58,11 @@ namespace SpendWise.Application.Services
                 UserId = item.UserId,
                 Title = "Added expense",
                 Amount = item.Amount,
+                Date = item.Date,
                 Products = item.Products,
-                Category = new CategoryResponse
-                {
-                    CategoryId = item.Category.CategoryId,
-                    Name = item.Category.Name,
-                    Priority = item.Category.Priority,
-                },
-                Wallet = new WalletResponse
-                {
-                    WalletId = item.Wallet.WalletId,
-                    UserId = item.Wallet.UserId,
-                    Balance = item.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = item.Wallet.Currency.Id,
-                        CurrencyName = item.Wallet.Currency.CurrencyName,
-                        LiveValue = item.Wallet.Currency.LiveValue,
-                    },
-                },
-                ExpenseTag = item.ExpenseTag == null ? null : new TagResponse
-                {
-                    Id = item.ExpenseTag.Id,
-                    Label = item.ExpenseTag.Label,
-                    OwnerId = item.ExpenseTag.OwnerId,
-                },
+                CategoryId = item.CategoryId,
+                WalletId = item.WalletId,
+                ExpenseTagId = item.ExpenseTagId == -1 ? -1 : item.ExpenseTagId,
             });
 
             return new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
@@ -119,30 +79,9 @@ namespace SpendWise.Application.Services
                 Amount = expenseDto.Amount,
                 Products = expenseDto.Products,
                 Date = expenseDto.Date,
-                Category = new Category
-                {
-                    CategoryId = expenseDto.Category.CategoryId,
-                    Name = expenseDto.Category.Name,
-                    Priority = expenseDto.Category.Priority,
-                },
-                ExpenseTag = expenseDto.ExpenseTag == null ? null : new Tag
-                {
-                    Id = expenseDto.ExpenseTag.Id,
-                    Label = expenseDto.ExpenseTag.Label,
-                    OwnerId = expenseDto.ExpenseTag.OwnerId,
-                },
-                Wallet = new Wallet
-                {
-                    WalletId = expenseDto.Wallet.WalletId,
-                    UserId = expenseDto.Wallet.UserId,
-                    Balance = expenseDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = expenseDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = expenseDto.Wallet.Currency.CurrencyName,
-                        LiveValue = expenseDto.Wallet.Currency.LiveValue,
-                    },
-                }
+                CategoryId = expenseDto.CategoryId,
+                ExpenseTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
+                WalletId = expenseDto.WalletId,
             };
 
             // 2 - Create a Transaction object to store in the database
@@ -154,10 +93,10 @@ namespace SpendWise.Application.Services
                 Title = "Added Expense",
                 TransactionType = enTransactionType.Dedduction,
                 Amount = expenseDto.Amount,
-                TransactionCategory = newExpens.Category,
+                TransactionCategoryId = newExpens.CategoryId,
                 TransactionDate = newExpens.Date,
-                Wallet = newExpens.Wallet,
-                TransactionTag = newExpens.ExpenseTag,
+                WalletId = newExpens.WalletId,
+                TransactionTagId = newExpens.ExpenseTagId,
             };
 
             // 3 - store both the income and the transaction in the database
@@ -171,30 +110,10 @@ namespace SpendWise.Application.Services
                 Title = "Added expense",
                 Amount = newExpens.Amount,
                 Products = newExpens.Products,
-                Category = new CategoryResponse
-                {
-                    CategoryId = newExpens.Category.CategoryId,
-                    Name = newExpens.Category.Name,
-                    Priority = newExpens.Category.Priority,
-                },
-                Wallet = new WalletResponse
-                {
-                    WalletId = newExpens.Wallet.WalletId,
-                    UserId = newExpens.Wallet.UserId,
-                    Balance = newExpens.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = newExpens.Wallet.Currency.Id,
-                        CurrencyName = newExpens.Wallet.Currency.CurrencyName,
-                        LiveValue = newExpens.Wallet.Currency.LiveValue,
-                    },
-                },
-                ExpenseTag = newExpens.ExpenseTag == null ? null : new TagResponse
-                {
-                    Id = newExpens.ExpenseTag.Id,
-                    Label = newExpens.ExpenseTag.Label,
-                    OwnerId = newExpens.ExpenseTag.OwnerId,
-                },
+                Date = newExpens.Date,
+                CategoryId = newExpens.CategoryId,
+                WalletId = newExpens.WalletId,
+                ExpenseTagId = newExpens.ExpenseTagId,
             };
         }
         public async Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto)
@@ -207,30 +126,9 @@ namespace SpendWise.Application.Services
                 Amount = expenseDto.Amount,
                 Products = expenseDto.Products,
                 Date = expenseDto.Date,
-                Category = new Category
-                {
-                    CategoryId = expenseDto.Category.CategoryId,
-                    Name = expenseDto.Category.Name,
-                    Priority = expenseDto.Category.Priority,
-                },
-                ExpenseTag = expenseDto.ExpenseTag == null ? null : new Tag
-                {
-                    Id = expenseDto.ExpenseTag.Id,
-                    Label = expenseDto.ExpenseTag.Label,
-                    OwnerId = expenseDto.ExpenseTag.OwnerId,
-                },
-                Wallet = new Wallet
-                {
-                    WalletId = expenseDto.Wallet.WalletId,
-                    UserId = expenseDto.Wallet.UserId,
-                    Balance = expenseDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = expenseDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = expenseDto.Wallet.Currency.CurrencyName,
-                        LiveValue = expenseDto.Wallet.Currency.LiveValue,
-                    },
-                }
+                CategoryId = expenseDto.CategoryId,
+                ExpenseTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
+                WalletId = expenseDto.WalletId,
             };
 
             // 2 - Create a Transaction object to store in the database
@@ -242,10 +140,10 @@ namespace SpendWise.Application.Services
                 Title = "Added Expense",
                 TransactionType = enTransactionType.Dedduction,
                 Amount = expenseDto.Amount,
-                TransactionCategory = updatedExpens.Category,
+                TransactionCategoryId = updatedExpens.CategoryId,
                 TransactionDate = updatedExpens.Date,
-                Wallet = updatedExpens.Wallet,
-                TransactionTag = updatedExpens.ExpenseTag,
+                WalletId = updatedExpens.WalletId,
+                TransactionTagId = updatedExpens.ExpenseTagId,
             };
 
             // 3 - store both the income and the transaction in the database
@@ -258,31 +156,11 @@ namespace SpendWise.Application.Services
                 UserId = updatedExpens.UserId,
                 Title = "Added expense",
                 Amount = updatedExpens.Amount,
+                Date = updatedExpens.Date,
                 Products = updatedExpens.Products,
-                Category = new CategoryResponse
-                {
-                    CategoryId = updatedExpens.Category.CategoryId,
-                    Name = updatedExpens.Category.Name,
-                    Priority = updatedExpens.Category.Priority,
-                },
-                Wallet = new WalletResponse
-                {
-                    WalletId = updatedExpens.Wallet.WalletId,
-                    UserId = updatedExpens.Wallet.UserId,
-                    Balance = updatedExpens.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = updatedExpens.Wallet.Currency.Id,
-                        CurrencyName = updatedExpens.Wallet.Currency.CurrencyName,
-                        LiveValue = updatedExpens.Wallet.Currency.LiveValue,
-                    },
-                },
-                ExpenseTag = updatedExpens.ExpenseTag == null ? null : new TagResponse
-                {
-                    Id = updatedExpens.ExpenseTag.Id,
-                    Label = updatedExpens.ExpenseTag.Label,
-                    OwnerId = updatedExpens.ExpenseTag.OwnerId,
-                },
+                CategoryId = updatedExpens.CategoryId,
+                WalletId = updatedExpens.WalletId,
+                ExpenseTagId = updatedExpens.ExpenseTagId == -1 ? -1 : updatedExpens.ExpenseTagId,
             };
         }
 
