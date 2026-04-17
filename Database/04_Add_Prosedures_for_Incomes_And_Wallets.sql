@@ -52,7 +52,6 @@ CREATE OR ALTER PROCEDURE [Banking].[sp_AddWallet]
     @IsSaved BIT
 AS
 BEGIN
-    SET NOCOUNT ON;
     BEGIN TRY
         BEGIN TRAN; -- Start Data Consistency Lock
         
@@ -93,7 +92,6 @@ CREATE OR ALTER PROCEDURE [Banking].[sp_UpdateWallet]
     @IsSaved BIT 
 AS
 BEGIN
-    SET NOCOUNT ON;
     BEGIN TRY
         BEGIN TRAN; -- Start Data Consistency Lock
         
@@ -134,8 +132,6 @@ CREATE OR ALTER PROCEDURE [Banking].[sp_DeleteWallet]
     @UserId INT
 AS
 BEGIN
-    SET NOCOUNT ON;
-    
     DELETE FROM [Banking].Wallets
     WHERE WalletID = @WalletId AND UserID = @UserId;
     
@@ -219,7 +215,6 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_AddIncomeWithTransaction]
     @DebtId INT = NULL
 AS
 BEGIN
-    SET NOCOUNT ON;
     BEGIN TRY
         -- ==========================================
         -- PRE-FLIGHT SECURITY CHECKS
@@ -261,7 +256,6 @@ BEGIN
     END CATCH
 END
 GO
-
 -- ==========================================
 -- 4. Update Income, Transaction, and Adjust Balance
 -- ==========================================
@@ -284,7 +278,6 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_UpdateIncomeWithTransaction]
     @DebtId INT = NULL
 AS
 BEGIN
-    SET NOCOUNT ON;
     BEGIN TRY
         -- ==========================================
         -- PRE-FLIGHT SECURITY CHECKS
@@ -308,6 +301,7 @@ BEGIN
         FROM [Ledger].Incomes 
         WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
 
+        -- 3. Ensure the Income record actually exists and belongs to the user
         IF @OldAmount IS NULL 
             THROW 50002, 'Income record was not found.', 1;
         
@@ -368,7 +362,6 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_DeleteIncome]
     @UserId INT -- Enforcing IDOR Security
 AS
 BEGIN
-    SET NOCOUNT ON;
     BEGIN TRY
         BEGIN TRAN; 
         
