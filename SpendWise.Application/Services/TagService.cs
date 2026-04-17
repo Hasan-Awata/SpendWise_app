@@ -75,9 +75,9 @@ namespace SpendWise.Application.Services
             };
 
         }
-        public async Task DeleteTagAsync(int tagId)
+        public async Task DeleteTagAsync(int tagId, int userId)
         {
-            await _tagRepo.DeleteTagAsync(tagId);
+            await _tagRepo.DeleteTagAsync(tagId, userId);
         }
     }
 }
