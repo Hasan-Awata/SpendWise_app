@@ -1,0 +1,23 @@
+$kind: http-request
+name: /api/incomes/:incomeId
+url: "{{baseUrl}}/api/incomes/:incomeId"
+method: PATCH
+headers:
+  Content-Type: application/json
+pathVariables:
+  incomeId: "9299"
+body:
+  type: json
+  content: |-
+    {
+      "amount": 8.447251545425373e+307,
+      "date": "1962-01-27T18:52:39.145Z",
+      "title": "string",
+      "userId": 3806,
+      "walletId": 711,
+      "id": 4408,
+      "incomeTagId": 8460,
+      "description": "string"
+    }
+examples: ./.resources/-api-incomes-incomeId-1.resources/examples
+order: 2000

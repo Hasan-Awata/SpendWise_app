@@ -1,13 +1,18 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using SpendWise.Application.DTOs.Income;
+using SpendWise.Application.Interfaces.Authentication;
+using SpendWise.Application.Interfaces.Expenses;
+using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Application.Interfaces.Tags;
+using SpendWise.Application.Interfaces.Users;
+using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Application.Services;
+using SpendWise.Infrastructure.Repositories;
 using System.Text;
 using System.Text.Json.Serialization;
-using SpendWise.Application.Interfaces;
-using SpendWise.Application.Services;
-using SpendWise.Infrastructure.Data;
-using SpendWise.Infrastructure.Repositories;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,13 +42,22 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 
-// ── Database ─────────────────────────────────────────────────────────────
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// ── Dependency Injection ──────────────────────────────────────────────────
+// ── Dependency Injections ──────────────────────────────────────────────────
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<IIncomeService, IncomeService>();
+builder.Services.AddScoped<IIncomeRepository, IncomeRepository>();
+
+builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddScoped<IWalletRepository, WalletRepository>();
+
+builder.Services.AddScoped<ITagService,  TagService>();
+builder.Services.AddScoped<ITagRepository, TagRepository>();
+
+builder.Services.AddScoped<IExpenseService, ExpenseService>();
+builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -65,21 +79,34 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
-                                       Encoding.UTF8.GetBytes(secretKey))
+        Encoding.UTF8.GetBytes(secretKey))
     };
 });
 
 builder.Services.AddAuthorization();
 
+// ── Allowing all requests for testing ────────────────────────────────────────────────────
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
+
+// ── Register Global Exception Handling ─────────────────────────────────────
+builder.Services.AddExceptionHandler<SpendWise.Middlewares.GlobalExceptionHandler>();
+builder.Services.AddProblemDetails(); // Required to standardize the JSON output
 // ─────────────────────────────────────────────────────────────────────────
+
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseCors("AllowAll"); // Delete on actual deployment
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

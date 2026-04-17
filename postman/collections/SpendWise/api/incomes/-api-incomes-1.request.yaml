@@ -1,0 +1,21 @@
+$kind: http-request
+name: /api/incomes
+url: "{{baseUrl}}/api/incomes"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": 8.447251545425373e+307,
+      "date": "1962-01-27T18:52:39.145Z",
+      "title": "string",
+      "userId": 3806,
+      "walletId": 711,
+      "id": 4408,
+      "incomeTagId": 8460,
+      "description": "string"
+    }
+examples: ./.resources/-api-incomes-1.resources/examples
+order: 3000

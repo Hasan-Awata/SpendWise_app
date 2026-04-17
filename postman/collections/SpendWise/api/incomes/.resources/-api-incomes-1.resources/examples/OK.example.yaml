@@ -1,0 +1,30 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/incomes"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  body:
+    type: json
+    content: |-
+      {
+        "amount": 8.447251545425373e+307,
+        "date": "1962-01-27T18:52:39.145Z",
+        "title": "string",
+        "userId": 3806,
+        "walletId": 711,
+        "id": 4408,
+        "incomeTagId": 8460,
+        "description": "string"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000

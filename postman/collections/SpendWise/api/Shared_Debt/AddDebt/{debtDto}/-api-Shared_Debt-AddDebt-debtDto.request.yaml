@@ -1,0 +1,23 @@
+$kind: http-request
+name: /api/Shared_Debt/AddDebt/:debtDto
+url: "{{baseUrl}}/api/Shared_Debt/AddDebt/:debtDto"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: text/plain
+pathVariables:
+  debtDto: string
+body:
+  type: json
+  content: |-
+    {
+      "creditorID": 8048,
+      "debtorID": 1636,
+      "dueDate": "2020-01-09T16:42:31.795Z",
+      "title": "string",
+      "amount": 1.1431448325819525e+307,
+      "status": "string",
+      "createdAt": "1978-06-13T14:05:34.781Z"
+    }
+examples: ./.resources/-api-Shared_Debt-AddDebt-debtDto.resources/examples
+order: 1000

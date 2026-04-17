@@ -1,0 +1,29 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/wallets/:walletId"
+  method: PATCH
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  pathVariables:
+    walletId: "9299"
+  body:
+    type: json
+    content: |-
+      {
+        "currencyId": 3303,
+        "isSaved": false,
+        "userId": 1337,
+        "walletId": 2664,
+        "balance": 1.3412597205326854e+308
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000

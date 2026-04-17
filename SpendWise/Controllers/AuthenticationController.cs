@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SpendWise.Application.Interfaces;
-using SpendWise.Application.Interfaces.DTOs;
+using SpendWise.Application.DTOs.Authentication;
+using SpendWise.Application.Interfaces.Authentication;
 
 namespace SpendWise.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/Authentication")]
     public class AuthenticationController: ControllerBase
     {
         public readonly IAuthService _authService;
@@ -22,7 +22,8 @@ namespace SpendWise.Controllers
 
             var response = await _authService.RegisterAsync(registerDto);
 
-            return CreatedAtAction(nameof(Register), response);
+            //return CreatedAtAction(nameof(Register), null ,response);
+            return Ok(response);
         }
 
         [HttpPost("login")]

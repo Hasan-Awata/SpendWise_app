@@ -26,4 +26,10 @@
     <ProjectReference Include="..\SpendWise.Infrastructure\SpendWise.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+	<None Update="appsettings.Development.json">
+		<DependentUpon>appsettings.json</DependentUpon>
+	</None>
+  </ItemGroup>
+
 </Project>

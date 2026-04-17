@@ -1,0 +1,21 @@
+$kind: http-request
+name: /api/Authentication/login
+url: "{{baseUrl}}/api/Authentication/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "password": "123456",
+      "userName": "Ahmad123"
+    }
+scripts:
+  - type: afterResponse
+    code: "var jsonData = pm.response.json();\r
+
+      pm.collectionVariables.set(\"bearerToken\", jsonData.token);"
+    language: text/javascript
+examples: ./.resources/-api-Authentication-login.resources/examples
+order: 1000

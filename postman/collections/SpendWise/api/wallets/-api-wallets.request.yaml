@@ -1,0 +1,6 @@
+$kind: http-request
+name: /api/wallets
+url: "{{baseUrl}}/api/wallets"
+method: GET
+examples: ./.resources/-api-wallets.resources/examples
+order: 2000

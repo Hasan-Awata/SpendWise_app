@@ -3,9 +3,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using SpendWise.Application.Interfaces;
 using SpendWise.Domain.Entities;
-using SpendWise.Application.Interfaces.DTOs;
+using SpendWise.Application.Interfaces.Users;
+using SpendWise.Application.Interfaces.Authentication;
+using SpendWise.Application.DTOs.Authentication;
 
 namespace SpendWise.Application.Services
 {
@@ -52,6 +53,7 @@ namespace SpendWise.Application.Services
             return new ResponseAuthDto
             {
                 Token = tokenString,
+                UserId = -1,
                 UserName = user.UserName,
                 Expiry = expiry
             };
@@ -65,20 +67,20 @@ namespace SpendWise.Application.Services
 
         public async Task<ResponseAuthDto> RegisterAsync(RegisterDto registerDto)
         {
-            if (await _userRepo.UsernameExistsAsync(registerDto.UserName))
+            if (await _userRepo.IsUsernameExistAsync(registerDto.UserName))
                 throw new InvalidOperationException("This username is already taken.");
 
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
+            var Hashedpassword = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
 
-            var user = new User
-            {
-                UserName = registerDto.UserName,
-                PasswordHash = passwordHash,
-            };
+            var user = new User(registerDto.UserName, Hashedpassword, registerDto.FirstName, registerDto.LastName);
 
-            await _userRepo.AddUserAsync(user);
+            int userId = await _userRepo.AddUserAsync(user);
 
-            return GenerateToken(user);
+            var responseAuth = GenerateToken(user);
+
+            responseAuth.UserId = userId;
+
+            return responseAuth;
         }
 
         public async Task<ResponseAuthDto?> LoginAsync(LoginDto loginDto)
@@ -87,11 +89,15 @@ namespace SpendWise.Application.Services
 
             if (user == null) return null;
 
-            var passwordIsValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash);
+            var passwordIsValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.HashedPassword);
 
             if (!passwordIsValid) return null;
 
-            return GenerateToken(user);
+            var responseAuth = GenerateToken(user);
+
+            responseAuth.UserId = user.Id; 
+            
+            return responseAuth;
         }
     }
 }

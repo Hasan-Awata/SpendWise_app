@@ -1,0 +1,10 @@
+$kind: http-request
+name: /api/Shared_Debt/GetDebtByID/:id
+url: "{{baseUrl}}/api/Shared_Debt/GetDebtByID/:id"
+method: GET
+headers:
+  Accept: text/plain
+pathVariables:
+  id: "9299"
+examples: ./.resources/-api-Shared_Debt-GetDebtByID-id.resources/examples
+order: 1000

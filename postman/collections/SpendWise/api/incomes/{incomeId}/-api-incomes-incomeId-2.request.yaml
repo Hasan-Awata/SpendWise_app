@@ -1,0 +1,8 @@
+$kind: http-request
+name: /api/incomes/:incomeId
+url: "{{baseUrl}}/api/incomes/:incomeId"
+method: DELETE
+pathVariables:
+  incomeId: "9299"
+examples: ./.resources/-api-incomes-incomeId-2.resources/examples
+order: 3000

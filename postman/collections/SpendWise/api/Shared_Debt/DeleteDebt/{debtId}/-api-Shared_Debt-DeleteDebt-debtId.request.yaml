@@ -1,0 +1,10 @@
+$kind: http-request
+name: /api/Shared_Debt/DeleteDebt/:debtId
+url: "{{baseUrl}}/api/Shared_Debt/DeleteDebt/:debtId"
+method: DELETE
+headers:
+  Accept: text/plain
+pathVariables:
+  debtId: "9299"
+examples: ./.resources/-api-Shared_Debt-DeleteDebt-debtId.resources/examples
+order: 1000

@@ -1,0 +1,22 @@
+$kind: http-request
+name: /api/wallets
+url: "{{baseUrl}}/api/wallets"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "currency": {
+        "currencyName": "Syrian Pound",
+        "currencyId": 1,
+        "liveValue": 13500
+      },
+      "isSaved": false,
+      "userId": 15,
+      "walletId": 0,
+      "balance": 100000
+    }
+examples: ./.resources/-api-wallets-1.resources/examples
+order: 3000
