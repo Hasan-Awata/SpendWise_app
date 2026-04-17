@@ -48,7 +48,6 @@ CREATE OR ALTER PROCEDURE [Banking].[sp_AddWallet]
     @Balance DECIMAL(18,2)
 AS
 BEGIN
-    SET NOCOUNT ON;
     BEGIN TRY
         BEGIN TRAN; -- Start Data Consistency Lock
         
@@ -99,7 +98,6 @@ CREATE OR ALTER PROCEDURE [Banking].[sp_UpdateWallet]
     @Balance DECIMAL(18,2)
 AS
 BEGIN
-    SET NOCOUNT ON;
     BEGIN TRY
         BEGIN TRAN; -- Start Data Consistency Lock
         
@@ -147,8 +145,6 @@ CREATE OR ALTER PROCEDURE [Banking].[sp_DeleteWallet]
     @WalletId INT
 AS
 BEGIN
-    SET NOCOUNT ON;
-    
     DELETE FROM [Banking].Wallets
     WHERE WalletID = @WalletId;
     
@@ -168,7 +164,7 @@ BEGIN
     
     SELECT 
         i.IncomeID, i.UserID AS IncomeUserID, i.Amount AS IncomeAmount, i.Date AS IncomeDate,
-        iw.WalletID AS IncomeWalletID, iw.Balance AS IncomeWalletBalance,
+        iw.WalletID AS IncomeWalletID, iw.Balance AS IncomeWalletBalance, iw.IsSaved AS IsSavedWallet,
         it.TagID AS IncomeTagID, it.Name AS IncomeTagName,
         
         tr.TransactionID, tr.UserID AS TransUserID, tr.Title, tr.Description, 
@@ -176,16 +172,14 @@ BEGIN
         tr.GoalID, tr.FixedExpenseID, tr.FixedIncomeID, tr.DebtID,
         
         tw.WalletID AS TransWalletID, tw.Balance AS TransWalletBalance,
-        tc.CategoryID, tc.Name AS CategoryName, tc.Priority AS CategoryPriority,
         tt.TagID AS TransTagID, tt.Name AS TransTagName
 
-    FROM [Ledger].Incomes i
+    FROM [Ledger].[Incomes] i
     INNER JOIN [Banking].Wallets iw ON i.WalletID = iw.WalletID
     LEFT JOIN [Config].Tags it ON i.TagID = it.TagID
     
     LEFT JOIN [Ledger].Transactions tr ON tr.IncomeID = i.IncomeID
     LEFT JOIN [Banking].Wallets tw ON tr.WalletID = tw.WalletID
-    LEFT JOIN [Config].Categories tc ON tr.CategoryID = tc.CategoryID
     LEFT JOIN [Config].Tags tt ON tr.TagID = tt.TagID
     
     WHERE i.IncomeID = @IncomeId AND i.UserID = @UserId;
@@ -208,12 +202,25 @@ BEGIN
     WHERE UserID = @UserId;
 
     SELECT 
-        i.IncomeID, i.UserID, i.Amount, i.Date,
-        w.WalletID, w.Balance,
-        t.TagID, t.Name AS TagName
-    FROM [Ledger].Incomes i
-    INNER JOIN [Banking].Wallets w ON i.WalletID = w.WalletID
-    LEFT JOIN [Config].Tags t ON i.TagID = t.TagID
+        i.IncomeID, i.UserID AS IncomeUserID, i.Amount AS IncomeAmount, i.Date AS IncomeDate,
+        iw.WalletID AS IncomeWalletID, iw.Balance AS IncomeWalletBalance, iw.IsSaved AS IsSavedWallet,
+        it.TagID AS IncomeTagID, it.Name AS IncomeTagName,
+        
+        tr.TransactionID, tr.UserID AS TransUserID, tr.Title, tr.Description, 
+        tr.Amount AS TransAmount, tr.TransactionDate, tr.TransactionType,
+        tr.GoalID, tr.FixedExpenseID, tr.FixedIncomeID, tr.DebtID,
+        
+        tw.WalletID AS TransWalletID, tw.Balance AS TransWalletBalance,
+        tt.TagID AS TransTagID, tt.Name AS TransTagName
+
+    FROM [Ledger].[Incomes] i
+    INNER JOIN [Banking].Wallets iw ON i.WalletID = iw.WalletID
+    LEFT JOIN [Config].Tags it ON i.TagID = it.TagID
+    
+    LEFT JOIN [Ledger].Transactions tr ON tr.IncomeID = i.IncomeID
+    LEFT JOIN [Banking].Wallets tw ON tr.WalletID = tw.WalletID
+    LEFT JOIN [Config].Tags tt ON tr.TagID = tt.TagID
+    
     WHERE i.UserID = @UserId
     ORDER BY i.Date DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
@@ -242,8 +249,22 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_AddIncomeWithTransaction]
     @DebtId INT = NULL
 AS
 BEGIN
-    SET NOCOUNT ON;
     BEGIN TRY
+        -- ==========================================
+        -- PRE-FLIGHT SECURITY CHECKS
+        -- ==========================================
+        -- 1. Check if Wallet Exists AT ALL
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId)
+        BEGIN
+            THROW 50001, 'Wallet not found.', 1;
+        END
+
+        -- 2. Check if the Wallet belongs to THIS User
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId)
+        BEGIN
+            THROW 50003, 'Access denied. You do not own this wallet.', 1;
+        END
+
         BEGIN TRAN; 
         
         DECLARE @NewIncomeID INT;
@@ -261,15 +282,10 @@ BEGIN
         (@IncomeUserId, @IncomeWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewIncomeID, @TransTitle, @IncomeAmount, @IncomeDate, @TransType, @TransDescription);
 
         -- 3. UPDATE WALLET BALANCE (Increase)
+        -- We no longer need the @@ROWCOUNT check here because we validated it at the top
         UPDATE [Banking].Wallets
         SET Balance = Balance + @IncomeAmount
         WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
-
-        -- Security Check: Ensure the wallet actually updated
-        IF @@ROWCOUNT = 0
-        BEGIN
-            THROW 50001, 'Wallet not found or access denied.', 1;
-        END
 
         COMMIT TRAN; 
         SELECT @NewIncomeID;
@@ -280,7 +296,6 @@ BEGIN
     END CATCH
 END
 GO
-
 -- ==========================================
 -- 2. Update Income, Transaction, and Adjust Balance
 -- ==========================================
@@ -303,8 +318,23 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_UpdateIncomeWithTransaction]
     @DebtId INT = NULL
 AS
 BEGIN
-    SET NOCOUNT ON;
     BEGIN TRY
+        -- ==========================================
+        -- PRE-FLIGHT SECURITY CHECKS
+        -- ==========================================
+        -- 1. Check if the target Wallet Exists AT ALL
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId)
+        BEGIN
+            THROW 50001, 'Wallet not found.', 1;
+        END
+
+        -- 2. Check if the target Wallet belongs to THIS User
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId)
+        BEGIN
+            THROW 50003, 'Access denied. You do not own this wallet.', 1;
+        END
+
+        -- If security checks pass, start the transaction
         BEGIN TRAN; 
 
         -- 1. Capture the OLD amount and wallet before modifying
@@ -315,8 +345,9 @@ BEGIN
         FROM [Ledger].Incomes 
         WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
 
+        -- 3. Ensure the Income record actually exists and belongs to the user
         IF @OldAmount IS NULL 
-            THROW 50002, 'Income record not found.', 1;
+            THROW 50002, 'Income record was not found.', 1;
         
         -- 2. Update Income
         UPDATE [Ledger].Incomes
@@ -379,7 +410,6 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_DeleteIncome]
     @IncomeId INT
 AS
 BEGIN
-    SET NOCOUNT ON;
     BEGIN TRY
         BEGIN TRAN; 
         
