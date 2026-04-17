@@ -60,7 +60,6 @@ class ExpensesListController extends GetxController {
 
     isLoading.value = true;
 
-    // عملية المزامنة في الخلفية
     syncExpenseUsecase.call().then((result) {
       result.fold(
         (l) => debugPrint("Background Sync Failed: ${l.message}"),
@@ -91,7 +90,7 @@ class ExpensesListController extends GetxController {
     await calculateTotals(); // تحديث الحسابات بعد جلب البيانات
   }
 
-  // الدالة الأساسية لحساب الإحصائيات
+  // في ExpensesListController
   Future<void> calculateTotals() async {
     final result = await getAllLocalExpensesUsecase.call();
     result.fold(
@@ -99,21 +98,23 @@ class ExpensesListController extends GetxController {
         monthlyExpenseTotal.value = 0.0;
         allTimeExpenseTotal.value = 0.0;
       },
-      (all) {
-        // 1. حساب الإجمالي الكلي لجميع المصاريف (بدون قيد زمني)
-        allTimeExpenseTotal.value = all.fold<double>(
-          0.0,
-          (sum, item) => sum + item.amount,
-        );
+      (allLocalExpense) {
+        // استخدام القيم الحالية في الـ Observable مباشرة
+        final targetYear = dashboardMonth.value.year;
+        final targetMonth = dashboardMonth.value.month;
 
-        // 2. حساب مصاريف الشهر المختار فقط
-        monthlyExpenseTotal.value = all
-            .where(
-              (e) =>
-                  e.date.year == dashboardMonth.value.year &&
-                  e.date.month == dashboardMonth.value.month,
-            )
-            .fold<double>(0.0, (sum, item) => sum + item.amount);
+        double allTime = 0.0;
+        double monthly = 0.0;
+
+        for (var item in allLocalExpense) {
+          allTime += item.amount;
+          if (item.date.year == targetYear && item.date.month == targetMonth) {
+            monthly += item.amount;
+          }
+        }
+
+        allTimeExpenseTotal.value = allTime;
+        monthlyExpenseTotal.value = monthly;
       },
     );
   }
@@ -122,5 +123,11 @@ class ExpensesListController extends GetxController {
   void changeDashboardMonth(DateTime newDate) {
     dashboardMonth.value = newDate;
     calculateTotals();
+  }
+
+  @override
+  void onClose() {
+    scrollController.dispose();
+    super.onClose();
   }
 }

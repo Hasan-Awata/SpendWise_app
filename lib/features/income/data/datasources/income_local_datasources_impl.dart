@@ -29,6 +29,7 @@ class IncomeLocalDataSourceImpl implements IncomeLocalDataSource {
     }
   }
 
+  // // تعليق: إضافة سجل دخل جديد إلى القائمة المحلية في بداية الذاكرة التخزينية
   @override
   Future<void> addIncome(IncomeModel income) async {
     List<IncomeModel> incomes = await getIncomes();
@@ -46,26 +47,21 @@ class IncomeLocalDataSourceImpl implements IncomeLocalDataSource {
   Future<void> deleteIncome(IncomeModel income) async {
     List<IncomeModel> incomes = await getIncomes();
 
-    IncomeModel? newincome = incomes.firstWhereOrNull(
-      (element) => element.localId == income.localId,
-    );
-    if (newincome != null) {
-      newincome.localId = "REMOVE";
-    }
+    incomes.removeWhere((element) => element.localId == income.localId);
+
+    await saveIncomes(incomes);
   }
 
   @override
   Future<void> updateIncome(IncomeModel income) async {
     List<IncomeModel> incomes = await getIncomes();
 
-    try {
-      int index = incomes.indexWhere((w) => w.localId == income.localId);
-      if (index != -1) {
-        incomes[index] = income;
-      }
+    int index = incomes.indexWhere((w) => w.localId == income.localId);
+    if (index != -1) {
+      incomes[index] = income;
       await _box.put(_incomeKey, incomes);
-    } on Exception catch (_) {
-      rethrow;
+    } else {
+      throw Exception('السجل غير موجود في التخزين المحلي');
     }
   }
 

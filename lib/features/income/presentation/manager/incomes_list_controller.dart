@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
+import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
 import 'package:spendwise/features/income/domain/usecases/get_all_local_incomes_usecase.dart';
@@ -133,7 +134,10 @@ class IncomesListController extends GetxController {
 
     if (picked != null) {
       dashboardMonth.value = DateTime(picked.year, picked.month, 1);
-      await calculateTotals(); // إعادة الحساب بناءً على الشهر الجديد
+      Get.find<ExpensesListController>().dashboardMonth.value =
+          dashboardMonth.value;
+      Get.find<ExpensesListController>().calculateTotals();
+      await calculateTotals();
     }
   }
 

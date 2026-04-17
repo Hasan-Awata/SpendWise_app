@@ -5,7 +5,7 @@ import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
 
-class BalanceCard extends GetView<IncomesListController> {
+class BalanceCard extends StatelessWidget {
   const BalanceCard({super.key});
 
   String _fmtMoney(double amount) {
@@ -15,21 +15,21 @@ class BalanceCard extends GetView<IncomesListController> {
   @override
   Widget build(BuildContext context) {
     final expensesController = Get.find<ExpensesListController>();
-
+    final incomesListController = Get.find<IncomesListController>();
     return Obx(() {
       // منطق الحساب التراكمي: (كل الدخل - كل المصاريف)
       final grandTotalBalance =
-          controller.allTimeIncomeTotal.value -
+          incomesListController.allTimeIncomeTotal.value -
           expensesController.allTimeExpenseTotal.value;
 
       // إحصائيات الشهر المختار فقط
-      final incomeMonth = controller.monthlyIncomeTotal.value;
+      final incomeMonth = incomesListController.monthlyIncomeTotal.value;
       final expenseMonth = expensesController.monthlyExpenseTotal.value;
 
       final monthLabel = DateFormat(
         'MMMM yyyy',
         'ar',
-      ).format(controller.dashboardMonth.value);
+      ).format(incomesListController.dashboardMonth.value);
 
       return Container(
         width: double.infinity,
@@ -69,7 +69,9 @@ class BalanceCard extends GetView<IncomesListController> {
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () => controller.pickDashboardMonth(context),
+                    onTap: () =>
+                        incomesListController.pickDashboardMonth(context),
+
                     borderRadius: BorderRadius.circular(20),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(

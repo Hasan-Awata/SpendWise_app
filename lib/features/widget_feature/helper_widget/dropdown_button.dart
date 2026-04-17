@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 
+// // تحسين: تم فصل المنطق البصري عن منطق البيانات لضمان سلاسة الأداء واستخدام الـ Overlay لظهور القائمة فوق العناصر الأخرى
 class SPDropdownButton extends StatefulWidget {
   final TextEditingController? textEditingController;
   final Color textColor;
@@ -12,7 +13,6 @@ class SPDropdownButton extends StatefulWidget {
   final Widget? suffixIcon;
   final bool isTextField;
   final List<String> values;
-
   final dynamic Function(String)? onChanged;
   final Function(int index, String value)? onSelected;
   final int? selectedIndex;
@@ -36,26 +36,40 @@ class SPDropdownButton extends StatefulWidget {
   State<SPDropdownButton> createState() => _SPDropdownButtonState();
 }
 
-class _SPDropdownButtonState extends State<SPDropdownButton> {
-  bool show = false;
-  String selectedtext = "";
+class _SPDropdownButtonState extends State<SPDropdownButton>
+    with SingleTickerProviderStateMixin {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  bool _isOpen = false;
+  late List<String> _filteredValues;
+  String _selectedText = "";
 
-  // // تعليق: قائمة داخلية لإدارة العناصر المفلترة أثناء البحث
-  List<String> filteredValues = [];
+  // // Logic: استخدام AnimationController لإضافة حركة ناعمة عند ظهور واختفاء القائمة
+  late AnimationController _animationController;
+  late Animation<double> _expandAnimation;
 
   @override
   void initState() {
     super.initState();
-    // تهيئة القائمة المفلترة بكافة القيم عند البداية
-    filteredValues = widget.values;
+    _filteredValues = widget.values;
+    _setupInitialSelection();
 
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _expandAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _setupInitialSelection() {
     if (widget.selectedIndex != null &&
         widget.selectedIndex! < widget.values.length) {
-      selectedtext = widget.values[widget.selectedIndex!];
-    } else if (widget.values.isNotEmpty) {
-      selectedtext = widget.values[0];
+      _selectedText = widget.values[widget.selectedIndex!];
     } else {
-      selectedtext = widget.hint;
+      _selectedText = widget.hint;
     }
   }
 
@@ -63,143 +77,198 @@ class _SPDropdownButtonState extends State<SPDropdownButton> {
   void didUpdateWidget(SPDropdownButton oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.values, widget.values)) {
-      final q = widget.textEditingController?.text ?? '';
-      setState(() {
-        if (q.isEmpty) {
-          filteredValues = List<String>.from(widget.values);
-        } else {
-          filteredValues = widget.values
-              .where((item) => item.toLowerCase().startsWith(q.toLowerCase()))
-              .toList();
-        }
-      });
+      _filteredValues = widget.values;
     }
   }
 
-  // // Logic: تعديل دالة الفلترة لتبحث عن العناصر التي تبدأ بالأحرف المُدخلة فقط
-  void _filterList(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        filteredValues = widget.values;
-      } else {
-        filteredValues = widget.values
-            .where((item) => item.toLowerCase().startsWith(query.toLowerCase()))
-            .toList();
-      }
-      // إظهار القائمة تلقائياً عند البدء بالكتابة لتسهيل الاختيار
-      show = true;
+  // // Logic: إدارة الـ Overlay لإظهار القائمة بشكل عائم لا يؤثر على تصميم الصفحة
+  void _toggleDropdown() {
+    if (_isOpen) {
+      _closeDropdown();
+    } else {
+      _openDropdown();
+    }
+  }
+
+  void _openDropdown() {
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() => _isOpen = true);
+    _animationController.forward();
+  }
+
+  void _closeDropdown() {
+    _animationController.reverse().then((value) {
+      _overlayEntry?.remove();
+      _overlayEntry = null;
+      if (mounted) setState(() => _isOpen = false);
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return TapRegion(
-      onTapOutside: (event) {
-        if (show) setState(() => show = false);
-      },
-      child: Column(
-        children: [
-          widget.isTextField
-              ? CustomTextField(
-                  textColor: widget.textColor,
-                  label: widget.title,
-                  hint: widget.hint,
-                  textEditingController: widget.textEditingController,
-                  onTap: () => setState(() => show = !show),
-                  prefixIcon: widget.prefixIcon,
-                  suffixIcon: widget.suffixIcon,
-                  onChanged: (val) {
-                    // تنفيذ الفلترة الداخلية
-                    _filterList(val);
-                    // تنفيذ الـ onChanged الخارجي إذا وُجد
-                    if (widget.onChanged != null) widget.onChanged!(val);
-                  },
-                )
-              : GestureDetector(
-                  onTap: () => setState(() => show = !show),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      color: SpColor.surfaceNavy,
-                    ),
-                    child: Row(
-                      children: [
-                        widget.prefixIcon ?? const SizedBox(),
-                        const SizedBox(width: 30),
-                        Expanded(
-                          child: Text(
-                            selectedtext,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: SpColor.offWhite,
-                              fontSize: 17,
-                            ),
-                          ),
-                        ),
-                        widget.suffixIcon ?? const SizedBox(),
-                      ],
-                    ),
-                  ),
+  void _filterList(String query) {
+    setState(() {
+      _filteredValues = widget.values
+          .where((item) => item.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+      if (!_isOpen && _filteredValues.isNotEmpty) _openDropdown();
+    });
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    RenderBox renderBox = context.findRenderObject() as RenderBox;
+    var size = renderBox.size;
+
+    return OverlayEntry(
+      builder: (context) => Positioned(
+        width: size.width,
+        child: CompositedTransformFollower(
+          link: _layerLink,
+          showWhenUnlinked: false,
+          offset: Offset(0, size.height + 5),
+          child: SizeTransition(
+            sizeFactor: _expandAnimation,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(15),
+              clipBehavior: Clip.hardEdge,
+              color: SpColor.surfaceNavy,
+              child: Container(
+                constraints: const BoxConstraints(maxHeight: 250),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: widget.textColor.withOpacity(0.3)),
                 ),
-          const SizedBox(height: 7),
-
-          AnimatedSize(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: SizedBox(
-              // // Logic: تحديد الارتفاع بناءً على نتائج البحث (filteredValues)
-              height: show ? (filteredValues.length > 5 ? 200 : null) : 0,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: ListView.builder(
-                  shrinkWrap: true,
+                child: ListView.separated(
                   padding: EdgeInsets.zero,
-                  itemCount: filteredValues.length,
+                  shrinkWrap: true,
+                  itemCount: _filteredValues.length,
+                  separatorBuilder: (context, index) =>
+                      Divider(color: Colors.white.withOpacity(0.05), height: 1),
                   itemBuilder: (context, index) {
-                    String itemKey = filteredValues[index];
-                    return Material(
-                      color: SpColor.surfaceNavy,
-                      child: InkWell(
-                        onTap: () {
-                          widget.textEditingController?.text = itemKey;
-
-                          int originalIndex = widget.values.indexOf(itemKey);
-                          setState(() {
-                            selectedtext = itemKey;
-                            show = false;
-                            // إعادة القائمة لحالتها الكاملة بعد الاختيار
-                            filteredValues = widget.values;
-                          });
-
-                          if (widget.onSelected != null) {
-                            widget.onSelected!(originalIndex, itemKey);
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          width: double.infinity,
-                          child: Text(
-                            itemKey,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                            ),
-                          ),
+                    return ListTile(
+                      title: Text(
+                        _filteredValues[index],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
                         ),
                       ),
+                      onTap: () => _onItemSelect(_filteredValues[index]),
+                      hoverColor: SpColor.accentBlue.withOpacity(0.1),
                     );
                   },
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
+  }
+
+  void _onItemSelect(String value) {
+    widget.textEditingController?.text = value;
+    int originalIndex = widget.values.indexOf(value);
+    setState(() {
+      _selectedText = value;
+      _filteredValues = widget.values;
+    });
+    _closeDropdown();
+    if (widget.onSelected != null) widget.onSelected!(originalIndex, value);
+    FocusScope.of(context).unfocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: TapRegion(
+        onTapOutside: (event) => _closeDropdown(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            widget.isTextField
+                ? CustomTextField(
+                    textColor: widget.textColor,
+                    label: widget.title,
+                    hint: widget.hint,
+                    textEditingController: widget.textEditingController,
+                    onTap: _toggleDropdown,
+                    prefixIcon: widget.prefixIcon,
+                    suffixIcon: AnimatedRotation(
+                      turns: _isOpen ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child:
+                          widget.suffixIcon ??
+                          const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.white,
+                          ),
+                    ),
+                    onChanged: (val) {
+                      _filterList(val);
+                      if (widget.onChanged != null) widget.onChanged!(val);
+                    },
+                  )
+                : _buildStaticSelector(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // // Logic: بناء شكل مخصص للاختيار في حال لم يكن حقل نصي، مع إضافة تأثيرات بصرية عند الضغط
+  Widget _buildStaticSelector() {
+    return InkWell(
+      onTap: _toggleDropdown,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: SpColor.surfaceNavy,
+          border: Border.all(
+            color: _isOpen ? SpColor.accentBlue : Colors.transparent,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            if (widget.prefixIcon != null) ...[
+              widget.prefixIcon!,
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Text(
+                _selectedText,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: SpColor.offWhite,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            AnimatedRotation(
+              turns: _isOpen ? 0.5 : 0,
+              duration: const Duration(milliseconds: 200),
+              child:
+                  widget.suffixIcon ??
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: SpColor.offWhite,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _overlayEntry?.remove();
+    super.dispose();
   }
 }

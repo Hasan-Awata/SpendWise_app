@@ -1,4 +1,3 @@
-// // تعليق: إضافة دخل — منفصل عن القائمة والتعديل والحذف
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/current_user.dart';
@@ -35,17 +34,18 @@ class AddIncomeController extends GetxController {
   final walletTextController = TextEditingController();
   final tagTextController = TextEditingController();
 
-  final Rxn<WalletModel> selectedWallet = Rxn<WalletModel>();
-  final Rxn<TagModel> selectedTag = Rxn<TagModel>();
-  final Rx<DateTime> selectedDate = DateTime.now().obs;
-
-  final RxBool isLoadingSave = false.obs;
-
-  int? userId = AppUserLocalDatasourceImpl().currentUserId;
+  final selectedWallet = Rxn<WalletModel>();
+  final selectedTag = Rxn<TagModel>();
+  final selectedDate = DateTime.now().obs;
+  final isLoadingSave = false.obs;
 
   @override
   void onInit() {
     super.onInit();
+    _loadInitialData();
+  }
+
+  void _loadInitialData() {
     walletsListController.loadWallets();
     tagController.loadTags();
   }
@@ -53,67 +53,82 @@ class AddIncomeController extends GetxController {
   Future<void> saveIncome() async {
     if (!_isInputValid()) return;
 
-    isLoadingSave.value = true;
+    try {
+      isLoadingSave.value = true;
 
-    final String tagName = tagTextController.text.trim();
-    var foundTag = tagController.myTags.firstWhereOrNull(
-      (t) => t.name == tagName,
-    );
+      print("selected wallet ${selectedWallet.value.toString()}");
 
-    if (foundTag == null && tagName.isNotEmpty) {
-      tagActionController.nameController.text = tagName;
-      await tagActionController.addTag();
-      foundTag = tagController.myTags.firstWhereOrNull(
-        (t) => t.name == tagName,
+      final TagModel? finalTag = await _handleTagSelection();
+
+      final incomeData = IncomeModel(
+        userId:
+            AppUserLocalDatasourceImpl().currentUserId ??
+            CurrentUser.user!.userId,
+        wallet: selectedWallet.value!,
+        tag: finalTag,
+        description: descriptionController.text.trim(),
+        date: selectedDate.value,
+        title: sourceController.text.trim().isEmpty
+            ? "Untitled Income"
+            : sourceController.text.trim(),
+        amount: double.parse(amountController.text.trim()),
       );
-      print(foundTag.toString());
+
+      final result = await addIncomeUseCase.call(incomeData);
+
+      result.fold(
+        (failure) {
+          _handleError("فشل الحفظ", failure.message);
+        },
+        (savedIncome) {
+          _onSaveSuccess(savedIncome);
+        },
+      );
+    } catch (e) {
+      _handleError("خطأ تقني", e.toString());
+    } finally {
+      isLoadingSave.value = false;
     }
+  }
 
-    final incomeData = IncomeModel(
-      userId: userId,
-      wallet: selectedWallet.value!,
-      tag: foundTag,
-      description: descriptionController.text.trim(),
-      date: selectedDate.value,
-      title: sourceController.text.isEmpty
-          ? "Untitled Income"
-          : sourceController.text.trim(),
-      amount: double.tryParse(amountController.text.trim()) ?? 0.0,
+  Future<TagModel?> _handleTagSelection() async {
+    final String tagName = tagTextController.text.trim();
+    if (tagName.isEmpty) return null;
+
+    final existingTag = tagController.myTags.firstWhereOrNull(
+      (t) => t.name.toLowerCase() == tagName.toLowerCase(),
     );
+    if (existingTag != null) return existingTag;
 
-    final result = await addIncomeUseCase.call(incomeData);
+    tagActionController.nameController.text = tagName;
+    await tagActionController.addTag();
 
-    result.fold((failure) => _handleError("فشل الحفظ", failure.message), (_) {
-      incomesListController.incomesList.insert(0, incomeData);
-      incomesListController.calculateTotals();
-      HelperFunction.showSnackBar("تم بنجاح", "تمت إضافة الدخل الجديد");
-      resetFields();
-    });
-    isLoadingSave.value = false;
+    await tagController.loadTags();
+    return tagController.myTags.firstWhereOrNull(
+      (t) => t.name.toLowerCase() == tagName.toLowerCase(),
+    );
+  }
+
+  void _onSaveSuccess(IncomeModel savedIncome) {
+    incomesListController.incomesList.insert(0, savedIncome);
+    incomesListController.calculateTotals();
+    HelperFunction.showSnackBar("تم بنجاح", "تمت إضافة الدخل الجديد");
+
+    resetFields();
   }
 
   bool _isInputValid() {
-    final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
-    if (amount <= 0) {
-      _handleError("خطأ في التحقق", "يرجى إدخال مبلغ صحيح");
+    final amountText = amountController.text.trim();
+    if (amountText.isEmpty || (double.tryParse(amountText) ?? 0.0) <= 0) {
+      _handleError("خطأ في التحقق", "يرجى إدخال مبلغ صحيح أكبر من صفر");
       return false;
     }
 
-    // final walletName = walletTextController.text.trim();
-    // selectedWallet.value = walletsListController.wallets.firstWhereOrNull(
-    //   (w) =>
-    //       "${w.currency.currencyName}      (${w.currency.code} ${w.balance})"
-    //           .trim() ==
-    //       walletName,
-    // );
-    if (userId == null) {
-      _handleError("Faild", "No User id");
-      return false;
-    }
     if (selectedWallet.value == null) {
-      _handleError("خطأ في التحقق", "يرجى اختيار محفظة صحيحة");
+      _handleError("خطأ في التحقق", "يرجى اختيار محفظة");
       return false;
     }
+
     return true;
   }
 

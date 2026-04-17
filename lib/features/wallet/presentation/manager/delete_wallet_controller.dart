@@ -48,6 +48,7 @@ class DeleteWalletController extends GetxController {
     } catch (e) {
       HelperFunction.showSnackBar("خطأ", "حدث خطأ غير متوقع", isError: true);
     } finally {
+      Get.back();
       isDeleting.value = false;
     }
   }

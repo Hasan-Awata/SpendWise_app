@@ -24,19 +24,42 @@ class TagActionController extends GetxController {
   var isActionLoading = false.obs;
 
   int? get userId => AppUserLocalDatasourceImpl().currentUserId;
+
+  // // تعليق: إضافة وسم جديد مع التحقق من عدم تكرار الاسم وضمان إدخال بيانات صحيحة
   Future<void> addTag() async {
     final name = nameController.text.trim();
-    if (name.isEmpty) return;
 
-    print("Step 1: Start addTag with name: $name"); // للتأكد من بدء الدالة
+    // 1. التحقق من أن الحقل ليس فارغاً
+    if (name.isEmpty) {
+      HelperFunction.showSnackBar(
+        "تنبيه",
+        "يرجى إدخال اسم الوسم أولاً",
+        isError: true,
+      );
+      return;
+    }
 
-    final currentUid = AppUserLocalDatasourceImpl().currentUserId;
-    print("Step 2: UserID retrieved: $currentUid");
+    // 2. التحقق من عدم تكرار الاسم في القائمة الحالية (Case-insensitive)
+    if (Get.isRegistered<TagViewController>()) {
+      final isDuplicate = Get.find<TagViewController>().myTags.any(
+        (tag) => tag.name.trim().toLowerCase() == name.toLowerCase(),
+      );
 
+      if (isDuplicate) {
+        HelperFunction.showSnackBar(
+          "تنبيه",
+          "هذا الوسم موجود بالفعل، يرجى اختيار اسم آخر",
+          isError: true,
+        );
+        return;
+      }
+    }
+
+    final currentUid = userId; // استخدام الـ getter المعرف مسبقاً
     if (currentUid == null || currentUid == 0) {
       HelperFunction.showSnackBar(
         "تنبيه",
-        "فشل الوصول لمعرف المستخدم",
+        "فشل الوصول لمعرف المستخدم، يرجى إعادة تسجيل الدخول",
         isError: true,
       );
       return;
@@ -46,24 +69,20 @@ class TagActionController extends GetxController {
       isActionLoading.value = true;
       final newTag = TagModel(userId: currentUid, name: name, isSynced: false);
 
-      print("Step 3: Calling Usecase...");
       final result = await addTagUsecase
           .call(newTag)
           .timeout(
-            const Duration(seconds: 10), // إضافة مهلة زمنية لمنع التعليق
-            onTimeout: () => throw "Request Timeout",
+            const Duration(seconds: 10),
+            onTimeout: () => throw "انتهت مهلة الطلب، يرجى المحاولة لاحقاً",
           );
-
-      print("Step 4: Result received");
 
       result.fold(
         (failure) {
-          print("Step 5: Failure - ${failure.message}");
           HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
         },
         (success) {
-          print("Step 5: Success");
           nameController.clear();
+          // تحديث القائمة فوراً عند النجاح
           if (Get.isRegistered<TagViewController>()) {
             Get.find<TagViewController>().loadTags(isRefresh: true);
           }
@@ -71,11 +90,9 @@ class TagActionController extends GetxController {
         },
       );
     } catch (e) {
-      print("Step 6: Exception caught - $e");
       HelperFunction.showSnackBar("خطأ", "حدث خطأ: $e", isError: true);
     } finally {
       isActionLoading.value = false;
-      print("Step 7: Loading finished");
     }
   }
 

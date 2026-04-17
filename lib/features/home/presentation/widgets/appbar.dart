@@ -47,6 +47,7 @@ class SPAppbar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.notifications_outlined),
           onPressed: () async {
             final user = await AppUserLocalDatasourceImpl().getUser();
+
             if (user == null) {
               Get.snackbar(
                 'No Local User',
@@ -55,7 +56,7 @@ class SPAppbar extends StatelessWidget implements PreferredSizeWidget {
               );
               return;
             }
-
+            print(user.token);
             Get.defaultDialog(
               title: 'Local User Info',
               titleStyle: const TextStyle(color: SpColor.offWhite),

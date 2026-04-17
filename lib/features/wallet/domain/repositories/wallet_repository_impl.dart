@@ -1,5 +1,4 @@
 import 'package:dartz/dartz.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:spendwise/core/error/failure.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
@@ -8,8 +7,8 @@ import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasour
 import 'package:spendwise/features/wallet/data/datasources/wallet_remote_datasource.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 import 'package:spendwise/features/wallet/data/repositories/wallet_repository.dart';
-import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 
+// // تعليق: مستودع المحافظ المطور - يتبنى ميزة الترتيب العكسي للأحدث أولاً مع الحفاظ على منطق المزامنة القوي
 class WalletRepositoryImpl implements WalletRepository {
   final WalletRemoteDatasource remoteDatasource;
   final WalletLocalDatasource localDatasource;
@@ -20,21 +19,24 @@ class WalletRepositoryImpl implements WalletRepository {
   });
 
   @override
-  Future<Either<Failure, Unit>> addWallet(WalletEntity wallet) async {
-    final model = wallet as WalletModel;
+  Future<Either<Failure, String?>> addWallet(WalletModel wallet) async {
     try {
-      model.isSynced = false;
-      await localDatasource.addWaletLocal(model);
-
-      _safeRemoteCall(() async {
-        final walletServer = await remoteDatasource.addWalet(model);
-        walletServer.isSynced = true;
-        await localDatasource.updateWallet(walletServer);
-      });
-
-      return const Right(unit);
+      wallet.isSynced = false;
+      await localDatasource.addWaletLocal(wallet);
+      try {
+        final newWalletFromServer = await remoteDatasource.addWalet(wallet);
+        print("محفظ ة     ${newWalletFromServer.toString()}");
+        if (newWalletFromServer != null) {
+          newWalletFromServer.isSynced = true;
+          await localDatasource.addWaletLocal(newWalletFromServer);
+          return const Right("تمت العملية بنجاح");
+        }
+        return const Right("تم الحفظ محلياً");
+      } catch (e) {
+        return const Right("تم الحفظ محلياً");
+      }
     } catch (e) {
-      return Left(CacheFailure("فشل الحفظ المحلي للمحفظة"));
+      return Left(CacheFailure("فشل الحفظ المحلي"));
     }
   }
 
@@ -44,7 +46,6 @@ class WalletRepositoryImpl implements WalletRepository {
   ) async {
     try {
       final remoteResponse = await remoteDatasource.getMyWallet(page);
-
       for (var model in remoteResponse.data) {
         model.isSynced = true;
         await localDatasource.addWaletLocal(model);
@@ -56,21 +57,50 @@ class WalletRepositoryImpl implements WalletRepository {
     }
   }
 
-  @override
-  Future<Either<Failure, Unit>> updateWallet(WalletModel wallet) async {
+  Future<Either<Failure, PagedResponse<WalletModel>>> _getLocalPagedWallet(
+    PageRequest page,
+  ) async {
     try {
-      wallet.isSynced = false;
-      await localDatasource.updateWallet(wallet);
+      final all = await localDatasource.myWallets();
 
-      _safeRemoteCall(() async {
-        await remoteDatasource.updateWallet(wallet);
-        wallet.isSynced = true;
-        await localDatasource.updateWallet(wallet);
-      });
+      // ميزة Wallet: فلترة المحذوفات
+      final filtered = all.where((w) => w.localId != "REMOVE").toList();
 
-      return const Right(unit);
+      // ميزة Tag: الترتيب للأحدث أولاً
+      final reversedAll = filtered.reversed.toList();
+
+      final start = (page.pageNumber - 1) * page.pageSize;
+      final totalPages = (reversedAll.length / page.pageSize).ceil();
+
+      if (start >= reversedAll.length) {
+        return Right(
+          PagedResponse(
+            data: [],
+            totalRecords: reversedAll.length,
+            pageNumber: page.pageNumber,
+            pageSize: page.pageSize,
+            totalPages: totalPages,
+          ),
+        );
+      }
+
+      final end = start + page.pageSize;
+      final sliced = reversedAll.sublist(
+        start,
+        end > reversedAll.length ? reversedAll.length : end,
+      );
+
+      return Right(
+        PagedResponse(
+          data: sliced,
+          totalRecords: reversedAll.length,
+          pageNumber: page.pageNumber,
+          pageSize: page.pageSize,
+          totalPages: totalPages,
+        ),
+      );
     } catch (e) {
-      return Left(CacheFailure("فشل التحديث المحلي للمحفظة"));
+      return Left(CacheFailure("خطأ في معالجة البيانات المحلية"));
     }
   }
 
@@ -82,15 +112,30 @@ class WalletRepositoryImpl implements WalletRepository {
       await localDatasource.updateWallet(wallet);
 
       _safeRemoteCall(() async {
-        if (wallet.walletId != null && wallet.walletId != -1) {
+        if (wallet.walletId != null && wallet.walletId! > 0) {
           await remoteDatasource.deleteWallet(wallet);
         }
         await localDatasource.deleteWallet(wallet);
       });
-
       return const Right(unit);
     } catch (e) {
-      return Left(CacheFailure("فشل عملية الحذف محلياً"));
+      return Left(CacheFailure("فشل عملية الحذف"));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> updateWallet(WalletModel wallet) async {
+    try {
+      wallet.isSynced = false;
+      await localDatasource.updateWallet(wallet);
+      _safeRemoteCall(() async {
+        await remoteDatasource.updateWallet(wallet);
+        wallet.isSynced = true;
+        await localDatasource.updateWallet(wallet);
+      });
+      return const Right(unit);
+    } catch (e) {
+      return Left(CacheFailure("فشل التحديث المحلي"));
     }
   }
 
@@ -99,37 +144,37 @@ class WalletRepositoryImpl implements WalletRepository {
     try {
       final allLocal = await localDatasource.myWallets();
       final pending = allLocal
-          .where((w) => !w.isSynced || w.localId == "REMOVE")
+          .where((i) => i.isSynced != true || i.localId == "REMOVE")
           .toList();
 
       for (var wallet in pending) {
         try {
           if (wallet.localId == "REMOVE") {
-            if (wallet.walletId != null && wallet.walletId != -1) {
+            if (wallet.walletId != null)
               await remoteDatasource.deleteWallet(wallet);
-            }
             await localDatasource.deleteWallet(wallet);
             continue;
           }
-
-          if (!wallet.isSynced) {
-            if (wallet.walletId == null || wallet.walletId == -1) {
-              final remote = await remoteDatasource.addWalet(wallet);
+          if (wallet.walletId != null) {
+            final remote = await remoteDatasource.updateWallet(wallet);
+            if (remote != null) {
               remote.isSynced = true;
               await localDatasource.updateWallet(remote);
-            } else {
-              await remoteDatasource.updateWallet(wallet);
-              wallet.isSynced = true;
-              await localDatasource.updateWallet(wallet);
+            }
+          } else {
+            final remote = await remoteDatasource.addWalet(wallet);
+            if (remote != null) {
+              remote.isSynced = true;
+              await localDatasource.updateWallet(remote);
             }
           }
-        } catch (_) {
+        } catch (e) {
           continue;
         }
       }
       return const Right(unit);
     } catch (e) {
-      return Left(ServerFailure("فشل محرك مزامنة المحافظ"));
+      return Left(CacheFailure("فشل محرك المزامنة"));
     }
   }
 
@@ -137,49 +182,7 @@ class WalletRepositoryImpl implements WalletRepository {
     try {
       await call();
     } catch (e) {
-      debugPrint("Wallet Silent Sync Error: $e");
-    }
-  }
-
-  Future<Either<Failure, PagedResponse<WalletModel>>> _getLocalPagedWallet(
-    PageRequest page,
-  ) async {
-    try {
-      final all = await localDatasource.myWallets();
-      final filtered = all.where((w) => w.localId != "REMOVE").toList();
-
-      final start = (page.pageNumber - 1) * page.pageSize;
-      final totalPages = (filtered.length / page.pageSize).ceil();
-
-      if (start >= filtered.length) {
-        return Right(
-          PagedResponse(
-            data: [],
-            totalRecords: filtered.length,
-            pageNumber: page.pageNumber,
-            pageSize: page.pageSize,
-            totalPages: totalPages,
-          ),
-        );
-      }
-
-      final end = start + page.pageSize;
-      final sliced = filtered.sublist(
-        start,
-        end > filtered.length ? filtered.length : end,
-      );
-
-      return Right(
-        PagedResponse(
-          data: sliced,
-          totalRecords: filtered.length,
-          pageNumber: page.pageNumber,
-          pageSize: page.pageSize,
-          totalPages: totalPages,
-        ),
-      );
-    } catch (e) {
-      return Left(CacheFailure("خطأ في معالجة كاش المحافظ"));
+      debugPrint("⚠️ مزامنة صامتة فشلت: $e");
     }
   }
 
@@ -187,10 +190,7 @@ class WalletRepositoryImpl implements WalletRepository {
   Future<Either<Failure, List<WalletModel>>> getAllWalletsLocal() async {
     try {
       final wallets = await localDatasource.myWallets();
-      final visibleWallets = wallets
-          .where((w) => w.localId != "REMOVE")
-          .toList();
-      return Right(visibleWallets);
+      return Right(wallets.where((w) => w.localId != "REMOVE").toList());
     } catch (e) {
       return Left(CacheFailure("لا يمكن الوصول للمحافظ محلياً"));
     }

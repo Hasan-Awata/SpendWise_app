@@ -205,6 +205,7 @@ class IncomeListView extends GetView<IncomesListController> {
             income.title = titleController.text;
             income.amount =
                 double.tryParse(amountController.text) ?? income.amount;
+            print("incomeID===> ${income.remoteId}");
             Get.find<UpdateIncomeController>().updateIncome(income);
             Get.back();
           },

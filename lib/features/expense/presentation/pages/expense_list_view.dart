@@ -155,7 +155,7 @@ class ExpenseListView extends GetView<ExpensesListController> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            onPressed: updateController.isLoading.value
+            onPressed: updateController.isLoadingUpdate.value
                 ? null
                 : () {
                     // تحديث الكائن بالقيم الجديدة
@@ -166,7 +166,7 @@ class ExpenseListView extends GetView<ExpensesListController> {
 
                     updateController.updateExpense(expense);
                   },
-            child: updateController.isLoading.value
+            child: updateController.isLoadingUpdate.value
                 ? const SizedBox(
                     height: 20,
                     width: 20,

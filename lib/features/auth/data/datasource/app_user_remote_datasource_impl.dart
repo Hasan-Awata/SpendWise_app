@@ -19,10 +19,9 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
     try {
       final dto = SignupDto.fromParams(params);
       // إرسال كائن UserDto بعد تحويله لـ JSON
-      final response = await dio.post(
-        ApiEndpoints.register,
-        data: dto.toJson(),
-      );
+      final response = await dio
+          .post(ApiEndpoints.register, data: dto.toJson())
+          .timeout(Duration(seconds: 8));
 
       return UserModel.fromJson(_extractUserPayload(response.data));
     } on DioException catch (_) {

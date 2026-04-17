@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource.dart';
 import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource_impl.dart';
 import 'package:spendwise/features/wallet/data/datasources/wallet_remote_datasource.dart';
@@ -8,6 +8,7 @@ import 'package:spendwise/features/wallet/data/repositories/wallet_repository.da
 import 'package:spendwise/features/wallet/domain/repositories/wallet_repository_impl.dart';
 import 'package:spendwise/features/wallet/domain/usecases/add_wallet_usecase.dart';
 import 'package:spendwise/features/wallet/domain/usecases/delete_wallet_usecase.dart';
+import 'package:spendwise/features/wallet/domain/usecases/get_all_wallets_local_usecase.dart';
 import 'package:spendwise/features/wallet/domain/usecases/get_wallets_usecase.dart';
 import 'package:spendwise/features/wallet/domain/usecases/sync_wallets_usecase.dart';
 import 'package:spendwise/features/wallet/domain/usecases/update_wallet_usecase.dart';
@@ -16,58 +17,59 @@ import 'package:spendwise/features/wallet/presentation/manager/delete_wallet_con
 import 'package:spendwise/features/wallet/presentation/manager/update_wallet_controller.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
-// This binding class manages the immediate injection of wallet-related dependencies using Get.put
 class WalletBinding implements Bindings {
   @override
   void dependencies() {
-    // Data Sources
-    if (!Get.isRegistered<WalletRemoteDatasource>()) {
-      Get.put<WalletRemoteDatasource>(
-        WalletRemoteDatasourceImpl(dio: Get.find<Dio>()),
-      );
-    }
+    // // تعليق: استخدام fenix: true مع lazyPut يضمن إعادة إنشاء الـ Controller إذا تم حذفه من الذاكرة واحتجناه مرة أخرى
 
-    if (!Get.isRegistered<WalletLocalDatasource>()) {
-      Get.put<WalletLocalDatasource>(WalletLocalDatasourceImpl());
-    }
+    // 1. Data Sources (يفضل بقاؤها لخدمة المزامنة الخلفية)
+    Get.lazyPut<WalletRemoteDatasource>(
+      () => WalletRemoteDatasourceImpl(client: http.Client()),
+      fenix: true,
+    );
+    Get.lazyPut<WalletLocalDatasource>(
+      () => WalletLocalDatasourceImpl(),
+      fenix: true,
+    );
 
-    // Repository
-    if (!Get.isRegistered<WalletRepository>()) {
-      Get.put<WalletRepository>(
-        WalletRepositoryImpl(
-          remoteDatasource: Get.find(),
-          localDatasource: Get.find(),
-        ),
-      );
-    }
+    // 2. Repository
+    Get.lazyPut<WalletRepository>(
+      () => WalletRepositoryImpl(
+        remoteDatasource: Get.find(),
+        localDatasource: Get.find(),
+      ),
+      fenix: true,
+    );
 
-    // Use Cases
-    Get.put(GetMyWalletsUseCase(Get.find()));
-    Get.put(AddWalletUseCase(Get.find()));
-    Get.put(UpdateWalletUseCase(Get.find()));
-    Get.put(DeleteWalletUseCase(Get.find()));
-    Get.put(SyncWalletsUseCase(Get.find()));
+    // 3. Use Cases (Lazy Loading)
+    Get.lazyPut(() => GetMyWalletsUseCase(Get.find()), fenix: true);
+    Get.lazyPut(() => AddWalletUseCase(Get.find()), fenix: true);
+    Get.lazyPut(() => UpdateWalletUseCase(Get.find()), fenix: true);
+    Get.lazyPut(() => DeleteWalletUseCase(Get.find()), fenix: true);
+    Get.lazyPut(() => SyncWalletsUseCase(Get.find()), fenix: true);
+    Get.lazyPut(() => GetAllWalletsLocalUseCase(Get.find()), fenix: true);
 
-    // Controllers
-    if (!Get.isRegistered<WalletsListController>()) {
-      Get.put(
-        WalletsListController(
-          getMyWalletsUseCase: Get.find(),
-          syncWalletsUseCase: Get.find(),
-        ),
-      );
-    }
+    // 4. Controllers
+    // يفضل استخدام lazyPut للـ Controllers لتقليل استهلاك الذاكرة عند فتح التطبيق
+    Get.put(
+      WalletsListController(
+        getMyWalletsUseCase: Get.find(),
+        syncWalletsUseCase: Get.find(),
+        getAllWalletsLocalUseCase: Get.find(),
+      ),
+    );
 
-    if (!Get.isRegistered<AddWalletController>()) {
-      Get.put(AddWalletController(addWalletUseCase: Get.find()));
-    }
-
-    if (!Get.isRegistered<DeleteWalletController>()) {
-      Get.put(DeleteWalletController(deleteWalletUseCase: Get.find()));
-    }
-
-    if (!Get.isRegistered<UpdateWalletController>()) {
-      Get.put(UpdateWalletController(updateWalletUseCase: Get.find()));
-    }
+    Get.lazyPut(
+      () => AddWalletController(addWalletUseCase: Get.find()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => DeleteWalletController(deleteWalletUseCase: Get.find()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => UpdateWalletController(updateWalletUseCase: Get.find()),
+      fenix: true,
+    );
   }
 }

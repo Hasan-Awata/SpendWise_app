@@ -8,7 +8,7 @@ class AddIncomeUsecase {
 
   AddIncomeUsecase(this.repository);
 
-  Future<Either<Failure, Unit>> call(IncomeModel income) async {
+  Future<Either<Failure, IncomeModel>> call(IncomeModel income) async {
     //AddIncomeUsecase حقن النسخة الصحيحة داخل الBinding
     return await repository.addIncome(income);
   }

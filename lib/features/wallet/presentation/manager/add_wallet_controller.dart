@@ -1,9 +1,13 @@
 // // تعليق: إضافة محفظة واختيار العملة — منفصل عن قائمة المحافظ
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/core/error/failure.dart';
+
+import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
+
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 import 'package:spendwise/features/wallet/domain/usecases/add_wallet_usecase.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
@@ -60,8 +64,17 @@ class AddWalletController extends GetxController {
       final currency = await CurrencyLocal().getCurrency(
         currencySearchController.text,
       );
-
-      print(currency.toString());
+      bool isNotExist = !Get.find<WalletsListController>().wallets.any(
+        (w) => w.currency.currencyName == currency.currencyName,
+      );
+      if (!isNotExist) {
+        HelperFunction.showSnackBar(
+          "تنبيه",
+          "المحفظة موجودة مسبقا",
+          isError: true,
+        );
+        return;
+      }
       if (userId == 0) {
         HelperFunction.showSnackBar(
           "تنبيه",
@@ -71,8 +84,11 @@ class AddWalletController extends GetxController {
         return;
       }
 
+      if (userId == null) {
+        CurrentUser.initializeUser();
+      }
       final newWallet = WalletModel(
-        userId: userId,
+        userId: userId ?? CurrentUser.user!.userId,
         currency: currency,
         balance: double.parse(balanceController.text.trim()),
         isSaved: true,
@@ -82,17 +98,20 @@ class AddWalletController extends GetxController {
 
       result.fold(
         (failure) {
-          HelperFunction.showSnackBar(
-            "فشل الإضافة",
-            failure.message,
-            isError: true,
-          );
+          if (failure is ServerFailure) {
+            HelperFunction.showSnackBar(
+              "فشل الإضافة",
+              failure.message,
+              isError: true,
+            );
+          }
         },
-        (_) {
+        (text) {
           if (Get.isRegistered<WalletsListController>()) {
             Get.find<WalletsListController>().loadWallets();
           }
-          HelperFunction.showSnackBar("نجاح", "تمت إضافة المحفظة بنجاح");
+          HelperFunction.showSnackBar("نجاح", text ?? "تمت العملية بنجاح");
+          Get.find<WalletsListController>().wallets.insert(0, newWallet);
           balanceController.clear();
           currencySearchController.clear();
         },

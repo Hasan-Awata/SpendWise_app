@@ -6,7 +6,7 @@ import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 
 abstract class WalletRepository {
-  Future<Either<Failure, Unit>> addWallet(WalletModel wallet);
+  Future<Either<Failure, String?>> addWallet(WalletModel wallet);
 
   Future<Either<Failure, PagedResponse<WalletModel>>> getMyWallets(
     PageRequest page,

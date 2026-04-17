@@ -29,7 +29,7 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     pages = [
-      const Home(), // Index 0
+      Home(), // Index 0
       const Center(
         child: Text("Search", style: TextStyle(color: Colors.white)),
       ),

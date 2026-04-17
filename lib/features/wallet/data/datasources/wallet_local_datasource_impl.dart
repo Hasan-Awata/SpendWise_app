@@ -39,25 +39,26 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
     }
   }
 
+  // // تعليق: دالة حفظ ذكية تقوم بالتحديث إذا كان العنصر موجوداً أو الإضافة إذا كان جديداً
   @override
   Future<void> addWaletLocal(WalletModel wallet) async {
-    final wallets = await myWallets();
+    List<WalletModel> wallets = await myWallets();
 
-    // التحقق من تكرار المحفظة بناءً على العملة
-    bool isDuplicate = wallets.any(
-      (w) => w.currency.currencyName == wallet.currency.currencyName,
+    // البحث عن وجود المحفظة مسبقاً لمنع التكرار
+    int index = wallets.indexWhere(
+      (w) =>
+          (w.localId == wallet.localId) ||
+          (w.walletId != null && w.walletId == wallet.walletId) ||
+          (w.currency.currencyName == wallet.currency.currencyName),
     );
 
-    if (isDuplicate) {
-      throw Exception("لديك محفظة بهذه العملة بالفعل");
+    if (index != -1) {
+      wallets[index] = wallet; // تحديث
+    } else {
+      wallets.insert(0, wallet); // إضافة جديد
     }
 
-    try {
-      final newWallets = List<WalletModel>.from(wallets)..insert(0, wallet);
-      await _box.put(_walletKey, newWallets);
-    } catch (e) {
-      rethrow;
-    }
+    await _box.put(_walletKey, wallets);
   }
 
   @override

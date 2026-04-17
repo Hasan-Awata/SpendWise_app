@@ -1,5 +1,3 @@
-// lib/features/income/presentation/pages/add_income_view.dart
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
@@ -13,23 +11,14 @@ import 'package:spendwise/features/widget_feature/helper_widget/date_picker_widg
 import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.dart';
 
 class AddIncomeView extends StatefulWidget {
-  AddIncomeView({super.key});
+  const AddIncomeView({super.key});
 
   @override
   State<AddIncomeView> createState() => _AddIncomeViewState();
 }
 
 class _AddIncomeViewState extends State<AddIncomeView> {
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    controller.walletsListController.loadWallets();
-    controller.tagController.loadTags();
-  }
-
   final controller = Get.find<AddIncomeController>();
-
   final RxBool isFixed = false.obs;
 
   @override
@@ -42,6 +31,7 @@ class _AddIncomeViewState extends State<AddIncomeView> {
         onRefresh: () async {
           controller.resetFields();
           await controller.walletsListController.loadWallets();
+          await controller.tagController.loadTags();
         },
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
@@ -57,9 +47,11 @@ class _AddIncomeViewState extends State<AddIncomeView> {
                     "Amount",
                     controller.amountController,
                     Icons.monetization_on_outlined,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 25),
                   _buildField(
                     "Source",
                     controller.sourceController,
@@ -67,7 +59,6 @@ class _AddIncomeViewState extends State<AddIncomeView> {
                   ),
                   const SizedBox(height: 25),
                   _buildFixedToggle(),
-                  const SizedBox(height: 15),
                   _buildRepetitionField(),
                   const SizedBox(height: 25),
                   CustomTextFieldDescription(
@@ -79,14 +70,13 @@ class _AddIncomeViewState extends State<AddIncomeView> {
                   const SizedBox(height: 25),
                   _buildDatePicker(context),
                   const SizedBox(height: 30),
-                  const Divider(color: Colors.white10),
+                  const Divider(color: Colors.white10, thickness: 1),
                   const SizedBox(height: 30),
                   _buildWalletDropdown(),
                   const SizedBox(height: 25),
                   _buildTagDropdown(),
-                  const SizedBox(height: 15),
                   _buildTagPreview(),
-                  const SizedBox(height: 50),
+                  const SizedBox(height: 40),
                   _buildSubmitButton(),
                   const SizedBox(height: 50),
                 ],
@@ -98,19 +88,19 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     );
   }
 
-  // // --- Widgets ---
   PreferredSizeWidget _buildAppBar() => AppBar(
     title: const Text(
       "Add Income",
       style: TextStyle(color: SpColor.incomeGreen, fontWeight: FontWeight.bold),
     ),
     backgroundColor: Colors.transparent,
+    elevation: 0,
     foregroundColor: SpColor.incomeGreen,
     centerTitle: true,
     actions: [
       IconButton(
         onPressed: () => Get.toNamed(Routes.LIST_INCOME),
-        icon: const Icon(Icons.all_inbox, color: SpColor.incomeGreen),
+        icon: const Icon(Icons.all_inbox_rounded),
       ),
     ],
   );
@@ -122,43 +112,42 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     TextInputType keyboardType = TextInputType.text,
   }) => CustomTextField(
     textColor: SpColor.incomeGreen,
+
     label: label,
-    hint: "...",
+    hint: "Enter $label",
     prefixIcon: Icon(icon, color: SpColor.incomeGreen),
     textEditingController: ctr,
   );
 
   Widget _buildFixedToggle() => Obx(
     () => Container(
+      margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: SpColor.incomeGreen),
+        border: Border.all(color: SpColor.incomeGreen.withOpacity(0.5)),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: Material(
-          color: Colors.transparent,
-          child: SwitchListTile(
-            title: const Text(
-              "Fixed Income",
-              style: TextStyle(color: Colors.white),
-            ),
-            activeColor: SpColor.incomeGreen,
-            value: isFixed.value,
-            onChanged: (v) => isFixed.value = v,
-          ),
+      child: SwitchListTile(
+        title: const Text(
+          "Fixed Income",
+          style: TextStyle(color: Colors.white, fontSize: 15),
         ),
+        activeColor: SpColor.incomeGreen,
+        value: isFixed.value,
+        onChanged: (v) => isFixed.value = v,
       ),
     ),
   );
 
   Widget _buildRepetitionField() => Obx(
     () => isFixed.value
-        ? _buildField(
-            "Repeat Every (Days)",
-            controller.repeatController,
-            Icons.calendar_month,
-            keyboardType: TextInputType.number,
+        ? Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: _buildField(
+              "Repeat Every (Days)",
+              controller.repeatController,
+              Icons.calendar_month,
+              keyboardType: TextInputType.number,
+            ),
           )
         : const SizedBox.shrink(),
   );
@@ -172,39 +161,44 @@ class _AddIncomeViewState extends State<AddIncomeView> {
   );
 
   Widget _buildWalletDropdown() {
-    return SPDropdownButton(
-      title: "Select Wallet",
-      hint: "Choose wallet",
-      textColor: SpColor.incomeGreen,
-      prefixIcon: const Icon(Icons.wallet, color: SpColor.incomeGreen),
-      values: controller.walletsListController.wallets
-          .map(
-            (w) =>
-                "${w.currency.currencyName}      (${w.currency.code} ${w.balance})",
-          )
-          .toList(),
-      textEditingController: controller.walletTextController,
-      onSelected: (index, value) {
-        controller.selectedWallet.value =
-            controller.walletsListController.wallets[index];
-        controller.walletsListController.wallets[index].balance +=
-            double.tryParse(controller.amountController.text.trim()) ?? 0.0;
-      },
-      suffixIcon: IconButton(
-        onPressed: () async {
-          await Get.toNamed('/add-wallet');
-          await controller.walletsListController.loadWallets();
+    return Obx(
+      () => SPDropdownButton(
+        title: "Select Wallet",
+        hint: "Choose wallet",
+        textColor: SpColor.incomeGreen,
+        prefixIcon: const Icon(
+          Icons.account_balance_wallet_outlined,
+          color: SpColor.incomeGreen,
+        ),
+        values: controller.walletsListController.wallets
+            .map(
+              (w) =>
+                  "${w.currency.currencyName} (${w.currency.code} ${w.balance})",
+            )
+            .toList(),
+        textEditingController: controller.walletTextController,
+        onSelected: (index, value) {
+          controller.selectedWallet.value =
+              controller.walletsListController.wallets[index];
+          controller.walletTextController.text = value;
         },
-        icon: const Icon(Icons.add, color: SpColor.incomeGreen),
+        suffixIcon: IconButton(
+          onPressed: () async {
+            await Get.toNamed(Routes.ADD_WALLET);
+          },
+          icon: const Icon(
+            Icons.add_circle_outline,
+            color: SpColor.incomeGreen,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildTagDropdown() {
     return Obx(() {
-      // منطق التحقق ما إذا كان التاج المكتوب جديداً كلياً
       bool isNewTag =
-          controller.tagTextController.text.isNotEmpty &&
+          controller.tagTextController.text.trim().isNotEmpty &&
           !controller.tagController.myTags.any(
             (t) =>
                 t.name.toLowerCase() ==
@@ -217,24 +211,33 @@ class _AddIncomeViewState extends State<AddIncomeView> {
           SPDropdownButton(
             title: "Select Tag",
             isTextField: true,
-            hint: "Search/Type Tag",
+            hint: "Search or Type Tag",
             textColor: SpColor.incomeGreen,
-            prefixIcon: const Icon(Icons.tag, color: SpColor.incomeGreen),
+            prefixIcon: const Icon(
+              Icons.local_offer_outlined,
+              color: SpColor.incomeGreen,
+            ),
             values: controller.tagController.myTags.map((t) => t.name).toList(),
             textEditingController: controller.tagTextController,
+            onSelected: (index, value) {
+              controller.selectedTag.value =
+                  controller.tagController.myTags[index];
+              controller.tagTextController.text = value;
+            },
           ),
           if (isNewTag)
-            const Padding(
-              padding: EdgeInsets.only(top: 8.0, left: 4.0),
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, left: 10.0),
               child: Text(
-                "✨ This tag doesn't exist, it will be created.",
-                style: TextStyle(
+                "✨ Tag \"${controller.tagTextController.text}\" will be created.",
+                style: const TextStyle(
                   color: SpColor.incomeGreen,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w300,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
                 ),
               ),
             ),
+          const SizedBox(height: 10),
         ],
       );
     });
@@ -242,14 +245,17 @@ class _AddIncomeViewState extends State<AddIncomeView> {
 
   Widget _buildTagPreview() => Obx(
     () => controller.selectedTag.value != null
-        ? TagWidget(
-            tagName: controller.selectedTag.value!.name,
-            icon: Icons.check,
-            color: SpColor.incomeGreen,
-            onDelete: () {
-              controller.selectedTag.value = null;
-              controller.tagTextController.clear();
-            },
+        ? Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: TagWidget(
+              tagName: controller.selectedTag.value!.name,
+              icon: Icons.tag,
+              color: SpColor.incomeGreen,
+              onDelete: () {
+                controller.selectedTag.value = null;
+                controller.tagTextController.clear();
+              },
+            ),
           )
         : const SizedBox.shrink(),
   );
@@ -259,7 +265,10 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     child: Obx(
       () => controller.isLoadingSave.value
           ? const Center(
-              child: CircularProgressIndicator(color: SpColor.incomeGreen),
+              child: CircularProgressIndicator(
+                color: SpColor.incomeGreen,
+                strokeWidth: 3,
+              ),
             )
           : CustomButton(
               text: "SAVE INCOME",

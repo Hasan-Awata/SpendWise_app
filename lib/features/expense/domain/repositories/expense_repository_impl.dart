@@ -61,16 +61,19 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     try {
       expense.isSynced = false;
       await localDataSource.updateExpense(expense);
+      try {
+        _safeRemoteCall(() async {
+          if (expense.id != null) {
+            await remoteDatasource.updateExpense(expense);
+            expense.isSynced = true;
+            await localDataSource.updateExpense(expense);
+          }
+        });
 
-      _safeRemoteCall(() async {
-        if (expense.id != null) {
-          await remoteDatasource.updateExpense(expense);
-          expense.isSynced = true;
-          await localDataSource.updateExpense(expense);
-        }
-      });
-
-      return const Right(unit);
+        return const Right(unit);
+      } catch (e) {
+        return Left(ServerFailure("خطأ في التحديث في السيرفر"));
+      }
     } catch (e) {
       return Left(CacheFailure("فشل التحديث المحلي"));
     }
@@ -79,11 +82,16 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   @override
   Future<Either<Failure, Unit>> deleteExpense(ExpenseModel expense) async {
     try {
+      expense.localId = "REMOVE";
+      expense.isSynced = false;
+      await localDataSource.updateExpense(expense);
       _safeRemoteCall(() async {
-        if (expense.id != null) await remoteDatasource.deleteExpense(expense);
+        if (expense.id != null || expense.id != -1) {
+          await remoteDatasource.deleteExpense(expense);
+        }
+        await localDataSource.deleteExpense(expense);
       });
 
-      await localDataSource.deleteExpense(expense);
       return const Right(unit);
     } catch (e) {
       return Left(CacheFailure("فشل الحذف المحلي"));
@@ -94,25 +102,46 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   Future<Either<Failure, Unit>> syncPendingExpenses() async {
     try {
       final allLocal = await localDataSource.getExpenses();
+
       final pending = allLocal
-          .where((e) => e.isSynced != true || e.localId == "REMOVE")
+          .where((e) => !e.isSynced || e.localId == "REMOVE")
           .toList();
 
       for (var expense in pending) {
         try {
           if (expense.localId == "REMOVE") {
-            if (expense.id != null)
-              await remoteDatasource.deleteExpense(expense);
+            try {
+              if (expense.id != null) {
+                await remoteDatasource.deleteExpense(expense);
+              }
+            } catch (e) {
+              debugPrint("Remote delete failed: $e");
+              continue;
+            }
+
             await localDataSource.deleteExpense(expense);
-          } else {
-            final remoteModel = await remoteDatasource.addExpense(expense);
-            remoteModel.isSynced = true;
-            await localDataSource.updateExpense(remoteModel);
+            continue;
           }
-        } catch (_) {
+
+          if (expense.id != null) {
+            final updated = await remoteDatasource.updateExpense(expense);
+
+            updated.isSynced = true;
+            await localDataSource.updateExpense(updated);
+
+            continue;
+          }
+
+          final created = await remoteDatasource.addExpense(expense);
+
+          created.isSynced = true;
+          await localDataSource.updateExpense(created);
+        } catch (e) {
+          debugPrint("Sync expense failed: $e");
           continue;
         }
       }
+
       return const Right(unit);
     } catch (e) {
       return Left(CacheFailure("فشل محرك المزامنة"));

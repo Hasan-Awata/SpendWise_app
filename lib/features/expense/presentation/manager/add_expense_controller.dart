@@ -1,4 +1,3 @@
-// // تعليق: إضافة مصروف — مدمج مع ميزات المزامنة التلقائية للفئات والأوسمة والمحافظ
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
@@ -28,124 +27,110 @@ class AddExpenseController extends GetxController {
   final TagActionController tagActionController;
   final ExpensesListController expensesListController;
 
-  // // التعديل: توحيد أسماء المتحكمات مع نمط AddIncome
   final amountController = TextEditingController();
-  final titleTextController = TextEditingController(); // بمثابة Source في الدخل
+  final titleTextController = TextEditingController();
   final descriptionController = TextEditingController();
-  final repeatController = TextEditingController();
   final walletTextController = TextEditingController();
   final tagTextController = TextEditingController();
   final categoryTextController = TextEditingController();
 
-  final Rxn<WalletModel> selectedWallet = Rxn<WalletModel>();
-  final Rxn<TagModel> selectedTag = Rxn<TagModel>();
-  final Rxn<CategoryModel> selectedCategory = Rxn<CategoryModel>();
-  final Rx<DateTime> selectedDate = DateTime.now().obs;
+  final selectedWallet = Rxn<WalletModel>();
+  final selectedTag = Rxn<TagModel>();
+  final selectedCategory = Rxn<CategoryModel>();
+  final selectedDate = DateTime.now().obs;
+  final isLoadingSave = false.obs;
 
-  final RxBool isLoadingSave = false.obs;
-
-  // // التعديل: فئات تجريبية (يتم تحديثها لاحقاً من الـ API)
   final RxList<CategoryModel> categories = <CategoryModel>[
-    CategoryModel(name: "eating", priority: 1),
-    CategoryModel(name: "car", priority: 2),
+    CategoryModel(name: "Basics", priority: 1),
+    CategoryModel(name: "Secondaries", priority: 2),
+    CategoryModel(name: "Expenses", priority: 3),
+    CategoryModel(name: "Savings", priority: 4),
   ].obs;
-
-  int? userId = AppUserLocalDatasourceImpl().currentUserId;
 
   @override
   void onInit() {
     super.onInit();
-    // مزامنة البيانات عند فتح الصفحة لضمان حداثة القوائم المنسدلة
+    _loadInitialData();
+  }
+
+  void _loadInitialData() {
     walletsListController.loadWallets();
     tagController.loadTags();
   }
 
-  // // التعديل: وظيفة الحفظ مع منطق إنشاء التاج التلقائي المتبع في الدخل
   Future<void> saveExpense() async {
     if (!_isInputValid()) return;
 
-    isLoadingSave.value = true;
-
     try {
-      // 1. معالجة التاج (بحث أو إنشاء جديد)
-      final String tagName = tagTextController.text.trim();
-      var foundTag = tagController.myTags.firstWhereOrNull(
-        (t) => t.name == tagName,
-      );
+      isLoadingSave.value = true;
 
-      if (foundTag == null && tagName.isNotEmpty) {
-        tagActionController.nameController.text = tagName;
-        await tagActionController.addTag();
-        foundTag = tagController.myTags.firstWhereOrNull(
-          (t) => t.name == tagName,
-        );
-      }
+      final TagModel? finalTag = await _handleTagSelection();
 
-      // 2. معالجة الفئة (Category)
-      final category = categories.firstWhereOrNull(
-        (c) => categoryTextController.text.contains(c.name),
-      );
-
-      // 3. بناء الموديل
       final expenseData = ExpenseModel(
-        userId: userId,
-        amount: double.tryParse(amountController.text.trim()) ?? 0.0,
-        title: titleTextController.text.isEmpty
+        userId: AppUserLocalDatasourceImpl().currentUserId,
+        amount: double.parse(amountController.text.trim()),
+        title: titleTextController.text.trim().isEmpty
             ? "Untitled Expense"
             : titleTextController.text.trim(),
         description: descriptionController.text.trim(),
         date: selectedDate.value,
-        category: category!,
+        category: selectedCategory.value,
+        wallet: selectedWallet.value!,
+        tag: finalTag,
         isSynced: false,
-        // إضافة المحفظة والتاج إذا كان الموديل يدعمهما ككائنات
-        wallet: selectedWallet.value,
-        tag: foundTag,
       );
 
       final result = await addUseCase.call(expenseData);
 
-      result.fold((failure) => _handleError("فشل الحفظ", failure.message), (_) {
-        // تحديث قائمة المصروفات فوراً في الواجهة
-        expensesListController.expensesList.insert(0, expenseData);
-        HelperFunction.showSnackBar("تم بنجاح", "تمت إضافة المصروف الجديد");
-        resetFields();
-      });
+      result.fold(
+        (failure) => _handleError("فشل الحفظ", failure.message),
+        (_) => _onSaveSuccess(expenseData),
+      );
     } catch (e) {
-      _handleError("خطأ", "حدث خطأ غير متوقع أثناء الحفظ");
+      _handleError("خطأ تقني", e.toString());
     } finally {
       isLoadingSave.value = false;
     }
   }
 
-  // // التعديل: منطق التحقق (Validation) مشابه للدخل
-  bool _isInputValid() {
-    final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
-    if (amount <= 0) {
-      _handleError("خطأ في التحقق", "يرجى إدخال مبلغ صحيح");
-      return false;
-    }
+  Future<TagModel?> _handleTagSelection() async {
+    final String tagName = tagTextController.text.trim();
+    if (tagName.isEmpty) return null;
 
-    if (userId == null) {
-      _handleError("خطأ", "لم يتم العثور على معرف المستخدم");
-      return false;
-    }
-
-    // التحقق من المحفظة
-    final walletName = walletTextController.text.trim();
-    selectedWallet.value = walletsListController.wallets.firstWhereOrNull(
-      (w) =>
-          "${w.currency.currencyName}      (${w.currency.code} ${w.balance})"
-              .trim() ==
-          walletName,
+    final existingTag = tagController.myTags.firstWhereOrNull(
+      (t) => t.name.toLowerCase() == tagName.toLowerCase(),
     );
+    if (existingTag != null) return existingTag;
+
+    tagActionController.nameController.text = tagName;
+    await tagActionController.addTag();
+    await tagController.loadTags();
+
+    return tagController.myTags.firstWhereOrNull(
+      (t) => t.name.toLowerCase() == tagName.toLowerCase(),
+    );
+  }
+
+  void _onSaveSuccess(ExpenseModel savedExpense) {
+    expensesListController.expensesList.insert(0, savedExpense);
+    expensesListController.calculateTotals();
+    HelperFunction.showSnackBar("تم بنجاح", "تمت إضافة المصروف الجديد");
+    resetFields();
+  }
+
+  bool _isInputValid() {
+    final amountText = amountController.text.trim();
+    if (amountText.isEmpty || (double.tryParse(amountText) ?? 0.0) <= 0) {
+      _handleError("خطأ في التحقق", "يرجى إدخال مبلغ صحيح أكبر من صفر");
+      return false;
+    }
 
     if (selectedWallet.value == null) {
-      _handleError("خطأ في التحقق", "يرجى اختيار محفظة صحيحة");
+      _handleError("خطأ في التحقق", "يرجى اختيار محفظة");
       return false;
     }
 
-    // التحقق من الفئة (ميزة إضافية للمصروف)
-    if (categoryTextController.text.isEmpty) {
+    if (categoryTextController.text.isEmpty || selectedCategory.value == null) {
       _handleError("خطأ في التحقق", "يرجى اختيار فئة للمصروف");
       return false;
     }
@@ -153,6 +138,7 @@ class AddExpenseController extends GetxController {
     return true;
   }
 
+  final repeatController = TextEditingController();
   void resetFields() {
     amountController.clear();
     titleTextController.clear();
@@ -180,10 +166,10 @@ class AddExpenseController extends GetxController {
     amountController.dispose();
     titleTextController.dispose();
     descriptionController.dispose();
-    repeatController.dispose();
     walletTextController.dispose();
     tagTextController.dispose();
     categoryTextController.dispose();
+    repeatController.dispose();
     super.onClose();
   }
 }

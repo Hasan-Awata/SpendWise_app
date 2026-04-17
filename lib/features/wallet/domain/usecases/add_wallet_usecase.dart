@@ -8,7 +8,7 @@ class AddWalletUseCase {
   final WalletRepository repository;
   AddWalletUseCase(this.repository);
 
-  Future<Either<Failure, Unit>> call(WalletModel wallet) async {
+  Future<Either<Failure, String?>> call(WalletModel wallet) async {
     return await repository.addWallet(wallet);
   }
 }

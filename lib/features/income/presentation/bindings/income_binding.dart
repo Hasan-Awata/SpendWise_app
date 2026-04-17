@@ -1,6 +1,5 @@
-// // تعليق: ملف IncomeBinding المعدل لضمان حقن كافة التبعيات فورياً باستخدام Get.put لتجنب أي تأخير أو أخطاء "Not Found"
-import 'package:dio/dio.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:spendwise/features/income/data/datasources/income_local_datasource.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
 import 'package:spendwise/features/income/data/datasources/income_remote_datasource.dart';
@@ -25,7 +24,8 @@ class IncomeBinding extends Bindings {
     // 1. Data Sources (مصادر البيانات)
     if (!Get.isRegistered<IncomeRemoteDatasource>()) {
       Get.put<IncomeRemoteDatasource>(
-        IncomeRemoteDatasourceImpl(dio: Get.find<Dio>()),
+        // IncomeRemoteDatasourceImpl(dio: Get.find<Dio>()),
+        IncomeRemoteDatasourceImpl(client: http.Client()),
       );
     }
     if (!Get.isRegistered<IncomeLocalDataSource>()) {

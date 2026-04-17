@@ -27,6 +27,7 @@ class CurrentUser {
   static void initializeUser() async {
     final user = await AppUserLocalDatasourceImpl().getUser();
     final pref = Get.find<SharedPreferencesService>();
+
     _currentUser = user;
     _token = pref.token;
   }

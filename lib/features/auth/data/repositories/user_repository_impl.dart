@@ -126,7 +126,7 @@ class UserRepositoryImpl implements UserRepository {
         return ServerFailure("تم إلغاء الطلب");
 
       default:
-        return ServerFailure("حدث خطأ غير متوقع، حاول لاحقاً");
+        return ServerFailure("errorr ${e.toString()}");
     }
   }
 }

@@ -5,7 +5,7 @@ import 'package:spendwise/features/pages/data/model/page_response.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 
 abstract class IncomeRepository {
-  Future<Either<Failure, Unit>> addIncome(IncomeModel income);
+  Future<Either<Failure, IncomeModel>> addIncome(IncomeModel income);
   Future<Either<Failure, PagedResponse<IncomeModel>>> getIncomes(
     int? userId,
     PageRequest page,

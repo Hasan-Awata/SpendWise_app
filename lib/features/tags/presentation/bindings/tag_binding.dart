@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'package:spendwise/features/tags/data/datasources/tag_local_datasource.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_local_datasource_impl.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_remote_datasource.dart';
@@ -20,7 +21,9 @@ class TagBinding implements Bindings {
   void dependencies() {
     // 1. DataSources
     // We use Get.put to initialize the data sources immediately in memory
-    Get.put<TagRemoteDatasource>(TagRemoteDatasourceImpl(dio: Get.find<Dio>()));
+    Get.put<TagRemoteDatasource>(
+      TagRemoteDatasourceImpl(client: http.Client()),
+    );
 
     Get.put<TagLocalDatasource>(TagLocalDatasourceImpl());
 

@@ -1,6 +1,8 @@
-// // تعليق: متحكم العرض المصلح لمنع تكرار الأوسمة عند التحديث أو التحميل التدريجي
+// // تعليق: متحكم الأوسمة المطور - يتبنى نفس معايير منطق المحفظة لمنع التكرار وضمان استقرار البيانات
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
@@ -8,75 +10,109 @@ import 'package:spendwise/features/tags/domain/usecases/get_my_tags_usecase.dart
 import 'package:spendwise/features/tags/domain/usecases/sync_pending_tags_usecase.dart';
 
 class TagViewController extends GetxController {
-  final GetMyTagsUsecase getMyTagsUsecase;
-  final SyncPendingTagsUsecase syncPendingTagsUsecase;
   TagViewController({
     required this.getMyTagsUsecase,
     required this.syncPendingTagsUsecase,
   });
 
-  var myTags = <TagModel>[].obs;
-  var isLoading = false.obs;
+  final GetMyTagsUsecase getMyTagsUsecase;
+  final SyncPendingTagsUsecase syncPendingTagsUsecase;
+
+  final myTags = <TagModel>[].obs;
+  final isLoading = false.obs;
+
+  final ScrollController scrollController = ScrollController();
 
   int currentPage = 1;
   bool hasMoreData = true;
 
+  int? userId = AppUserLocalDatasourceImpl().currentUserId;
+
   @override
   void onInit() {
     super.onInit();
-    loadTags();
+    scrollController.addListener(_scrollListener);
+    // التحديث الأولي عند تشغيل المتحكم
+    loadTags(isRefresh: true);
   }
 
-  // // تعليق: جلب الأوسمة مع معالجة منطق التحديث (Refresh) لمنع تكرار العناصر
-  Future<void> loadTags({bool isRefresh = false}) async {
-    // 1. إذا كان طلب تحديث، نصفر العدادات ونمسح القائمة القديمة
-    if (isRefresh) {
-      currentPage = 1;
-      hasMoreData = true;
+  void _scrollListener() {
+    if (scrollController.position.pixels >=
+        scrollController.position.maxScrollExtent * 0.8) {
+      // التحقق من عدم التحميل حالياً ووجود بيانات إضافية قبل الاستدعاء
+      if (!isLoading.value && hasMoreData) {
+        loadTags(isRefresh: false);
+      }
     }
+  }
 
-    if (!hasMoreData && !isRefresh) return;
+  // // تعليق: دالة جلب الأوسمة مع دمج منطق التزامن الخلفي والتحقق الذكي من العناصر المكررة
+  Future<void> loadTags({bool isRefresh = false}) async {
+    // منع الطلبات المتكررة أو عند انتهاء البيانات
+    if (isLoading.value || (!hasMoreData && !isRefresh)) return;
 
-    isLoading.value = true;
+    try {
+      isLoading.value = true;
 
-    syncPendingTagsUsecase.call().then((result) {
-      result.fold((l) => debugPrint("Background Sync Failed: ${l.message}"), (
-        r,
-      ) {
-        debugPrint("Background Sync Completed Successfully");
-        // اختيارياً: يمكنك إعادة جلب البيانات هنا إذا كنت تريد تحديث الـ IDs القادمة من السيرفر
-      });
-    });
+      if (isRefresh) {
+        currentPage = 1;
+        hasMoreData = true;
 
-    final result = await getMyTagsUsecase.call(
-      PageRequest(pageNumber: currentPage, pageSize: 20),
-    );
+        // تشغيل التزامن في الخلفية عند التحديث (Refresh) كما في المحفظة
+        syncPendingTagsUsecase.call().then((result) {
+          result.fold(
+            (l) => debugPrint("Background Sync Failed: ${l.message}"),
+            (r) => debugPrint("Background Sync Completed Successfully"),
+          );
+        });
+      }
 
-    result.fold(
-      (failure) {
-        HelperFunction.showSnackBar(
+      final result = await getMyTagsUsecase.call(
+        PageRequest(pageNumber: currentPage, pageSize: 20),
+      );
+
+      result.fold(
+        (failure) => HelperFunction.showSnackBar(
           "خطأ في الجلب",
           failure.message,
           isError: true,
-        );
-      },
-      (pagedResponse) {
-        // 2. إصلاح التكرار: إذا كان ريفريش، استبدل القائمة بالكامل بدل الإضافة عليها
-        if (isRefresh) {
-          myTags.assignAll(pagedResponse.data);
-        } else {
-          // في حالة التحميل التدريجي، أضف العناصر الجديدة فقط
-          myTags.insertAll(0, pagedResponse.data);
-        }
+        ),
+        (pagedResponse) {
+          if (pagedResponse.data.isEmpty) {
+            hasMoreData = false;
+          } else {
+            if (isRefresh) {
+              myTags.assignAll(pagedResponse.data);
+            } else {
+              final newItems = pagedResponse.data.where((newItem) {
+                return !myTags.any(
+                  (existing) =>
+                      (existing.id != null && existing.id == newItem.id) ||
+                      (existing.localId == newItem.localId),
+                );
+              }).toList();
 
-        // 3. تحديث منطق الصفحة القادمة
-        if (pagedResponse.data.length < 20) {
-          hasMoreData = false;
-        } else {
-          currentPage++;
-        }
-      },
-    );
-    isLoading.value = false;
+              myTags.insertAll(0, newItems);
+            }
+            currentPage++;
+          }
+        },
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // // ميزة Wallet: إعادة تصفير الحقول بشكل كامل
+  void resetFields() {
+    myTags.clear();
+    currentPage = 1;
+    hasMoreData = true;
+  }
+
+  @override
+  void onClose() {
+    scrollController.dispose();
+    super.onClose();
   }
 }

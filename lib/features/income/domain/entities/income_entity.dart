@@ -4,7 +4,7 @@ import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 class IncomeEntity {
   final int? remoteId;
 
-  final int? userId;
+  int? userId;
 
   String title;
 

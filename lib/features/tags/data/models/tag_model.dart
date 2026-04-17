@@ -21,7 +21,11 @@ class TagModel extends TagEntity {
     );
   }
 
-  Map<String, dynamic> toJson() => {"Id": id, "OwnerId": userId, "Label": name};
+  Map<String, dynamic> toJson() => {
+    "Id": id ?? -1,
+    "OwnerId": userId,
+    "Label": name,
+  };
 
   factory TagModel.fromLocal(Map<dynamic, dynamic> map) {
     return TagModel(

@@ -16,9 +16,6 @@ class WalletsView extends StatelessWidget {
     final deleteController = Get.find<DeleteWalletController>();
     final updateController = Get.find<UpdateWalletController>();
 
-    // جلب البيانات عند فتح الصفحة
-    listController.loadWallets();
-
     return Scaffold(
       backgroundColor: const Color(0xFF0B121E),
       appBar: AppBar(
@@ -41,6 +38,7 @@ class WalletsView extends StatelessWidget {
       body: RefreshIndicator(
         color: const Color(0xFF43C5F3),
         onRefresh: () async => listController.loadWallets(),
+
         child: Obx(() {
           if (listController.isLoading.value &&
               listController.wallets.isEmpty) {
@@ -50,10 +48,19 @@ class WalletsView extends StatelessWidget {
           }
 
           if (listController.wallets.isEmpty) {
-            return _buildEmptyState();
+            return ListView(
+              controller: listController.scrollController,
+              physics: AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(height: 300),
+                Center(child: _buildEmptyState()),
+              ],
+            );
           }
 
           return ListView.builder(
+            controller: listController.scrollController,
+            physics: AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             itemCount: listController.wallets.length,
             itemBuilder: (context, index) {

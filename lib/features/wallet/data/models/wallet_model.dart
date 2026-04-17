@@ -1,79 +1,73 @@
+import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
 import 'package:spendwise/features/wallet/domain/entities/currency_model.dart';
 import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:uuid/uuid.dart' show Uuid;
 
-// تم فصل منطق التخزين المحلي عن منطق السيرفر لضمان مرونة البيانات وتجنب الأخطاء
 class WalletModel extends WalletEntity {
   bool isSynced;
-  String localId;
+  String? localId;
 
   WalletModel({
     String? localId,
-    super.walletId,
-    super.userId,
+    super.walletId, // هذا int في الأب
+    required super.userId, // هذا int في الأب
     required super.currency,
     required super.balance,
     required super.isSaved,
     this.isSynced = false,
   }) : localId = localId ?? const Uuid().v4();
 
-  // هذه الدالة (الموجودة مسبقاً) تتعامل مع البيانات القادمة من السيرفر (API)
   factory WalletModel.fromJson(Map<dynamic, dynamic> json) {
+    // التأكد من تحويل القيم القادمة من JSON إلى int وتجنب الـ null
     return WalletModel(
-      localId: const Uuid()
-          .v4(), // السيرفر لا يعرف الـ localId لذا ننشئ واحداً جديداً
-      walletId: json["walletId"] ?? -1,
+      localId: const Uuid().v4(),
+      walletId: json["walletId"],
+      userId: (json["userId"] ?? json["UserId"] ?? -1) as int,
+      balance: (json["balance"] ?? json["Balance"] ?? 0.0).toDouble(),
+      isSaved: json['isSaved'] ?? json['IsSaved'] ?? false,
+      isSynced: true,
       currency: _currencyFromWalletJson(json),
-      balance: (json["balance"] as num)
-          .toDouble(), // تأمين تحويل الرقم إلى double
-      isSaved: json['isSaved'] ?? false,
-      isSynced: true, // البيانات القادمة من السيرفر تعتبر متزامنة
     );
   }
 
-  // هذه الدالة (الموجودة مسبقاً) مخصصة لإرسال البيانات إلى السيرفر
   Map<String, dynamic> toJson() {
+    userId = CurrentUser.user!.userId;
     return {
-      "userId": userId,
-      "balance": balance,
-      "isSaved": isSaved,
-      "currency": {
-        "currencyId": currency.id,
-        "currencyName": currency.currencyName,
-        "liveValue": currency.actualValue,
-      },
+      "WalletId": walletId ?? -1,
+      "UserId": userId,
+      "Balance": balance,
+      "IsSaved": isSaved,
+      "CurrencyId": currency.id,
     };
   }
 
-  // دالة جديدة: لتحويل البيانات المخزنة محلياً (Database/Hive) إلى Model
   factory WalletModel.fromLocal(Map<dynamic, dynamic> map) {
+    // الإصلاح الجوهري هنا: التأكد من أن كل قيمة تُقرأ من Hive لها قيمة افتراضية ولا تعيد null
     return WalletModel(
       localId: map['localId'],
-      walletId: map['walletId'],
-      userId: map['userId'],
-      balance: (map['balance'] as num).toDouble(),
-      isSaved: map['isSaved'] == 1 || map['isSaved'] == true,
+      walletId: (map['walletId'] ?? -1) as int,
+      userId: (map['UserId'] ?? -1) as int,
+      balance: (map['Balance'] ?? 0.0).toDouble(),
+      isSaved: map['IsSaved'] == 1 || map['isSaved'] == true,
       isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
-      currency: _currencyFromWalletJson(
-        map,
-      ), // نستخدم نفس المنطق لاستخراج العملة
+      currency: _currencyFromWalletJson(map),
     );
   }
 
-  // دالة جديدة: لتحويل الـ Model إلى شكل مناسب للحفظ في التخزين المحلي
   Map<dynamic, dynamic> toLocal() {
     return {
+      "WalletId": walletId ?? -1,
       "localId": localId,
-      "walletId": walletId,
-      "userId": userId,
-      "balance": balance,
-      "isSaved": isSaved
-          ? 1
-          : 0, // تخزين كـ Integer للقواعد التي لا تدعم Boolean
-      "isSynced": isSynced ? 1 : 0,
-      "currencyId":
-          currency.id, // يكفي تخزين المعرف لاسترجاعه من CurrencyLocal لاحقاً
+      "UserId": userId,
+      "Balance": balance,
+      "IsSaved": isSaved,
+      "isSynced": isSynced,
+      "Currency": {
+        "CurrencyId": currency.id,
+        "CurrencyName": currency.currencyName,
+        "LiveValue": currency.actualValue,
+      },
     };
   }
 
@@ -82,12 +76,27 @@ class WalletModel extends WalletEntity {
     if (nested is Map) {
       return Currency.fromJson(Map<dynamic, dynamic>.from(nested));
     }
-    final rawId = json["CurrencyId"] ?? json["currencyId"];
+
+    final rawId =
+        json["CurrencyId"] ?? json["currencyId"] ?? json["currencyId"];
     if (rawId != null) {
-      final id = (rawId as num).toInt();
+      // تأمين التحويل لـ int لتجنب TypeError
+      final id = int.tryParse(rawId.toString()) ?? 143;
       final resolved = CurrencyLocal().tryCurrencyById(id);
       if (resolved != null) return resolved;
     }
     return CurrencyLocal().allCurrencies[143];
+  }
+
+  @override
+  String toString() {
+    return '''WalletModel(
+      localId: $localId, 
+      walletId: $walletId, 
+      userId: $userId, 
+      balance: $balance, 
+      currency: ${currency.currencyName}, 
+      isSynced: $isSynced
+    )''';
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -85,12 +84,8 @@ class AppUserLocalDatasourceImpl extends GetxService
 
   Future<void> resetAppCompletely() async {
     try {
-      clear();
-      IncomeLocalDataSourceImpl().clear();
-      WalletLocalDatasourceImpl().clearWallets();
-      TagLocalDatasourceImpl().clear();
-      ExpenseLocalDataSourceImpl().clear();
-
+      Hive.deleteFromDisk();
+      Hive.initFlutter();
       final sharedPrefs = await SharedPreferences.getInstance();
       await sharedPrefs.clear();
 

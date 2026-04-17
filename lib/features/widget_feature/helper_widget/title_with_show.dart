@@ -4,10 +4,12 @@ import 'package:spendwise/core/utils/colors.dart';
 class TitleWithShow extends StatelessWidget {
   final String title;
   final VoidCallback onMorePressed;
-  const TitleWithShow({
+  final bool showAll;
+  TitleWithShow({
     super.key,
     required this.title,
     required this.onMorePressed,
+    this.showAll = false,
   });
 
   @override
@@ -25,7 +27,7 @@ class TitleWithShow extends StatelessWidget {
         ),
         TextButton(
           onPressed: onMorePressed,
-          child: const Text(
+          child: Text(
             "رؤية الكل",
             style: TextStyle(
               color: SpColor.accentBlue,

@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/network/api_endpoints.dart';
 import 'package:spendwise/core/services/shared_service.dart';
+import 'package:spendwise/core/utils/current_user.dart';
+import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/auth/presentation/bindings/auth_binding.dart';
 import 'package:spendwise/features/income/presentation/bindings/income_binding.dart';
 import 'package:spendwise/features/tags/presentation/bindings/tag_binding.dart';
@@ -29,12 +31,18 @@ class InitialBinding extends Bindings {
             InterceptorsWrapper(
               onRequest: (options, handler) async {
                 try {
+                  var user = await AppUserLocalDatasourceImpl().getUser();
                   final prefs = Get.find<SharedPreferencesService>();
 
-                  final token = prefs.token;
-
-                  if (token.isNotEmpty) {
-                    options.headers['Authorization'] = 'Bearer $token';
+                  if (CurrentUser.isUserLoggedIn) {
+                    final token = prefs.token;
+                    if (token.isNotEmpty) {
+                      options.headers['Authorization'] = 'Bearer $token';
+                    } else if (user != null) {
+                      options.headers['Authorization'] = 'Bearer ${user.token}';
+                    } else {
+                      options.headers.remove('Authorization');
+                    }
                   } else {
                     options.headers.remove('Authorization');
                   }

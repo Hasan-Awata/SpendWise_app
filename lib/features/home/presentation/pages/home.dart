@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
+import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
 
 import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
@@ -11,10 +12,13 @@ import 'package:spendwise/features/widget_feature/helper_widget/saving_goals_sec
 import 'package:spendwise/features/widget_feature/helper_widget/title_with_show.dart';
 
 class Home extends StatelessWidget {
-  const Home({super.key});
+  Home({super.key});
+
+  final controller = MainController.insatnce;
 
   @override
   Widget build(BuildContext context) {
+    controller.showAll.value = false;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: RefreshIndicator(
@@ -50,17 +54,23 @@ class Home extends StatelessWidget {
               const SizedBox(height: 30),
 
               // عنوان العمليات الأخيرة مع زر عرض المزيد
-              TitleWithShow(
-                title: "آخر العمليات",
-                onMorePressed: () {
-                  // يمكن توجيهه لصفحة السجل الكامل لاحقاً
-                },
+              Obx(
+                () => controller.showAll.value
+                    ? SizedBox()
+                    : TitleWithShow(
+                        title: "آخر العمليات",
+                        onMorePressed: () {
+                          controller.showAll.value = true;
+                        },
+                      ),
               ),
 
               const SizedBox(height: 15),
 
               // القائمة المدمجة (دخل + مصاريف) مرتبة زمنياً
-              const RecentTransactionsList(),
+              Obx(
+                () => RecentTransactionsList(showAll: controller.showAll.value),
+              ),
 
               const SizedBox(height: 100),
             ],

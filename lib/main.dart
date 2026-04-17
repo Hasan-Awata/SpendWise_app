@@ -1,12 +1,8 @@
-import 'dart:io';
-
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:hive/hive.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:spendwise/core/network/initial_binding.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/services/shared_service.dart';
@@ -48,21 +44,37 @@ void main() async {
 
   CurrentUser.initializeUser();
 
-  runApp(
-  
-    DevicePreview(enabled: false, builder: (context) => const MyApp()),
-   
-  );
+  runApp(DevicePreview(enabled: true, builder: (context) => const MyApp()));
+}
+
+Future<void> _clearAllData() async {
+  // قائمة بالأسماء التي تريد حذفها
+  List<String> boxesToClear = [
+    "CURRENTUSER",
+    "MYINCOME",
+    "MYEXPENSE",
+    "TAG_BOX",
+    "WALLET",
+  ];
+
+  for (String boxName in boxesToClear) {
+    // نفتح الـ Box ثم نمسح محتوياته، هذه الطريقة تعمل 100%
+    var box = await Hive.openBox(boxName);
+    await box.clear();
+    // اختياري: إذا أردت حذف الملف نهائياً بعد التصفير
+    // await box.deleteFromDisk();
+  }
+  print("✅ All local storage cleared successfully");
 }
 
 // دالة منظمة لتسجيل المحولات
 void _registerHiveAdapters() {
-  if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(UserAdapter());
-  if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(TagAdapter());
-  if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(WalletAdapter());
-  if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(IncomeAdapter());
-  if (!Hive.isAdapterRegistered(4)) Hive.registerAdapter(CurrencyAdapter());
-  if (!Hive.isAdapterRegistered(5)) Hive.registerAdapter(ExpenseAdapter());
+  Hive.registerAdapter(UserAdapter());
+  Hive.registerAdapter(TagAdapter());
+  Hive.registerAdapter(WalletAdapter());
+  Hive.registerAdapter(IncomeAdapter());
+  Hive.registerAdapter(CurrencyAdapter());
+  Hive.registerAdapter(ExpenseAdapter());
 }
 
 // دالة منظمة لتهيئة الداتا سورس

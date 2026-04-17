@@ -30,9 +30,15 @@ class TagsView extends GetView<TagViewController> {
         onRefresh: () async => controller.loadTags(isRefresh: true),
         child: Obx(() {
           if (controller.isLoading.value && controller.myTags.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return ListView(
+              controller: controller.scrollController,
+              physics: AlwaysScrollableScrollPhysics(),
+              children: [const Center(child: CircularProgressIndicator())],
+            );
           }
           return ListView.builder(
+            controller: controller.scrollController,
+            physics: AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             itemCount: controller.myTags.length,
             itemBuilder: (context, index) {

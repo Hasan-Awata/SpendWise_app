@@ -76,10 +76,7 @@ class AuthBinding extends Bindings {
     }
 
     if (!Get.isRegistered<LoginController>()) {
-      Get.lazyPut(
-        () => LoginController(loginUsecase: Get.find()),
-        fenix: true,
-      );
+      Get.lazyPut(() => LoginController(loginUsecase: Get.find()), fenix: true);
     }
     if (!Get.isRegistered<SignUpController>()) {
       Get.lazyPut(

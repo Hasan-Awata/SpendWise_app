@@ -10,7 +10,7 @@ class ApiEndpoints {
   // Wallet Endpoints
   static const String wallet = "wallets";
   // Income Endpoints
-  static const String income = 'Incomes';
+  static const String income = 'incomes';
 
   static const String expense = 'Expenses';
 

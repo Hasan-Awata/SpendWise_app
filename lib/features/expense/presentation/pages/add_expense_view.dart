@@ -20,13 +20,6 @@ class AddExpenseView extends StatefulWidget {
 }
 
 class _AddExpenseViewState extends State<AddExpenseView> {
-  @override
-  void initState() {
-    super.initState();
-    controller.walletsListController.loadWallets();
-    controller.tagController.loadTags();
-  }
-
   final controller = Get.find<AddExpenseController>();
 
   final RxBool isFixed = false.obs;
@@ -159,6 +152,10 @@ class _AddExpenseViewState extends State<AddExpenseView> {
         values: controller.categories
             .map((c) => "${c.name} (P${c.priority})")
             .toList(),
+        onSelected: (index, value) {
+          controller.selectedCategory.value = controller.categories[index];
+          controller.categoryTextController.text = value;
+        },
         textEditingController: controller.categoryTextController,
       ),
     );
@@ -216,6 +213,11 @@ class _AddExpenseViewState extends State<AddExpenseView> {
                 "${w.currency.currencyName}      (${w.currency.code} ${w.balance})",
           )
           .toList(),
+      onSelected: (index, value) {
+        controller.selectedWallet.value =
+            controller.walletsListController.wallets[index];
+        controller.walletTextController.text = value;
+      },
       textEditingController: controller.walletTextController,
       suffixIcon: IconButton(
         onPressed: () async {
@@ -235,6 +237,10 @@ class _AddExpenseViewState extends State<AddExpenseView> {
       textColor: const Color(0xFFF15A5A),
       prefixIcon: const Icon(Icons.tag, color: Color(0xFFF15A5A)),
       values: controller.tagController.myTags.map((t) => t.name).toList(),
+      onSelected: (index, value) {
+        controller.selectedTag.value = controller.tagController.myTags[index];
+        controller.tagTextController.text = value;
+      },
       textEditingController: controller.tagTextController,
     ),
   );

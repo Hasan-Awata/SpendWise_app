@@ -18,6 +18,7 @@ class DeleteIncomeController extends GetxController {
 
   Future<void> deleteIncome(IncomeModel incomeDelete) async {
     isLoadingDelete.value = true;
+
     final result = await deleteIncomeUseCase.call(incomeDelete);
 
     result.fold((failure) => _handleError("فشل الحذف", failure.message), (_) {
@@ -26,7 +27,12 @@ class DeleteIncomeController extends GetxController {
       );
       incomesListController.calculateTotals();
       HelperFunction.showSnackBar("محذوف", "تم حذف السجل بنجاح");
+
+      if (Get.isOverlaysOpen) {
+        Get.back();
+      }
     });
+
     isLoadingDelete.value = false;
   }
 

@@ -8,7 +8,8 @@ import 'package:spendwise/features/income/presentation/manager/incomes_list_cont
 import 'package:spendwise/features/transaction/presentation/widgets/transaction_tile.dart';
 
 class RecentTransactionsList extends StatelessWidget {
-  const RecentTransactionsList({super.key});
+  final bool showAll;
+  RecentTransactionsList({super.key, this.showAll = false});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +24,9 @@ class RecentTransactionsList extends StatelessWidget {
 
       combinedList.sort((a, b) => b.date.compareTo(a.date));
 
-      final latestTransactions = combinedList.take(5).toList();
+      final latestTransactions = combinedList
+          .take(showAll ? combinedList.length : 5)
+          .toList();
 
       if (latestTransactions.isEmpty) {
         return const Center(

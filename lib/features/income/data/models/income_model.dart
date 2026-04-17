@@ -1,3 +1,4 @@
+import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/income/domain/entities/income_entity.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
@@ -55,7 +56,7 @@ class IncomeModel extends IncomeEntity {
       description: map['description'],
       isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
       // نفترض هنا أن البيانات المتداخلة تُخزن كـ Map أو يتم معالجتها عبر IDs
-      tag: map['Tag'] != null
+      tag: map['tag'] != null
           ? TagModel.fromLocal(Map<String, dynamic>.from(map['tag']))
           : null,
       wallet: map['wallet'] != null
@@ -65,16 +66,17 @@ class IncomeModel extends IncomeEntity {
   }
 
   // لتحويل الكائن إلى صيغة يقبلها السيرفر (تجاهل الـ localId والبيانات غير الضرورية)
-  Map<dynamic, dynamic> toJson() {
+  Map<String, dynamic> toJson() {
     return {
+      'IncomeId': remoteId ?? -1,
       'UserId': userId,
-      'Id': remoteId,
-      'Title': title,
+      'Id': remoteId ?? 0, // السيرفر قد يتوقع 0 في حال الإضافة
       'Amount': amount,
       'Date': date.toIso8601String(),
       'Description': description ?? '',
-      'Wallet': wallet, // غالباً السيرفر يحتاج الـ ID فقط للكائنات المرتبطة
-      'IncomeTag': tag,
+      'Title': title,
+      'WalletId': wallet!.walletId,
+      "TagId": tag!.id,
     };
   }
 
@@ -118,5 +120,17 @@ class IncomeModel extends IncomeEntity {
     if (v == null) return DateTime.now();
     if (v is DateTime) return v;
     return DateTime.tryParse(v.toString()) ?? DateTime.now();
+  }
+
+  @override
+  String toString() {
+    return '''
+IncomeModel Detail:
+- Title: $title
+- Amount: $amount (Type: ${amount.runtimeType})
+- WalletId: ${wallet?.walletId} (Type: ${wallet?.walletId.runtimeType})
+- CurrencyId: ${wallet?.currency.id} (Type: ${wallet?.currency.id.runtimeType})
+- RemoteId: $remoteId
+''';
   }
 }

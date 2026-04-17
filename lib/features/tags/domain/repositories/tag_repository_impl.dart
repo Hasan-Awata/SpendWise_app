@@ -10,6 +10,7 @@ import 'package:spendwise/features/tags/data/models/tag_model.dart';
 import 'package:spendwise/features/tags/data/repositories/tag_repository.dart';
 import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 
+// // تعليق: مستودع الأوسمة المطور - يجمع بين ميزة الترتيب العكسي وفلترة العناصر المحذوفة محلياً
 class TagRepositoryImpl implements TagRepository {
   final TagLocalDatasource tagLocalDatasource;
   final TagRemoteDatasource tagRemoteDatasource;
@@ -45,7 +46,6 @@ class TagRepositoryImpl implements TagRepository {
   ) async {
     try {
       final remoteResponse = await tagRemoteDatasource.getMyTags(page);
-
       for (var model in remoteResponse.data) {
         model.isSynced = true;
         await tagLocalDatasource.addTagLocally(model);
@@ -56,26 +56,69 @@ class TagRepositoryImpl implements TagRepository {
     }
   }
 
+  Future<Either<Failure, PagedResponse<TagModel>>> _getLocalPagedResponse(
+    PageRequest page,
+  ) async {
+    try {
+      final all = await tagLocalDatasource.getMyTags();
+
+      // ميزة Wallet: استثناء العناصر المسمومة للحذف
+      final filtered = all.where((t) => t.localId != "REMOVE").toList();
+
+      // ميزة Tag الأصلية: عكس الترتيب (الأحدث أولاً)
+      final reversedAll = filtered.reversed.toList();
+
+      final start = (page.pageNumber - 1) * page.pageSize;
+      final totalPages = (reversedAll.length / page.pageSize).ceil();
+
+      if (start >= reversedAll.length) {
+        return Right(
+          PagedResponse(
+            data: [],
+            totalRecords: reversedAll.length,
+            pageNumber: page.pageNumber,
+            pageSize: page.pageSize,
+            totalPages: totalPages,
+          ),
+        );
+      }
+
+      final end = start + page.pageSize;
+      final sliced = reversedAll.sublist(
+        start,
+        end > reversedAll.length ? reversedAll.length : end,
+      );
+
+      return Right(
+        PagedResponse<TagModel>(
+          data: sliced,
+          totalRecords: reversedAll.length,
+          pageNumber: page.pageNumber,
+          pageSize: page.pageSize,
+          totalPages: totalPages,
+        ),
+      );
+    } catch (e) {
+      return Left(CacheFailure("خطأ في قراءة البيانات المحلية"));
+    }
+  }
+
   @override
   Future<Either<Failure, Unit>> deleteTag(TagModel tag) async {
     try {
+      tag.localId = "REMOVE";
+      tag.isSynced = false;
+      await tagLocalDatasource.updateTagLocally(tag);
+
       _safeRemoteCall(() async {
-        if (tag.id != null && tag.id != -1) {
+        if (tag.id != null || tag.id != -1) {
           await tagRemoteDatasource.deleteTag(tag);
         }
         await tagLocalDatasource.deleteTagLocally(tag);
       });
-
-      if (tag.id == null || tag.id == -1) {
-        await tagLocalDatasource.deleteTagLocally(tag);
-      } else {
-        tag.isSynced = false;
-        await tagLocalDatasource.updateTagLocally(tag);
-      }
-
       return const Right(unit);
     } catch (e) {
-      return Left(CacheFailure("فشل تنفيذ طلب الحذف محلياً"));
+      return Left(CacheFailure("فشل عملية الحذف محلياً"));
     }
   }
 
@@ -84,13 +127,11 @@ class TagRepositoryImpl implements TagRepository {
     try {
       tag.isSynced = false;
       await tagLocalDatasource.updateTagLocally(tag);
-
       _safeRemoteCall(() async {
         await tagRemoteDatasource.updateTag(tag);
         tag.isSynced = true;
         await tagLocalDatasource.updateTagLocally(tag);
       });
-
       return const Right(unit);
     } catch (e) {
       return Left(CacheFailure("فشل تحديث البيانات محلياً"));
@@ -101,22 +142,25 @@ class TagRepositoryImpl implements TagRepository {
   Future<Either<Failure, Unit>> syncPendingTags() async {
     try {
       final allLocal = await tagLocalDatasource.getMyTags();
-
       for (var tag in allLocal) {
         try {
-          if (!tag.isSynced) {
-            if (tag.id == null || tag.id == -1) {
-              final remote = await tagRemoteDatasource.addTag(tag);
-              remote.isSynced = true;
-              remote.localId = tag.localId;
-              await tagLocalDatasource.updateTagLocally(remote);
-            } else {
-              await tagRemoteDatasource.updateTag(tag);
-              tag.isSynced = true;
-              await tagLocalDatasource.updateTagLocally(tag);
-            }
+          if (tag.localId == "REMOVE") {
+            if (tag.id != null) await tagRemoteDatasource.deleteTag(tag);
+            await tagLocalDatasource.deleteTagLocally(tag);
+            continue;
           }
-        } catch (_) {
+          if (tag.isSynced) continue;
+          if (tag.id == null || tag.id == -1) {
+            final remote = await tagRemoteDatasource.addTag(tag);
+            remote.isSynced = true;
+            remote.localId = tag.localId;
+            await tagLocalDatasource.updateTagLocally(remote);
+          } else {
+            await tagRemoteDatasource.updateTag(tag);
+            tag.isSynced = true;
+            await tagLocalDatasource.updateTagLocally(tag);
+          }
+        } catch (e) {
           continue;
         }
       }
@@ -130,44 +174,7 @@ class TagRepositoryImpl implements TagRepository {
     try {
       await call();
     } catch (e) {
-      debugPrint("Tag Silent Sync Error: $e");
-    }
-  }
-
-  Future<Either<Failure, PagedResponse<TagModel>>> _getLocalPagedResponse(
-    PageRequest page,
-  ) async {
-    try {
-      final all = await tagLocalDatasource.getMyTags();
-      final start = (page.pageNumber - 1) * page.pageSize;
-      final totalPages = (all.length / page.pageSize).ceil();
-
-      if (start >= all.length) {
-        return Right(
-          PagedResponse(
-            data: [],
-            totalRecords: all.length,
-            pageNumber: page.pageNumber,
-            pageSize: page.pageSize,
-            totalPages: totalPages,
-          ),
-        );
-      }
-
-      final end = start + page.pageSize;
-      final sliced = all.sublist(start, end > all.length ? all.length : end);
-
-      return Right(
-        PagedResponse<TagModel>(
-          data: sliced,
-          totalRecords: all.length,
-          pageNumber: page.pageNumber,
-          pageSize: page.pageSize,
-          totalPages: totalPages,
-        ),
-      );
-    } catch (e) {
-      return Left(CacheFailure("خطأ في قراءة البيانات المحلية"));
+      debugPrint("Silent Sync Error: $e");
     }
   }
 }
