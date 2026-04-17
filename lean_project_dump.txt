@@ -324,40 +324,30 @@ namespace SpendWise.Controllers
                 return BadRequest();
             }
 
-            return CreatedAtAction(nameof(GetExpense), expenseDTO);
+            return CreatedAtAction(nameof(GetExpense), new { walletId = createdExpense.ExpenseId }, createdExpense);
         }
 
         [HttpPatch("{expenseId}")]
         public async Task<IActionResult> UpdateExpense([FromRoute] int expenseId, [FromBody] ExpenseDTO expenseDTO)
         {
-            if (CurrentUserId != expenseDTO.UserId)
-            {
-                return Unauthorized();
-            }
+            if (CurrentUserId != expenseDTO.UserId) return Unauthorized();
 
-            expenseDTO.UserId = CurrentUserId;
+            expenseDTO.ExpenseId = expenseId; 
 
-            var createdExpense = await _expenseService.AddExpenseAsync(expenseDTO);
+            var updatedExpense = await _expenseService.UpdateExpenseAsync(expenseDTO);
 
-            if (createdExpense == null)
-            {
-                return BadRequest();
-            }
+            if (updatedExpense == null) return BadRequest();
 
-            return CreatedAtAction(nameof(GetExpense), expenseDTO);
+            return Ok(updatedExpense);
         }
 
         [HttpDelete("{expenseId}")]
-        public async Task<IActionResult> DeleteIncome([FromRoute] int expenseId)
+        public async Task<IActionResult> DeleteExpense([FromRoute] int expenseId)
         {
             if (await _expenseService.DeleteExpenseAsync(expenseId, CurrentUserId))
-            {
                 return NoContent();
-            }
             else
-            {
                 return BadRequest();
-            }
         }
     }
 }
@@ -467,9 +457,9 @@ namespace SpendWise.Controllers
         }
 
         [HttpDelete("{incomeId}")]
-        public async Task<IActionResult> DeleteIncome([FromRoute] int incomeId, int userId)
+        public async Task<IActionResult> DeleteIncome([FromRoute] int incomeId)
         {
-            if(await _incomeService.DeleteIncomeAsync(incomeId, userId))
+            if(await _incomeService.DeleteIncomeAsync(incomeId, CurrentUserId))
             {
                 return NoContent();
             }
@@ -878,7 +868,7 @@ namespace SpendWise.Controllers
         {
             int userId = CurrentUserId;
 
-            await _tagService.DeleteTagAsync(tagId);
+            await _tagService.DeleteTagAsync(tagId, CurrentUserId);
 
             return NoContent();
         }
@@ -1823,7 +1813,7 @@ namespace SpendWise.Application.Interfaces.Expenses
     {
         // Writing to database
         public Task<int> AddExpenseAsync(Expense newExpense, Transaction newTransaction);
-        public Task<int> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction);
+        public Task<bool> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction);
         public Task<bool> DeleteExpenseAsync(int expenseId, int userId);
 
         // Reading from the database
@@ -1876,7 +1866,7 @@ namespace SpendWise.Application.Interfaces.Incomes
     {
         // Writing to database
         public Task<int> AddIncomeAsync(Income newIncome, Transaction newTransaction);
-        public Task<int> UpdateIncomeAsync(Income newIncome, Transaction newTransaction);
+        public Task<bool> UpdateIncomeAsync(Income newIncome, Transaction newTransaction);
         public Task<bool> DeleteIncomeAsync(int incomeId, int userId);
 
         // Reading from the database
@@ -2028,7 +2018,7 @@ namespace SpendWise.Application.Interfaces.Tags
         // Writing to DB methods
         public Task<int> AddTagAsync(Tag tag);
         public Task<bool> UpdateTagAsync(Tag tag);
-        public Task<bool> DeleteTagAsync(int tagId);
+        public Task<bool> DeleteTagAsync(int tagId, int userId);
     }
 }
 
@@ -2050,7 +2040,7 @@ namespace SpendWise.Application.Interfaces.Tags
 
         public Task<TagResponse?> AddTagAsync(TagDTO tag);
         public Task<TagResponse?> UpdateTagAsync(TagDTO tag);
-        public Task DeleteTagAsync(int tagId);
+        public Task DeleteTagAsync(int tagId, int userId);
     }
 }
 
@@ -2134,7 +2124,7 @@ namespace SpendWise.Application.Interfaces.Wallets
 
         public Task<int> AddWalletAsync(Wallet wallet);
 
-        public Task<int> UpdateWalletAsync(Wallet wallet);
+        public Task<bool> UpdateWalletAsync(Wallet wallet);
 
         public Task<bool> DeleteWalletAsync(int walletId, int userId);
 
@@ -2382,7 +2372,7 @@ namespace SpendWise.Application.Services
             // 4 - Return the created item
             return new ExpenseResponse
             {
-                ExpenseId = newExpens.ExpenseId,
+                ExpenseId = newExpenseId,
                 UserId = newExpens.UserId,
                 Title = "Added expense",
                 Amount = newExpens.Amount,
@@ -2424,7 +2414,8 @@ namespace SpendWise.Application.Services
             };
 
             // 3 - store both the income and the transaction in the database
-            int updateExpenseId = await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction);
+            if (!await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction))
+                return null;
 
             // 4 - Return the created item
             return new ExpenseResponse
@@ -2591,10 +2582,9 @@ namespace SpendWise.Application.Services
             };
 
             // 5 - store both the income and the transaction in the database
-            int updatedIncomeId = await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction);
 
             // 6 - Check if the update succeeded
-            if(updatedIncomeId == -1)
+            if(!await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction))
             {
                 return null;
             }
@@ -2602,7 +2592,7 @@ namespace SpendWise.Application.Services
             // 7 - Return the created item
             return new IncomeResponse
             {
-                Id = updatedIncomeId,
+                Id = incomeDto.Id,
                 UserId = incomeDto.UserId,
                 Title = updatedTransaction.Title,
                 Amount = updatedTransaction.Amount,
@@ -2882,7 +2872,7 @@ namespace SpendWise.Application.Services
         {
             var updatedTag = new Tag(tagDto.Id, tagDto.OwnerId, tagDto.Label);
 
-            if (await _tagRepo.UpdateTagAsync(updatedTag))
+            if (!await _tagRepo.UpdateTagAsync(updatedTag))
             {
                 return null;
             }
@@ -2895,9 +2885,9 @@ namespace SpendWise.Application.Services
             };
 
         }
-        public async Task DeleteTagAsync(int tagId)
+        public async Task DeleteTagAsync(int tagId, int userId)
         {
-            await _tagRepo.DeleteTagAsync(tagId);
+            await _tagRepo.DeleteTagAsync(tagId, userId);
         }
     }
 }
@@ -3065,16 +3055,12 @@ namespace SpendWise.Application.Services
                 CurrencyId = walletDTO.CurrencyId,
             };
 
-            int updatedWalletId = await _walletRepo.UpdateWalletAsync(updatedWallet);
-
-            if(updatedWalletId == -1)
-            {
+            if(!await _walletRepo.UpdateWalletAsync(updatedWallet))
                 return null;
-            }
 
             return new WalletResponse
             {
-                WalletId = updatedWalletId,
+                WalletId = walletDTO.WalletId,
                 UserId = walletDTO.UserId,
                 Balance = walletDTO.Balance,
                 CurrencyId = walletDTO.CurrencyId,
@@ -3609,7 +3595,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<int> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction)
+        public async Task<bool> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction)
         {
             try
             {
@@ -3637,8 +3623,7 @@ namespace SpendWise.Infrastructure.Repositories
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
 
-                // Clean, one-line evaluation returning the updated ID (or rows affected depending on your SP)
-                return result != null && int.TryParse(result.ToString(), out int updatedId) ? updatedId : -1;
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
@@ -3880,7 +3865,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<int> UpdateIncomeAsync(Income newIncome, Transaction newTransaction)
+        public async Task<bool> UpdateIncomeAsync(Income newIncome, Transaction newTransaction)
         {
             try
             {
@@ -3905,11 +3890,11 @@ namespace SpendWise.Infrastructure.Repositories
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
 
-                return result != null && int.TryParse(result.ToString(), out int updatedId) ? updatedId : -1;
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
-                SqlExceptionHandler.Handle(ex); 
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }
@@ -4323,6 +4308,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Reposito
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Tags;
 using SpendWise.Domain.Entities;
+using SpendWise.Infrastructure.Global; // Applied Global Exception Handler
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -4342,96 +4328,97 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> AddTagAsync(Tag NewTag)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_CreateTag]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@NewID", NewTag.Id);
-            command.Parameters.AddWithValue("@UserID", NewTag.OwnerId);
-            command.Parameters.AddWithValue("@Name", NewTag.Label);
-
             try
             {
-                await connection.OpenAsync();
-                object? result = await command.ExecuteScalarAsync();
-
-                if (result != null && int.TryParse(result.ToString(), out int insertedID))
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Config].[sp_CreateTag]", connection)
                 {
-                    NewTag.Id = insertedID;
-                    return insertedID;
-                }
+                    CommandType = CommandType.StoredProcedure
+                };
 
-                return -1; // Fallback if the SP fails to return the ID but doesn't throw a SQL exception
+                // Removed @NewID because SQL auto-generates it!
+                command.Parameters.AddWithValue("@UserID", NewTag.OwnerId);
+                command.Parameters.AddWithValue("@Name", NewTag.Label);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int insertedID) ? insertedID : -1;
             }
             catch (SqlException ex)
             {
-                HandleSqlException(ex);
-                throw; // Satisfies the compiler, though HandleSqlException will throw first
+                SqlExceptionHandler.Handle(ex); // Centralized Exception Handling
+                throw;
             }
         }
 
         public async Task<bool> UpdateTagAsync(Tag UpdatedTag)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_UpdateTag]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@Name", UpdatedTag.Label);
-            command.Parameters.AddWithValue("@TagID", UpdatedTag.Id);
-            command.Parameters.AddWithValue("@UserID", UpdatedTag.OwnerId);
-
             try
             {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Config].[sp_UpdateTag]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@Name", UpdatedTag.Label);
+                command.Parameters.AddWithValue("@TagID", UpdatedTag.Id);
+                command.Parameters.AddWithValue("@UserID", UpdatedTag.OwnerId);
+
                 await connection.OpenAsync();
-                int rowsAffected = await command.ExecuteNonQueryAsync();
-                return rowsAffected > 0;
+                var result = await command.ExecuteScalarAsync();
+
+                // Clean, one-line evaluation
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
-                HandleSqlException(ex);
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }
 
-        public async Task<bool> DeleteTagAsync(int TagID)
+        // Added userId parameter for IDOR security!
+        public async Task<bool> DeleteTagAsync(int TagID, int userId)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_DeleteTag]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@TagID", TagID);
-
             try
             {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Config].[sp_DeleteTag]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@TagID", TagID);
+                command.Parameters.AddWithValue("@UserID", userId);
+
                 await connection.OpenAsync();
-                int rowsAffected = await command.ExecuteNonQueryAsync();
-                return rowsAffected > 0;
+                var result = await command.ExecuteScalarAsync();
+
+                // Clean, one-line evaluation
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
-                HandleSqlException(ex);
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }
 
         public async Task<Tag> GetTagAsync(int TagID, int userId)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_GetTag]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@TagID", TagID);
-
             try
             {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Config].[sp_GetTag]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@TagID", TagID);
+                command.Parameters.AddWithValue("@UserID", userId); // Fixed missing parameter!
+
                 await connection.OpenAsync();
                 using SqlDataReader reader = await command.ExecuteReaderAsync();
 
@@ -4444,11 +4431,11 @@ namespace SpendWise.Infrastructure.Repositories
                     );
                 }
 
-                return null;
+                return null!;
             }
             catch (SqlException ex)
             {
-                HandleSqlException(ex);
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }
@@ -4457,16 +4444,16 @@ namespace SpendWise.Infrastructure.Repositories
         {
             var tags = new List<Tag?>();
 
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_GetTagsByUserID]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@UserID", UserID);
-
             try
             {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Config].[sp_GetTags]", connection) // Fixed SP Name
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@UserID", UserID);
+
                 await connection.OpenAsync();
                 using SqlDataReader reader = await command.ExecuteReaderAsync();
 
@@ -4483,26 +4470,8 @@ namespace SpendWise.Infrastructure.Repositories
             }
             catch (SqlException ex)
             {
-                HandleSqlException(ex);
+                SqlExceptionHandler.Handle(ex);
                 throw;
-            }
-        }
-
-        // ── Helper Method for Mapping SQL Exceptions ─────────────────────────
-        private void HandleSqlException(SqlException ex)
-        {
-            switch (ex.Number)
-            {
-                case 2601:
-                case 2627:
-                    throw new DuplicateResourceException("A tag with this name already exists.");
-                case 547:
-                    throw new InvalidReferenceException("A related record is missing, or this tag is currently linked to existing transactions and cannot be modified or deleted.");
-                case -2:
-                    throw new TimeoutException("The database took too long to respond. Please try again.");
-                default:
-                    // Let the global handler catch this as a standard 500 Internal Server Error
-                    throw new Exception($"An unexpected database error occurred. Code: {ex.Number}", ex);
             }
         }
     }
@@ -4510,134 +4479,152 @@ namespace SpendWise.Infrastructure.Repositories
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Repositories\UserRepository.cs
 ----------------------------------------
-﻿using Azure;
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Users;
 using SpendWise.Domain.Entities;
+using SpendWise.Infrastructure.Global; 
 using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace SpendWise.Infrastructure.Repositories
 {
     public class UserRepository : IUserRepository
     {
         private readonly string _connectionString;
+
         public UserRepository(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                                             ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
         }
+
         public async Task<User?> GetByIdAsync(int id)
         {
-            User user = null;
-
-            using var connection = new SqlConnection(_connectionString);
-            using (SqlCommand command = new SqlCommand("[Identity].[sp_GetUserById]", connection))
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Identity].[sp_GetUserById]", connection)
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@UserID", id);
+                    CommandType = System.Data.CommandType.StoredProcedure
+                };
 
-                    try
-                    {
-                        await connection.OpenAsync();
-                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                        {
-                            if (await reader.ReadAsync())
-                            {
-                                user = new User((string)reader["Username"],
-                                                (string)reader["Password"],
-                                                (string)reader["FirstName"],
-                                                (string)reader["LastName"]);
-                            }
-                        }
-                    }
-                    catch (Exception) { }
+                command.Parameters.AddWithValue("@UserID", id);
+
+                await connection.OpenAsync();
+                using SqlDataReader reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new User(
+                        ID: (int)reader["UserID"],
+                        userName: (string)reader["Username"],
+                        HashedPassword: (string)reader["Password"],
+                        FirstName: (string)reader["FirstName"],
+                        LastName: (string)reader["LastName"]
+                    );
+                }
+
+                return null;
             }
-            return user;
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
         }
+
         public async Task<User?> GetByUsernameAsync(string userName)
         {
-            User user = null;
-
-            using var connection = new SqlConnection(_connectionString);
-            using (SqlCommand command = new SqlCommand("[Identity].[sp_GetUserByUsername]", connection))
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Identity].[sp_GetUserByUsername]", connection)
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@Username", userName);
+                    CommandType = System.Data.CommandType.StoredProcedure
+                };
 
-                    try
-                    {
-                        await connection.OpenAsync();
-                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                        {
-                            if (await reader.ReadAsync())
-                            {
-                                user = new User((int)reader["UserID"],
-                                                (string)reader["Username"],
-                                                (string)reader["Password"],
-                                                (string)reader["FirstName"],
-                                                (string)reader["LastName"]);
-                            }
-                        }
-                    }
-                    catch (Exception) { }
+                command.Parameters.AddWithValue("@Username", userName);
+
+                await connection.OpenAsync();
+                using SqlDataReader reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new User(
+                        ID: (int)reader["UserID"],
+                        userName: (string)reader["Username"],
+                        HashedPassword: (string)reader["Password"],
+                        FirstName: (string)reader["FirstName"],
+                        LastName: (string)reader["LastName"]
+                    );
+                }
+
+                return null;
             }
-            return user;
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
         }
+
         public async Task<bool> IsUsernameExistAsync(string username)
         {
-            bool found = false;
-            using var connection = new SqlConnection(_connectionString);
-            using (SqlCommand command = new SqlCommand("[Identity].[sp_CheckUsernameExists]", connection))
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Identity].[sp_CheckUsernameExists]", connection)
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@Username", username);
+                    CommandType = System.Data.CommandType.StoredProcedure
+                };
 
-                    try
-                    {
-                        await connection.OpenAsync();
-                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                        {
-                            found = reader.HasRows;
-                        }
-                    }
-                    catch (Exception) { }
+                command.Parameters.AddWithValue("@Username", username);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                // Clean scalar boolean evaluation
+                return result != null && Convert.ToBoolean(result);
             }
-            return found;
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
         }
+
         public async Task<int> AddUserAsync(User user)
         {
-            int UserID = -1;
-
-            using var connection = new SqlConnection(_connectionString);
-            using (SqlCommand command = new SqlCommand("[Identity].[sp_AddUser]", connection))
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Identity].[sp_AddUser]", connection)
                 {
-                    command.CommandType = CommandType.StoredProcedure;
+                    CommandType = System.Data.CommandType.StoredProcedure
+                };
 
-                    command.Parameters.AddWithValue("@NewUserID", user.Id);
-                    command.Parameters.AddWithValue("@Username", user.UserName);
-                    command.Parameters.AddWithValue("@Password", user.HashedPassword);
-                    command.Parameters.AddWithValue("@FirstName", user.FirstName);
-                    command.Parameters.AddWithValue("@LastName", user.LastName);
+                // Removed @NewUserID - SQL generates this automatically!
+                command.Parameters.AddWithValue("@Username", user.UserName);
+                command.Parameters.AddWithValue("@Password", user.HashedPassword);
+                command.Parameters.AddWithValue("@FirstName", user.FirstName);
+                command.Parameters.AddWithValue("@LastName", user.LastName);
 
-                    try
-                    {
-                        await connection.OpenAsync();
-                        object result = await command.ExecuteScalarAsync();
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
 
-                        if (result != null && int.TryParse(result.ToString(), out int insertedID))
-                        {
-                            user.Id = insertedID;
-                        }
+                if (result != null && int.TryParse(result.ToString(), out int insertedID))
+                {
+                    user.Id = insertedID;
+                    return insertedID;
                 }
-                    catch (Exception)
-                    {
-                        throw;
-                    }
-                return user.Id;
+
+                return -1;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex); // Automatically catches DuplicateResourceException
+                throw;
             }
         }
     }
@@ -4757,7 +4744,7 @@ public class WalletRepository : IWalletRepository
         return wallet.WalletId;
     }
 
-    public async Task<int> UpdateWalletAsync(Wallet wallet)
+    public async Task<bool> UpdateWalletAsync(Wallet wallet)
     {
         try
         {
@@ -4769,12 +4756,14 @@ public class WalletRepository : IWalletRepository
 
             command.Parameters.AddWithValue("@WalletId", wallet.WalletId);
             command.Parameters.AddWithValue("@UserId", wallet.UserId);
+            command.Parameters.AddWithValue("@CurrencyId", wallet.CurrencyId); 
             command.Parameters.AddWithValue("@Balance", wallet.Balance);
             command.Parameters.AddWithValue("@IsSaved", wallet.IsSaved);
 
             await connection.OpenAsync();
             object? result = await command.ExecuteScalarAsync();
-            return result != null && int.TryParse(result.ToString(), out int rowsAffected) ? rowsAffected : -1;
+
+            return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
         }
         catch (SqlException ex)
         {

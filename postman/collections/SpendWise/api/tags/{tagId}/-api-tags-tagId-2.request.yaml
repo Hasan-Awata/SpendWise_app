@@ -3,6 +3,6 @@ name: /api/tags/:tagId
 url: "{{baseUrl}}/api/tags/:tagId"
 method: DELETE
 pathVariables:
-  tagId: "1624"
+  tagId: "9299"
 examples: ./.resources/-api-tags-tagId-2.resources/examples
 order: 3000

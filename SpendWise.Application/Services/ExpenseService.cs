@@ -105,7 +105,7 @@ namespace SpendWise.Application.Services
             // 4 - Return the created item
             return new ExpenseResponse
             {
-                ExpenseId = newExpens.ExpenseId,
+                ExpenseId = newExpenseId,
                 UserId = newExpens.UserId,
                 Title = "Added expense",
                 Amount = newExpens.Amount,

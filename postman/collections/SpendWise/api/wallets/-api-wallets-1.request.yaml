@@ -9,14 +9,14 @@ body:
   content: |-
     {
       "currency": {
-        "currencyName": "string",
-        "currencyId": 8268,
-        "liveValue": 6629.581871169296
+        "currencyName": "Syrian Pound",
+        "currencyId": 1,
+        "liveValue": 13500
       },
       "isSaved": false,
-      "userId": 8195,
-      "walletId": 5098,
-      "balance": 1.3328949679274792e+308
+      "userId": 15,
+      "walletId": 0,
+      "balance": 100000
     }
 examples: ./.resources/-api-wallets-1.resources/examples
 order: 3000

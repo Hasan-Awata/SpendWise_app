@@ -100,9 +100,9 @@ namespace SpendWise.Controllers
         }
 
         [HttpDelete("{incomeId}")]
-        public async Task<IActionResult> DeleteIncome([FromRoute] int incomeId, int userId)
+        public async Task<IActionResult> DeleteIncome([FromRoute] int incomeId)
         {
-            if(await _incomeService.DeleteIncomeAsync(incomeId, userId))
+            if(await _incomeService.DeleteIncomeAsync(incomeId, CurrentUserId))
             {
                 return NoContent();
             }

@@ -62,7 +62,7 @@ namespace SpendWise.Application.Services
         {
             var updatedTag = new Tag(tagDto.Id, tagDto.OwnerId, tagDto.Label);
 
-            if (await _tagRepo.UpdateTagAsync(updatedTag))
+            if (!await _tagRepo.UpdateTagAsync(updatedTag))
             {
                 return null;
             }

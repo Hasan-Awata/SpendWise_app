@@ -7,7 +7,7 @@ request:
       value: Bearer <token>
       description: "Added as a part of security scheme: bearer"
   pathVariables:
-    expenseId: "1624"
+    expenseId: "9299"
 response:
   statusCode: 200
   statusText: OK

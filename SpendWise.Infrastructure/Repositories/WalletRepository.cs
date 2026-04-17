@@ -122,6 +122,7 @@ public class WalletRepository : IWalletRepository
 
             command.Parameters.AddWithValue("@WalletId", wallet.WalletId);
             command.Parameters.AddWithValue("@UserId", wallet.UserId);
+            command.Parameters.AddWithValue("@CurrencyId", wallet.CurrencyId); 
             command.Parameters.AddWithValue("@Balance", wallet.Balance);
             command.Parameters.AddWithValue("@IsSaved", wallet.IsSaved);
 
