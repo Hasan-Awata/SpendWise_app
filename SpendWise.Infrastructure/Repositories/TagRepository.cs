@@ -22,12 +22,11 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<int> AddTagAsync(Tag NewTag)
         {
             using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_CreateTag]", connection)
+            using var command = new SqlCommand("[Config].[sp_CreateTag]", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
 
-            command.Parameters.AddWithValue("@NewID", NewTag.Id);
             command.Parameters.AddWithValue("@UserID", NewTag.OwnerId);
             command.Parameters.AddWithValue("@Name", NewTag.Label);
 
@@ -54,7 +53,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<bool> UpdateTagAsync(Tag UpdatedTag)
         {
             using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_UpdateTag]", connection)
+            using var command = new SqlCommand("[Config].[sp_UpdateTag]", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
@@ -79,7 +78,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<bool> DeleteTagAsync(int TagID)
         {
             using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_DeleteTag]", connection)
+            using var command = new SqlCommand("[Config].[sp_DeleteTag]", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
@@ -102,7 +101,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<Tag> GetTagAsync(int TagID, int userId)
         {
             using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_GetTag]", connection)
+            using var command = new SqlCommand("[Config].[sp_GetTag]", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
@@ -137,7 +136,7 @@ namespace SpendWise.Infrastructure.Repositories
             var tags = new List<Tag?>();
 
             using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_GetTagsByUserID]", connection)
+            using var command = new SqlCommand("[Config].[sp_GetTags]", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
@@ -172,16 +171,35 @@ namespace SpendWise.Infrastructure.Repositories
         {
             switch (ex.Number)
             {
-                case 2601:
-                case 2627:
-                    throw new DuplicateResourceException("A tag with this name already exists.");
-                case 547:
-                    throw new InvalidReferenceException("A related record is missing, or this tag is currently linked to existing transactions and cannot be modified or deleted.");
-                case -2:
-                    throw new TimeoutException("The database took too long to respond. Please try again.");
-                default:
-                    // Let the global handler catch this as a standard 500 Internal Server Error
-                    throw new Exception($"An unexpected database error occurred. Code: {ex.Number}", ex);
+        // --- Custom Stored Procedure Errors ---
+        
+        case 50001:
+            // Custom duplicate tag error
+            throw new DuplicateResourceException(ex.Message); 
+            
+        case 50002: // Update failed (Not found / No permission)
+        case 50003: // Delete failed (Not found / Already deleted)
+        case 50004: // Get failed (Not found)
+            // Assuming you have a custom exception for missing records. 
+            // If not, you can use the standard KeyNotFoundException.
+            throw new ResourceNotFoundException(ex.Message); 
+
+        // --- Standard SQL Server Errors ---
+        
+        case 2601: // Unique Index Violation
+        case 2627: // Unique Constraint Violation
+            // Fallback just in case a unique constraint catches it before our IF EXISTS
+            throw new DuplicateResourceException("A tag with this name already exists.");
+            
+        case 547: // Foreign Key Constraint Violation
+            throw new InvalidReferenceException("A related record is missing, or this tag is currently linked to existing transactions and cannot be modified or deleted.");
+            
+        case -2: // Timeout
+            throw new TimeoutException("The database took too long to respond. Please try again.");
+            
+        default:
+            // Let the global handler catch this as a standard 500 Internal Server Error
+            throw new Exception($"An unexpected database error occurred. Code: {ex.Number}", ex);
             }
         }
     }
