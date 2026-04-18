@@ -4,6 +4,7 @@ import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 
+// هذه الصفحة تتيح للمستخدم إنشاء أهداف ادخار جديدة وتحديد المبلغ المستهدف
 class AddSavingGoalPage extends StatefulWidget {
   const AddSavingGoalPage({super.key});
 
@@ -18,19 +19,21 @@ class _AddSavingGoalPageState extends State<AddSavingGoalPage> {
 
   @override
   void dispose() {
+    // التخلص من المتحكمات عند إغلاق الصفحة لتجنب تسريب الذاكرة
     _nameController.dispose();
     _targetController.dispose();
     super.dispose();
   }
 
+  // دالة إرسال البيانات والتحقق من صحتها
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final target = double.tryParse(_targetController.text.trim()) ?? 0;
     if (target <= 0) {
       Get.snackbar(
-        'Invalid amount',
-        'Enter a target greater than zero',
+        'مبلغ غير صالح', // Invalid amount
+        'يرجى إدخال مبلغ مستهدف أكبر من الصفر', // Enter a target greater than zero
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: SpColor.expenseRed.withValues(alpha: 0.9),
         colorText: SpColor.offWhite,
@@ -38,12 +41,12 @@ class _AddSavingGoalPageState extends State<AddSavingGoalPage> {
       return;
     }
 
-    // Hook for API / repository when backend is wired
+    // هنا يتم ربط منطق الحفظ مع قاعدة البيانات أو المستودع لاحقاً
     debugPrint('Saving goal: ${_nameController.text.trim()}, target: $target');
 
     Get.snackbar(
-      'Saved',
-      'Saving goal "${_nameController.text.trim()}" added',
+      'تم الحفظ', // Saved
+      'تمت إضافة هدف الادخار "${_nameController.text.trim()}"', // Saving goal added
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: SpColor.incomeGreen.withValues(alpha: 0.9),
       colorText: SpColor.primaryDark,
@@ -59,7 +62,7 @@ class _AddSavingGoalPageState extends State<AddSavingGoalPage> {
         backgroundColor: SpColor.primaryDark2,
         elevation: 0,
         title: Text(
-          'New saving goal',
+          'هدف ادخار جديد', // New saving goal
           style: TextStyle(
             color: Colors.amberAccent.withAlpha(195),
             fontWeight: FontWeight.bold,
@@ -75,32 +78,35 @@ class _AddSavingGoalPageState extends State<AddSavingGoalPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // واجهة المستخدم: حقل إدخال اسم الهدف
                 CustomTextField(
-                  label: 'Goal name',
-                  hint: 'e.g. Emergency fund',
+                  label: 'اسم الهدف', // Goal name
+                  hint: 'مثال: صندوق الطوارئ', // e.g. Emergency fund
                   prefixIcon: const Icon(Icons.flag_outlined),
                   textEditingController: _nameController,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) {
-                      return 'Enter a name';
+                      return 'يرجى إدخال اسم الهدف'; // Enter a name
                     }
                     return null;
                   },
                   textColor: Colors.amberAccent.withAlpha(160),
                 ),
                 const SizedBox(height: 20),
+
+                // واجهة المستخدم: حقل إدخال المبلغ المستهدف
                 CustomTextField(
-                  label: 'Target amount',
+                  label: 'المبلغ المستهدف', // Target amount
                   hint: '0.00',
                   prefixIcon: const Icon(Icons.attach_money),
                   textEditingController: _targetController,
                   isNumber: true,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) {
-                      return 'Enter a target amount';
+                      return 'يرجى إدخال المبلغ المستهدف'; // Enter a target amount
                     }
                     if (double.tryParse(v.trim()) == null) {
-                      return 'Enter a valid number';
+                      return 'يرجى إدخال رقم صحيح'; // Enter a valid number
                     }
                     return null;
                   },
@@ -108,9 +114,10 @@ class _AddSavingGoalPageState extends State<AddSavingGoalPage> {
                 ),
                 const SizedBox(height: 32),
 
+                // زر الحفظ
                 CustomButton(
-                  text: "save goal",
-                  onPressed: () {},
+                  text: "حفظ الهدف", // save goal
+                  onPressed: _submit, // تم ربط الدالة هنا
                   color: Colors.amberAccent.withAlpha(195),
                 ),
               ],

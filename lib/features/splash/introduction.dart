@@ -27,7 +27,8 @@ class Introduction extends StatelessWidget {
                   onPressed: () {
                     Get.toNamed('/login');
                   },
-                  text: "Continue",
+                  text: "استمرار",
+
                   color: SpColor.accentBlue,
                   shadowColor: SpColor.accentBlue,
                   isLoading: false,

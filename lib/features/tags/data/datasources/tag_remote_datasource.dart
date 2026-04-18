@@ -3,7 +3,7 @@ import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
 
 abstract class TagRemoteDatasource {
-  Future<TagModel> addTag(TagModel tag);
+  Future<TagModel?> addTag(TagModel tag);
 
   Future<void> deleteTag(TagModel tag);
 

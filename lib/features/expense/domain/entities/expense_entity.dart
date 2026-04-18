@@ -14,7 +14,9 @@ class ExpenseEntity {
   final CategoryModel? category;
   final String? products; // JSON string
   final bool isSynced;
-
+  int? walletId;
+  int? categoryId;
+  int? expenseTagId;
   ExpenseEntity({
     this.id,
     this.userId,
@@ -27,5 +29,8 @@ class ExpenseEntity {
     this.category,
     this.products,
     this.isSynced = false,
+    this.categoryId = 1,
+    this.walletId = -1,
+    this.expenseTagId = -1,
   });
 }

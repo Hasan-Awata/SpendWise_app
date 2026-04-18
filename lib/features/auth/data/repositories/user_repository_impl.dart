@@ -1,12 +1,7 @@
-// lib/features/auth/data/repositories/user_repository_impl.dart
-
+// // تعليق: تنفيذ مستودع المستخدم - تم التحديث ليتوافق مع أخطاء حزمة http بدلاً من Dio
+import 'dart:async';
+import 'dart:io';
 import 'package:dartz/dartz.dart';
-import 'package:dio/dio.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spendwise/core/error/failure.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource.dart';
@@ -28,16 +23,15 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<Either<Failure, UserModel>> register(SignupParams params) async {
     try {
-      // محاولة التسجيل عبر السيرفر
+      print("📡 Attempting Remote Register...");
       final user = await appUserRemoteDatasource.register(params);
-      // حفظ البيانات محلياً فور النجاح
+
+      print("💾 Saving User Locally...");
       await appUserLocalDatasource.registerLocal(user);
 
       return Right(user);
-    } on DioException catch (e) {
-      return Left(_mapDioErrorToFailure(e));
     } catch (e) {
-      return Left(CacheFailure("فشل في حفظ بيانات المستخدم محلياً"));
+      return Left(_handleException(e));
     }
   }
 
@@ -45,21 +39,16 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<Either<Failure, UserModel>> logIn(LoginParams params) async {
     try {
-      // محاولة تسجيل الدخول
+      print("📡 Attempting Remote Login...");
       final user = await appUserRemoteDatasource.logIn(params);
 
-      // تحديث البيانات المحلية
+      print("💾 Updating Local User Data...");
+
       await appUserLocalDatasource.registerLocal(user);
 
       return Right(user);
-    } on DioException catch (e) {
-      return Left(_mapDioErrorToFailure(e));
-    } catch (e, stacktrace) {
-      // // Debug: طباعة الخطأ والـ stacktrace في الـ Console لمعرفة السبب الحقيقي
-      print("Error during login: $e");
-      print("Stacktrace: $stacktrace");
-
-      return Left(ServerFailure(e.toString()));
+    } catch (e) {
+      return Left(_handleException(e));
     }
   }
 
@@ -67,12 +56,12 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<Either<Failure, Unit>> logOut() async {
     try {
-      // مسح البيانات المحلية
+      print("🗑️ Clearing Local Session...");
       await appUserLocalDatasource.logOut();
-
-      return const Right(unit); // unit تعادل void في البرمجة الوظيفية
+      // ملاحظة: يمكن استدعاء logout من الـ Remote هنا أيضاً إذا كان السيرفر يتطلب ذلك
+      return const Right(unit);
     } catch (e) {
-      return Left(CacheFailure("حدث خطأ أثناء تسجيل الخروج"));
+      return Left(CacheFailure("حدث خطأ أثناء تسجيل الخروج محلياً"));
     }
   }
 
@@ -87,7 +76,7 @@ class UserRepositoryImpl implements UserRepository {
         return Left(CacheFailure("لا يوجد مستخدم مسجل حالياً"));
       }
     } catch (e) {
-      return Left(CacheFailure("فشل في قراءة بيانات المستخدم"));
+      return Left(CacheFailure("فشل في قراءة بيانات المستخدم من الذاكرة"));
     }
   }
 
@@ -102,31 +91,29 @@ class UserRepositoryImpl implements UserRepository {
     }
   }
 
-  // --- Helpers ---
+  // --- Exception Handling (بديل لـ DioError) ---
 
-  Failure _mapDioErrorToFailure(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.sendTimeout:
-        return NetworkFailure("لا يوجد اتصال بالإنترنت، تأكد من الشبكة");
+  Failure _handleException(dynamic e) {
+    print("❌ Auth Repository Exception: $e");
 
-      case DioExceptionType.badResponse:
-        String message = "حدث خطأ في السيرفر (500)";
-        if (e.response?.data != null) {
-          if (e.response?.data is Map) {
-            message = e.response?.data['message']?.toString() ?? message;
-          } else {
-            message = e.response?.data.toString() ?? "Error";
-          }
-        }
-        return ServerFailure(message);
-
-      case DioExceptionType.cancel:
-        return ServerFailure("تم إلغاء الطلب");
-
-      default:
-        return ServerFailure("errorr ${e.toString()}");
+    if (e is SocketException) {
+      return NetworkFailure("لا يوجد اتصال بالإنترنت، تأكد من الشبكة");
     }
+
+    if (e is TimeoutException) {
+      return NetworkFailure("انتهت مهلة الطلب، يرجى المحاولة مرة أخرى");
+    }
+
+    if (e is FormatException) {
+      return ServerFailure("خطأ في تحليل البيانات المستلمة من السيرفر");
+    }
+
+    // في حال تم رمي Exception يدوي من الـ Datasource (مثل خطأ 401 أو 500)
+    if (e is Exception) {
+      final errorMessage = e.toString().replaceAll('Exception: ', '');
+      return ServerFailure(errorMessage);
+    }
+
+    return ServerFailure("حدث خطأ غير متوقع: ${e.toString()}");
   }
 }

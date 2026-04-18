@@ -107,11 +107,11 @@ class AddWalletController extends GetxController {
           }
         },
         (text) {
-          if (Get.isRegistered<WalletsListController>()) {
-            Get.find<WalletsListController>().loadWallets();
-          }
+          final listController = Get.find<WalletsListController>();
+
+          listController.wallets.insert(0, newWallet);
+          print("📱 UI added Instantly ");
           HelperFunction.showSnackBar("نجاح", text ?? "تمت العملية بنجاح");
-          Get.find<WalletsListController>().wallets.insert(0, newWallet);
           balanceController.clear();
           currencySearchController.clear();
         },

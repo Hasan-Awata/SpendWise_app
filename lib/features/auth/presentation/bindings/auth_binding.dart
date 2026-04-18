@@ -1,5 +1,5 @@
-import 'package:dio/dio.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource.dart';
@@ -28,7 +28,7 @@ class AuthBinding extends Bindings {
     }
     if (!Get.isRegistered<AppUserRemoteDatasource>()) {
       Get.lazyPut<AppUserRemoteDatasource>(
-        () => AppUserRemoteDatasourceImpl(dio: Get.find<Dio>()),
+        () => AppUserRemoteDatasourceImpl(client: http.Client()),
       );
     }
     if (!Get.isRegistered<UserRepository>()) {
@@ -76,19 +76,13 @@ class AuthBinding extends Bindings {
     }
 
     if (!Get.isRegistered<LoginController>()) {
-      Get.lazyPut(() => LoginController(loginUsecase: Get.find()), fenix: true);
+      Get.put(LoginController(loginUsecase: Get.find()));
     }
     if (!Get.isRegistered<SignUpController>()) {
-      Get.lazyPut(
-        () => SignUpController(signupUsecase: Get.find()),
-        fenix: true,
-      );
+      Get.put(SignUpController(signupUsecase: Get.find()));
     }
     if (!Get.isRegistered<LogoutController>()) {
-      Get.lazyPut(
-        () => LogoutController(logoutUsecase: Get.find()),
-        fenix: true,
-      );
+      Get.put(LogoutController(logoutUsecase: Get.find()));
     }
   }
 }

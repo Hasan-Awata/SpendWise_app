@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'package:spendwise/features/tags/data/datasources/tag_local_datasource.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_local_datasource_impl.dart';

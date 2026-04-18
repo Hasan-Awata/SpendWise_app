@@ -1,9 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 
-// // تحسين: تم فصل المنطق البصري عن منطق البيانات لضمان سلاسة الأداء واستخدام الـ Overlay لظهور القائمة فوق العناصر الأخرى
 class SPDropdownButton extends StatefulWidget {
   final TextEditingController? textEditingController;
   final Color textColor;
@@ -19,7 +17,7 @@ class SPDropdownButton extends StatefulWidget {
 
   const SPDropdownButton({
     super.key,
-    this.textColor = SpColor.accentBlue,
+    this.textColor = const Color(0xFF2196F3),
     required this.title,
     required this.hint,
     this.prefixIcon,
@@ -44,7 +42,6 @@ class _SPDropdownButtonState extends State<SPDropdownButton>
   late List<String> _filteredValues;
   String _selectedText = "";
 
-  // // Logic: استخدام AnimationController لإضافة حركة ناعمة عند ظهور واختفاء القائمة
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
 
@@ -73,15 +70,25 @@ class _SPDropdownButtonState extends State<SPDropdownButton>
     }
   }
 
-  @override
-  void didUpdateWidget(SPDropdownButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!listEquals(oldWidget.values, widget.values)) {
-      _filteredValues = widget.values;
-    }
+  // // Logic: البحث يبدأ من بداية الكلمة فقط مع تحديث فوري للـ Overlay
+  void _filterList(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredValues = widget.values;
+      } else {
+        _filteredValues = widget.values
+            .where((item) => item.toLowerCase().startsWith(query.toLowerCase()))
+            .toList();
+      }
+
+      if (_isOpen) {
+        _overlayEntry?.markNeedsBuild();
+      } else if (_filteredValues.isNotEmpty) {
+        _openDropdown();
+      }
+    });
   }
 
-  // // Logic: إدارة الـ Overlay لإظهار القائمة بشكل عائم لا يؤثر على تصميم الصفحة
   void _toggleDropdown() {
     if (_isOpen) {
       _closeDropdown();
@@ -91,6 +98,7 @@ class _SPDropdownButtonState extends State<SPDropdownButton>
   }
 
   void _openDropdown() {
+    if (_isOpen) return;
     _overlayEntry = _createOverlayEntry();
     Overlay.of(context).insert(_overlayEntry!);
     setState(() => _isOpen = true);
@@ -98,19 +106,11 @@ class _SPDropdownButtonState extends State<SPDropdownButton>
   }
 
   void _closeDropdown() {
+    if (!_isOpen) return;
     _animationController.reverse().then((value) {
       _overlayEntry?.remove();
       _overlayEntry = null;
       if (mounted) setState(() => _isOpen = false);
-    });
-  }
-
-  void _filterList(String query) {
-    setState(() {
-      _filteredValues = widget.values
-          .where((item) => item.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-      if (!_isOpen && _filteredValues.isNotEmpty) _openDropdown();
     });
   }
 
@@ -119,49 +119,64 @@ class _SPDropdownButtonState extends State<SPDropdownButton>
     var size = renderBox.size;
 
     return OverlayEntry(
-      builder: (context) => Positioned(
-        width: size.width,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: Offset(0, size.height + 5),
-          child: SizeTransition(
-            sizeFactor: _expandAnimation,
-            child: Material(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(15),
-              clipBehavior: Clip.hardEdge,
-              color: SpColor.surfaceNavy,
-              child: Container(
-                constraints: const BoxConstraints(maxHeight: 250),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: widget.textColor.withOpacity(0.3)),
-                ),
-                child: ListView.separated(
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  itemCount: _filteredValues.length,
-                  separatorBuilder: (context, index) =>
-                      Divider(color: Colors.white.withOpacity(0.05), height: 1),
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(
-                        _filteredValues[index],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                        ),
+      builder: (context) => Stack(
+        children: [
+          // // Logic: طبقة شفافة خلفية لإغلاق القائمة عند الضغط في أي مكان خارجها دون تعطيل التمرير
+          GestureDetector(
+            onTap: _closeDropdown,
+            behavior: HitTestBehavior.translucent,
+            child: Container(color: Colors.transparent),
+          ),
+          Positioned(
+            width: size.width,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: Offset(0, size.height + 5),
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(15),
+                clipBehavior: Clip.hardEdge,
+                color: const Color(0xFF1A1F2E),
+                child: SizeTransition(
+                  sizeFactor: _expandAnimation,
+                  child: Container(
+                    constraints: const BoxConstraints(maxHeight: 250),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: widget.textColor.withOpacity(0.3),
                       ),
-                      onTap: () => _onItemSelect(_filteredValues[index]),
-                      hoverColor: SpColor.accentBlue.withOpacity(0.1),
-                    );
-                  },
+                    ),
+                    child: ListView.separated(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      physics:
+                          const BouncingScrollPhysics(), // تحسين التمرير لشاشات اللمس
+                      itemCount: _filteredValues.length,
+                      separatorBuilder: (context, index) => Divider(
+                        color: Colors.white.withOpacity(0.05),
+                        height: 1,
+                      ),
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          title: Text(
+                            _filteredValues[index],
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
+                          ),
+                          onTap: () => _onItemSelect(_filteredValues[index]),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -182,20 +197,22 @@ class _SPDropdownButtonState extends State<SPDropdownButton>
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: TapRegion(
-        onTapOutside: (event) => _closeDropdown(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            widget.isTextField
-                ? CustomTextField(
-                    textColor: widget.textColor,
-                    label: widget.title,
-                    hint: widget.hint,
-                    textEditingController: widget.textEditingController,
-                    onTap: _toggleDropdown,
-                    prefixIcon: widget.prefixIcon,
-                    suffixIcon: AnimatedRotation(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // // Logic: استخدام onTap الخاص بالـ TextField مباشرة لضمان الاستجابة مع الحفاظ على القدرة على الكتابة
+          widget.isTextField
+              ? CustomTextField(
+                  textColor: widget.textColor,
+                  label: widget.title,
+                  hint: widget.hint,
+                  textEditingController: widget.textEditingController,
+                  prefixIcon: widget.prefixIcon,
+                  onTap:
+                      _openDropdown, // يفتح القائمة عند الضغط للبدء في الكتابة
+                  suffixIcon: IconButton(
+                    onPressed: _toggleDropdown,
+                    icon: AnimatedRotation(
                       turns: _isOpen ? 0.5 : 0,
                       duration: const Duration(milliseconds: 200),
                       child:
@@ -205,62 +222,55 @@ class _SPDropdownButtonState extends State<SPDropdownButton>
                             color: Colors.white,
                           ),
                     ),
-                    onChanged: (val) {
-                      _filterList(val);
-                      if (widget.onChanged != null) widget.onChanged!(val);
-                    },
-                  )
-                : _buildStaticSelector(),
-          ],
-        ),
+                  ),
+                  onChanged: (val) {
+                    _filterList(val);
+                    if (widget.onChanged != null) widget.onChanged!(val);
+                  },
+                )
+              : GestureDetector(
+                  onTap: _toggleDropdown,
+                  child: _buildStaticSelector(),
+                ),
+        ],
       ),
     );
   }
 
-  // // Logic: بناء شكل مخصص للاختيار في حال لم يكن حقل نصي، مع إضافة تأثيرات بصرية عند الضغط
   Widget _buildStaticSelector() {
-    return InkWell(
-      onTap: _toggleDropdown,
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: SpColor.surfaceNavy,
-          border: Border.all(
-            color: _isOpen ? SpColor.accentBlue : Colors.transparent,
-            width: 1,
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFF1A1F2E),
+        border: Border.all(
+          color: _isOpen ? widget.textColor : Colors.transparent,
         ),
-        child: Row(
-          children: [
-            if (widget.prefixIcon != null) ...[
-              widget.prefixIcon!,
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: Text(
-                _selectedText,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: SpColor.offWhite,
-                  fontSize: 16,
-                ),
+      ),
+      child: Row(
+        children: [
+          if (widget.prefixIcon != null) ...[
+            widget.prefixIcon!,
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: Text(
+              _selectedText,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                fontSize: 16,
               ),
             ),
-            AnimatedRotation(
-              turns: _isOpen ? 0.5 : 0,
-              duration: const Duration(milliseconds: 200),
-              child:
-                  widget.suffixIcon ??
-                  const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: SpColor.offWhite,
-                  ),
-            ),
-          ],
-        ),
+          ),
+          AnimatedRotation(
+            turns: _isOpen ? 0.5 : 0,
+            duration: const Duration(milliseconds: 200),
+            child:
+                widget.suffixIcon ??
+                const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+          ),
+        ],
       ),
     );
   }

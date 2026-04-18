@@ -17,199 +17,166 @@ class IncomeRepositoryImpl implements IncomeRepository {
     required this.remoteDatasource,
   });
 
-  // ================================
-  // ✅ ADD INCOME (OFFLINE-FIRST)
-  // ================================
   @override
   Future<Either<Failure, IncomeModel>> addIncome(IncomeModel income) async {
     try {
-      // حفظ محلي أولاً
+      print("🚀 Starting addIncome: ${income.localId}");
       income.isSynced = false;
       await localDataSource.addIncome(income);
 
       try {
         final remoteIncome = await remoteDatasource.addIncome(income);
         if (remoteIncome != null) {
-          // تحديث الحالة بعد نجاح السيرفر
+          print("✅ Server Add Success: ${remoteIncome.id}");
           remoteIncome.isSynced = true;
           await localDataSource.updateIncome(remoteIncome);
           return Right(remoteIncome);
         }
         return Right(income);
-      } catch (e) {
-        // ❗ لا نفشل العملية (offline mode)
-        debugPrint("Remote Add Failed → Saved Locally: $e");
+      } catch (remoteError) {
+        print("⚠️ Server Add Failed → Saved Locally: $remoteError");
         return Right(income);
       }
-    } catch (e) {
-      return Left(CacheFailure("فشل الحفظ المحلي: ${e.toString()}"));
+    } catch (localError) {
+      print("❌ Local Add Critical Error: $localError");
+      return Left(CacheFailure("فشل الحفظ المحلي"));
     }
   }
 
-  // ================================
-  // ✅ GET INCOMES (REMOTE + FALLBACK)
-  // ================================
   @override
   Future<Either<Failure, PagedResponse<IncomeModel>>> getIncomes(
     int? userId,
     PageRequest page,
   ) async {
-    if (userId == null) return _getLocalPagedIncomes(page);
-
     try {
-      final remoteResponse = await remoteDatasource.getMyIncomes(userId, page);
+      print("📡 Fetching Incomes from Server - Page: ${page.pageNumber}");
+      final remoteResponse = await remoteDatasource.getMyIncomes(
+        userId ?? 0,
+        page,
+      );
 
-      // تحديث local cache
-      for (var income in remoteResponse.data) {
-        income.isSynced = true;
-        await localDataSource.addIncome(income);
+      for (var model in remoteResponse.data) {
+        model.isSynced = true;
+        await localDataSource.addIncome(model);
       }
-
       return Right(remoteResponse);
     } catch (e) {
-      debugPrint("Remote Fetch Failed → Using Local Data: $e");
+      print("🌐 Connection Issue: Switching to Local Storage. Error: $e");
+      _safeRemoteCall(() => syncPendingIncomes());
       return await _getLocalPagedIncomes(page);
     }
   }
 
-  // ================================
-  // ✅ UPDATE INCOME
-  // ================================
   @override
   Future<Either<Failure, Unit>> updateIncome(IncomeModel income) async {
     try {
+      print("🔄 Updating Income Locally: ${income.id}");
       income.isSynced = false;
       await localDataSource.updateIncome(income);
 
-      try {
+      _safeRemoteCall(() async {
         final updatedRemote = await remoteDatasource.updateIncome(income);
         if (updatedRemote != null) {
+          print("✅ Server Update Sync Done");
           updatedRemote.isSynced = true;
           await localDataSource.updateIncome(updatedRemote);
-          return Left(ServerFailure("فشل التحديث لسبب ما "));
         }
-        return const Right(unit);
-      } catch (e) {
-        debugPrint("Remote Update Failed → Will Sync Later: $e");
-        return const Right(unit); // لا نفشل
-      }
+      });
+      return const Right(unit);
     } catch (e) {
+      print("❌ Local Update Error: $e");
       return Left(CacheFailure("فشل تحديث البيانات محلياً"));
     }
   }
 
-  // ================================
-  // ✅ DELETE INCOME
-  // ================================
   @override
   Future<Either<Failure, Unit>> deleteIncome(IncomeModel income) async {
     try {
-      // soft delete
+      print("🗑️ Marking Income for Removal: ${income.id}");
       income.localId = "REMOVE";
       income.isSynced = false;
-
       await localDataSource.updateIncome(income);
 
       _safeRemoteCall(() async {
-        if (income.remoteId != null) {
+        if (income.id != null) {
           await remoteDatasource.deleteIncome(income);
+          print("✅ Server Delete Done");
         }
         await localDataSource.deleteIncome(income);
       });
-
       return const Right(unit);
     } catch (e) {
+      print("❌ Local Delete Error: $e");
       return Left(CacheFailure("فشل الحذف المحلي"));
     }
   }
 
-  // ================================
-  // ✅ SYNC ENGINE (محسن)
-  // ================================
   @override
   Future<Either<Failure, Unit>> syncPendingIncomes() async {
     try {
       final allLocal = await localDataSource.getIncomes();
-
       final pending = allLocal
           .where((i) => i.isSynced != true || i.localId == "REMOVE")
           .toList();
 
+      print("🔄 Sync Engine (Income): Found ${pending.length} pending items");
+
       for (var income in pending) {
         try {
           if (income.localId == "REMOVE") {
-            try {
-              if (income.remoteId != null) {
-                await remoteDatasource.deleteIncome(income);
-              }
-            } catch (e) {
-              debugPrint("Remote delete failed: $e");
-              continue;
-            }
-
+            if (income.id != null) await remoteDatasource.deleteIncome(income);
             await localDataSource.deleteIncome(income);
+            print("📤 Synced: DELETED Income ${income.id}");
             continue;
           }
 
-          if (income.remoteId != null) {
+          if (income.id != null) {
             final updated = await remoteDatasource.updateIncome(income);
-            if (updated == null) {
-              continue;
+            if (updated != null) {
+              updated.isSynced = true;
+              await localDataSource.updateIncome(updated);
+              print("📤 Synced: UPDATED Income ${income.id}");
             }
-            updated.isSynced = true;
-            await localDataSource.updateIncome(updated);
-
-            continue;
+          } else {
+            final created = await remoteDatasource.addIncome(income);
+            if (created != null) {
+              created.isSynced = true;
+              await localDataSource.updateIncome(created);
+              print("📤 Synced: CREATED Income ${created.id}");
+            }
           }
-
-          final created = await remoteDatasource.addIncome(income);
-          if (created == null) {
-            continue;
-          }
-          created.isSynced = true;
-          await localDataSource.updateIncome(created);
         } catch (e) {
-          debugPrint("Sync item failed: $e");
+          print("⚠️ Sync Error for Income item: $e");
           continue;
         }
       }
-
       return const Right(unit);
     } catch (e) {
+      print("❌ Global Income Sync Failure: $e");
       return Left(CacheFailure("فشل محرك المزامنة"));
     }
   }
 
-  // ================================
-  // ✅ SAFE REMOTE CALL
-  // ================================
-  Future<void> _safeRemoteCall(Future<void> Function() call) async {
-    try {
-      await call();
-    } catch (e) {
-      debugPrint("Silent Sync Error: $e");
-    }
-  }
-
-  // ================================
-  // ✅ LOCAL PAGINATION
-  // ================================
   Future<Either<Failure, PagedResponse<IncomeModel>>> _getLocalPagedIncomes(
     PageRequest page,
   ) async {
     try {
       final all = await localDataSource.getIncomes();
+      // استبعاد العناصر المعلمة للحذف وترتيبها من الأحدث للأقدم
+      final filtered = all
+          .where((i) => i.localId != "REMOVE")
+          .toList()
+          .reversed
+          .toList();
 
       final start = (page.pageNumber - 1) * page.pageSize;
-      final end = start + page.pageSize;
+      final totalPages = (filtered.length / page.pageSize).ceil();
 
-      final totalPages = (all.length / page.pageSize).ceil();
-
-      if (start >= all.length) {
+      if (start >= filtered.length) {
         return Right(
           PagedResponse(
             data: [],
-            totalRecords: all.length,
+            totalRecords: filtered.length,
             pageNumber: page.pageNumber,
             pageSize: page.pageSize,
             totalPages: totalPages,
@@ -217,12 +184,17 @@ class IncomeRepositoryImpl implements IncomeRepository {
         );
       }
 
-      final sliced = all.sublist(start, end > all.length ? all.length : end);
+      final end = start + page.pageSize;
+      final sliced = filtered.sublist(
+        start,
+        end > filtered.length ? filtered.length : end,
+      );
 
+      print("📦 Local Incomes Loaded: ${sliced.length} items");
       return Right(
         PagedResponse(
           data: sliced,
-          totalRecords: all.length,
+          totalRecords: filtered.length,
           pageNumber: page.pageNumber,
           pageSize: page.pageSize,
           totalPages: totalPages,
@@ -233,14 +205,19 @@ class IncomeRepositoryImpl implements IncomeRepository {
     }
   }
 
-  // ================================
-  // ✅ GET ALL LOCAL
-  // ================================
+  Future<void> _safeRemoteCall(Future<void> Function() call) async {
+    try {
+      await call();
+    } catch (e) {
+      debugPrint("📢 Income Background Sync Info: $e");
+    }
+  }
+
   @override
   Future<Either<Failure, List<IncomeModel>>> getAllIncomesLocal() async {
     try {
       final incomes = await localDataSource.getIncomes();
-      return Right(incomes);
+      return Right(incomes.where((i) => i.localId != "REMOVE").toList());
     } catch (e) {
       return Left(CacheFailure("فشل قراءة البيانات المحلية"));
     }

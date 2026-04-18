@@ -1,3 +1,4 @@
+// تعليق: واجهة إضافة دخل جديد - تدعم الدخل الثابت والمزامنة مع المحفظة والوسوم
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
@@ -29,6 +30,7 @@ class _AddIncomeViewState extends State<AddIncomeView> {
       body: RefreshIndicator(
         color: SpColor.incomeGreen,
         onRefresh: () async {
+          // إعادة تعيين الحقول وتحديث البيانات عند السحب للأسفل
           controller.resetFields();
           await controller.walletsListController.loadWallets();
           await controller.tagController.loadTags();
@@ -43,8 +45,10 @@ class _AddIncomeViewState extends State<AddIncomeView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 20),
+
+                  // واجهة المستخدم: حقل إدخال المبلغ
                   _buildField(
-                    "Amount",
+                    "المبلغ", // Amount
                     controller.amountController,
                     Icons.monetization_on_outlined,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -52,31 +56,40 @@ class _AddIncomeViewState extends State<AddIncomeView> {
                     ),
                   ),
                   const SizedBox(height: 25),
+
+                  // واجهة المستخدم: حقل إدخال مصدر الدخل
                   _buildField(
-                    "Source",
+                    "المصدر", // Source
                     controller.sourceController,
                     Icons.source_outlined,
                   ),
                   const SizedBox(height: 25),
+
                   _buildFixedToggle(),
                   _buildRepetitionField(),
                   const SizedBox(height: 25),
+
+                  // واجهة المستخدم: حقل الوصف
                   CustomTextFieldDescription(
-                    label: "Description",
-                    hint: "Details...",
+                    label: "الوصف", // Description
+                    hint: "التفاصيل...", // Details...
                     textEditingController: controller.descriptionController,
                     textColor: SpColor.incomeGreen,
                   ),
                   const SizedBox(height: 25),
+
                   _buildDatePicker(context),
                   const SizedBox(height: 30),
                   const Divider(color: Colors.white10, thickness: 1),
                   const SizedBox(height: 30),
+
                   _buildWalletDropdown(),
                   const SizedBox(height: 25),
+
                   _buildTagDropdown(),
                   _buildTagPreview(),
                   const SizedBox(height: 40),
+
                   _buildSubmitButton(),
                   const SizedBox(height: 50),
                 ],
@@ -88,9 +101,10 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     );
   }
 
+  // بناء شريط التطبيق (AppBar)
   PreferredSizeWidget _buildAppBar() => AppBar(
     title: const Text(
-      "Add Income",
+      "إضافة دخل", // Add Income
       style: TextStyle(color: SpColor.incomeGreen, fontWeight: FontWeight.bold),
     ),
     backgroundColor: Colors.transparent,
@@ -105,6 +119,7 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     ],
   );
 
+  // بناء حقل نصي مخصص مع أيقونة وتسمية
   Widget _buildField(
     String label,
     TextEditingController ctr,
@@ -112,13 +127,13 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     TextInputType keyboardType = TextInputType.text,
   }) => CustomTextField(
     textColor: SpColor.incomeGreen,
-
     label: label,
-    hint: "Enter $label",
+    hint: "أدخل $label", // Enter $label
     prefixIcon: Icon(icon, color: SpColor.incomeGreen),
     textEditingController: ctr,
   );
 
+  // مفتاح تبديل لتحديد ما إذا كان الدخل ثابتاً (دوري)
   Widget _buildFixedToggle() => Obx(
     () => Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -128,7 +143,7 @@ class _AddIncomeViewState extends State<AddIncomeView> {
       ),
       child: SwitchListTile(
         title: const Text(
-          "Fixed Income",
+          "دخل ثابت", // Fixed Income
           style: TextStyle(color: Colors.white, fontSize: 15),
         ),
         activeColor: SpColor.incomeGreen,
@@ -138,12 +153,13 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     ),
   );
 
+  // حقل يظهر فقط عند تفعيل خيار الدخل الثابت لتحديد أيام التكرار
   Widget _buildRepetitionField() => Obx(
     () => isFixed.value
         ? Padding(
             padding: const EdgeInsets.only(top: 10),
             child: _buildField(
-              "Repeat Every (Days)",
+              "يتكرر كل (أيام)", // Repeat Every (Days)
               controller.repeatController,
               Icons.calendar_month,
               keyboardType: TextInputType.number,
@@ -152,6 +168,7 @@ class _AddIncomeViewState extends State<AddIncomeView> {
         : const SizedBox.shrink(),
   );
 
+  // أداة اختيار تاريخ استلام الدخل
   Widget _buildDatePicker(BuildContext context) => Obx(
     () => DatePickerWidget(
       onTap: () => controller.fetchDate(context),
@@ -160,11 +177,12 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     ),
   );
 
+  // قائمة منسدلة لاختيار المحفظة التي سيضاف إليها الدخل
   Widget _buildWalletDropdown() {
     return Obx(
       () => SPDropdownButton(
-        title: "Select Wallet",
-        hint: "Choose wallet",
+        title: "اختر المحفظة", // Select Wallet
+        hint: "اختر المحفظة", // Choose wallet
         textColor: SpColor.incomeGreen,
         prefixIcon: const Icon(
           Icons.account_balance_wallet_outlined,
@@ -195,6 +213,7 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     );
   }
 
+  // قائمة منسدلة للوسوم مع ميزة إشعار المستخدم بإنشاء وسم جديد إذا لم يكن موجوداً
   Widget _buildTagDropdown() {
     return Obx(() {
       bool isNewTag =
@@ -209,9 +228,9 @@ class _AddIncomeViewState extends State<AddIncomeView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SPDropdownButton(
-            title: "Select Tag",
+            title: "اختر الوسم", // Select Tag
             isTextField: true,
-            hint: "Search or Type Tag",
+            hint: "ابحث أو اكتب الوسم", // Search or Type Tag
             textColor: SpColor.incomeGreen,
             prefixIcon: const Icon(
               Icons.local_offer_outlined,
@@ -229,7 +248,7 @@ class _AddIncomeViewState extends State<AddIncomeView> {
             Padding(
               padding: const EdgeInsets.only(top: 8.0, left: 10.0),
               child: Text(
-                "✨ Tag \"${controller.tagTextController.text}\" will be created.",
+                "✨ سيتم إنشاء الوسم \"${controller.tagTextController.text}\".",
                 style: const TextStyle(
                   color: SpColor.incomeGreen,
                   fontSize: 12,
@@ -243,6 +262,7 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     });
   }
 
+  // عرض معاينة للوسم المختار
   Widget _buildTagPreview() => Obx(
     () => controller.selectedTag.value != null
         ? Padding(
@@ -260,6 +280,7 @@ class _AddIncomeViewState extends State<AddIncomeView> {
         : const SizedBox.shrink(),
   );
 
+  // زر حفظ البيانات مع عرض مؤشر التحميل
   Widget _buildSubmitButton() => SizedBox(
     width: double.infinity,
     child: Obx(
@@ -271,7 +292,7 @@ class _AddIncomeViewState extends State<AddIncomeView> {
               ),
             )
           : CustomButton(
-              text: "SAVE INCOME",
+              text: "حفظ الدخل", // SAVE INCOME
               onPressed: () => controller.saveIncome(),
               color: SpColor.incomeGreen,
             ),

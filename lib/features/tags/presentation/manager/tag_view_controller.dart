@@ -1,4 +1,3 @@
-// // تعليق: متحكم الأوسمة المطور - يتبنى نفس معايير منطق المحفظة لمنع التكرار وضمان استقرار البيانات
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
@@ -10,91 +9,103 @@ import 'package:spendwise/features/tags/domain/usecases/get_my_tags_usecase.dart
 import 'package:spendwise/features/tags/domain/usecases/sync_pending_tags_usecase.dart';
 
 class TagViewController extends GetxController {
+  final GetMyTagsUsecase getMyTagsUsecase;
+  final SyncPendingTagsUsecase syncPendingTagsUsecase;
+
   TagViewController({
     required this.getMyTagsUsecase,
     required this.syncPendingTagsUsecase,
   });
 
-  final GetMyTagsUsecase getMyTagsUsecase;
-  final SyncPendingTagsUsecase syncPendingTagsUsecase;
-
   final myTags = <TagModel>[].obs;
   final isLoading = false.obs;
-
   final ScrollController scrollController = ScrollController();
 
   int currentPage = 1;
   bool hasMoreData = true;
-
-  int? userId = AppUserLocalDatasourceImpl().currentUserId;
+  final int pageSize = 20;
 
   @override
   void onInit() {
     super.onInit();
     scrollController.addListener(_scrollListener);
-    // التحديث الأولي عند تشغيل المتحكم
     loadTags(isRefresh: true);
   }
 
   void _scrollListener() {
     if (scrollController.position.pixels >=
         scrollController.position.maxScrollExtent * 0.8) {
-      // التحقق من عدم التحميل حالياً ووجود بيانات إضافية قبل الاستدعاء
       if (!isLoading.value && hasMoreData) {
+        print("🔗 Scroll reaching end: Requesting Tags page $currentPage");
         loadTags(isRefresh: false);
       }
     }
   }
 
-  // // تعليق: دالة جلب الأوسمة مع دمج منطق التزامن الخلفي والتحقق الذكي من العناصر المكررة
   Future<void> loadTags({bool isRefresh = false}) async {
-    // منع الطلبات المتكررة أو عند انتهاء البيانات
     if (isLoading.value || (!hasMoreData && !isRefresh)) return;
 
     try {
       isLoading.value = true;
 
       if (isRefresh) {
+        print("🔄 Action: Refreshing Tags list...");
         currentPage = 1;
         hasMoreData = true;
-
-        // تشغيل التزامن في الخلفية عند التحديث (Refresh) كما في المحفظة
-        syncPendingTagsUsecase.call().then((result) {
-          result.fold(
-            (l) => debugPrint("Background Sync Failed: ${l.message}"),
-            (r) => debugPrint("Background Sync Completed Successfully"),
-          );
-        });
+        _runBackgroundSync();
       }
 
+      print("📡 Fetching Tags: Page $currentPage, Size $pageSize");
       final result = await getMyTagsUsecase.call(
-        PageRequest(pageNumber: currentPage, pageSize: 20),
+        PageRequest(pageNumber: currentPage, pageSize: pageSize),
       );
 
       result.fold(
-        (failure) => HelperFunction.showSnackBar(
-          "خطأ في الجلب",
-          failure.message,
-          isError: true,
-        ),
+        (failure) {
+          print("❌ Tags Fetch Failure: ${failure.message}");
+          HelperFunction.showSnackBar(
+            "خطأ في الجلب",
+            failure.message,
+            isError: true,
+          );
+        },
         (pagedResponse) {
-          if (pagedResponse.data.isEmpty) {
+          final newItems = pagedResponse.data;
+          print("📦 Received: ${newItems.length} Tags");
+
+          if (newItems.isEmpty) {
             hasMoreData = false;
+            print("🏁 No more Tags found on server.");
           } else {
             if (isRefresh) {
-              myTags.assignAll(pagedResponse.data);
+              // تصفية العناصر المحذوفة محلياً قبل العرض
+              final visibleItems = newItems
+                  .where((t) => t.localId != "REMOVE")
+                  .toList();
+              myTags.assignAll(visibleItems);
             } else {
-              final newItems = pagedResponse.data.where((newItem) {
-                return !myTags.any(
+              // تصفية المحذوفات + التكرار ثم الإضافة في نهاية القائمة
+              final uniqueAndVisible = newItems.where((newItem) {
+                bool isNotRemoved = newItem.localId != "REMOVE";
+                bool isNotDuplicate = !myTags.any(
                   (existing) =>
                       (existing.id != null && existing.id == newItem.id) ||
                       (existing.localId == newItem.localId),
                 );
+                return isNotRemoved && isNotDuplicate;
               }).toList();
 
-              myTags.insertAll(0, newItems);
+              myTags.addAll(uniqueAndVisible);
+              print("➕ Added ${uniqueAndVisible.length} unique Tags to list");
             }
-            currentPage++;
+
+            // تحديث حالة "هل يوجد المزيد"
+            if (newItems.length < pageSize) {
+              hasMoreData = false;
+              print("🏁 End of Tags reached.");
+            } else {
+              currentPage++;
+            }
           }
         },
       );
@@ -103,8 +114,17 @@ class TagViewController extends GetxController {
     }
   }
 
-  // // ميزة Wallet: إعادة تصفير الحقول بشكل كامل
+  void _runBackgroundSync() {
+    syncPendingTagsUsecase.call().then((result) {
+      result.fold(
+        (l) => print("⚠️ Tag Background Sync Failed: ${l.message}"),
+        (r) => print("✅ Tag Background Sync Completed Successfully"),
+      );
+    });
+  }
+
   void resetFields() {
+    print("🧹 Resetting Tag fields");
     myTags.clear();
     currentPage = 1;
     hasMoreData = true;
@@ -112,6 +132,7 @@ class TagViewController extends GetxController {
 
   @override
   void onClose() {
+    print("🔌 Closing TagViewController");
     scrollController.dispose();
     super.onClose();
   }

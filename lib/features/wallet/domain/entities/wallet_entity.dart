@@ -2,10 +2,12 @@ import 'package:spendwise/features/wallet/domain/entities/currency_model.dart';
 
 class WalletEntity {
   int? walletId;
+
   int userId;
   final Currency currency;
   double balance;
   final bool isSaved;
+  int currencyId;
 
   WalletEntity({
     this.walletId,
@@ -13,5 +15,6 @@ class WalletEntity {
     required this.currency,
     required this.balance,
     required this.isSaved,
+    this.currencyId = 1,
   });
 }

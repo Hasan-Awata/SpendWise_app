@@ -7,11 +7,7 @@ import 'package:spendwise/core/services/shared_service.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/models/user_model.dart';
-import 'package:spendwise/features/expense/data/datasources/expense_local_datasource_impl.dart';
 import 'package:spendwise/features/helper_function.dart';
-import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
-import 'package:spendwise/features/tags/data/datasources/tag_local_datasource_impl.dart';
-import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource_impl.dart';
 
 class AppUserLocalDatasourceImpl extends GetxService
     implements AppUserLocalDatasource {
@@ -39,13 +35,26 @@ class AppUserLocalDatasourceImpl extends GetxService
     }
   }
 
+  // // تعليق: تحديث دالة الحفظ المحلي لتكون مقاومة لأخطاء الإغلاق المفاجئ (Offline-Safe)
   @override
   Future<void> registerLocal(UserModel user) async {
     try {
-      await _box.put(_userKey, user);
+      Box<UserModel> userBox;
+
+      if (Hive.isBoxOpen('user_box')) {
+        userBox = Hive.box<UserModel>('user_box');
+      } else {
+        print("📦 User box was closed during reset, re-opening...");
+        userBox = await Hive.openBox<UserModel>('user_box');
+      }
+
+      await userBox.put('current_user', user);
+
       _cachedUserId = user.userId;
+
+      print("✅ User data saved successfully to local storage");
     } catch (e) {
-      throw Exception("Failed to save user data locally: $e");
+      print("❌ Critical Error in registerLocal: $e");
     }
   }
 
@@ -78,30 +87,58 @@ class AppUserLocalDatasourceImpl extends GetxService
     throw Exception("User not found");
   }
 
-  // دالة إضافية للوصول المباشر (Synchronous) بدون await
   int? get currentUserId => _cachedUserId;
-  // Logic: core/utils/database_helper.dart
 
   Future<void> resetAppCompletely() async {
     try {
-      Hive.deleteFromDisk();
-      Hive.initFlutter();
+      print("🧹 Starting Safe Reset...");
+
+      Get.deleteAll(force: true);
+      print("🧠 GetX Controllers Purged");
+
+      _clearAllData();
+      await Hive.close();
+      print("📦 Hive Closed");
+
       final sharedPrefs = await SharedPreferences.getInstance();
       await sharedPrefs.clear();
 
-      HelperFunction.showSnackBar("نجاح", "تم تسجيل الخروج وتصفير البيانات");
+      await Hive.deleteFromDisk();
+      print("📂 Disk Purged");
+
+      await Hive.initFlutter();
 
       await Get.putAsync(
         () => SharedPreferencesService().init(),
         permanent: true,
       );
 
+      // 6. التوجيه لصفحة البداية
       Get.offAllNamed(Routes.INITIAL);
     } catch (e) {
-      debugPrint("❌ Error during force logout: $e");
-      // إذا فشل كل شيء، انتقل للبداية كحل أخير
+      print("❌ Reset Critical Error: $e");
       Get.offAllNamed(Routes.INITIAL);
     }
+  }
+
+  Future<void> _clearAllData() async {
+    // قائمة بالأسماء التي تريد حذفها
+    List<String> boxesToClear = [
+      "CURRENTUSER",
+      "MYINCOME",
+      "MYEXPENSE",
+      "TAG_BOX",
+      "WALLET",
+    ];
+
+    for (String boxName in boxesToClear) {
+      // نفتح الـ Box ثم نمسح محتوياته، هذه الطريقة تعمل 100%
+      var box = await Hive.openBox(boxName);
+      await box.clear();
+      // اختياري: إذا أردت حذف الملف نهائياً بعد التصفير
+      // await box.deleteFromDisk();
+    }
+    print("✅ All local storage cleared successfully");
   }
 
   @override

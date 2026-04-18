@@ -1,4 +1,3 @@
-// // تعليق: المتحكم الخاص بقائمة الدخل مع دعم التشغيل بدون إنترنت (Offline) وإحصائيات اللوحة الرئيسية المحدثة
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
@@ -11,29 +10,28 @@ import 'package:spendwise/features/income/domain/usecases/synced_income_usecase.
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 
 class IncomesListController extends GetxController {
+  final GetIncomesUsecase getIncomesUseCase;
+  final GetAllLocalIncomesUsecase getAllLocalIncomesUsecase;
+  final SyncPendingIncomesUsecase syncIncomesUsecase;
+
   IncomesListController({
     required this.getIncomesUseCase,
     required this.getAllLocalIncomesUsecase,
     required this.syncIncomesUsecase,
   });
 
-  final GetIncomesUsecase getIncomesUseCase;
-  final GetAllLocalIncomesUsecase getAllLocalIncomesUsecase;
-  final SyncPendingIncomesUsecase syncIncomesUsecase;
-
   final RxList<IncomeModel> incomesList = <IncomeModel>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool hasMoreData = true.obs;
   final RxInt currentPage = 1.obs;
+  final int pageSize = 10;
 
   final Rx<DateTime> dashboardMonth = Rx<DateTime>(
     DateTime(DateTime.now().year, DateTime.now().month, 1),
   );
 
-  // المتغيرات المالية المحدثة
   final RxDouble monthlyIncomeTotal = 0.0.obs;
-  final RxDouble allTimeIncomeTotal =
-      0.0.obs; // الإجمالي التراكمي لجميع الأوقات
+  final RxDouble allTimeIncomeTotal = 0.0.obs;
 
   final ScrollController scrollController = ScrollController();
   int? userId = AppUserLocalDatasourceImpl().currentUserId;
@@ -42,85 +40,135 @@ class IncomesListController extends GetxController {
   void onInit() {
     super.onInit();
     scrollController.addListener(_scrollListener);
-    fetchAllIncomes();
+    fetchAllIncomes(isRefresh: true);
   }
 
   void _scrollListener() {
     if (scrollController.position.pixels >=
         scrollController.position.maxScrollExtent * 0.8) {
-      fetchAllIncomes();
+      if (!isLoading.value && hasMoreData.value) {
+        print(
+          "🔗 Scroll reaching end: Requesting Incomes page ${currentPage.value}",
+        );
+        fetchAllIncomes(isRefresh: false);
+      }
     }
   }
 
   Future<void> fetchAllIncomes({bool isRefresh = false}) async {
-    if (isRefresh) {
-      currentPage.value = 1;
-      hasMoreData.value = true;
-    }
+    if (isLoading.value || (!hasMoreData.value && !isRefresh)) return;
 
-    if (!hasMoreData.value || (isLoading.value && !isRefresh)) return;
+    try {
+      isLoading.value = true;
 
-    isLoading.value = true;
-
-    // مزامنة البيانات المعلقة في الخلفية
-    syncIncomesUsecase.call().then((result) {
-      result.fold(
-        (l) => debugPrint("Background Sync Failed: ${l.message}"),
-        (r) => debugPrint("Background Sync Completed Successfully"),
-      );
-    });
-
-    final pageRequest = PageRequest(
-      pageNumber: currentPage.value,
-      pageSize: 10,
-    );
-
-    final result = await getIncomesUseCase.call(userId, pageRequest);
-
-    result.fold((failure) => _handleError("خطأ في التحميل", failure.message), (
-      pagedResponse,
-    ) {
-      if (isRefresh) incomesList.clear();
-      incomesList.addAll(pagedResponse.data);
-
-      if (currentPage.value >= pagedResponse.totalPages) {
-        hasMoreData.value = false;
-      } else {
-        currentPage.value++;
+      if (isRefresh) {
+        print("🔄 Action: Refreshing Incomes list...");
+        currentPage.value = 1;
+        hasMoreData.value = true;
+        _runBackgroundSync();
       }
-    });
 
-    isLoading.value = false;
-    await calculateTotals(); // تحديث الحسابات الشاملة بعد جلب البيانات
+      print("📡 Fetching Incomes: Page ${currentPage.value}, Size $pageSize");
+      final pageRequest = PageRequest(
+        pageNumber: currentPage.value,
+        pageSize: pageSize,
+      );
+      final result = await getIncomesUseCase.call(userId, pageRequest);
+
+      result.fold(
+        (failure) {
+          print("❌ Incomes Fetch Failure: ${failure.message}");
+          _handleError("خطأ في التحميل", failure.message);
+        },
+        (pagedResponse) {
+          final newItems = pagedResponse.data;
+          print("📦 Received: ${newItems.length} Incomes");
+
+          if (newItems.isEmpty) {
+            hasMoreData.value = false;
+            print("🏁 No more Incomes found on server.");
+          } else {
+            if (isRefresh) {
+              // تصفية المحذوفات محلياً قبل العرض
+              final visibleItems = newItems
+                  .where((i) => i.localId != "REMOVE")
+                  .toList();
+              incomesList.assignAll(visibleItems);
+            } else {
+              // // Logic: الإضافة في نهاية القائمة مع تصفية المكرر والمحذوف
+              final uniqueAndVisible = newItems.where((newItem) {
+                bool isNotRemoved = newItem.localId != "REMOVE";
+                bool isNotDuplicate = !incomesList.any(
+                  (existing) =>
+                      (existing.id != null && existing.id == newItem.id) ||
+                      (existing.localId == newItem.localId),
+                );
+                return isNotRemoved && isNotDuplicate;
+              }).toList();
+
+              incomesList.addAll(uniqueAndVisible);
+              print(
+                "➕ Added ${uniqueAndVisible.length} unique Incomes to list",
+              );
+            }
+
+            if (newItems.length < pageSize) {
+              hasMoreData.value = false;
+              print("🏁 End of Incomes reached (Last page).");
+            } else {
+              currentPage.value++;
+            }
+          }
+          calculateTotals();
+        },
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  // حساب الإجماليات (الشهري والكلي) من البيانات المحلية
+  void _runBackgroundSync() {
+    syncIncomesUsecase.call().then((result) {
+      result.fold(
+        (l) => print("⚠️ Incomes Background Sync Failed: ${l.message}"),
+        (r) {
+          print("✅ Incomes Background Sync Completed");
+          calculateTotals(); // إعادة حساب الإجماليات بعد المزامنة
+        },
+      );
+    });
+  }
+
   Future<void> calculateTotals() async {
     final result = await getAllLocalIncomesUsecase.call();
 
-    result.fold(
-      (failure) {
-        monthlyIncomeTotal.value = 0.0;
-        allTimeIncomeTotal.value = 0.0;
-      },
-      (allLocalIncomes) {
-        final targetYear = dashboardMonth.value.year;
-        final targetMonth = dashboardMonth.value.month;
+    result.fold((failure) => print("❌ Failed to calculate totals from local"), (
+      allLocalIncomes,
+    ) {
+      final targetYear = dashboardMonth.value.year;
+      final targetMonth = dashboardMonth.value.month;
 
-        // 1. حساب الإجمالي التراكمي (لكل الأوقات)
-        allTimeIncomeTotal.value = allLocalIncomes.fold<double>(
-          0.0,
-          (sum, item) => sum + item.amount,
-        );
+      // حساب الإجمالي التراكمي (باستثناء المعلم للحذف)
+      final activeIncomes = allLocalIncomes
+          .where((i) => i.localId != "REMOVE")
+          .toList();
 
-        // 2. حساب إجمالي الشهر المحدد فقط
-        monthlyIncomeTotal.value = allLocalIncomes
-            .where(
-              (e) => e.date.year == targetYear && e.date.month == targetMonth,
-            )
-            .fold<double>(0.0, (sum, item) => sum + item.amount);
-      },
-    );
+      allTimeIncomeTotal.value = activeIncomes.fold<double>(
+        0.0,
+        (sum, item) => sum + item.amount,
+      );
+
+      // حساب إجمالي الشهر المحدد
+      monthlyIncomeTotal.value = activeIncomes
+          .where(
+            (e) => e.date.year == targetYear && e.date.month == targetMonth,
+          )
+          .fold<double>(0.0, (sum, item) => sum + item.amount);
+
+      print(
+        "💰 Totals Updated - All Time: ${allTimeIncomeTotal.value}, Monthly: ${monthlyIncomeTotal.value}",
+      );
+    });
   }
 
   Future<void> pickDashboardMonth(BuildContext context) async {
@@ -134,9 +182,13 @@ class IncomesListController extends GetxController {
 
     if (picked != null) {
       dashboardMonth.value = DateTime(picked.year, picked.month, 1);
-      Get.find<ExpensesListController>().dashboardMonth.value =
-          dashboardMonth.value;
-      Get.find<ExpensesListController>().calculateTotals();
+
+      if (Get.isRegistered<ExpensesListController>()) {
+        final expController = Get.find<ExpensesListController>();
+        expController.dashboardMonth.value = dashboardMonth.value;
+        expController.calculateTotals();
+      }
+
       await calculateTotals();
     }
   }
@@ -147,6 +199,7 @@ class IncomesListController extends GetxController {
 
   @override
   void onClose() {
+    print("🔌 Closing IncomesListController");
     scrollController.dispose();
     super.onClose();
   }

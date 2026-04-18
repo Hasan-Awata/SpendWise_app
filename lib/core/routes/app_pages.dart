@@ -75,10 +75,10 @@ class AppPages {
       page: () => const MainScreen(),
       // The MainScreen often acts as a hub, so we inject essential bindings here
       bindings: [
-        ExpenseBinding(),
-        IncomeBinding(),
         WalletBinding(),
         TagBinding(),
+        ExpenseBinding(),
+        IncomeBinding(),
       ],
     ),
 

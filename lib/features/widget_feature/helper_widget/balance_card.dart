@@ -111,6 +111,7 @@ class BalanceCard extends StatelessWidget {
             // الرصيد الإجمالي التراكمي
             Text(
               _fmtMoney(grandTotalBalance),
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 30,
@@ -130,18 +131,27 @@ class BalanceCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildFlowStat(
-                  Icons.arrow_downward,
-                  "دخل الشهر",
-                  _fmtMoney(incomeMonth),
-                  SpColor.incomeGreen,
+                Expanded(
+                  child: _buildFlowStat(
+                    Icons.arrow_downward,
+                    "دخل الشهر",
+                    _fmtMoney(incomeMonth),
+                    SpColor.incomeGreen,
+                  ),
                 ),
-                Container(width: 1, height: 30, color: Colors.white24),
-                _buildFlowStat(
-                  Icons.arrow_upward,
-                  "مصاريف الشهر",
-                  _fmtMoney(expenseMonth),
-                  SpColor.expenseRed,
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                  width: 1,
+                  height: 30,
+                  color: Colors.white24,
+                ),
+                Expanded(
+                  child: _buildFlowStat(
+                    Icons.arrow_upward,
+                    "مصاريف الشهر",
+                    _fmtMoney(expenseMonth),
+                    SpColor.expenseRed,
+                  ),
                 ),
               ],
             ),
@@ -168,26 +178,30 @@ class BalanceCard extends StatelessWidget {
           child: Icon(icon, color: color, size: 16),
         ),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            Text(
-              amount,
-              style: const TextStyle(
-                color: SpColor.offWhite,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+              Text(
+                amount,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: const TextStyle(
+                  color: SpColor.offWhite,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

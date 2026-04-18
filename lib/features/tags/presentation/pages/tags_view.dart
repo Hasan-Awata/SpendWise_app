@@ -6,12 +6,13 @@ import 'package:spendwise/features/tags/data/models/tag_model.dart';
 import 'package:spendwise/features/tags/presentation/manager/add_tag_controller.dart';
 import 'package:spendwise/features/tags/presentation/manager/tag_view_controller.dart';
 
+// // واجهة عرض الأوسمة: تتيح للمستخدم إدارة وتصنيف مصروفاته عبر الأوسمة المخصصة
 class TagsView extends GetView<TagViewController> {
   const TagsView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // التأكد من وجود ActionController للقيام بالعمليات
+    // // التأكد من وجود TagActionController في الذاكرة للقيام بعمليات المعالجة (حذف/تعديل)
     final actionController = Get.find<TagActionController>();
 
     return Scaffold(
@@ -29,16 +30,22 @@ class TagsView extends GetView<TagViewController> {
         color: SpColor.accentBlue,
         onRefresh: () async => controller.loadTags(isRefresh: true),
         child: Obx(() {
+          // // حالة التحميل: عرض مؤشر الانتظار عند جلب البيانات لأول مرة
           if (controller.isLoading.value && controller.myTags.isEmpty) {
             return ListView(
               controller: controller.scrollController,
-              physics: AlwaysScrollableScrollPhysics(),
-              children: [const Center(child: CircularProgressIndicator())],
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 100),
+                Center(child: CircularProgressIndicator()),
+              ],
             );
           }
+
+          // // بناء قائمة الأوسمة باستخدام التمرير اللانهائي إذا لزم الأمر
           return ListView.builder(
             controller: controller.scrollController,
-            physics: AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             itemCount: controller.myTags.length,
             itemBuilder: (context, index) {
@@ -51,6 +58,7 @@ class TagsView extends GetView<TagViewController> {
     );
   }
 
+  // // بناء بطاقة الوسم الفردية مع أيقونات التحكم
   Widget _buildTagCard(TagModel tag, TagActionController actionController) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -65,9 +73,12 @@ class TagsView extends GetView<TagViewController> {
           const Icon(Icons.label_outline_rounded, color: SpColor.accentBlue),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(tag.name, style: const TextStyle(color: Colors.white)),
+            child: Text(
+              tag.name,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
           ),
-          // // تعليق: ربط الأزرار بالدوال المصلحة
+          // // تعليق: ربط أزرار الواجهة بالدوال المصلحة في متحكم العمليات
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -91,6 +102,7 @@ class TagsView extends GetView<TagViewController> {
 
   // --- الحوارات المصلحة ---
 
+  // // تعليق: حوار تأكيد الحذف لاستدعاء دالة الحذف من المتحكم المسؤول TagActionController
   void _showDeleteTagDialog(
     TagModel tag,
     TagActionController actionController,
@@ -103,14 +115,16 @@ class TagsView extends GetView<TagViewController> {
       middleTextStyle: const TextStyle(color: Colors.white70),
       textConfirm: "حذف",
       textCancel: "إلغاء",
+      confirmTextColor: Colors.white,
       onConfirm: () {
-        // // تعليق: استدعاء دالة الحذف من المتحكم المسؤول
+        // // تنفيذ عملية الحذف عبر المتحكم
         actionController.deleteTag(tag);
         Get.back();
       },
     );
   }
 
+  // // تعليق: حوار التعديل لتحديث اسم الوسم وتمرير البيانات الجديدة للمتحكم
   void _showUpdateTagDialog(
     TagModel tag,
     TagActionController actionController,
@@ -124,16 +138,23 @@ class TagsView extends GetView<TagViewController> {
       content: TextField(
         controller: nameController,
         style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(labelText: "اسم الوسم الجديد"),
+        decoration: const InputDecoration(
+          labelText: "اسم الوسم الجديد",
+          labelStyle: TextStyle(color: Colors.white54),
+        ),
       ),
       confirm: ElevatedButton(
         style: ElevatedButton.styleFrom(backgroundColor: SpColor.accentBlue),
         onPressed: () {
-          // // تعليق: استدعاء التحديث وتمرير الاسم الجديد
+          // // استدعاء التحديث وتمرير الاسم الجديد المنقح
           actionController.updateTag(tag, nameController.text.trim());
           Get.back();
         },
-        child: const Text("تحديث"),
+        child: const Text("تحديث", style: TextStyle(color: Colors.white)),
+      ),
+      cancel: TextButton(
+        onPressed: () => Get.back(),
+        child: const Text("تراجع", style: TextStyle(color: Colors.white54)),
       ),
     );
   }

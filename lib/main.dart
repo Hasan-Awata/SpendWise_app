@@ -44,28 +44,28 @@ void main() async {
 
   CurrentUser.initializeUser();
 
-  runApp(DevicePreview(enabled: true, builder: (context) => const MyApp()));
+  runApp(DevicePreview(enabled: false, builder: (context) => const MyApp()));
 }
 
-Future<void> _clearAllData() async {
-  // قائمة بالأسماء التي تريد حذفها
-  List<String> boxesToClear = [
-    "CURRENTUSER",
-    "MYINCOME",
-    "MYEXPENSE",
-    "TAG_BOX",
-    "WALLET",
-  ];
+// Future<void> _clearAllData() async {
+//   // قائمة بالأسماء التي تريد حذفها
+//   List<String> boxesToClear = [
+//     "CURRENTUSER",
+//     "MYINCOME",
+//     "MYEXPENSE",
+//     "TAG_BOX",
+//     "WALLET",
+//   ];
 
-  for (String boxName in boxesToClear) {
-    // نفتح الـ Box ثم نمسح محتوياته، هذه الطريقة تعمل 100%
-    var box = await Hive.openBox(boxName);
-    await box.clear();
-    // اختياري: إذا أردت حذف الملف نهائياً بعد التصفير
-    // await box.deleteFromDisk();
-  }
-  print("✅ All local storage cleared successfully");
-}
+//   for (String boxName in boxesToClear) {
+//     // نفتح الـ Box ثم نمسح محتوياته، هذه الطريقة تعمل 100%
+//     var box = await Hive.openBox(boxName);
+//     await box.clear();
+//     // اختياري: إذا أردت حذف الملف نهائياً بعد التصفير
+//     // await box.deleteFromDisk();
+//   }
+//   print("✅ All local storage cleared successfully");
+// }
 
 // دالة منظمة لتسجيل المحولات
 void _registerHiveAdapters() {
@@ -103,7 +103,7 @@ class MyApp extends StatelessWidget {
         Locale('en', 'US'), // الإنجليزية
         Locale('ar', 'SA'),
       ],
-      textDirection: TextDirection.ltr,
+      textDirection: TextDirection.rtl,
 
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,

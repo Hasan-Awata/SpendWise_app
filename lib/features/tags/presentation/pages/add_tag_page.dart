@@ -8,6 +8,7 @@ import 'package:spendwise/features/tags/presentation/manager/add_tag_controller.
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 
+// هذه الصفحة تتيح للمستخدم إنشاء وسوم (Tags) جديدة لتصنيف المعاملات المالية
 class AddtagPage extends StatefulWidget {
   const AddtagPage({super.key});
 
@@ -16,10 +17,11 @@ class AddtagPage extends StatefulWidget {
 }
 
 class _AddtagPageState extends State<AddtagPage> {
-  // استدعاء المتحكم (تأكد من عمل Get.put له في الـ Binding)
+  // استدعاء المتحكم لإدارة حالة إضافة الوسوم
   final TagActionController tagActionController =
       Get.find<TagActionController>();
 
+  // دالة إرسال البيانات واستدعاء منطق الحفظ من المتحكم
   void _submit() async {
     await tagActionController.addTag();
   }
@@ -31,7 +33,7 @@ class _AddtagPageState extends State<AddtagPage> {
       appBar: AppBar(
         backgroundColor: SpColor.primaryDark2,
         title: const Text(
-          "Create New Tag",
+          "إنشاء وسم جديد", // Create New Tag
           style: TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -64,7 +66,7 @@ class _AddtagPageState extends State<AddtagPage> {
             children: [
               const SizedBox(height: 20),
               const Text(
-                "Tag Details",
+                "تفاصيل الوسم", // Tag Details
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 16,
@@ -80,17 +82,18 @@ class _AddtagPageState extends State<AddtagPage> {
                   border: Border.all(color: Colors.white10),
                 ),
                 child: CustomTextField(
-                  label: "Tag Name",
-                  hint: "e.g. Shopping, Bills...",
+                  label: "اسم الوسم", // Tag Name
+                  hint: "مثال: تسوق، فواتير...", // e.g. Shopping, Bills...
                   prefixIcon: const Icon(
                     Icons.label_important_outline,
                     color: SpColor.accentBlue,
                   ),
                   textEditingController: tagActionController.nameController,
-                  // // تعليق: منطق التحقق من البيانات
+
+                  // // تعليق: منطق التحقق من صحة اسم الوسم قبل الحفظ
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return "Please enter a tag name";
+                      return "يرجى إدخال اسم الوسم"; // Please enter a tag name
                     }
                     return null;
                   },
@@ -106,6 +109,7 @@ class _AddtagPageState extends State<AddtagPage> {
     );
   }
 
+  // عنصر واجهة يعرض معلومة توضيحية للمستخدم حول أهمية الوسوم
   Widget _buildInfoRow() {
     return Row(
       children: const [
@@ -113,7 +117,7 @@ class _AddtagPageState extends State<AddtagPage> {
         SizedBox(width: 8),
         Expanded(
           child: Text(
-            "Tags help you categorize your expenses more specifically.",
+            "تساعدك الوسوم على تصنيف مصاريفك بشكل أكثر دقة وتفصيلاً.",
             style: TextStyle(color: Colors.white38, fontSize: 12),
           ),
         ),
@@ -121,6 +125,7 @@ class _AddtagPageState extends State<AddtagPage> {
     );
   }
 
+  // بناء زر الحفظ في أسفل الشاشة مع حالة التحميل
   Widget _buildBottomButton() {
     return SafeArea(
       child: Padding(
@@ -129,8 +134,8 @@ class _AddtagPageState extends State<AddtagPage> {
           () => CustomButton(
             onPressed: _submit,
             text: tagActionController.isActionLoading.value
-                ? "Saving..."
-                : "Save Tag",
+                ? "جاري الحفظ..." // Saving...
+                : "حفظ الوسم", // Save Tag
             color: tagActionController.isActionLoading.value
                 ? Colors.grey
                 : SpColor.accentBlue,

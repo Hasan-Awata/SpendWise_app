@@ -71,6 +71,8 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
           .post(url, headers: headers, body: body)
           .timeout(timeoutDuration);
 
+      print("statusCode: ${response.statusCode} body: ${response.body}");
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         return WalletModel.fromJson(jsonDecode(response.body));
       } else {

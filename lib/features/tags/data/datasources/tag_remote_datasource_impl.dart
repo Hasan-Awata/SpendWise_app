@@ -32,7 +32,7 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
   }
 
   @override
-  Future<TagModel> addTag(TagModel tag) async {
+  Future<TagModel?> addTag(TagModel tag) async {
     final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.tag}");
     final headers = await _getHeaders();
     final body = jsonEncode(tag.toJson());
@@ -87,7 +87,7 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
     print("Deleting Tag: $url");
 
     final response = await client.delete(url, headers: headers);
-
+    print("${response.body}");
     if (response.statusCode == 200 || response.statusCode == 204) {
       print("DeleteTag Success");
     } else {

@@ -18,7 +18,10 @@ class UpdateWalletController extends GetxController {
 
     isUpdating.value = true;
     // نمرر الـ ID والموديل لـ Usecase بناءً على توقيعها
-    final result = await updateWalletUseCase.call(wallet.walletId!, wallet);
+    final result = await updateWalletUseCase.call(
+      wallet.walletId ?? -1,
+      wallet,
+    );
 
     result.fold(
       (failure) {
@@ -29,8 +32,26 @@ class UpdateWalletController extends GetxController {
         );
       },
       (_) {
+        print("✅ Update Success in Data Layer");
+
+        // // Logic: التحديث الفوري في الواجهة دون انتظار السيرفر
         if (Get.isRegistered<WalletsListController>()) {
-          Get.find<WalletsListController>().loadWallets();
+          final listController = Get.find<WalletsListController>();
+
+          // البحث عن مكان المحفظة في القائمة الحالية وتحديثها
+          int index = listController.wallets.indexWhere(
+            (w) =>
+                (w.walletId != null && w.walletId == wallet.walletId) ||
+                (w.localId == wallet.localId),
+          );
+
+          if (index != -1) {
+            // استخدام refresh() أو استبدال العنصر لضمان تحديث RxList
+            listController.wallets[index] = wallet;
+            listController.wallets.refresh();
+            listController.calculateTotals();
+            print("📱 UI Updated Instantly at index: $index");
+          }
         }
         HelperFunction.showSnackBar("نجاح", "تم تحديث المحفظة");
       },

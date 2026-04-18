@@ -1,7 +1,7 @@
-// // تعليق: متحكم عرض قائمة المصاريف مع دعم الـ Offline وإحصائيات الشهر
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
+import 'package:spendwise/features/category/data/model/category_model.dart';
 import 'package:spendwise/features/expense/domain/usecases/get_all_expenses_usecase.dart';
 import 'package:spendwise/features/expense/domain/usecases/sync_expense_usecase.dart';
 import 'package:spendwise/features/helper_function.dart';
@@ -10,20 +10,21 @@ import 'package:spendwise/features/expense/domain/usecases/get_expenses_usecase.
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 
 class ExpensesListController extends GetxController {
+  final GetExpensesUsecase getExpensesUseCase;
+  final GetAllLocalExpensesUsecase getAllLocalExpensesUsecase;
+  final SyncPendingExpensesUsecase syncExpenseUsecase;
+
   ExpensesListController({
     required this.getExpensesUseCase,
     required this.getAllLocalExpensesUsecase,
     required this.syncExpenseUsecase,
   });
 
-  final GetExpensesUsecase getExpensesUseCase;
-  final GetAllLocalExpensesUsecase getAllLocalExpensesUsecase;
-  final SyncPendingExpensesUsecase syncExpenseUsecase;
-
   final RxList<ExpenseModel> expensesList = <ExpenseModel>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool hasMoreData = true.obs;
   final RxInt currentPage = 1.obs;
+  final int pageSize = 10;
 
   final Rx<DateTime> dashboardMonth = Rx<DateTime>(
     DateTime(DateTime.now().year, DateTime.now().month, 1),
@@ -36,61 +37,116 @@ class ExpensesListController extends GetxController {
   final ScrollController scrollController = ScrollController();
   final int? userId = AppUserLocalDatasourceImpl().currentUserId;
 
+  final RxList<CategoryModel> categories = <CategoryModel>[
+    CategoryModel(name: "Basics", priority: 1),
+    CategoryModel(name: "Secondaries", priority: 2),
+    CategoryModel(name: "Expenses", priority: 3),
+    CategoryModel(name: "Savings", priority: 4),
+  ].obs;
+
   @override
   void onInit() {
     super.onInit();
     scrollController.addListener(_scrollListener);
-    fetchExpenses();
+    fetchExpenses(isRefresh: true);
   }
 
   void _scrollListener() {
     if (scrollController.position.pixels >=
         scrollController.position.maxScrollExtent * 0.8) {
-      fetchExpenses();
+      if (!isLoading.value && hasMoreData.value) {
+        print(
+          "🔗 Scroll reaching end: Requesting Expenses page ${currentPage.value}",
+        );
+        fetchExpenses(isRefresh: false);
+      }
     }
   }
 
   Future<void> fetchExpenses({bool isRefresh = false}) async {
-    if (isRefresh) {
-      currentPage.value = 1;
-      hasMoreData.value = true;
-    }
+    if (isLoading.value || (!hasMoreData.value && !isRefresh)) return;
 
-    if (!hasMoreData.value || (isLoading.value && !isRefresh)) return;
+    try {
+      isLoading.value = true;
 
-    isLoading.value = true;
+      if (isRefresh) {
+        print("🔄 Action: Refreshing Expenses list...");
+        currentPage.value = 1;
+        hasMoreData.value = true;
+        _runBackgroundSync();
+      }
 
-    syncExpenseUsecase.call().then((result) {
-      result.fold(
-        (l) => debugPrint("Background Sync Failed: ${l.message}"),
-        (r) => debugPrint("Background Sync Completed"),
+      print("📡 Fetching Expenses: Page ${currentPage.value}, Size $pageSize");
+      final result = await getExpensesUseCase.call(
+        userId,
+        PageRequest(pageNumber: currentPage.value, pageSize: pageSize),
       );
-    });
 
-    final result = await getExpensesUseCase.call(
-      userId,
-      PageRequest(pageNumber: currentPage.value, pageSize: 10),
-    );
+      result.fold(
+        (failure) {
+          print("❌ Expenses Fetch Failure: ${failure.message}");
+          HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
+        },
+        (pagedResponse) {
+          final newItems = pagedResponse.data;
+          print("📦 Received: ${newItems.length} Expenses");
 
-    result.fold(
-      (failure) =>
-          HelperFunction.showSnackBar("خطأ", failure.message, isError: true),
-      (pagedResponse) {
-        if (isRefresh) expensesList.clear();
-        expensesList.addAll(pagedResponse.data);
-        if (currentPage.value >= pagedResponse.totalPages) {
-          hasMoreData.value = false;
-        } else {
-          currentPage.value++;
-        }
-      },
-    );
+          if (newItems.isEmpty) {
+            hasMoreData.value = false;
+            print("🏁 No more Expenses found on server.");
+          } else {
+            if (isRefresh) {
+              // تصفية العناصر المحذوفة محلياً قبل العرض
+              final visibleItems = newItems
+                  .where((e) => e.localId != "REMOVE")
+                  .toList();
+              expensesList.assignAll(visibleItems);
+            } else {
+              // منع التكرار وتصفية المحذوفات
+              final uniqueAndVisible = newItems.where((newItem) {
+                bool isNotRemoved = newItem.localId != "REMOVE";
+                bool isNotDuplicate = !expensesList.any(
+                  (existing) =>
+                      (existing.id != null && existing.id == newItem.id) ||
+                      (existing.localId == newItem.localId),
+                );
+                return isNotRemoved && isNotDuplicate;
+              }).toList();
 
-    isLoading.value = false;
-    await calculateTotals(); // تحديث الحسابات بعد جلب البيانات
+              expensesList.addAll(uniqueAndVisible);
+              print(
+                "➕ Added ${uniqueAndVisible.length} unique Expenses to list",
+              );
+            }
+
+            // تحديث حالة انتهاء البيانات
+            if (newItems.length < pageSize) {
+              hasMoreData.value = false;
+              print("🏁 End of Expenses reached.");
+            } else {
+              currentPage.value++;
+            }
+          }
+          calculateTotals();
+        },
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  // في ExpensesListController
+  void _runBackgroundSync() {
+    syncExpenseUsecase.call().then((result) {
+      result.fold(
+        (l) => print("⚠️ Expense Background Sync Failed: ${l.message}"),
+        (r) {
+          print("✅ Expense Background Sync Completed");
+          calculateTotals();
+        },
+      );
+    });
+  }
+
   Future<void> calculateTotals() async {
     final result = await getAllLocalExpensesUsecase.call();
     result.fold(
@@ -99,14 +155,18 @@ class ExpensesListController extends GetxController {
         allTimeExpenseTotal.value = 0.0;
       },
       (allLocalExpense) {
-        // استخدام القيم الحالية في الـ Observable مباشرة
         final targetYear = dashboardMonth.value.year;
         final targetMonth = dashboardMonth.value.month;
+
+        // تصفية العناصر المسمومة للحذف لضمان دقة الأرقام
+        final activeExpenses = allLocalExpense
+            .where((e) => e.localId != "REMOVE")
+            .toList();
 
         double allTime = 0.0;
         double monthly = 0.0;
 
-        for (var item in allLocalExpense) {
+        for (var item in activeExpenses) {
           allTime += item.amount;
           if (item.date.year == targetYear && item.date.month == targetMonth) {
             monthly += item.amount;
@@ -115,18 +175,20 @@ class ExpensesListController extends GetxController {
 
         allTimeExpenseTotal.value = allTime;
         monthlyExpenseTotal.value = monthly;
+        print("💰 Expenses Totals Updated: Monthly=$monthly, AllTime=$allTime");
       },
     );
   }
 
-  // دالة لتغيير الشهر وتحديث الحسابات
   void changeDashboardMonth(DateTime newDate) {
-    dashboardMonth.value = newDate;
+    print("📅 Changing Dashboard Month to: ${newDate.month}/${newDate.year}");
+    dashboardMonth.value = DateTime(newDate.year, newDate.month, 1);
     calculateTotals();
   }
 
   @override
   void onClose() {
+    print("🔌 Closing ExpensesListController");
     scrollController.dispose();
     super.onClose();
   }

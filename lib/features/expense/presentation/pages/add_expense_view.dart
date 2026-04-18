@@ -1,4 +1,4 @@
-// // تعليق: واجهة إضافة مصروف - مدمجة مع نظام المزامنة والتحقق المطور
+// تعليق: واجهة إضافة مصروف - مدمجة مع نظام المزامنة والتحقق المطور
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
@@ -12,6 +12,7 @@ import 'package:spendwise/features/widget_feature/helper_widget/custom_text_fiel
 import 'package:spendwise/features/widget_feature/helper_widget/date_picker_widget.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.dart';
 
+// هذه الفئة تمثل شاشة إضافة مصروف جديد وتدير التفاعل مع المستخدم
 class AddExpenseView extends StatefulWidget {
   AddExpenseView({super.key});
 
@@ -32,6 +33,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
       body: RefreshIndicator(
         color: const Color(0xFFF15A5A),
         onRefresh: () async {
+          // إعادة تعيين الحقول وتحديث البيانات من المستودع
           controller.resetFields();
           await controller.walletsListController.loadWallets();
           await controller.tagController.loadTags();
@@ -47,25 +49,25 @@ class _AddExpenseViewState extends State<AddExpenseView> {
                 children: [
                   const SizedBox(height: 20),
 
-                  // // UI: حقل العنوان (Title/Source)
+                  // واجهة المستخدم: حقل العنوان (الاسم أو المصدر)
                   _buildField(
-                    "Expense Title",
+                    "عنوان المصروف", // Expense Title
                     controller.titleTextController,
                     Icons.title,
-                    hint: "e.g. Grocery, Rent...",
+                    hint: "مثال: بقالة، إيجار...", // e.g. Grocery, Rent...
                   ),
                   const SizedBox(height: 20),
 
-                  // // UI: حقل المبلغ
+                  // واجهة المستخدم: حقل المبلغ
                   _buildField(
-                    "Amount (SAR)",
+                    "المبلغ (ريال)", // Amount (SAR)
                     controller.amountController,
                     Icons.monetization_on_outlined,
                     keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 30),
 
-                  // // UI: اختيار الـ Category
+                  // واجهة المستخدم: اختيار الفئة
                   _buildCategoryDropdown(),
 
                   const SizedBox(height: 25),
@@ -75,8 +77,8 @@ class _AddExpenseViewState extends State<AddExpenseView> {
 
                   const SizedBox(height: 25),
                   CustomTextFieldDescription(
-                    label: "Description",
-                    hint: "Expense details...",
+                    label: "الوصف", // Description
+                    hint: "تفاصيل المصروف...", // Expense details...
                     textEditingController: controller.descriptionController,
                     textColor: const Color(0xFFF15A5A),
                   ),
@@ -91,7 +93,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
                   _buildWalletDropdown(),
                   const SizedBox(height: 25),
 
-                  // // UI: حقل التاج (يدعم الكتابة لإنشاء تاج جديد تلقائياً)
+                  // واجهة المستخدم: حقل التاج (يدعم الكتابة لإنشاء تاج جديد تلقائياً)
                   _buildTagDropdown(),
                   const SizedBox(height: 15),
                   _buildTagPreview(),
@@ -108,10 +110,12 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     );
   }
 
-  // --- Widgets ---
+  // --- عناصر الواجهة (Widgets) ---
+
+  // إنشاء شريط التطبيق العلوي
   PreferredSizeWidget _buildAppBar() => AppBar(
     title: const Text(
-      "New Expense",
+      "مصروف جديد", // New Expense
       style: TextStyle(color: Color(0xFFF15A5A), fontWeight: FontWeight.bold),
     ),
     backgroundColor: Colors.transparent,
@@ -125,6 +129,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     ],
   );
 
+  // بناء حقل إدخال نصي مخصص
   Widget _buildField(
     String label,
     TextEditingController ctr,
@@ -139,18 +144,19 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     textEditingController: ctr,
   );
 
+  // بناء قائمة منسدلة لاختيار الفئة
   Widget _buildCategoryDropdown() {
     return Obx(
       () => SPDropdownButton(
-        title: "Category",
-        hint: "Select expense category",
+        title: "الفئة", // Category
+        hint: "اختر فئة المصروف", // Select expense category
         textColor: const Color(0xFFF15A5A),
         prefixIcon: const Icon(
           Icons.category_outlined,
           color: Color(0xFFF15A5A),
         ),
         values: controller.categories
-            .map((c) => "${c.name} (P${c.priority})")
+            .map((c) => "${c.name} (أولوية ${c.priority})")
             .toList(),
         onSelected: (index, value) {
           controller.selectedCategory.value = controller.categories[index];
@@ -161,6 +167,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     );
   }
 
+  // مفتاح تبديل لتحديد ما إذا كان المصروف ثابتاً شهرياً
   Widget _buildFixedToggle() => Obx(
     () => Container(
       decoration: BoxDecoration(
@@ -169,7 +176,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
       ),
       child: SwitchListTile(
         title: const Text(
-          "Fixed Monthly Expense",
+          "مصروف شهري ثابت", // Fixed Monthly Expense
           style: TextStyle(color: Colors.white, fontSize: 14),
         ),
         activeColor: const Color(0xFFF15A5A),
@@ -182,10 +189,11 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     ),
   );
 
+  // حقل تحديد تكرار المصروف بالأيام
   Widget _buildRepetitionField() => Obx(
     () => isFixed.value
         ? _buildField(
-            "Repeat Every (Days)",
+            "يتكرر كل (أيام)", // Repeat Every (Days)
             controller.repeatController,
             Icons.calendar_month,
             keyboardType: TextInputType.number,
@@ -193,6 +201,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
         : const SizedBox.shrink(),
   );
 
+  // أداة اختيار التاريخ
   Widget _buildDatePicker(BuildContext context) => Obx(
     () => DatePickerWidget(
       onTap: () => controller.fetchDate(context),
@@ -201,10 +210,11 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     ),
   );
 
+  // قائمة منسدلة لاختيار المحفظة المالية
   Widget _buildWalletDropdown() {
     return SPDropdownButton(
-      title: "Select Wallet",
-      hint: "Choose wallet",
+      title: "اختر المحفظة", // Select Wallet
+      hint: "اختر المحفظة", // Choose wallet
       textColor: const Color(0xFFF15A5A),
       prefixIcon: const Icon(Icons.wallet, color: const Color(0xFFF15A5A)),
       values: controller.walletsListController.wallets
@@ -229,11 +239,12 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     );
   }
 
+  // قائمة منسدلة مع إمكانية البحث لتعيين "وسم" للمصروف
   Widget _buildTagDropdown() => Obx(
     () => SPDropdownButton(
-      title: "Select Tag",
+      title: "اختر وسماً", // Select Tag
       isTextField: true, // تفعيل الكتابة لتمكين ميزة إنشاء تاج جديد تلقائياً
-      hint: "Search/Type Tag",
+      hint: "ابحث أو اكتب وسماً", // Search/Type Tag
       textColor: const Color(0xFFF15A5A),
       prefixIcon: const Icon(Icons.tag, color: Color(0xFFF15A5A)),
       values: controller.tagController.myTags.map((t) => t.name).toList(),
@@ -245,6 +256,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     ),
   );
 
+  // عرض الوسم المختار حالياً مع إمكانية حذفه
   Widget _buildTagPreview() => Obx(
     () => controller.selectedTag.value != null
         ? TagWidget(
@@ -259,6 +271,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
         : const SizedBox.shrink(),
   );
 
+  // زر حفظ المصروف مع مؤشر تحميل عند المعالجة
   Widget _buildSubmitButton() => SizedBox(
     width: double.infinity,
     child: Obx(
@@ -267,7 +280,7 @@ class _AddExpenseViewState extends State<AddExpenseView> {
               child: CircularProgressIndicator(color: Color(0xFFF15A5A)),
             )
           : CustomButton(
-              text: "SAVE EXPENSE",
+              text: "حفظ المصروف", // SAVE EXPENSE
               onPressed: () =>
                   controller.saveExpense(), // استدعاء الدالة المحدثة
               color: const Color(0xFFF15A5A),

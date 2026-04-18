@@ -16,6 +16,7 @@ class WalletModel extends WalletEntity {
     required super.balance,
     required super.isSaved,
     this.isSynced = false,
+    super.currencyId,
   }) : localId = localId ?? const Uuid().v4();
 
   factory WalletModel.fromJson(Map<dynamic, dynamic> json) {
@@ -27,6 +28,7 @@ class WalletModel extends WalletEntity {
       balance: (json["balance"] ?? json["Balance"] ?? 0.0).toDouble(),
       isSaved: json['isSaved'] ?? json['IsSaved'] ?? false,
       isSynced: true,
+      currencyId: json["CurrencyId"] ?? 1,
       currency: _currencyFromWalletJson(json),
     );
   }
@@ -43,31 +45,35 @@ class WalletModel extends WalletEntity {
   }
 
   factory WalletModel.fromLocal(Map<dynamic, dynamic> map) {
-    // الإصلاح الجوهري هنا: التأكد من أن كل قيمة تُقرأ من Hive لها قيمة افتراضية ولا تعيد null
     return WalletModel(
       localId: map['localId'],
-      walletId: (map['walletId'] ?? -1) as int,
-      userId: (map['UserId'] ?? -1) as int,
-      balance: (map['Balance'] ?? 0.0).toDouble(),
-      isSaved: map['IsSaved'] == 1 || map['isSaved'] == true,
-      isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
+      // التحقق من الحرف الكبير والصغير
+      walletId: (map['walletId'] ?? map['WalletId'] ?? -1) as int,
+      userId: (map['userId'] ?? map['UserId'] ?? -1) as int,
+      balance: (map['balance'] ?? map['Balance'] ?? 0.0).toDouble(),
+      isSaved:
+          map['isSaved'] == true ||
+          map['IsSaved'] == true ||
+          map['IsSaved'] == 1,
+      isSynced:
+          map['isSynced'] == true ||
+          map['isSynced'] == true ||
+          map['isSynced'] == 1,
       currency: _currencyFromWalletJson(map),
+      currencyId: map["currencyId"] ?? 1,
     );
   }
 
   Map<dynamic, dynamic> toLocal() {
     return {
-      "WalletId": walletId ?? -1,
+      "walletId": walletId ?? -1,
       "localId": localId,
-      "UserId": userId,
-      "Balance": balance,
-      "IsSaved": isSaved,
+      "userId": userId,
+      "balance": balance,
+      "isSaved": isSaved,
       "isSynced": isSynced,
-      "Currency": {
-        "CurrencyId": currency.id,
-        "CurrencyName": currency.currencyName,
-        "LiveValue": currency.actualValue,
-      },
+      "currency": currency,
+      "currencyId": currency.id,
     };
   }
 

@@ -1,4 +1,4 @@
-// // UI: عرض قائمة الدخل مع خيارات التعديل والحذف السريع
+// // واجهة المستخدم: عرض قائمة الدخل مع خيارات التعديل والحذف السريع
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -7,9 +7,6 @@ import 'package:spendwise/features/income/data/models/income_model.dart';
 import 'package:spendwise/features/income/presentation/manager/delete_income_controller.dart';
 import 'package:spendwise/features/income/presentation/manager/update_income_controller.dart';
 import '../manager/incomes_list_controller.dart';
-// تأكد من استيراد المتحكمات الجديدة هنا
-// import '../manager/update_income_controller.dart';
-// import '../manager/delete_income_controller.dart';
 
 class IncomeListView extends GetView<IncomesListController> {
   const IncomeListView({super.key});
@@ -20,7 +17,7 @@ class IncomeListView extends GetView<IncomesListController> {
       backgroundColor: SpColor.primaryDark2,
       appBar: AppBar(
         title: const Text(
-          "Income History",
+          "سجل الدخل", // Income History
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         foregroundColor: SpColor.incomeGreen,
@@ -144,23 +141,22 @@ class IncomeListView extends GetView<IncomesListController> {
     );
   }
 
-  // --- Dialogs المضافة ---
+  // --- الحوارات (Dialogs) المترجمة ---
   void _showDeleteIncomeDialog(IncomeModel income) {
     Get.defaultDialog(
-      title: "Delete Income",
-      middleText: "Are you sure you want to remove this record?",
+      title: "حذف الدخل", // Delete Income
+      middleText: "هل أنت متأكد من رغبتك في حذف هذا السجل؟", // Are you sure...
       backgroundColor: SpColor.primaryDark2,
       titleStyle: const TextStyle(
         color: Colors.redAccent,
         fontWeight: FontWeight.bold,
       ),
       middleTextStyle: const TextStyle(color: Colors.white70),
-      textConfirm: "Delete",
-      textCancel: "Cancel",
+      textConfirm: "حذف", // Delete
+      textCancel: "إلغاء", // Cancel
       confirmTextColor: Colors.white,
       buttonColor: Colors.redAccent,
       onConfirm: () {
-        // افترضنا وجود DeleteIncomeController محقون في Binding
         Get.find<DeleteIncomeController>().deleteIncome(income);
         Get.back();
       },
@@ -174,7 +170,7 @@ class IncomeListView extends GetView<IncomesListController> {
     );
 
     Get.defaultDialog(
-      title: "Update Income",
+      title: "تحديث البيانات", // Update Income
       backgroundColor: SpColor.primaryDark2,
       titleStyle: const TextStyle(
         color: SpColor.incomeGreen,
@@ -183,11 +179,14 @@ class IncomeListView extends GetView<IncomesListController> {
       contentPadding: const EdgeInsets.all(20),
       content: Column(
         children: [
-          _buildDialogField(controller: titleController, label: "Title/Source"),
+          _buildDialogField(
+            controller: titleController,
+            label: "العنوان / المصدر",
+          ), // Title/Source
           const SizedBox(height: 15),
           _buildDialogField(
             controller: amountController,
-            label: "Amount",
+            label: "المبلغ", // Amount
             isNumber: true,
           ),
         ],
@@ -205,16 +204,21 @@ class IncomeListView extends GetView<IncomesListController> {
             income.title = titleController.text;
             income.amount =
                 double.tryParse(amountController.text) ?? income.amount;
-            print("incomeID===> ${income.remoteId}");
             Get.find<UpdateIncomeController>().updateIncome(income);
             Get.back();
           },
-          child: const Text("Update", style: TextStyle(color: Colors.white)),
+          child: const Text(
+            "تحديث",
+            style: TextStyle(color: Colors.white),
+          ), // Update
         ),
       ),
       cancel: TextButton(
         onPressed: () => Get.back(),
-        child: const Text("Cancel", style: TextStyle(color: Colors.white38)),
+        child: const Text(
+          "إلغاء",
+          style: TextStyle(color: Colors.white38),
+        ), // Cancel
       ),
     );
   }
@@ -259,7 +263,7 @@ class IncomeListView extends GetView<IncomesListController> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    "No income records found",
+                    "لا توجد سجلات دخل حالياً", // No income records found
                     style: TextStyle(color: Colors.white38),
                   ),
                 ],

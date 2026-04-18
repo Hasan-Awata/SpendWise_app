@@ -7,6 +7,7 @@ import 'package:spendwise/features/expense/presentation/manager/delete_expense_c
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/expense/presentation/manager/update_expense_controller.dart';
 
+// // عرض قائمة المصروفات باستخدام GetView للتحكم في الحالة
 class ExpenseListView extends GetView<ExpensesListController> {
   const ExpenseListView({super.key});
 
@@ -16,11 +17,12 @@ class ExpenseListView extends GetView<ExpensesListController> {
       backgroundColor: const Color(0xFF0F172A), // لون الخلفية الداكن
       appBar: AppBar(
         title: const Text(
-          "Expenses",
+          "المصروفات",
           style: TextStyle(color: Color(0xFFF15A5A)),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFF15A5A),
@@ -28,6 +30,7 @@ class ExpenseListView extends GetView<ExpensesListController> {
         onPressed: () => Get.toNamed('/add-expense'),
       ),
       body: Obx(() {
+        // // التحقق من حالة التحميل وإذا كانت القائمة فارغة
         if (controller.isLoading.value && controller.expensesList.isEmpty) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFFF15A5A)),
@@ -62,6 +65,7 @@ class ExpenseListView extends GetView<ExpensesListController> {
     );
   }
 
+  // // بناء عنصر المصروف الفردي داخل القائمة
   Widget _buildExpenseItem(ExpenseModel expense) {
     return Card(
       color: const Color(0xFF1E293B),
@@ -83,7 +87,7 @@ class ExpenseListView extends GetView<ExpensesListController> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "${expense.amount} SAR",
+              "${expense.amount} ر.س",
               style: const TextStyle(
                 color: Color(0xFFF15A5A),
                 fontWeight: FontWeight.bold,
@@ -99,7 +103,6 @@ class ExpenseListView extends GetView<ExpensesListController> {
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
               onPressed: () {
-                // نقوم بجلب الـ Controller الخاص بالحذف واستدعاء الدالة
                 final deleteController = Get.find<DeleteExpenseController>();
                 showDeleteDialog(expense, deleteController);
               },
@@ -110,12 +113,11 @@ class ExpenseListView extends GetView<ExpensesListController> {
     );
   }
 
-  // // UI: دالة إظهار حوار التعديل السريع
+  // // UI: دالة إظهار حوار التعديل السريع باللغة العربية
   void showUpdateDialog(
     ExpenseModel expense,
     UpdateExpenseController updateController,
   ) {
-    // تهيئة الحقول بالبيانات الحالية للمصروف
     final amountController = TextEditingController(
       text: expense.amount.toString(),
     );
@@ -124,7 +126,7 @@ class ExpenseListView extends GetView<ExpensesListController> {
     );
 
     Get.defaultDialog(
-      title: "Update Expense",
+      title: "تحديث المصروف",
       backgroundColor: const Color(0xFF1E293B),
       titleStyle: const TextStyle(
         color: Color(0xFFF15A5A),
@@ -135,13 +137,13 @@ class ExpenseListView extends GetView<ExpensesListController> {
         children: [
           _buildDialogTextField(
             controller: amountController,
-            label: "المبلغ (SAR)",
+            label: "المبلغ (ر.س)",
             isNumber: true,
           ),
           const SizedBox(height: 15),
           _buildDialogTextField(
             controller: categoryController,
-            label: "Source/Category",
+            label: "الفئة / المصدر",
           ),
         ],
       ),
@@ -158,7 +160,6 @@ class ExpenseListView extends GetView<ExpensesListController> {
             onPressed: updateController.isLoadingUpdate.value
                 ? null
                 : () {
-                    // تحديث الكائن بالقيم الجديدة
                     expense.amount =
                         double.tryParse(amountController.text) ??
                         expense.amount;
@@ -175,18 +176,18 @@ class ExpenseListView extends GetView<ExpensesListController> {
                       strokeWidth: 2,
                     ),
                   )
-                : const Text("Update", style: TextStyle(color: Colors.white)),
+                : const Text("تحديث", style: TextStyle(color: Colors.white)),
           ),
         ),
       ),
       cancel: TextButton(
         onPressed: () => Get.back(),
-        child: const Text("Cancel", style: TextStyle(color: Colors.white54)),
+        child: const Text("إلغاء", style: TextStyle(color: Colors.white54)),
       ),
     );
   }
 
-  // دالة مساعدة لبناء الحقول داخل الـ Dialog لتقليل تكرار الكود
+  // // دالة مساعدة لبناء حقول النص داخل الحوار
   Widget _buildDialogTextField({
     required TextEditingController controller,
     required String label,
@@ -209,19 +210,19 @@ class ExpenseListView extends GetView<ExpensesListController> {
     );
   }
 
-  // // UI: Helper function for Deletion
+  // // UI: دالة إظهار حوار تأكيد الحذف
   void showDeleteDialog(
     ExpenseModel expense,
     DeleteExpenseController deleteController,
   ) {
     Get.defaultDialog(
-      title: "Confirm Delete",
-      middleText: "Are you sure you want to delete this expense?",
+      title: "تأكيد الحذف",
+      middleText: "هل أنت متأكد أنك تريد حذف هذا المصروف؟",
       backgroundColor: const Color(0xFF1E293B),
       titleStyle: const TextStyle(color: Color(0xFFF15A5A)),
       middleTextStyle: const TextStyle(color: Colors.white),
-      textConfirm: "Delete",
-      textCancel: "Cancel",
+      textConfirm: "حذف",
+      textCancel: "إلغاء",
       confirmTextColor: Colors.white,
       buttonColor: const Color(0xFFF15A5A),
       onConfirm: () {

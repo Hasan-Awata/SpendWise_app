@@ -60,12 +60,16 @@ class AddIncomeController extends GetxController {
 
       final TagModel? finalTag = await _handleTagSelection();
 
+      // استبدل السطر الذي يحتوي على الخطأ بهذا المنطق:
       final incomeData = IncomeModel(
         userId:
             AppUserLocalDatasourceImpl().currentUserId ??
             CurrentUser.user!.userId,
         wallet: selectedWallet.value!,
-        tag: finalTag,
+        walletId: selectedWallet.value!.walletId ?? -1,
+        incomeTagId: finalTag?.id ?? -1,
+        tag:
+            finalTag, // مرر الكائن نفسه أيضاً لضمان عدم حدوث خطأ getter 'tag' الذي ظهر لك سابقاً
         description: descriptionController.text.trim(),
         date: selectedDate.value,
         title: sourceController.text.trim().isEmpty

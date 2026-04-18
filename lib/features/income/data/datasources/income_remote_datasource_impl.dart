@@ -134,7 +134,7 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
     final response = await client
         .post(uri, headers: header, body: jsonEncode(income.toJson()))
         .timeout(Duration(seconds: 10));
-
+    print("ressssssssssssssssssssssssspo ${response.body}");
     if (response.statusCode == 200 || response.statusCode == 201) {
       return IncomeModel.fromJson(jsonDecode(response.body));
     } else {
@@ -145,7 +145,7 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
   @override
   Future<IncomeModel> updateIncome(IncomeModel income) async {
     final uri = Uri.parse(
-      "${ApiEndpoints.baseUrl}${ApiEndpoints.income}/${income.remoteId}",
+      "${ApiEndpoints.baseUrl}${ApiEndpoints.income}/${income.id}",
     );
 
     final header = await _getHeaders();
@@ -162,10 +162,10 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
 
   @override
   Future<bool> deleteIncome(IncomeModel income) async {
-    if (income.remoteId == null) return true;
+    if (income.id == null) return true;
 
     final uri = Uri.parse(
-      "${ApiEndpoints.baseUrl}${ApiEndpoints.income}/${income.remoteId}",
+      "${ApiEndpoints.baseUrl}${ApiEndpoints.income}/${income.id}",
     );
     final header = await _getHeaders();
     final response = await client

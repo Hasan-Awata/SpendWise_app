@@ -2,13 +2,13 @@ import 'package:uuid/uuid.dart';
 
 class CategoryModel {
   final String localId; // المعرف المحلي الفريد لضمان العمل Offline
-  final int categoryId; // المعرف القادم من الباك إند (CategoryId)
+  int? categoryId; // المعرف القادم من الباك إند (CategoryId)
   String name; // اسم التصنيف (Name)
   final int priority; // الأولوية (Priority من 1 إلى 4)
 
   CategoryModel({
     String? localId,
-    this.categoryId = -1, // القيمة الافتراضية كما ذكرت في الباك إند
+    this.categoryId = 1, // القيمة الافتراضية كما ذكرت في الباك إند
     required this.name,
     required this.priority,
   }) : localId = localId ?? const Uuid().v4();

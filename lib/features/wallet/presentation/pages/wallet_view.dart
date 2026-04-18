@@ -6,16 +6,18 @@ import 'package:spendwise/features/wallet/presentation/manager/delete_wallet_con
 import 'package:spendwise/features/wallet/presentation/manager/update_wallet_controller.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
+// // واجهة عرض المحافظ: تستخدم لتمثيل قائمة الحسابات المالية للمستخدم
 class WalletsView extends StatelessWidget {
   const WalletsView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // استدعاء المتحكمات المطلوبة للتأكد من وجودها في الذاكرة
+    // // استدعاء المتحكمات المطلوبة للتأكد من وجودها في الذاكرة لربط العمليات (الربط، الحذف، التحديث)
     final listController = Get.find<WalletsListController>();
     final deleteController = Get.find<DeleteWalletController>();
     final updateController = Get.find<UpdateWalletController>();
 
+    listController.loadWallets();
     return Scaffold(
       backgroundColor: const Color(0xFF0B121E),
       appBar: AppBar(
@@ -40,6 +42,7 @@ class WalletsView extends StatelessWidget {
         onRefresh: () async => listController.loadWallets(),
 
         child: Obx(() {
+          // // حالة التحميل: تظهر مؤشر الانتظار إذا كانت القائمة فارغة ويجري جلب البيانات
           if (listController.isLoading.value &&
               listController.wallets.isEmpty) {
             return const Center(
@@ -47,25 +50,26 @@ class WalletsView extends StatelessWidget {
             );
           }
 
+          // // الحالة الفارغة: تظهر رسالة للمستخدم في حال عدم وجود أي محفظة
           if (listController.wallets.isEmpty) {
             return ListView(
               controller: listController.scrollController,
-              physics: AlwaysScrollableScrollPhysics(),
+              physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                SizedBox(height: 300),
+                const SizedBox(height: 300),
                 Center(child: _buildEmptyState()),
               ],
             );
           }
 
+          // // بناء القائمة: عرض المحافظ بشكل ديناميكي عند توفر البيانات
           return ListView.builder(
             controller: listController.scrollController,
-            physics: AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             itemCount: listController.wallets.length,
             itemBuilder: (context, index) {
               final wallet = listController.wallets[index];
-              // إصلاح: تمرير كافة المتحكمات المطلوبة للويدجت الفرعي
               return _buildWalletCard(
                 wallet,
                 deleteController,
@@ -78,7 +82,7 @@ class WalletsView extends StatelessWidget {
     );
   }
 
-  // // تعليق: بناء بطاقة المحفظة مع استقبال متحكمات الحذف والتعديل
+  // // تعليق: بناء بطاقة المحفظة التي تعرض تفاصيل الرصيد والعملة وتوفر أزرار التحكم
   Widget _buildWalletCard(
     WalletModel wallet,
     DeleteWalletController deleteCtrl,
@@ -115,13 +119,14 @@ class WalletsView extends StatelessWidget {
               ],
             ),
           ),
-          // ربط الأزرار بالعمليات البرمجية
+          // // ربط الأزرار بالعمليات البرمجية (تعديل وحذف)
           _buildActionButtons(wallet, deleteCtrl, updateCtrl),
         ],
       ),
     );
   }
 
+  // // ويدجت فرعي لبناء أزرار التحكم داخل البطاقة
   Widget _buildActionButtons(
     WalletModel wallet,
     DeleteWalletController deleteCtrl,
@@ -130,12 +135,12 @@ class WalletsView extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // زر التعديل - يفتح حوار التعديل ويمرر متحكم التحديث
+        // // زر التعديل - يفتح حوار التعديل ويمرر متحكم التحديث لتنفيذ العملية
         IconButton(
           icon: const Icon(Icons.edit_note, color: Colors.blueGrey),
           onPressed: () => _showUpdateDialog(wallet, updateCtrl),
         ),
-        // زر الحذف - يفتح حوار التأكيد ويمرر متحكم الحذف
+        // // زر الحذف - يفتح حوار التأكيد ويمرر متحكم الحذف لتنفيذ العملية
         IconButton(
           icon: const Icon(
             Icons.delete_sweep_outlined,
@@ -147,7 +152,7 @@ class WalletsView extends StatelessWidget {
     );
   }
 
-  // // تعليق: حوار تأكيد الحذف المرتبط بمتحكم الحذف المنفصل
+  // // تعليق: حوار تأكيد الحذف المرتبط بمتحكم الحذف المنفصل لضمان تجربة مستخدم آمنة
   void _showDeleteDialog(
     WalletModel wallet,
     DeleteWalletController deleteCtrl,
@@ -168,7 +173,7 @@ class WalletsView extends StatelessWidget {
     );
   }
 
-  // // تعليق: حوار التعديل المرتبط بمتحكم التحديث المصلح سابقاً
+  // // تعليق: حوار التعديل المرتبط بمتحكم التحديث المصلح لتغيير الرصيد الحالي للمحفظة
   void _showUpdateDialog(
     WalletModel wallet,
     UpdateWalletController updateCtrl,
@@ -197,8 +202,7 @@ class WalletsView extends StatelessWidget {
         onPressed: () {
           double? newBalance = double.tryParse(amountController.text);
           if (newBalance != null) {
-            // ملاحظة: إذا كان الـ balance حقل final، استخدم دالة copyWith المذكورة سابقاً
-            // هنا نفترض أننا نحدث الكائن قبل إرساله للمتحكم
+            // // تحديث قيمة الرصيد في الكائن قبل إرساله للمتحكم للمعالجة
             wallet.balance = newBalance;
             updateCtrl.updateWallet(wallet);
           }
@@ -209,6 +213,7 @@ class WalletsView extends StatelessWidget {
     );
   }
 
+  // // بناء الأيقونة الجمالية للمحفظة
   Widget _buildIcon() {
     return Container(
       padding: const EdgeInsets.all(10),
@@ -223,9 +228,13 @@ class WalletsView extends StatelessWidget {
     );
   }
 
+  // // تعليق: واجهة تظهر في حالة عدم وجود أي بيانات لعرضها
   Widget _buildEmptyState() {
     return const Center(
-      child: Text("لا توجد محافظ", style: TextStyle(color: Colors.white38)),
+      child: Text(
+        "لا توجد محافظ حالياً",
+        style: TextStyle(color: Colors.white38),
+      ),
     );
   }
 }
