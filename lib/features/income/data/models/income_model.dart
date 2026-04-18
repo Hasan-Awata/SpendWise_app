@@ -66,7 +66,7 @@ class IncomeModel extends IncomeEntity {
       'WalletId': walletId,
       'Amount': amount,
       'Date': date.toIso8601String(),
-      'IncomeTagId': incomeTagId,
+      'IncomeTagId': incomeTagId ?? tag!.id,
       'Description': description,
     };
   }
@@ -96,7 +96,7 @@ class IncomeModel extends IncomeEntity {
       'walletId': walletId,
       'amount': amount,
       'date': date.toIso8601String(),
-      'incomeTagId': incomeTagId,
+      'incomeTagId': incomeTagId ?? tag!.id,
       'description': description,
       'isSynced': isSynced ? 1 : 0,
     };

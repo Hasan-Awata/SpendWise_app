@@ -69,16 +69,16 @@ class ExpenseModel extends ExpenseEntity {
   // لتحويل الكائن إلى JSON متوافق تماماً مع الـ Backend DTO
   Map<String, dynamic> toJson() {
     return {
-      'Id': id ?? -1,
+      'ExpenseId': id ?? -1,
       'UserId': userId,
       'Title': title,
       'Amount': amount,
       'Date': date.toIso8601String(),
       'Description': description ?? '',
       'Products': products ?? "",
-      'WalletId': walletId,
-      'CategoryId': categoryId,
-      'ExpenseTagId': expenseTagId,
+      'WalletId': walletId ?? wallet!.walletId,
+      'CategoryId': categoryId ?? category!.categoryId,
+      'ExpenseTagId': expenseTagId ?? tag!.id,
     };
   }
 
