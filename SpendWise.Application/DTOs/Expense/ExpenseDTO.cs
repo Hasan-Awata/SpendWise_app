@@ -1,5 +1,4 @@
 ﻿using SpendWise.Application.DTOs.Category;
-using SpendWise.Application.DTOs.NewFolder;
 using SpendWise.Application.DTOs.Tag;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
@@ -22,10 +21,10 @@ namespace SpendWise.Application.DTOs.Income
         public string Title { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Please enter the wallet info for this expense")]
-        public WalletDTO Wallet { get; set; } = new WalletDTO();
+        public int WalletId { get; set; }
 
         [Required(ErrorMessage = "Please enter the expense category")]
-        public CategoryDTO Category { get; set; } = new CategoryDTO();
+        public int CategoryId { get; set; } 
 
         [Required(ErrorMessage = "Enter the amount of your income")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
@@ -34,7 +33,7 @@ namespace SpendWise.Application.DTOs.Income
         [Required(ErrorMessage = "Please enter the date of the transaction")]
         public DateTime Date { get; set; }
 
-        public TagDTO? ExpenseTag { get; set; }
+        public int ExpenseTagId { get; set; }
         public string Description { get; set; } = string.Empty;
         public string Products {  get; set; } = string.Empty; // JSON 
     }

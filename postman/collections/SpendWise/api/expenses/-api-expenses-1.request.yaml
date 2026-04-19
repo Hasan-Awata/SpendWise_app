@@ -8,32 +8,14 @@ body:
   type: json
   content: |-
     {
-      "amount": 1.4433553526572847e+308,
-      "category": {
-        "name": "string",
-        "categoryId": 2225,
-        "priority": 1
-      },
-      "date": "1953-05-21T09:19:29.753Z",
+      "amount": 3.325108129943923e+307,
+      "categoryId": 5406,
+      "date": "1995-05-12T11:06:10.273Z",
       "title": "string",
-      "userId": 1166,
-      "wallet": {
-        "currency": {
-          "currencyName": "string",
-          "currencyId": 1632,
-          "liveValue": 8261.320554839212
-        },
-        "isSaved": true,
-        "userId": 1980,
-        "walletId": 7985,
-        "balance": 1.7310997289168443e+308
-      },
-      "expenseId": 8762,
-      "expenseTag": {
-        "id": 3527,
-        "label": "string",
-        "ownerId": 9385
-      },
+      "userId": 9551,
+      "walletId": 2275,
+      "expenseId": 1378,
+      "expenseTagId": 7793,
       "description": "string",
       "products": "string"
     }

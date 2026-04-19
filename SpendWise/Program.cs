@@ -1,16 +1,17 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using System.Text;
-using System.Text.Json.Serialization;
+using SpendWise.Application.DTOs.Income;
+using SpendWise.Application.Interfaces.Authentication;
+using SpendWise.Application.Interfaces.Expenses;
+using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Application.Interfaces.Tags;
+using SpendWise.Application.Interfaces.Users;
+using SpendWise.Application.Interfaces.Wallets;
 using SpendWise.Application.Services;
 using SpendWise.Infrastructure.Repositories;
-using SpendWise.Application.Interfaces.Users;
-using SpendWise.Application.Interfaces.Incomes;
-using SpendWise.Application.Interfaces.Wallets;
-using SpendWise.Application.DTOs.Income;
-using SpendWise.Application.Interfaces.Tags;
-using SpendWise.Application.Interfaces.Authentication;
+using System.Text;
+using System.Text.Json.Serialization;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -54,6 +55,9 @@ builder.Services.AddScoped<IWalletRepository, WalletRepository>();
 
 builder.Services.AddScoped<ITagService,  TagService>();
 builder.Services.AddScoped<ITagRepository, TagRepository>();
+
+builder.Services.AddScoped<IExpenseService, ExpenseService>();
+builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

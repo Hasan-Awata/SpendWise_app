@@ -2,10 +2,9 @@ USE SpendWiseDB;
 GO
 
 -- ==========================================
--- 1. Add User
+-- 1. Add User (Optimized and Secured)
 -- ==========================================
 CREATE OR ALTER PROCEDURE [Identity].[sp_AddUser]
-	@NewUserID INT,
     @FirstName NVARCHAR(100),
     @LastName NVARCHAR(100),
     @Username NVARCHAR(100),
@@ -13,13 +12,23 @@ CREATE OR ALTER PROCEDURE [Identity].[sp_AddUser]
 AS
 BEGIN
     SET NOCOUNT ON;
-    
-    INSERT INTO [Identity].Users (FirstName, LastName, Username, Password)
-    VALUES (@FirstName, @LastName, @Username, @Password);
-    
-    -- Return the newly generated UserID
-    SET @NewUserID = CAST(SCOPE_IDENTITY() AS INT);
-    SELECT @NewUserID;
+    BEGIN TRY
+        -- Explicit duplicate username check
+        IF EXISTS (SELECT 1 FROM [Identity].Users WHERE Username = @Username)
+        BEGIN
+            -- This maps to your DuplicateResourceException in C#
+            THROW 2627, 'This username is already taken.', 1; 
+        END
+
+        INSERT INTO [Identity].Users (FirstName, LastName, Username, Password)
+        VALUES (@FirstName, @LastName, @Username, @Password);
+        
+        -- Return the newly generated UserID directly
+        SELECT CAST(SCOPE_IDENTITY() AS INT);
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
 END
 GO
 
@@ -54,7 +63,7 @@ END
 GO
 
 -- ==========================================
--- 4. Check if Username Exists (For Registration Validation)
+-- 4. Check if Username Exists (Optimized)
 -- ==========================================
 CREATE OR ALTER PROCEDURE [Identity].[sp_CheckUsernameExists]
     @Username NVARCHAR(100)
@@ -62,7 +71,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Returns 1 (True) if it exists, 0 (False) if it does not
+    -- Returns a simple boolean (1 or 0) for C# to read via ExecuteScalarAsync
     IF EXISTS (SELECT 1 FROM [Identity].Users WHERE Username = @Username)
         SELECT CAST(1 AS BIT);
     ELSE

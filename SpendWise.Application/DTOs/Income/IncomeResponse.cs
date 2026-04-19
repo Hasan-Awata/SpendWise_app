@@ -12,7 +12,8 @@ namespace SpendWise.Application.DTOs.Income
         public int UserId { get; set; }
         public string Title { get; set; } = string.Empty;
         public decimal Amount { get; set; }
-        public WalletResponse Wallet { get; set; } = new WalletResponse();
-        public TagResponse? IncomeTag { get; set; }
+        public int WalletId { get; set; } 
+        public int IncomeTagId { get; set; }
+        public DateTime Date { get; set; }
     }
 }

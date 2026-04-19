@@ -13,6 +13,6 @@ namespace SpendWise.Application.Interfaces.Tags
 
         public Task<TagResponse?> AddTagAsync(TagDTO tag);
         public Task<TagResponse?> UpdateTagAsync(TagDTO tag);
-        public Task DeleteTagAsync(int tagId);
+        public Task DeleteTagAsync(int tagId, int userId);
     }
 }

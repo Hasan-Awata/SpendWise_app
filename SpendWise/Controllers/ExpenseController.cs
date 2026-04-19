@@ -77,40 +77,30 @@ namespace SpendWise.Controllers
                 return BadRequest();
             }
 
-            return CreatedAtAction(nameof(GetExpense), expenseDTO);
+            return CreatedAtAction(nameof(GetExpense), new { expenseId = createdExpense.ExpenseId }, createdExpense);
         }
 
         [HttpPatch("{expenseId}")]
         public async Task<IActionResult> UpdateExpense([FromRoute] int expenseId, [FromBody] ExpenseDTO expenseDTO)
         {
-            if (CurrentUserId != expenseDTO.UserId)
-            {
-                return Unauthorized();
-            }
+            if (CurrentUserId != expenseDTO.UserId) return Unauthorized();
 
-            expenseDTO.UserId = CurrentUserId;
+            expenseDTO.ExpenseId = expenseId; 
 
-            var createdExpense = await _expenseService.AddExpenseAsync(expenseDTO);
+            var updatedExpense = await _expenseService.UpdateExpenseAsync(expenseDTO);
 
-            if (createdExpense == null)
-            {
-                return BadRequest();
-            }
+            if (updatedExpense == null) return BadRequest();
 
-            return CreatedAtAction(nameof(GetExpense), expenseDTO);
+            return Ok(updatedExpense);
         }
 
         [HttpDelete("{expenseId}")]
-        public async Task<IActionResult> DeleteIncome([FromRoute] int expenseId)
+        public async Task<IActionResult> DeleteExpense([FromRoute] int expenseId)
         {
-            if (await _expenseService.DeleteExpenseAsync(expenseId))
-            {
+            if (await _expenseService.DeleteExpenseAsync(expenseId, CurrentUserId))
                 return NoContent();
-            }
             else
-            {
                 return BadRequest();
-            }
         }
     }
 }

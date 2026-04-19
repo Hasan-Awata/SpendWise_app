@@ -5,6 +5,6 @@ method: DELETE
 headers:
   Accept: text/plain
 pathVariables:
-  goalId: "1624"
+  goalId: "9299"
 examples: ./.resources/-api-Saving_Goal-DeleteGoal-goalId.resources/examples
 order: 1000

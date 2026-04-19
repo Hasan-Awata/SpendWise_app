@@ -3,6 +3,6 @@ name: /api/expenses/:expenseId
 url: "{{baseUrl}}/api/expenses/:expenseId"
 method: GET
 pathVariables:
-  expenseId: "1624"
+  expenseId: "9299"
 examples: ./.resources/-api-expenses-expenseId.resources/examples
 order: 1000

@@ -3,6 +3,6 @@ name: /api/incomes/:incomeId
 url: "{{baseUrl}}/api/incomes/:incomeId"
 method: GET
 pathVariables:
-  incomeId: "1624"
+  incomeId: "9299"
 examples: ./.resources/-api-incomes-incomeId.resources/examples
 order: 1000

@@ -1,5 +1,4 @@
-﻿using SpendWise.Application.DTOs.NewFolder;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using SpendWise.Application.DTOs.Wallet;
@@ -16,6 +15,6 @@ namespace SpendWise.Application.Interfaces.Wallets
    
         public Task<WalletResponse?> UpdateWalletAsync(WalletDTO walletDTO);
     
-        public Task<bool> DeleteWalletAsync(int walletId);    
+        public Task<bool> DeleteWalletAsync(int walletId, int userId);    
     }
 }

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SpendWise.Application.DTOs.NewFolder;
-using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Application.DTOs.Wallet;
 using SpendWise.Application.Interfaces.Wallets;
 using System.Security.Claims;
 
@@ -74,7 +73,7 @@ namespace SpendWise.Controllers
                 return BadRequest();
             }
 
-            return CreatedAtAction(nameof(GetWallet), new { walletId = walletDTO.WalletId }, walletDTO);
+            return CreatedAtAction(nameof(GetWallet), new { walletId = createdWallet.WalletId }, createdWallet);
         }
 
         [HttpPatch("{walletId}")]
@@ -92,13 +91,13 @@ namespace SpendWise.Controllers
                 return BadRequest();
             }
 
-            return CreatedAtAction(nameof(GetWallet), new { walletId = walletDTO.WalletId }, walletDTO);
+            return CreatedAtAction(nameof(GetWallet), new { walletId = updatedWallet.WalletId }, updatedWallet);
         }
 
         [HttpDelete("{walletId}")]
         public async Task<IActionResult> DeleteWallet([FromRoute] int walletId)
         {
-            if(await _walletService.DeleteWalletAsync(walletId))
+            if(await _walletService.DeleteWalletAsync(walletId, CurrentUserId))
             {
                 return NoContent();
             }

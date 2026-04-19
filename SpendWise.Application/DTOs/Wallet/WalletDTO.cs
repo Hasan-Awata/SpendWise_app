@@ -4,14 +4,14 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace SpendWise.Application.DTOs.NewFolder
+namespace SpendWise.Application.DTOs.Wallet
 {
     public  class WalletDTO
     {
         public int WalletId { get; set; } = -1;
 
         [Required(ErrorMessage = "Please enter the currencyDto")]
-        public CurrencyDTO Currency { get; set; } = new CurrencyDTO();
+        public int CurrencyId { get; set; }
 
         [Range(0, double.MaxValue, ErrorMessage = "Balance cannot be negative!")]
         public decimal Balance { get; set; }

@@ -62,7 +62,7 @@ namespace SpendWise.Application.Services
         {
             var updatedTag = new Tag(tagDto.Id, tagDto.OwnerId, tagDto.Label);
 
-            if (await _tagRepo.UpdateTagAsync(updatedTag))
+            if (!await _tagRepo.UpdateTagAsync(updatedTag))
             {
                 return null;
             }
@@ -75,9 +75,9 @@ namespace SpendWise.Application.Services
             };
 
         }
-        public async Task DeleteTagAsync(int tagId)
+        public async Task DeleteTagAsync(int tagId, int userId)
         {
-            await _tagRepo.DeleteTagAsync(tagId);
+            await _tagRepo.DeleteTagAsync(tagId, userId);
         }
     }
 }

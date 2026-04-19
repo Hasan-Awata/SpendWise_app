@@ -10,9 +10,9 @@ namespace SpendWise.Domain.Entities
         public int UserId { get; set; }
         public decimal Amount { get; set; }
         public string Products { get; set; } = string.Empty;
-        public Tag? ExpenseTag { get; set; }
-        public Category Category { get; set; } = new Category();
-        public Wallet Wallet { get; set; } = new Wallet();
+        public int ExpenseTagId { get; set; }
+        public int CategoryId { get; set; } 
+        public int WalletId { get; set; } 
         public DateTime Date { get; set; }
         public Transaction LinkedTransaction { get; set; } = new Transaction();
         public Expense(int expenseId, int userId, decimal amount, string products, Tag? expenseTag, Category category, Wallet wallet, DateTime date, Transaction linkedTransaction)

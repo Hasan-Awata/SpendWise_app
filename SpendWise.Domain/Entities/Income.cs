@@ -11,8 +11,8 @@ namespace SpendWise.Domain.Entities
         public int UserId { get; set; }
         public decimal Amount { get; set; }
         public DateTime Date { get; set; } = DateTime.Now;
-        public Wallet Wallet { get; set; } = new Wallet();
-        public Tag? IncomeTag { get; set; } = null;
+        public int WalletId { get; set; } 
+        public int IncomeTagId { get; set; } 
         public Transaction LinkedTransaction { get; set; } = new Transaction();
         public Income(int id, int userId, decimal amount, DateTime date, Wallet wallet, Tag? incomeTag, Transaction linkedTransaction)
         {

@@ -8,27 +8,13 @@ body:
   type: json
   content: |-
     {
-      "amount": 1.500446627298631e+308,
-      "date": "1998-10-10T09:50:25.356Z",
+      "amount": 8.447251545425373e+307,
+      "date": "1962-01-27T18:52:39.145Z",
       "title": "string",
-      "userId": 5021,
-      "wallet": {
-        "currency": {
-          "currencyName": "string",
-          "currencyId": 5001,
-          "liveValue": 6181.373437324553
-        },
-        "isSaved": false,
-        "userId": 4301,
-        "walletId": 2863,
-        "balance": 6.953543160164699e+307
-      },
-      "id": 6911,
-      "incomeTag": {
-        "id": 5031,
-        "label": "string",
-        "ownerId": 8457
-      },
+      "userId": 3806,
+      "walletId": 711,
+      "id": 4408,
+      "incomeTagId": 8460,
       "description": "string"
     }
 examples: ./.resources/-api-incomes-1.resources/examples

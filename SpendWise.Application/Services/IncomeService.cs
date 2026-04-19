@@ -35,24 +35,9 @@ namespace SpendWise.Application.Services
                 UserId = income.UserId,
                 Title = "Income",
                 Amount = income.Amount,
-                Wallet = new WalletResponse
-                {
-                    WalletId = income.Wallet.WalletId,
-                    UserId = income.UserId,
-                    Balance = income.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = income.Wallet.Currency.Id,
-                        CurrencyName = income.Wallet.Currency.CurrencyName,
-                        LiveValue = income.Wallet.Currency.LiveValue,
-                    },
-                },
-                IncomeTag = income.IncomeTag == null ? null : new TagResponse 
-                { 
-                    Id = income.IncomeTag.Id,
-                    Label = income.IncomeTag.Label,
-                    OwnerId = income.IncomeTag.OwnerId,
-                },
+                WalletId = income.WalletId,
+                Date = income.Date,
+                IncomeTagId = income.IncomeTagId == -1 ? -1 : income.IncomeTagId,
             };
         }
 
@@ -66,26 +51,11 @@ namespace SpendWise.Application.Services
                 UserId = item.UserId,
                 Title = "Income",
                 Amount = item.Amount,
-                Wallet = new WalletResponse
-                {
-                    WalletId = item.Wallet.WalletId,
-                    UserId = item.UserId,
-                    Balance = item.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = item.Wallet.Currency.Id,
-                        CurrencyName = item.Wallet.Currency.CurrencyName,
-                        LiveValue = item.Wallet.Currency.LiveValue,
-                    },
-                },
+                WalletId = item.WalletId,
+                Date = item.Date,
                 // If IncomeTag is null, the result is null. 
                 // Otherwise, it creates the new TagResponse.
-                IncomeTag = item.IncomeTag == null ? null : new TagResponse
-                {
-                    Id = item.IncomeTag.Id,
-                    Label = item.IncomeTag.Label,
-                    OwnerId = item.IncomeTag.OwnerId,
-                },
+                IncomeTagId = item.IncomeTagId == -1 ? -1 : item.IncomeTagId,
             });
 
             return new PagedResponse<IncomeResponse> (incomesResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
@@ -99,35 +69,10 @@ namespace SpendWise.Application.Services
             {
                 UserId = incomeDto.UserId,
                 Amount = incomeDto.Amount,
-                Wallet = new Wallet
-                {
-                    WalletId = incomeDto.Wallet.WalletId,
-                    UserId = incomeDto.UserId,
-                    Balance = incomeDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = incomeDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
-                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
-                    },
-                }
+                WalletId = incomeDto.WalletId,
+                Date = incomeDto.Date,
+                IncomeTagId = incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId,
             };
-
-            // 2 - Check if the non-essential data existed in the incomeDTO
-            Tag? newIncomeTag = null;
-            
-            if(incomeDto.IncomeTag != null)
-            {
-                newIncomeTag = new Tag 
-                { 
-                    Id = incomeDto.IncomeTag.Id,
-                    Label = incomeDto.IncomeTag.Label,
-                    OwnerId = incomeDto.IncomeTag.OwnerId,
-                };
-            }
-
-            // 3 - Assign the non-essential data from the incomeDTO into the same income object
-            newIncome.IncomeTag = newIncomeTag;
 
             // 4 - Create a Transaction object to store in the database
             var newTransaction = new Transaction
@@ -137,19 +82,8 @@ namespace SpendWise.Application.Services
               Amount = incomeDto.Amount,
               Description = incomeDto.Description,
               Income = newIncome,
-                Wallet = new Wallet
-                {
-                    WalletId = incomeDto.Wallet.WalletId,
-                    UserId = incomeDto.UserId,
-                    Balance = incomeDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = incomeDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
-                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
-                    },
-                },
-              TransactionTag = newIncomeTag,
+              WalletId = newIncome.WalletId,
+              TransactionTagId = newIncome.IncomeTagId,
               TransactionDate = incomeDto.Date,
               TransactionType = enTransactionType.Addition,
             };
@@ -170,24 +104,9 @@ namespace SpendWise.Application.Services
                 UserId = incomeDto.UserId,
                 Title = newTransaction.Title,
                 Amount= newTransaction.Amount,
-                Wallet = new WalletResponse
-                {
-                    WalletId = newIncome.Wallet.WalletId,
-                    UserId = newIncome.UserId,
-                    Balance = newIncome.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = newIncome.Wallet.Currency.Id,
-                        CurrencyName = newIncome.Wallet.Currency.CurrencyName,
-                        LiveValue = newIncome.Wallet.Currency.LiveValue,
-                    },
-                },
-                IncomeTag = newIncomeTag == null ? null : new TagResponse
-                {
-                    Id = newIncomeTag.Id,
-                    Label = newIncomeTag.Label,
-                    OwnerId = newIncomeTag.OwnerId,
-                }
+                WalletId = incomeDto.WalletId,
+                IncomeTagId = newTransaction.TransactionTagId,
+                Date = incomeDto.Date,
             };
         }
         public async Task<IncomeResponse?> UpdateIncomeAsync(IncomeDTO incomeDto)
@@ -195,38 +114,12 @@ namespace SpendWise.Application.Services
             // 1 - Assign the essential data from incomeDTO into an income object
             var updatedIncome = new Income
             {
-                Id = incomeDto.Id,
                 UserId = incomeDto.UserId,
                 Amount = incomeDto.Amount,
-                Wallet = new Wallet
-                {
-                    WalletId = incomeDto.Wallet.WalletId,
-                    UserId = incomeDto.UserId,
-                    Balance = incomeDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = incomeDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
-                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
-                    },
-                }
+                WalletId = incomeDto.WalletId,
+                Date = incomeDto.Date,
+                IncomeTagId = incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId,
             };
-
-            // 2 - Check if the non-essential data existed in the incomeDTO
-            Tag? updatedIncomeTag = null;
-
-            if (incomeDto.IncomeTag != null)
-            {
-                updatedIncomeTag = new Tag
-                {
-                    Id = incomeDto.IncomeTag.Id,
-                    Label = incomeDto.IncomeTag.Label,
-                    OwnerId = incomeDto.IncomeTag.OwnerId,
-                };
-            }
-
-            // 3 - Assign the non-essential data from the incomeDTO into the same income object
-            updatedIncome.IncomeTag = updatedIncomeTag;
 
             // 4 - Create a Transaction object to store in the database
             var updatedTransaction = new Transaction
@@ -236,26 +129,19 @@ namespace SpendWise.Application.Services
                 Amount = incomeDto.Amount,
                 Description = incomeDto.Description,
                 Income = updatedIncome,
-                Wallet = new Wallet
-                {
-                    WalletId = incomeDto.Wallet.WalletId,
-                    UserId = incomeDto.UserId,
-                    Balance = incomeDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = incomeDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
-                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
-                    },
-                },
-                TransactionTag = updatedIncomeTag,
+                WalletId = updatedIncome.WalletId,
+                TransactionTagId = updatedIncome.IncomeTagId,
                 TransactionDate = incomeDto.Date,
                 TransactionType = enTransactionType.Addition,
             };
 
             // 5 - store both the income and the transaction in the database
-            if (!await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction)) return null;
 
+            // 6 - Check if the update succeeded
+            if(!await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction))
+            {
+                return null;
+            }
 
             // 7 - Return the created item
             return new IncomeResponse
@@ -264,18 +150,15 @@ namespace SpendWise.Application.Services
                 UserId = incomeDto.UserId,
                 Title = updatedTransaction.Title,
                 Amount = updatedTransaction.Amount,
-                IncomeTag = updatedIncomeTag == null ? null : new TagResponse
-                {
-                    Id = updatedIncomeTag.Id,
-                    Label = updatedIncomeTag.Label,
-                    OwnerId = updatedIncomeTag.OwnerId,
-                }
+                WalletId = updatedTransaction.WalletId,
+                IncomeTagId = updatedTransaction.TransactionTagId,
+                Date = updatedIncome.Date,
             };
         }
 
-        public async Task<bool> DeleteIncomeAsync(int incomeId)
+        public async Task<bool> DeleteIncomeAsync(int incomeId, int userId)
         {
-            return await _incomeRepo.DeleteIncomeAsync(incomeId);
+            return await _incomeRepo.DeleteIncomeAsync(incomeId, userId);
         }
     }
 }

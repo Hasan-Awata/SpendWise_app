@@ -9,17 +9,17 @@ request:
       value: Bearer <token>
       description: "Added as a part of security scheme: bearer"
   pathVariables:
-    goalID: "1624"
+    goalID: "9299"
     goalID,ubdatedGoal: string
   body:
     type: json
     content: |-
       {
-        "currentAmount": 1.2879537016518947e+308,
-        "deadlineDate": "1964-02-27",
-        "targetAmount": 1.74991792645672e+308,
+        "currentAmount": 1.7453229607369887e+307,
+        "deadlineDate": "1955-04-01",
+        "targetAmount": 1.4922409000695493e+308,
         "title": "string",
-        "userId": 8501
+        "userId": 1157
       }
 response:
   statusCode: 200

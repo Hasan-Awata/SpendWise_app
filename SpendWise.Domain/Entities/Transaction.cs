@@ -10,14 +10,13 @@ namespace SpendWise.Domain.Entities
         public int TransactionId { get; set; } = -1;
         public int UserId { get; set; } = -1;
         public string Title { get; set; } = string.Empty;
-        public string?
-            Description { get; set; } = string.Empty;
-        public Wallet Wallet { get; set; } = new Wallet();
+        public string Description { get; set; } = string.Empty;
+        public int WalletId { get; set; } 
         public decimal Amount { get; set; } = 0.0m;
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
-        public Category? TransactionCategory { get; set; }
-        public Tag? TransactionTag { get; set; }
+        public int TransactionCategoryId { get; set; }
+        public int TransactionTagId { get; set; }
         public SavingGoal? SavingGoal { get; set; }
         //public FixedExpense? FixedExpense { get; set; }
         //public FixedIncome? FixedIncome { get; set; }
@@ -28,22 +27,5 @@ namespace SpendWise.Domain.Entities
         // Transaction type is specified here:
         public enTransactionType TransactionType { get; set; } // Addition or Deduction from the balance
 
-        public Transaction(int transactionId, int userId, string title, string? description, Wallet wallet, decimal amount, DateTime transactionDate, Category? transactionCategory, Tag? transactionTag, SavingGoal? savingGoal, Income? income, Expense? expense, enTransactionType transactionType)
-        {
-            TransactionId = transactionId;
-            UserId = userId;
-            Title = title;
-            Description = description;
-            Wallet = wallet;
-            Amount = amount;
-            TransactionDate = transactionDate;
-            TransactionCategory = transactionCategory;
-            TransactionTag = transactionTag;
-            SavingGoal = savingGoal;
-            Income = income;
-            Expense = expense;
-            TransactionType = transactionType;
-        }
-        public Transaction() { }
     }
 }

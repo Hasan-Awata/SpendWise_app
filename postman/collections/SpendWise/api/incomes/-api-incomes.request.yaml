@@ -1,9 +1,9 @@
 $kind: http-request
 name: /api/incomes
-url: "{{baseUrl}}/api/incomes?PageSize=31&PageNumber=221132761"
+url: "{{baseUrl}}/api/incomes?PageSize=92&PageNumber=675599094"
 method: GET
 queryParams:
-  PageSize: "31"
-  PageNumber: "221132761"
+  PageSize: "92"
+  PageNumber: "675599094"
 examples: ./.resources/-api-incomes.resources/examples
 order: 2000

@@ -14,9 +14,10 @@ namespace SpendWise.Application.DTOs.Expense
         public int UserId { get; set; }
         public string Title { get; set; } = string.Empty;
         public decimal Amount { get; set; }
-        public WalletResponse Wallet { get; set; } = new WalletResponse();
-        public TagResponse? ExpenseTag { get; set; }
+        public int WalletId { get; set; } 
+        public DateTime Date { get; set; }
+        public int ExpenseTagId { get; set; }
         public string Products { get; set; } = string.Empty; // JSON as a string
-        public CategoryResponse Category { get; set; } = new CategoryResponse();
+        public int CategoryId { get; set; } 
     }
 }

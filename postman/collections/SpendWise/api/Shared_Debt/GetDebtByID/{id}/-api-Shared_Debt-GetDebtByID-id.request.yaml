@@ -5,6 +5,6 @@ method: GET
 headers:
   Accept: text/plain
 pathVariables:
-  id: "1624"
+  id: "9299"
 examples: ./.resources/-api-Shared_Debt-GetDebtByID-id.resources/examples
 order: 1000

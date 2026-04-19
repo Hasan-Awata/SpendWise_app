@@ -12,7 +12,7 @@ request:
     type: json
     content: |-
       {
-        "firstName": "strin",
+        "firstName": "string",
         "lastName": "string",
         "password": "string",
         "userName": "string"

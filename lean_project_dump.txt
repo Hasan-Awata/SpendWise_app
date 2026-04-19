@@ -139,6 +139,8 @@ builder.Services.AddProblemDetails(); // Required to standardize the JSON output
 
 var app = builder.Build();
 
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -322,40 +324,30 @@ namespace SpendWise.Controllers
                 return BadRequest();
             }
 
-            return CreatedAtAction(nameof(GetExpense), expenseDTO);
+            return CreatedAtAction(nameof(GetExpense), new { walletId = createdExpense.ExpenseId }, createdExpense);
         }
 
         [HttpPatch("{expenseId}")]
         public async Task<IActionResult> UpdateExpense([FromRoute] int expenseId, [FromBody] ExpenseDTO expenseDTO)
         {
-            if (CurrentUserId != expenseDTO.UserId)
-            {
-                return Unauthorized();
-            }
+            if (CurrentUserId != expenseDTO.UserId) return Unauthorized();
 
-            expenseDTO.UserId = CurrentUserId;
+            expenseDTO.ExpenseId = expenseId; 
 
-            var createdExpense = await _expenseService.AddExpenseAsync(expenseDTO);
+            var updatedExpense = await _expenseService.UpdateExpenseAsync(expenseDTO);
 
-            if (createdExpense == null)
-            {
-                return BadRequest();
-            }
+            if (updatedExpense == null) return BadRequest();
 
-            return CreatedAtAction(nameof(GetExpense), expenseDTO);
+            return Ok(updatedExpense);
         }
 
         [HttpDelete("{expenseId}")]
-        public async Task<IActionResult> DeleteIncome([FromRoute] int expenseId)
+        public async Task<IActionResult> DeleteExpense([FromRoute] int expenseId)
         {
-            if (await _expenseService.DeleteExpenseAsync(expenseId))
-            {
+            if (await _expenseService.DeleteExpenseAsync(expenseId, CurrentUserId))
                 return NoContent();
-            }
             else
-            {
                 return BadRequest();
-            }
         }
     }
 }
@@ -467,7 +459,7 @@ namespace SpendWise.Controllers
         [HttpDelete("{incomeId}")]
         public async Task<IActionResult> DeleteIncome([FromRoute] int incomeId)
         {
-            if(await _incomeService.DeleteIncomeAsync(incomeId))
+            if(await _incomeService.DeleteIncomeAsync(incomeId, CurrentUserId))
             {
                 return NoContent();
             }
@@ -876,7 +868,7 @@ namespace SpendWise.Controllers
         {
             int userId = CurrentUserId;
 
-            await _tagService.DeleteTagAsync(tagId);
+            await _tagService.DeleteTagAsync(tagId, CurrentUserId);
 
             return NoContent();
         }
@@ -887,8 +879,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise\Controllers\WalletContr
 ----------------------------------------
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SpendWise.Application.DTOs.NewFolder;
-using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Application.DTOs.Wallet;
 using SpendWise.Application.Interfaces.Wallets;
 using System.Security.Claims;
 
@@ -961,7 +952,7 @@ namespace SpendWise.Controllers
                 return BadRequest();
             }
 
-            return CreatedAtAction(nameof(GetWallet), new { walletId = walletDTO.WalletId }, walletDTO);
+            return CreatedAtAction(nameof(GetWallet), new { walletId = createdWallet.WalletId }, createdWallet);
         }
 
         [HttpPatch("{walletId}")]
@@ -979,13 +970,13 @@ namespace SpendWise.Controllers
                 return BadRequest();
             }
 
-            return CreatedAtAction(nameof(GetWallet), new { walletId = walletDTO.WalletId }, walletDTO);
+            return CreatedAtAction(nameof(GetWallet), new { walletId = updatedWallet.WalletId }, updatedWallet);
         }
 
         [HttpDelete("{walletId}")]
         public async Task<IActionResult> DeleteWallet([FromRoute] int walletId)
         {
-            if(await _walletService.DeleteWalletAsync(walletId))
+            if(await _walletService.DeleteWalletAsync(walletId, CurrentUserId))
             {
                 return NoContent();
             }
@@ -1294,7 +1285,6 @@ namespace SpendWise.Application.DTOs.Currency
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Expense\ExpenseDTO.cs
 ----------------------------------------
 ﻿using SpendWise.Application.DTOs.Category;
-using SpendWise.Application.DTOs.NewFolder;
 using SpendWise.Application.DTOs.Tag;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
@@ -1317,10 +1307,10 @@ namespace SpendWise.Application.DTOs.Income
         public string Title { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Please enter the wallet info for this expense")]
-        public WalletDTO Wallet { get; set; } = new WalletDTO();
+        public int WalletId { get; set; }
 
         [Required(ErrorMessage = "Please enter the expense category")]
-        public CategoryDTO Category { get; set; } = new CategoryDTO();
+        public int CategoryId { get; set; } 
 
         [Required(ErrorMessage = "Enter the amount of your income")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
@@ -1329,7 +1319,7 @@ namespace SpendWise.Application.DTOs.Income
         [Required(ErrorMessage = "Please enter the date of the transaction")]
         public DateTime Date { get; set; }
 
-        public TagDTO? ExpenseTag { get; set; }
+        public int ExpenseTagId { get; set; }
         public string Description { get; set; } = string.Empty;
         public string Products {  get; set; } = string.Empty; // JSON 
     }
@@ -1354,18 +1344,18 @@ namespace SpendWise.Application.DTOs.Expense
         public int UserId { get; set; }
         public string Title { get; set; } = string.Empty;
         public decimal Amount { get; set; }
-        public WalletResponse Wallet { get; set; } = new WalletResponse();
-        public TagResponse? ExpenseTag { get; set; }
+        public int WalletId { get; set; } 
+        public DateTime Date { get; set; }
+        public int ExpenseTagId { get; set; }
         public string Products { get; set; } = string.Empty; // JSON as a string
-        public CategoryResponse Category { get; set; } = new CategoryResponse();
+        public int CategoryId { get; set; } 
     }
 }
 
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\DTOs\Income\IncomeDTO.cs
 ----------------------------------------
-﻿using SpendWise.Application.DTOs.NewFolder;
-using SpendWise.Application.DTOs.Tag;
+﻿using SpendWise.Application.DTOs.Tag;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
 using System;
@@ -1386,8 +1376,8 @@ namespace SpendWise.Application.DTOs.Income
         [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters!")]
         public string Title { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Please enter the wallet's id that you want to deduct from")]
-        public WalletDTO Wallet { get; set; } = new WalletDTO();
+        [Required(ErrorMessage = "Please enter the id of the wallet that you want to deduct from")]
+        public int WalletId { get; set; }
 
         [Required(ErrorMessage = "Enter the amount of your income")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
@@ -1396,7 +1386,7 @@ namespace SpendWise.Application.DTOs.Income
         [Required(ErrorMessage ="Please enter the date of the transaction")]
         public DateTime Date { get; set; }
         
-        public TagDTO? IncomeTag { get; set; } = null;
+        public int IncomeTagId { get; set; } 
         public string Description { get; set; } = string.Empty;
     }
 }
@@ -1418,8 +1408,9 @@ namespace SpendWise.Application.DTOs.Income
         public int UserId { get; set; }
         public string Title { get; set; } = string.Empty;
         public decimal Amount { get; set; }
-        public WalletResponse Wallet { get; set; } = new WalletResponse();
-        public TagResponse? IncomeTag { get; set; }
+        public int WalletId { get; set; } 
+        public int IncomeTagId { get; set; }
+        public DateTime Date { get; set; }
     }
 }
 
@@ -1750,14 +1741,14 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace SpendWise.Application.DTOs.NewFolder
+namespace SpendWise.Application.DTOs.Wallet
 {
     public  class WalletDTO
     {
         public int WalletId { get; set; } = -1;
 
         [Required(ErrorMessage = "Please enter the currencyDto")]
-        public CurrencyDTO Currency { get; set; } = new CurrencyDTO();
+        public int CurrencyId { get; set; }
 
         [Range(0, double.MaxValue, ErrorMessage = "Balance cannot be negative!")]
         public decimal Balance { get; set; }
@@ -1783,7 +1774,7 @@ namespace SpendWise.Application.DTOs.Wallet
     public  class WalletResponse
     {
         public int WalletId { get; set; }
-        public CurrencyResponse Currency { get; set; } = new CurrencyResponse();
+        public int CurrencyId { get; set; } 
         public decimal Balance { get; set; }
         public int UserId { get; set; }
         public bool IsSaved { get; set; }
@@ -1822,8 +1813,8 @@ namespace SpendWise.Application.Interfaces.Expenses
     {
         // Writing to database
         public Task<int> AddExpenseAsync(Expense newExpense, Transaction newTransaction);
-        public Task<int> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction);
-        public Task<bool> DeleteExpenseAsync(int expenseId);
+        public Task<bool> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction);
+        public Task<bool> DeleteExpenseAsync(int expenseId, int userId);
 
         // Reading from the database
         public Task<Expense> GetExpenseAsync(int expenseId, int userId);
@@ -1850,7 +1841,7 @@ namespace SpendWise.Application.Interfaces.Expenses
         // Writing on the database
         public Task<ExpenseResponse?> AddExpenseAsync(ExpenseDTO expenseDto);
         public Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto);
-        public Task<bool> DeleteExpenseAsync(int expenseId);
+        public Task<bool> DeleteExpenseAsync(int expenseId, int userId);
 
         // Reading from the database
         public Task<ExpenseResponse?> GetExpenseAsync(int expenseId, int userId);
@@ -1875,8 +1866,8 @@ namespace SpendWise.Application.Interfaces.Incomes
     {
         // Writing to database
         public Task<int> AddIncomeAsync(Income newIncome, Transaction newTransaction);
-        public Task<int> UpdateIncomeAsync(Income newIncome, Transaction newTransaction);
-        public Task<bool> DeleteIncomeAsync(int incomeId);
+        public Task<bool> UpdateIncomeAsync(Income newIncome, Transaction newTransaction);
+        public Task<bool> DeleteIncomeAsync(int incomeId, int userId);
 
         // Reading from the database
         public Task<Income> GetIncomeAsync(int incomeId, int userId); // returns a transaction to store the full information
@@ -1904,7 +1895,7 @@ namespace SpendWise.Application.Interfaces.Incomes
         // Writing on the database
         public Task<IncomeResponse?> AddIncomeAsync(IncomeDTO incomeDto);
         public Task<IncomeResponse?> UpdateIncomeAsync(IncomeDTO incomeDto);
-        public Task<bool> DeleteIncomeAsync(int incomeId);
+        public Task<bool> DeleteIncomeAsync(int incomeId, int userId);
 
         // Reading from the database
         public Task<IncomeResponse?> GetIncomeAsync(int incomeId, int userId);
@@ -2027,7 +2018,7 @@ namespace SpendWise.Application.Interfaces.Tags
         // Writing to DB methods
         public Task<int> AddTagAsync(Tag tag);
         public Task<bool> UpdateTagAsync(Tag tag);
-        public Task<bool> DeleteTagAsync(int tagId);
+        public Task<bool> DeleteTagAsync(int tagId, int userId);
     }
 }
 
@@ -2049,7 +2040,7 @@ namespace SpendWise.Application.Interfaces.Tags
 
         public Task<TagResponse?> AddTagAsync(TagDTO tag);
         public Task<TagResponse?> UpdateTagAsync(TagDTO tag);
-        public Task DeleteTagAsync(int tagId);
+        public Task DeleteTagAsync(int tagId, int userId);
     }
 }
 
@@ -2118,8 +2109,7 @@ namespace SpendWise.Application.Interfaces.Users
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\Wallets\IWalletRepository.cs
 ----------------------------------------
-﻿using SpendWise.Application.DTOs.NewFolder;
-using SpendWise.Domain.Entities;
+﻿using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -2134,9 +2124,9 @@ namespace SpendWise.Application.Interfaces.Wallets
 
         public Task<int> AddWalletAsync(Wallet wallet);
 
-        public Task<int> UpdateWalletAsync(Wallet wallet);
+        public Task<bool> UpdateWalletAsync(Wallet wallet);
 
-        public Task<bool> DeleteWalletAsync(int walletId);
+        public Task<bool> DeleteWalletAsync(int walletId, int userId);
 
     }
 }
@@ -2144,8 +2134,7 @@ namespace SpendWise.Application.Interfaces.Wallets
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Application\Interfaces\Wallets\IWalletService.cs
 ----------------------------------------
-﻿using SpendWise.Application.DTOs.NewFolder;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using SpendWise.Application.DTOs.Wallet;
@@ -2162,7 +2151,7 @@ namespace SpendWise.Application.Interfaces.Wallets
    
         public Task<WalletResponse?> UpdateWalletAsync(WalletDTO walletDTO);
     
-        public Task<bool> DeleteWalletAsync(int walletId);    
+        public Task<bool> DeleteWalletAsync(int walletId, int userId);    
     }
 }
 
@@ -2318,31 +2307,11 @@ namespace SpendWise.Application.Services
                 UserId = expense.UserId,
                 Title = "Added expense",
                 Amount = expense.Amount,
+                Date = expense.Date,
                 Products = expense.Products,
-                Category = new CategoryResponse
-                {
-                    CategoryId = expense.Category.CategoryId,
-                    Name = expense.Category.Name,
-                    Priority = expense.Category.Priority,
-                },
-                Wallet = new WalletResponse
-                {
-                    WalletId = expense.Wallet.WalletId,
-                    UserId = expense.Wallet.UserId,
-                    Balance = expense.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = expense.Wallet.Currency.Id,
-                        CurrencyName = expense.Wallet.Currency.CurrencyName,
-                        LiveValue = expense.Wallet.Currency.LiveValue,
-                    },
-                },
-                ExpenseTag = expense.ExpenseTag == null ? null : new TagResponse
-                {
-                    Id = expense.ExpenseTag.Id,
-                    Label = expense.ExpenseTag.Label,
-                    OwnerId = expense.ExpenseTag.OwnerId,
-                },
+                CategoryId = expense.CategoryId,
+                WalletId = expense.WalletId,
+                ExpenseTagId = expense.ExpenseTagId == -1 ? -1 : expense.ExpenseTagId,
             };
         }
 
@@ -2356,31 +2325,11 @@ namespace SpendWise.Application.Services
                 UserId = item.UserId,
                 Title = "Added expense",
                 Amount = item.Amount,
+                Date = item.Date,
                 Products = item.Products,
-                Category = new CategoryResponse
-                {
-                    CategoryId = item.Category.CategoryId,
-                    Name = item.Category.Name,
-                    Priority = item.Category.Priority,
-                },
-                Wallet = new WalletResponse
-                {
-                    WalletId = item.Wallet.WalletId,
-                    UserId = item.Wallet.UserId,
-                    Balance = item.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = item.Wallet.Currency.Id,
-                        CurrencyName = item.Wallet.Currency.CurrencyName,
-                        LiveValue = item.Wallet.Currency.LiveValue,
-                    },
-                },
-                ExpenseTag = item.ExpenseTag == null ? null : new TagResponse
-                {
-                    Id = item.ExpenseTag.Id,
-                    Label = item.ExpenseTag.Label,
-                    OwnerId = item.ExpenseTag.OwnerId,
-                },
+                CategoryId = item.CategoryId,
+                WalletId = item.WalletId,
+                ExpenseTagId = item.ExpenseTagId == -1 ? -1 : item.ExpenseTagId,
             });
 
             return new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
@@ -2397,30 +2346,9 @@ namespace SpendWise.Application.Services
                 Amount = expenseDto.Amount,
                 Products = expenseDto.Products,
                 Date = expenseDto.Date,
-                Category = new Category
-                {
-                    CategoryId = expenseDto.Category.CategoryId,
-                    Name = expenseDto.Category.Name,
-                    Priority = expenseDto.Category.Priority,
-                },
-                ExpenseTag = expenseDto.ExpenseTag == null ? null : new Tag
-                {
-                    Id = expenseDto.ExpenseTag.Id,
-                    Label = expenseDto.ExpenseTag.Label,
-                    OwnerId = expenseDto.ExpenseTag.OwnerId,
-                },
-                Wallet = new Wallet
-                {
-                    WalletId = expenseDto.Wallet.WalletId,
-                    UserId = expenseDto.Wallet.UserId,
-                    Balance = expenseDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = expenseDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = expenseDto.Wallet.Currency.CurrencyName,
-                        LiveValue = expenseDto.Wallet.Currency.LiveValue,
-                    },
-                }
+                CategoryId = expenseDto.CategoryId,
+                ExpenseTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
+                WalletId = expenseDto.WalletId,
             };
 
             // 2 - Create a Transaction object to store in the database
@@ -2432,10 +2360,10 @@ namespace SpendWise.Application.Services
                 Title = "Added Expense",
                 TransactionType = enTransactionType.Dedduction,
                 Amount = expenseDto.Amount,
-                TransactionCategory = newExpens.Category,
+                TransactionCategoryId = newExpens.CategoryId,
                 TransactionDate = newExpens.Date,
-                Wallet = newExpens.Wallet,
-                TransactionTag = newExpens.ExpenseTag,
+                WalletId = newExpens.WalletId,
+                TransactionTagId = newExpens.ExpenseTagId,
             };
 
             // 3 - store both the income and the transaction in the database
@@ -2444,35 +2372,15 @@ namespace SpendWise.Application.Services
             // 4 - Return the created item
             return new ExpenseResponse
             {
-                ExpenseId = newExpens.ExpenseId,
+                ExpenseId = newExpenseId,
                 UserId = newExpens.UserId,
                 Title = "Added expense",
                 Amount = newExpens.Amount,
                 Products = newExpens.Products,
-                Category = new CategoryResponse
-                {
-                    CategoryId = newExpens.Category.CategoryId,
-                    Name = newExpens.Category.Name,
-                    Priority = newExpens.Category.Priority,
-                },
-                Wallet = new WalletResponse
-                {
-                    WalletId = newExpens.Wallet.WalletId,
-                    UserId = newExpens.Wallet.UserId,
-                    Balance = newExpens.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = newExpens.Wallet.Currency.Id,
-                        CurrencyName = newExpens.Wallet.Currency.CurrencyName,
-                        LiveValue = newExpens.Wallet.Currency.LiveValue,
-                    },
-                },
-                ExpenseTag = newExpens.ExpenseTag == null ? null : new TagResponse
-                {
-                    Id = newExpens.ExpenseTag.Id,
-                    Label = newExpens.ExpenseTag.Label,
-                    OwnerId = newExpens.ExpenseTag.OwnerId,
-                },
+                Date = newExpens.Date,
+                CategoryId = newExpens.CategoryId,
+                WalletId = newExpens.WalletId,
+                ExpenseTagId = newExpens.ExpenseTagId,
             };
         }
         public async Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto)
@@ -2485,30 +2393,9 @@ namespace SpendWise.Application.Services
                 Amount = expenseDto.Amount,
                 Products = expenseDto.Products,
                 Date = expenseDto.Date,
-                Category = new Category
-                {
-                    CategoryId = expenseDto.Category.CategoryId,
-                    Name = expenseDto.Category.Name,
-                    Priority = expenseDto.Category.Priority,
-                },
-                ExpenseTag = expenseDto.ExpenseTag == null ? null : new Tag
-                {
-                    Id = expenseDto.ExpenseTag.Id,
-                    Label = expenseDto.ExpenseTag.Label,
-                    OwnerId = expenseDto.ExpenseTag.OwnerId,
-                },
-                Wallet = new Wallet
-                {
-                    WalletId = expenseDto.Wallet.WalletId,
-                    UserId = expenseDto.Wallet.UserId,
-                    Balance = expenseDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = expenseDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = expenseDto.Wallet.Currency.CurrencyName,
-                        LiveValue = expenseDto.Wallet.Currency.LiveValue,
-                    },
-                }
+                CategoryId = expenseDto.CategoryId,
+                ExpenseTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
+                WalletId = expenseDto.WalletId,
             };
 
             // 2 - Create a Transaction object to store in the database
@@ -2520,14 +2407,15 @@ namespace SpendWise.Application.Services
                 Title = "Added Expense",
                 TransactionType = enTransactionType.Dedduction,
                 Amount = expenseDto.Amount,
-                TransactionCategory = updatedExpens.Category,
+                TransactionCategoryId = updatedExpens.CategoryId,
                 TransactionDate = updatedExpens.Date,
-                Wallet = updatedExpens.Wallet,
-                TransactionTag = updatedExpens.ExpenseTag,
+                WalletId = updatedExpens.WalletId,
+                TransactionTagId = updatedExpens.ExpenseTagId,
             };
 
             // 3 - store both the income and the transaction in the database
-            int updateExpenseId = await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction);
+            if (!await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction))
+                return null;
 
             // 4 - Return the created item
             return new ExpenseResponse
@@ -2536,37 +2424,17 @@ namespace SpendWise.Application.Services
                 UserId = updatedExpens.UserId,
                 Title = "Added expense",
                 Amount = updatedExpens.Amount,
+                Date = updatedExpens.Date,
                 Products = updatedExpens.Products,
-                Category = new CategoryResponse
-                {
-                    CategoryId = updatedExpens.Category.CategoryId,
-                    Name = updatedExpens.Category.Name,
-                    Priority = updatedExpens.Category.Priority,
-                },
-                Wallet = new WalletResponse
-                {
-                    WalletId = updatedExpens.Wallet.WalletId,
-                    UserId = updatedExpens.Wallet.UserId,
-                    Balance = updatedExpens.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = updatedExpens.Wallet.Currency.Id,
-                        CurrencyName = updatedExpens.Wallet.Currency.CurrencyName,
-                        LiveValue = updatedExpens.Wallet.Currency.LiveValue,
-                    },
-                },
-                ExpenseTag = updatedExpens.ExpenseTag == null ? null : new TagResponse
-                {
-                    Id = updatedExpens.ExpenseTag.Id,
-                    Label = updatedExpens.ExpenseTag.Label,
-                    OwnerId = updatedExpens.ExpenseTag.OwnerId,
-                },
+                CategoryId = updatedExpens.CategoryId,
+                WalletId = updatedExpens.WalletId,
+                ExpenseTagId = updatedExpens.ExpenseTagId == -1 ? -1 : updatedExpens.ExpenseTagId,
             };
         }
 
-        public async Task<bool> DeleteExpenseAsync(int expenseId)
+        public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
         {
-            return await _expenseRepo.DeleteExpenseAsync(expenseId);
+            return await _expenseRepo.DeleteExpenseAsync(expenseId, userId);
         }
 
     }
@@ -2613,24 +2481,9 @@ namespace SpendWise.Application.Services
                 UserId = income.UserId,
                 Title = "Income",
                 Amount = income.Amount,
-                Wallet = new WalletResponse
-                {
-                    WalletId = income.Wallet.WalletId,
-                    UserId = income.UserId,
-                    Balance = income.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = income.Wallet.Currency.Id,
-                        CurrencyName = income.Wallet.Currency.CurrencyName,
-                        LiveValue = income.Wallet.Currency.LiveValue,
-                    },
-                },
-                IncomeTag = income.IncomeTag == null ? null : new TagResponse 
-                { 
-                    Id = income.IncomeTag.Id,
-                    Label = income.IncomeTag.Label,
-                    OwnerId = income.IncomeTag.OwnerId,
-                },
+                WalletId = income.WalletId,
+                Date = income.Date,
+                IncomeTagId = income.IncomeTagId == -1 ? -1 : income.IncomeTagId,
             };
         }
 
@@ -2644,26 +2497,11 @@ namespace SpendWise.Application.Services
                 UserId = item.UserId,
                 Title = "Income",
                 Amount = item.Amount,
-                Wallet = new WalletResponse
-                {
-                    WalletId = item.Wallet.WalletId,
-                    UserId = item.UserId,
-                    Balance = item.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = item.Wallet.Currency.Id,
-                        CurrencyName = item.Wallet.Currency.CurrencyName,
-                        LiveValue = item.Wallet.Currency.LiveValue,
-                    },
-                },
+                WalletId = item.WalletId,
+                Date = item.Date,
                 // If IncomeTag is null, the result is null. 
                 // Otherwise, it creates the new TagResponse.
-                IncomeTag = item.IncomeTag == null ? null : new TagResponse
-                {
-                    Id = item.IncomeTag.Id,
-                    Label = item.IncomeTag.Label,
-                    OwnerId = item.IncomeTag.OwnerId,
-                },
+                IncomeTagId = item.IncomeTagId == -1 ? -1 : item.IncomeTagId,
             });
 
             return new PagedResponse<IncomeResponse> (incomesResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
@@ -2677,35 +2515,10 @@ namespace SpendWise.Application.Services
             {
                 UserId = incomeDto.UserId,
                 Amount = incomeDto.Amount,
-                Wallet = new Wallet
-                {
-                    WalletId = incomeDto.Wallet.WalletId,
-                    UserId = incomeDto.UserId,
-                    Balance = incomeDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = incomeDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
-                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
-                    },
-                }
+                WalletId = incomeDto.WalletId,
+                Date = incomeDto.Date,
+                IncomeTagId = incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId,
             };
-
-            // 2 - Check if the non-essential data existed in the incomeDTO
-            Tag? newIncomeTag = null;
-            
-            if(incomeDto.IncomeTag != null)
-            {
-                newIncomeTag = new Tag 
-                { 
-                    Id = incomeDto.IncomeTag.Id,
-                    Label = incomeDto.IncomeTag.Label,
-                    OwnerId = incomeDto.IncomeTag.OwnerId,
-                };
-            }
-
-            // 3 - Assign the non-essential data from the incomeDTO into the same income object
-            newIncome.IncomeTag = newIncomeTag;
 
             // 4 - Create a Transaction object to store in the database
             var newTransaction = new Transaction
@@ -2715,19 +2528,8 @@ namespace SpendWise.Application.Services
               Amount = incomeDto.Amount,
               Description = incomeDto.Description,
               Income = newIncome,
-                Wallet = new Wallet
-                {
-                    WalletId = incomeDto.Wallet.WalletId,
-                    UserId = incomeDto.UserId,
-                    Balance = incomeDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = incomeDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
-                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
-                    },
-                },
-              TransactionTag = newIncomeTag,
+              WalletId = newIncome.WalletId,
+              TransactionTagId = newIncome.IncomeTagId,
               TransactionDate = incomeDto.Date,
               TransactionType = enTransactionType.Addition,
             };
@@ -2748,24 +2550,9 @@ namespace SpendWise.Application.Services
                 UserId = incomeDto.UserId,
                 Title = newTransaction.Title,
                 Amount= newTransaction.Amount,
-                Wallet = new WalletResponse
-                {
-                    WalletId = newIncome.Wallet.WalletId,
-                    UserId = newIncome.UserId,
-                    Balance = newIncome.Wallet.Balance,
-                    Currency = new CurrencyResponse
-                    {
-                        Id = newIncome.Wallet.Currency.Id,
-                        CurrencyName = newIncome.Wallet.Currency.CurrencyName,
-                        LiveValue = newIncome.Wallet.Currency.LiveValue,
-                    },
-                },
-                IncomeTag = newIncomeTag == null ? null : new TagResponse
-                {
-                    Id = newIncomeTag.Id,
-                    Label = newIncomeTag.Label,
-                    OwnerId = newIncomeTag.OwnerId,
-                }
+                WalletId = incomeDto.WalletId,
+                IncomeTagId = newTransaction.TransactionTagId,
+                Date = incomeDto.Date,
             };
         }
         public async Task<IncomeResponse?> UpdateIncomeAsync(IncomeDTO incomeDto)
@@ -2773,38 +2560,12 @@ namespace SpendWise.Application.Services
             // 1 - Assign the essential data from incomeDTO into an income object
             var updatedIncome = new Income
             {
-                Id = incomeDto.Id,
                 UserId = incomeDto.UserId,
                 Amount = incomeDto.Amount,
-                Wallet = new Wallet
-                {
-                    WalletId = incomeDto.Wallet.WalletId,
-                    UserId = incomeDto.UserId,
-                    Balance = incomeDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = incomeDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
-                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
-                    },
-                },
+                WalletId = incomeDto.WalletId,
+                Date = incomeDto.Date,
+                IncomeTagId = incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId,
             };
-
-            // 2 - Check if the non-essential data existed in the incomeDTO
-            Tag? updatedIncomeTag = null;
-
-            if (incomeDto.IncomeTag != null)
-            {
-                updatedIncomeTag = new Tag
-                {
-                    Id = incomeDto.IncomeTag.Id,
-                    Label = incomeDto.IncomeTag.Label,
-                    OwnerId = incomeDto.IncomeTag.OwnerId,
-                };
-            }
-
-            // 3 - Assign the non-essential data from the incomeDTO into the same income object
-            updatedIncome.IncomeTag = updatedIncomeTag;
 
             // 4 - Create a Transaction object to store in the database
             var updatedTransaction = new Transaction
@@ -2814,28 +2575,16 @@ namespace SpendWise.Application.Services
                 Amount = incomeDto.Amount,
                 Description = incomeDto.Description,
                 Income = updatedIncome,
-                Wallet = new Wallet
-                {
-                    WalletId = incomeDto.Wallet.WalletId,
-                    UserId = incomeDto.UserId,
-                    Balance = incomeDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = incomeDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
-                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
-                    },
-                },
-                TransactionTag = updatedIncomeTag,
+                WalletId = updatedIncome.WalletId,
+                TransactionTagId = updatedIncome.IncomeTagId,
                 TransactionDate = incomeDto.Date,
                 TransactionType = enTransactionType.Addition,
             };
 
             // 5 - store both the income and the transaction in the database
-            int updatedIncomeId = await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction);
 
             // 6 - Check if the update succeeded
-            if(updatedIncomeId == -1)
+            if(!await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction))
             {
                 return null;
             }
@@ -2843,22 +2592,19 @@ namespace SpendWise.Application.Services
             // 7 - Return the created item
             return new IncomeResponse
             {
-                Id = updatedIncomeId,
+                Id = incomeDto.Id,
                 UserId = incomeDto.UserId,
                 Title = updatedTransaction.Title,
                 Amount = updatedTransaction.Amount,
-                IncomeTag = updatedIncomeTag == null ? null : new TagResponse
-                {
-                    Id = updatedIncomeTag.Id,
-                    Label = updatedIncomeTag.Label,
-                    OwnerId = updatedIncomeTag.OwnerId,
-                }
+                WalletId = updatedTransaction.WalletId,
+                IncomeTagId = updatedTransaction.TransactionTagId,
+                Date = updatedIncome.Date,
             };
         }
 
-        public async Task<bool> DeleteIncomeAsync(int incomeId)
+        public async Task<bool> DeleteIncomeAsync(int incomeId, int userId)
         {
-            return await _incomeRepo.DeleteIncomeAsync(incomeId);
+            return await _incomeRepo.DeleteIncomeAsync(incomeId, userId);
         }
     }
 }
@@ -3126,7 +2872,7 @@ namespace SpendWise.Application.Services
         {
             var updatedTag = new Tag(tagDto.Id, tagDto.OwnerId, tagDto.Label);
 
-            if (await _tagRepo.UpdateTagAsync(updatedTag))
+            if (!await _tagRepo.UpdateTagAsync(updatedTag))
             {
                 return null;
             }
@@ -3139,9 +2885,9 @@ namespace SpendWise.Application.Services
             };
 
         }
-        public async Task DeleteTagAsync(int tagId)
+        public async Task DeleteTagAsync(int tagId, int userId)
         {
-            await _tagRepo.DeleteTagAsync(tagId);
+            await _tagRepo.DeleteTagAsync(tagId, userId);
         }
     }
 }
@@ -3222,7 +2968,6 @@ using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using SpendWise.Application.DTOs.NewFolder;
 
 namespace SpendWise.Application.Services
 {
@@ -3249,12 +2994,7 @@ namespace SpendWise.Application.Services
                 WalletId = walletId,
                 UserId = userId,
                 Balance = wallet.Balance,
-                Currency = new CurrencyResponse
-                {
-                    Id = wallet.Currency.Id,
-                    CurrencyName = wallet.Currency.CurrencyName,
-                    LiveValue = wallet.Currency.LiveValue,
-                }
+                CurrencyId = wallet.CurrencyId,
             };
         }
 
@@ -3272,12 +3012,7 @@ namespace SpendWise.Application.Services
                 WalletId = item.WalletId,
                 UserId = item.UserId,
                 Balance = item.Balance,
-                Currency = new CurrencyResponse
-                {
-                    Id= item.Currency.Id,
-                    CurrencyName= item.Currency.CurrencyName,
-                    LiveValue= item.Currency.LiveValue,
-                },
+                CurrencyId = item.CurrencyId,
             });
         }
 
@@ -3289,12 +3024,7 @@ namespace SpendWise.Application.Services
                 UserId = walletDTO.UserId,
                 Balance = walletDTO.Balance,
                 IsSaved = walletDTO.IsSaved,
-                Currency = new Currency
-                {
-                    Id = walletDTO.Currency.CurrencyId,
-                    CurrencyName = walletDTO.Currency.CurrencyName,
-                    LiveValue = walletDTO.Currency.LiveValue,
-                }
+                CurrencyId = walletDTO.CurrencyId,
             };
 
             int newWalletId = await _walletRepo.AddWalletAsync(newWallet);
@@ -3310,12 +3040,7 @@ namespace SpendWise.Application.Services
                 UserId = walletDTO.UserId,
                 Balance = walletDTO.Balance,
                 IsSaved= walletDTO.IsSaved,
-                Currency = new CurrencyResponse
-                {
-                    Id = walletDTO.Currency.CurrencyId,
-                    CurrencyName = walletDTO.Currency.CurrencyName,
-                    LiveValue = walletDTO.Currency.LiveValue,
-                },
+                CurrencyId = walletDTO.CurrencyId,
             };
         }
 
@@ -3327,38 +3052,25 @@ namespace SpendWise.Application.Services
                 UserId = walletDTO.UserId,
                 Balance = walletDTO.Balance,
                 IsSaved = walletDTO.IsSaved,
-                Currency = new Currency
-                {
-                    Id = walletDTO.Currency.CurrencyId,
-                    CurrencyName = walletDTO.Currency.CurrencyName,
-                    LiveValue = walletDTO.Currency.LiveValue,
-                }
+                CurrencyId = walletDTO.CurrencyId,
             };
 
-            int updatedWalletId = await _walletRepo.UpdateWalletAsync(updatedWallet);
-
-            if(updatedWalletId == -1)
-            {
+            if(!await _walletRepo.UpdateWalletAsync(updatedWallet))
                 return null;
-            }
 
             return new WalletResponse
             {
-                WalletId = updatedWalletId,
+                WalletId = walletDTO.WalletId,
                 UserId = walletDTO.UserId,
                 Balance = walletDTO.Balance,
-                Currency = new CurrencyResponse
-                {
-                    Id = walletDTO.Currency.CurrencyId,
-                    CurrencyName = walletDTO.Currency.CurrencyName,
-                    LiveValue = walletDTO.Currency.LiveValue,
-                },
+                CurrencyId = walletDTO.CurrencyId,
+                IsSaved = walletDTO.IsSaved,
             };
         }
 
-        public async Task<bool> DeleteWalletAsync(int walletId)
+        public async Task<bool> DeleteWalletAsync(int walletId, int userId)
         {
-            return await _walletRepo.DeleteWalletAsync(walletId);
+            return await _walletRepo.DeleteWalletAsync(walletId, userId);
         }
     } 
 }
@@ -3462,9 +3174,9 @@ namespace SpendWise.Domain.Entities
         public int UserId { get; set; }
         public decimal Amount { get; set; }
         public string Products { get; set; } = string.Empty;
-        public Tag? ExpenseTag { get; set; }
-        public Category Category { get; set; } = new Category();
-        public Wallet Wallet { get; set; } = new Wallet();
+        public int ExpenseTagId { get; set; }
+        public int CategoryId { get; set; } 
+        public int WalletId { get; set; } 
         public DateTime Date { get; set; }
 
     }
@@ -3486,8 +3198,8 @@ namespace SpendWise.Domain.Entities
         public int UserId { get; set; }
         public decimal Amount { get; set; }
         public DateTime Date { get; set; } = DateTime.Now;
-        public Wallet Wallet { get; set; } = new Wallet();
-        public Tag? IncomeTag { get; set; } = null;
+        public int WalletId { get; set; } 
+        public int IncomeTagId { get; set; } 
         public Transaction LinkedTransaction { get; set; } = new Transaction();
     }
 }
@@ -3599,12 +3311,12 @@ namespace SpendWise.Domain.Entities
         public int UserId { get; set; } = -1;
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public Wallet Wallet { get; set; } = new Wallet();
+        public int WalletId { get; set; } 
         public decimal Amount { get; set; } = 0.0m;
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
-        public Category? TransactionCategory { get; set; }
-        public Tag? TransactionTag { get; set; }
+        public int TransactionCategoryId { get; set; }
+        public int TransactionTagId { get; set; }
         public SavingGoal? SavingGoal { get; set; }
         //public FixedExpense? FixedExpense { get; set; }
         //public FixedIncome? FixedIncome { get; set; }
@@ -3670,16 +3382,16 @@ namespace SpendWise.Domain.Entities
     public class Wallet
     {
         public int WalletId { get; set; }
-        public Currency Currency { get; set; } = new Currency(0, "SyrianPound");
+        public int CurrencyId { get; set; }
         public decimal Balance { get; set; }
         public int UserId { get; set; }
         public bool IsSaved { get; set; }
 
         //Add object (Currencies) => here and into Constructor
-        public Wallet(int walletId, Currency currency, decimal balance, int userId, bool isSaved)
+        public Wallet(int walletId, int currencyId, decimal balance, int userId, bool isSaved)
         {
             WalletId = walletId;
-            Currency = currency;
+            CurrencyId = currencyId;
             Balance = balance;
             UserId = userId;
             IsSaved = isSaved;
@@ -3762,7 +3474,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\SpendWis
 </Project>
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Global\Exsiptions.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Global\CustomExceptions.cs
 ----------------------------------------
 ﻿using System;
 
@@ -3776,6 +3488,324 @@ public class InvalidReferenceException : Exception
     public InvalidReferenceException(string message) : base(message) { }
 }
 
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Global\SqlExceptionHandler.cs
+----------------------------------------
+﻿using Microsoft.Data.SqlClient;
+using System;
+
+namespace SpendWise.Infrastructure.Global
+{
+    public static class SqlExceptionHandler
+    {
+        /// <summary>
+        /// Translates raw SQL Exceptions into domain-specific C# Exceptions.
+        /// </summary>
+        public static void Handle(SqlException ex)
+        {
+            if (ex.Number >= 50000)
+            {
+                if (ex.Number == 50001 || ex.Number == 50002)
+                    throw new InvalidReferenceException(ex.Message);
+
+                if (ex.Number == 50003)
+                    throw new UnauthorizedAccessException(ex.Message);
+            }
+
+            // Standard SQL Server Engine Errors
+            switch (ex.Number)
+            {
+                case 2601:
+                case 2627:
+                    throw new DuplicateResourceException("This resource already exists or violates a unique constraint.");
+
+                case 547:
+                    throw new InvalidReferenceException("A related record is missing, or you are trying to modify a record currently in use.");
+
+                case -2:
+                    throw new TimeoutException("The database took too long to respond. Please try again.");
+
+                default:
+                    // Fallback for anything else
+                    throw new Exception($"An unexpected database error occurred. Code: {ex.Number} - {ex.Message}");
+            }
+        }
+    }
+}
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Repositories\ExpenseRepository.cs
+----------------------------------------
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using SpendWise.Domain.Entities;
+using SpendWise.Domain.Enums;
+using SpendWise.Infrastructure.Global; // Added Global Exception Handler
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Threading.Tasks;
+using SpendWise.Application.Interfaces.Expenses;
+
+namespace SpendWise.Infrastructure.Repositories
+{
+    public class ExpenseRepository : IExpenseRepository
+    {
+        private readonly string _connectionString;
+
+        public ExpenseRepository(IConfiguration configuration)
+        {
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+        }
+
+        public async Task<int> AddExpenseAsync(Expense newExpense, Transaction newTransaction)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_AddExpenseWithTransaction]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                // Directly mapping the IDs as defined in your Expense.cs domain entity
+                command.Parameters.AddWithValue("@ExpenseUserId", newExpense.UserId);
+                command.Parameters.AddWithValue("@ExpenseWalletId", newExpense.WalletId);
+                command.Parameters.AddWithValue("@ExpenseCategoryId", newExpense.CategoryId);
+                command.Parameters.AddWithValue("@Products", string.IsNullOrEmpty(newExpense.Products) ? DBNull.Value : newExpense.Products);
+                command.Parameters.AddWithValue("@ExpenseAmount", newExpense.Amount);
+                command.Parameters.AddWithValue("@ExpenseDate", newExpense.Date);
+                command.Parameters.AddWithValue("@ExpenseTagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
+
+                command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
+                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
+                command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
+                command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
+                command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategoryId > 0 ? newTransaction.TransactionCategoryId : DBNull.Value);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                // Clean, one-line evaluation
+                return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex); // Centralized Exception Handling
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_UpdateExpenseWithTransaction]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@ExpenseId", newExpense.ExpenseId);
+                command.Parameters.AddWithValue("@ExpenseUserId", newExpense.UserId);
+                command.Parameters.AddWithValue("@ExpenseWalletId", newExpense.WalletId);
+                command.Parameters.AddWithValue("@ExpenseCategoryId", newExpense.CategoryId);
+                command.Parameters.AddWithValue("@Products", string.IsNullOrEmpty(newExpense.Products) ? DBNull.Value : newExpense.Products);
+                command.Parameters.AddWithValue("@ExpenseAmount", newExpense.Amount);
+                command.Parameters.AddWithValue("@ExpenseDate", newExpense.Date);
+                command.Parameters.AddWithValue("@ExpenseTagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
+
+                command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
+                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
+                command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
+                command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
+                command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategoryId > 0 ? newTransaction.TransactionCategoryId : DBNull.Value);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        // Added userId parameter for IDOR security!
+        public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_DeleteExpense]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@ExpenseId", expenseId);
+                command.Parameters.AddWithValue("@UserId", userId); // Pass to SQL for ownership check
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                // Clean, one-line evaluation
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<Expense> GetExpenseAsync(int expenseId, int userId)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_GetExpense]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@ExpenseId", expenseId);
+                command.Parameters.AddWithValue("@UserId", userId);
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    // Fixed mapping: creating the object directly using IDs, removing the Income copy-paste bug
+                    var expense = new Expense
+                    {
+                        ExpenseId = Convert.ToInt32(reader["ExpenseID"]),
+                        UserId = Convert.ToInt32(reader["UserID"]),
+                        Amount = Convert.ToDecimal(reader["Amount"]),
+                        Products = reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
+                        Date = Convert.ToDateTime(reader["Date"]),
+                        WalletId = Convert.ToInt32(reader["WalletID"]),
+                        CategoryId = Convert.ToInt32(reader["CategoryID"])
+                    };
+
+                    if (reader["TagID"] != DBNull.Value)
+                    {
+                        expense.ExpenseTagId = Convert.ToInt32(reader["TagID"]);
+                    }
+                    else
+                    {
+                        expense.ExpenseTagId = -1;
+                    }
+
+                    return expense;
+                }
+
+                return null!;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<(IEnumerable<Expense> projects, int totalCount)> GetExpensesByUserAsync(int userId, int pageNumber, int pageSize)
+        {
+            var expenses = new List<Expense>();
+            int totalCount = 0;
+
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_GetExpensesByUserPaged]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@UserId", userId);
+                command.Parameters.AddWithValue("@PageNumber", pageNumber);
+                command.Parameters.AddWithValue("@PageSize", pageSize);
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    totalCount = Convert.ToInt32(reader["TotalCount"]);
+                }
+
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var expense = new Expense
+                        {
+                            ExpenseId = Convert.ToInt32(reader["ExpenseID"]),
+                            UserId = Convert.ToInt32(reader["UserID"]),
+                            Amount = Convert.ToDecimal(reader["Amount"]),
+                            Products = reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
+                            Date = Convert.ToDateTime(reader["Date"]),
+                            WalletId = Convert.ToInt32(reader["WalletID"]),
+                            CategoryId = Convert.ToInt32(reader["CategoryID"])
+                        };
+
+                        if (reader["TagID"] != DBNull.Value)
+                        {
+                            expense.ExpenseTagId = Convert.ToInt32(reader["TagID"]);
+                        }
+                        else
+                        {
+                            expense.ExpenseTagId = -1;
+                        }
+
+                        expenses.Add(expense);
+                    }
+                }
+
+                return (expenses, totalCount);
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<string> GetProductsAsync(int expenseId)
+        {
+            string products = string.Empty;
+
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_GetProducts]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@ExpenseId", expenseId);
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    if (reader["Products"] != DBNull.Value)
+                        products = reader["Products"].ToString()!;
+                }
+
+                return products;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+    }
+}
+
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Repositories\IncomeRepository.cs
 ----------------------------------------
 using Microsoft.Data.SqlClient;
@@ -3783,242 +3813,239 @@ using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
+using SpendWise.Infrastructure.Global; 
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
 
-public class IncomeRepository : IIncomeRepository
+namespace SpendWise.Infrastructure.Repositories
 {
-    private readonly string _connectionString;
-
-    public IncomeRepository(IConfiguration configuration)
+    public class IncomeRepository : IIncomeRepository
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection")
-                                        ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
-    }
+        private readonly string _connectionString;
 
-    public async Task<int> AddIncomeAsync(Income newIncome, Transaction newTransaction)
-    {
-        try
+        public IncomeRepository(IConfiguration configuration)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Ledger].[sp_AddIncomeWithTransaction]", connection)
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+        }
+
+        public async Task<int> AddIncomeAsync(Income newIncome, Transaction newTransaction)
+        {
+            try
             {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@IncomeUserId", newIncome.UserId);
-            command.Parameters.AddWithValue("@IncomeWalletId", newIncome.Wallet.WalletId);
-            command.Parameters.AddWithValue("@IncomeAmount", newIncome.Amount);
-            command.Parameters.AddWithValue("@IncomeDate", newIncome.Date);
-            command.Parameters.AddWithValue("@IncomeTagId", newIncome.IncomeTag?.Id > 0 ? newIncome.IncomeTag.Id : DBNull.Value);
-
-            command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
-            command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
-            command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
-            command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTag?.Id > 0 ? newTransaction.TransactionTag.Id : DBNull.Value);
-
-            await connection.OpenAsync();
-            var result = await command.ExecuteScalarAsync();
-            return Convert.ToInt32(result);
-        }
-        catch (SqlException ex)
-        {
-            HandleSqlException(ex);
-            throw;
-        }
-    }
-
-    public async Task<int> UpdateIncomeAsync(Income newIncome, Transaction newTransaction)
-    {
-        try
-        {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Ledger].[sp_UpdateIncomeWithTransaction]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@IncomeId", newIncome.Id);
-            command.Parameters.AddWithValue("@IncomeUserId", newIncome.UserId);
-            command.Parameters.AddWithValue("@IncomeWalletId", newIncome.Wallet.WalletId);
-            command.Parameters.AddWithValue("@IncomeAmount", newIncome.Amount);
-            command.Parameters.AddWithValue("@IncomeDate", newIncome.Date);
-            command.Parameters.AddWithValue("@IncomeTagId", newIncome.IncomeTag?.Id > 0 ? newIncome.IncomeTag.Id : DBNull.Value);
-
-            command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
-            command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
-            command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
-            command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTag?.Id > 0 ? newTransaction.TransactionTag.Id : DBNull.Value);
-
-            await connection.OpenAsync();
-            var result = await command.ExecuteScalarAsync();
-            return Convert.ToInt32(result);
-        }
-        catch (SqlException ex)
-        {
-            HandleSqlException(ex);
-            throw;
-        }
-    }
-
-    public async Task<bool> DeleteIncomeAsync(int incomeId)
-    {
-        try
-        {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Ledger].[sp_DeleteIncome]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-            command.Parameters.AddWithValue("@IncomeId", incomeId);
-
-            await connection.OpenAsync();
-            var result = await command.ExecuteScalarAsync();
-            return Convert.ToInt32(result) > 0;
-        }
-        catch (SqlException ex)
-        {
-            HandleSqlException(ex);
-            throw;
-        }
-    }
-
-    public async Task<Income> GetIncomeAsync(int incomeId, int userId)
-    {
-        try
-        {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Ledger].[sp_GetIncome]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@IncomeId", incomeId);
-            command.Parameters.AddWithValue("@UserId", userId);
-
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                var income = new Income
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_AddIncomeWithTransaction]", connection)
                 {
-                    Id = Convert.ToInt32(reader["IncomeID"]),
-                    UserId = Convert.ToInt32(reader["IncomeUserID"]),
-                    Amount = Convert.ToDecimal(reader["IncomeAmount"]),
-                    Date = Convert.ToDateTime(reader["IncomeDate"]),
-                    Wallet = new Wallet { WalletId = Convert.ToInt32(reader["IncomeWalletID"]), Balance = Convert.ToDecimal(reader["IncomeWalletBalance"]) }
+                    CommandType = CommandType.StoredProcedure
                 };
 
-                if (reader["IncomeTagID"] != DBNull.Value)
-                {
-                    income.IncomeTag = new Tag { Id = Convert.ToInt32(reader["IncomeTagID"]), Label = reader["IncomeTagName"].ToString()! };
-                }
+                command.Parameters.AddWithValue("@IncomeUserId", newIncome.UserId);
+                command.Parameters.AddWithValue("@IncomeWalletId", newIncome.WalletId);
+                command.Parameters.AddWithValue("@IncomeAmount", newIncome.Amount);
+                command.Parameters.AddWithValue("@IncomeDate", newIncome.Date);
+                command.Parameters.AddWithValue("@IncomeTagId", newIncome.IncomeTagId > 0 ? newIncome.IncomeTagId : DBNull.Value);
 
-                if (reader["TransactionID"] != DBNull.Value)
-                {
-                    income.LinkedTransaction = new Transaction
-                    {
-                        TransactionId = Convert.ToInt32(reader["TransactionID"]),
-                        UserId = Convert.ToInt32(reader["TransUserID"]),
-                        Title = reader["Title"].ToString()!,
-                        Description = reader["Description"] != DBNull.Value ? reader["Description"].ToString()! : string.Empty,
-                        Amount = Convert.ToDecimal(reader["TransAmount"]),
-                        TransactionDate = Convert.ToDateTime(reader["TransactionDate"]),
-                        TransactionType = (enTransactionType)Convert.ToInt32(reader["TransactionType"]),
-                        Wallet = new Wallet { WalletId = Convert.ToInt32(reader["TransWalletID"]), Balance = Convert.ToDecimal(reader["TransWalletBalance"]) }
-                    };
+                command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
+                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
+                command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
+                command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
 
-                    if (reader["TransTagID"] != DBNull.Value)
-                    {
-                        income.LinkedTransaction.TransactionTag = new Tag
-                        {
-                            Id = Convert.ToInt32(reader["TransTagID"]),
-                            Label = reader["TransTagName"].ToString()!
-                        };
-                    }
-                }
-                return income;
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                // Clean, one-line evaluation
+                return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
             }
-
-            return null!;
-        }
-        catch (SqlException ex) when (ex.Number == -2)
-        {
-            throw new TimeoutException("Database timeout while fetching the income record.");
-        }
-    }
-
-    public async Task<(IEnumerable<Income> projects, int totalCount)> GetIncomeByUserAsync(int userId, int pageNumber, int pageSize)
-    {
-        var incomes = new List<Income>();
-        int totalCount = 0;
-
-        try
-        {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Ledger].[sp_GetIncomesByUserPaged]", connection)
+            catch (SqlException ex)
             {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@UserId", userId);
-            command.Parameters.AddWithValue("@PageNumber", pageNumber);
-            command.Parameters.AddWithValue("@PageSize", pageSize);
-
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                totalCount = Convert.ToInt32(reader["TotalCount"]);
+                SqlExceptionHandler.Handle(ex); // Centralized Exception Handling
+                throw;
             }
+        }
 
-            if (await reader.NextResultAsync())
+        public async Task<bool> UpdateIncomeAsync(Income newIncome, Transaction newTransaction)
+        {
+            try
             {
-                while (await reader.ReadAsync())
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_UpdateIncomeWithTransaction]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@IncomeId", newIncome.Id);
+                command.Parameters.AddWithValue("@IncomeUserId", newIncome.UserId);
+                command.Parameters.AddWithValue("@IncomeWalletId", newIncome.WalletId);
+                command.Parameters.AddWithValue("@IncomeAmount", newIncome.Amount);
+                command.Parameters.AddWithValue("@IncomeDate", newIncome.Date);
+                command.Parameters.AddWithValue("@IncomeTagId", newIncome.IncomeTagId > 0 ? newIncome.IncomeTagId : DBNull.Value);
+
+                command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
+                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
+                command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
+                command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteIncomeAsync(int incomeId, int userId)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_DeleteIncome]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@IncomeId", incomeId);
+                command.Parameters.AddWithValue("@UserId", userId); // Pass to SQL for ownership check
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex); // Centralized Exception Handling
+                throw;
+            }
+        }
+
+        public async Task<Income> GetIncomeAsync(int incomeId, int userId)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_GetIncome]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@IncomeId", incomeId);
+                command.Parameters.AddWithValue("@UserId", userId);
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
                 {
                     var income = new Income
                     {
                         Id = Convert.ToInt32(reader["IncomeID"]),
-                        UserId = Convert.ToInt32(reader["UserID"]),
-                        Amount = Convert.ToDecimal(reader["Amount"]),
-                        Date = Convert.ToDateTime(reader["Date"]),
-                        Wallet = new Wallet { WalletId = Convert.ToInt32(reader["WalletID"]), Balance = Convert.ToDecimal(reader["Balance"]) }
+                        UserId = Convert.ToInt32(reader["IncomeUserID"]),
+                        Amount = Convert.ToDecimal(reader["IncomeAmount"]),
+                        Date = Convert.ToDateTime(reader["IncomeDate"]),
+                        WalletId = Convert.ToInt32(reader["IncomeWalletID"])
                     };
 
-                    if (reader["TagID"] != DBNull.Value)
+                    // Map ID directly instead of creating a Tag object
+                    if (reader["IncomeTagID"] != DBNull.Value)
                     {
-                        income.IncomeTag = new Tag { Id = Convert.ToInt32(reader["TagID"]), Label = reader["TagName"].ToString()! };
+                        income.IncomeTagId = Convert.ToInt32(reader["IncomeTagID"]);
                     }
-                    incomes.Add(income);
+
+                    if (reader["TransactionID"] != DBNull.Value)
+                    {
+                        income.LinkedTransaction = new Transaction
+                        {
+                            TransactionId = Convert.ToInt32(reader["TransactionID"]),
+                            UserId = Convert.ToInt32(reader["TransUserID"]),
+                            Title = reader["Title"].ToString()!,
+                            Description = reader["Description"] != DBNull.Value ? reader["Description"].ToString()! : string.Empty,
+                            Amount = Convert.ToDecimal(reader["TransAmount"]),
+                            TransactionDate = Convert.ToDateTime(reader["TransactionDate"]),
+                            TransactionType = (enTransactionType)Convert.ToInt32(reader["TransactionType"]),
+                            WalletId = Convert.ToInt32(reader["TransWalletID"]) // Map ID directly instead of Wallet object
+                        };
+
+                        if (reader["TransTagID"] != DBNull.Value)
+                        {
+                            income.LinkedTransaction.TransactionTagId = Convert.ToInt32(reader["TransTagID"]);
+                        }
+                    }
+                    return income;
                 }
+
+                return null!;
             }
-
-            return (incomes, totalCount);
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
         }
-        catch (SqlException ex) when (ex.Number == -2)
-        {
-            throw new TimeoutException("Database timeout while fetching paged incomes.");
-        }
-    }
 
-    private void HandleSqlException(SqlException ex)
-    {
-        switch (ex.Number)
+        public async Task<(IEnumerable<Income> projects, int totalCount)> GetIncomeByUserAsync(int userId, int pageNumber, int pageSize)
         {
-            case 50001:
-                throw new Exception("Access Denied or Wallet Not Found.");
-            case 50002:
-                throw new InvalidReferenceException("The income record you are trying to update or delete was not found.");
-            case 547:
-                throw new InvalidReferenceException("A related record is missing. Please ensure all related categories, tags, and wallets exist.");
-            case -2:
-                throw new TimeoutException("The database took too long to respond. Please try again.");
-            default:
-                throw new Exception($"An unexpected database error occurred. Code: {ex.Number}");
+            var incomes = new List<Income>();
+            int totalCount = 0;
+
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_GetIncomesByUserPaged]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@UserId", userId);
+                command.Parameters.AddWithValue("@PageNumber", pageNumber);
+                command.Parameters.AddWithValue("@PageSize", pageSize);
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    totalCount = Convert.ToInt32(reader["TotalCount"]);
+                }
+
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var income = new Income
+                        {
+                            Id = Convert.ToInt32(reader["IncomeID"]),
+                            UserId = Convert.ToInt32(reader["UserID"]),
+                            Amount = Convert.ToDecimal(reader["Amount"]),
+                            Date = Convert.ToDateTime(reader["Date"]),
+                            WalletId = Convert.ToInt32(reader["WalletID"]) 
+                        };
+
+                        if (reader["TagID"] != DBNull.Value)
+                        {
+                            income.IncomeTagId = Convert.ToInt32(reader["TagID"]);
+                        }
+                        else
+                        {
+                            income.IncomeTagId = -1;
+                        }
+
+                        incomes.Add(income);
+                    }
+                }
+
+                return (incomes, totalCount);
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
         }
     }
 }
@@ -4065,7 +4092,7 @@ namespace SpendWise.Infrastructure.Repositories
                     try
                     {
                         await connection.OpenAsync();
-                        object result = await command.ExecuteScalarAsync();
+                        object? result = await command.ExecuteScalarAsync();
                         if (result != null && int.TryParse(result.ToString(), out int insertedID))
                         {
                             GoalID = insertedID;
@@ -4281,6 +4308,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Reposito
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Tags;
 using SpendWise.Domain.Entities;
+using SpendWise.Infrastructure.Global; // Applied Global Exception Handler
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -4300,96 +4328,97 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> AddTagAsync(Tag NewTag)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_CreateTag]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@NewID", NewTag.Id);
-            command.Parameters.AddWithValue("@UserID", NewTag.OwnerId);
-            command.Parameters.AddWithValue("@Name", NewTag.Label);
-
             try
             {
-                await connection.OpenAsync();
-                object result = await command.ExecuteScalarAsync();
-
-                if (result != null && int.TryParse(result.ToString(), out int insertedID))
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Config].[sp_CreateTag]", connection)
                 {
-                    NewTag.Id = insertedID;
-                    return insertedID;
-                }
+                    CommandType = CommandType.StoredProcedure
+                };
 
-                return -1; // Fallback if the SP fails to return the ID but doesn't throw a SQL exception
+                // Removed @NewID because SQL auto-generates it!
+                command.Parameters.AddWithValue("@UserID", NewTag.OwnerId);
+                command.Parameters.AddWithValue("@Name", NewTag.Label);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int insertedID) ? insertedID : -1;
             }
             catch (SqlException ex)
             {
-                HandleSqlException(ex);
-                throw; // Satisfies the compiler, though HandleSqlException will throw first
+                SqlExceptionHandler.Handle(ex); // Centralized Exception Handling
+                throw;
             }
         }
 
         public async Task<bool> UpdateTagAsync(Tag UpdatedTag)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_UpdateTag]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@Name", UpdatedTag.Label);
-            command.Parameters.AddWithValue("@TagID", UpdatedTag.Id);
-            command.Parameters.AddWithValue("@UserID", UpdatedTag.OwnerId);
-
             try
             {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Config].[sp_UpdateTag]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@Name", UpdatedTag.Label);
+                command.Parameters.AddWithValue("@TagID", UpdatedTag.Id);
+                command.Parameters.AddWithValue("@UserID", UpdatedTag.OwnerId);
+
                 await connection.OpenAsync();
-                int rowsAffected = await command.ExecuteNonQueryAsync();
-                return rowsAffected > 0;
+                var result = await command.ExecuteScalarAsync();
+
+                // Clean, one-line evaluation
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
-                HandleSqlException(ex);
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }
 
-        public async Task<bool> DeleteTagAsync(int TagID)
+        // Added userId parameter for IDOR security!
+        public async Task<bool> DeleteTagAsync(int TagID, int userId)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_DeleteTag]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@TagID", TagID);
-
             try
             {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Config].[sp_DeleteTag]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@TagID", TagID);
+                command.Parameters.AddWithValue("@UserID", userId);
+
                 await connection.OpenAsync();
-                int rowsAffected = await command.ExecuteNonQueryAsync();
-                return rowsAffected > 0;
+                var result = await command.ExecuteScalarAsync();
+
+                // Clean, one-line evaluation
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
-                HandleSqlException(ex);
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }
 
         public async Task<Tag> GetTagAsync(int TagID, int userId)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_GetTag]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@TagID", TagID);
-
             try
             {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Config].[sp_GetTag]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@TagID", TagID);
+                command.Parameters.AddWithValue("@UserID", userId); // Fixed missing parameter!
+
                 await connection.OpenAsync();
                 using SqlDataReader reader = await command.ExecuteReaderAsync();
 
@@ -4402,11 +4431,11 @@ namespace SpendWise.Infrastructure.Repositories
                     );
                 }
 
-                return null;
+                return null!;
             }
             catch (SqlException ex)
             {
-                HandleSqlException(ex);
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }
@@ -4415,16 +4444,16 @@ namespace SpendWise.Infrastructure.Repositories
         {
             var tags = new List<Tag?>();
 
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[cfg].[sp_GetTagsByUserID]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@UserID", UserID);
-
             try
             {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Config].[sp_GetTags]", connection) // Fixed SP Name
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@UserID", UserID);
+
                 await connection.OpenAsync();
                 using SqlDataReader reader = await command.ExecuteReaderAsync();
 
@@ -4441,26 +4470,8 @@ namespace SpendWise.Infrastructure.Repositories
             }
             catch (SqlException ex)
             {
-                HandleSqlException(ex);
+                SqlExceptionHandler.Handle(ex);
                 throw;
-            }
-        }
-
-        // ── Helper Method for Mapping SQL Exceptions ─────────────────────────
-        private void HandleSqlException(SqlException ex)
-        {
-            switch (ex.Number)
-            {
-                case 2601:
-                case 2627:
-                    throw new DuplicateResourceException("A tag with this name already exists.");
-                case 547:
-                    throw new InvalidReferenceException("A related record is missing, or this tag is currently linked to existing transactions and cannot be modified or deleted.");
-                case -2:
-                    throw new TimeoutException("The database took too long to respond. Please try again.");
-                default:
-                    // Let the global handler catch this as a standard 500 Internal Server Error
-                    throw new Exception($"An unexpected database error occurred. Code: {ex.Number}", ex);
             }
         }
     }
@@ -4468,134 +4479,152 @@ namespace SpendWise.Infrastructure.Repositories
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\SpendWise.Infrastructure\Repositories\UserRepository.cs
 ----------------------------------------
-﻿using Azure;
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Users;
 using SpendWise.Domain.Entities;
+using SpendWise.Infrastructure.Global; 
 using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace SpendWise.Infrastructure.Repositories
 {
     public class UserRepository : IUserRepository
     {
         private readonly string _connectionString;
+
         public UserRepository(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                                             ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
         }
+
         public async Task<User?> GetByIdAsync(int id)
         {
-            User user = null;
-
-            using var connection = new SqlConnection(_connectionString);
-            using (SqlCommand command = new SqlCommand("[Identity].[sp_GetUserById]", connection))
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Identity].[sp_GetUserById]", connection)
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@UserID", id);
+                    CommandType = System.Data.CommandType.StoredProcedure
+                };
 
-                    try
-                    {
-                        await connection.OpenAsync();
-                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                        {
-                            if (await reader.ReadAsync())
-                            {
-                                user = new User((string)reader["Username"],
-                                                (string)reader["Password"],
-                                                (string)reader["FirstName"],
-                                                (string)reader["LastName"]);
-                            }
-                        }
-                    }
-                    catch (Exception) { }
+                command.Parameters.AddWithValue("@UserID", id);
+
+                await connection.OpenAsync();
+                using SqlDataReader reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new User(
+                        ID: (int)reader["UserID"],
+                        userName: (string)reader["Username"],
+                        HashedPassword: (string)reader["Password"],
+                        FirstName: (string)reader["FirstName"],
+                        LastName: (string)reader["LastName"]
+                    );
+                }
+
+                return null;
             }
-            return user;
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
         }
+
         public async Task<User?> GetByUsernameAsync(string userName)
         {
-            User user = null;
-
-            using var connection = new SqlConnection(_connectionString);
-            using (SqlCommand command = new SqlCommand("[Identity].[sp_GetUserByUsername]", connection))
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Identity].[sp_GetUserByUsername]", connection)
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@Username", userName);
+                    CommandType = System.Data.CommandType.StoredProcedure
+                };
 
-                    try
-                    {
-                        await connection.OpenAsync();
-                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                        {
-                            if (await reader.ReadAsync())
-                            {
-                                user = new User((int)reader["UserID"],
-                                                (string)reader["Username"],
-                                                (string)reader["Password"],
-                                                (string)reader["FirstName"],
-                                                (string)reader["LastName"]);
-                            }
-                        }
-                    }
-                    catch (Exception) { }
+                command.Parameters.AddWithValue("@Username", userName);
+
+                await connection.OpenAsync();
+                using SqlDataReader reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new User(
+                        ID: (int)reader["UserID"],
+                        userName: (string)reader["Username"],
+                        HashedPassword: (string)reader["Password"],
+                        FirstName: (string)reader["FirstName"],
+                        LastName: (string)reader["LastName"]
+                    );
+                }
+
+                return null;
             }
-            return user;
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
         }
+
         public async Task<bool> IsUsernameExistAsync(string username)
         {
-            bool found = false;
-            using var connection = new SqlConnection(_connectionString);
-            using (SqlCommand command = new SqlCommand("[Identity].[sp_CheckUsernameExists]", connection))
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Identity].[sp_CheckUsernameExists]", connection)
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@Username", username);
+                    CommandType = System.Data.CommandType.StoredProcedure
+                };
 
-                    try
-                    {
-                        await connection.OpenAsync();
-                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                        {
-                            found = reader.HasRows;
-                        }
-                    }
-                    catch (Exception) { }
+                command.Parameters.AddWithValue("@Username", username);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                // Clean scalar boolean evaluation
+                return result != null && Convert.ToBoolean(result);
             }
-            return found;
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
         }
+
         public async Task<int> AddUserAsync(User user)
         {
-            int UserID = -1;
-
-            using var connection = new SqlConnection(_connectionString);
-            using (SqlCommand command = new SqlCommand("[Identity].[sp_AddUser]", connection))
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Identity].[sp_AddUser]", connection)
                 {
-                    command.CommandType = CommandType.StoredProcedure;
+                    CommandType = System.Data.CommandType.StoredProcedure
+                };
 
-                    command.Parameters.AddWithValue("@NewUserID", user.Id);
-                    command.Parameters.AddWithValue("@Username", user.UserName);
-                    command.Parameters.AddWithValue("@Password", user.HashedPassword);
-                    command.Parameters.AddWithValue("@FirstName", user.FirstName);
-                    command.Parameters.AddWithValue("@LastName", user.LastName);
+                // Removed @NewUserID - SQL generates this automatically!
+                command.Parameters.AddWithValue("@Username", user.UserName);
+                command.Parameters.AddWithValue("@Password", user.HashedPassword);
+                command.Parameters.AddWithValue("@FirstName", user.FirstName);
+                command.Parameters.AddWithValue("@LastName", user.LastName);
 
-                    try
-                    {
-                        await connection.OpenAsync();
-                        object result = await command.ExecuteScalarAsync();
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
 
-                        if (result != null && int.TryParse(result.ToString(), out int insertedID))
-                        {
-                            user.Id = insertedID;
-                        }
+                if (result != null && int.TryParse(result.ToString(), out int insertedID))
+                {
+                    user.Id = insertedID;
+                    return insertedID;
                 }
-                    catch (Exception)
-                    {
-                        throw;
-                    }
-                return user.Id;
+
+                return -1;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex); // Automatically catches DuplicateResourceException
+                throw;
             }
         }
     }
@@ -4607,6 +4636,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Wallets;
 using SpendWise.Domain.Entities;
+using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -4645,9 +4675,10 @@ public class WalletRepository : IWalletRepository
 
             return null;
         }
-        catch (SqlException ex) when (ex.Number == -2)
+        catch (SqlException ex)
         {
-            throw new TimeoutException("The database took too long to respond while fetching the wallet.");
+            SqlExceptionHandler.Handle(ex);
+            throw;
         }
     }
 
@@ -4675,9 +4706,10 @@ public class WalletRepository : IWalletRepository
 
             return wallets;
         }
-        catch (SqlException ex) when (ex.Number == -2)
+        catch (SqlException ex)
         {
-            throw new TimeoutException("The database took too long to respond while fetching wallets.");
+            SqlExceptionHandler.Handle(ex);
+            throw;
         }
     }
 
@@ -4694,10 +4726,10 @@ public class WalletRepository : IWalletRepository
             command.Parameters.AddWithValue("@UserId", wallet.UserId);
             command.Parameters.AddWithValue("@Balance", wallet.Balance);
             command.Parameters.AddWithValue("@IsSaved", wallet.IsSaved);
-            command.Parameters.AddWithValue("@CurrencyID", wallet.Currency.Id);
+            command.Parameters.AddWithValue("@CurrencyID", wallet.CurrencyId);
 
             await connection.OpenAsync();
-            object result = await command.ExecuteScalarAsync();
+            object? result = await command.ExecuteScalarAsync();
 
             if (result != null && int.TryParse(result.ToString(), out int insertedID))
             {
@@ -4706,13 +4738,13 @@ public class WalletRepository : IWalletRepository
         }
         catch (SqlException ex)
         {
-            HandleSqlException(ex);
+            SqlExceptionHandler.Handle(ex);
             throw;
         }
         return wallet.WalletId;
     }
 
-    public async Task<int> UpdateWalletAsync(Wallet wallet)
+    public async Task<bool> UpdateWalletAsync(Wallet wallet)
     {
         try
         {
@@ -4724,22 +4756,23 @@ public class WalletRepository : IWalletRepository
 
             command.Parameters.AddWithValue("@WalletId", wallet.WalletId);
             command.Parameters.AddWithValue("@UserId", wallet.UserId);
+            command.Parameters.AddWithValue("@CurrencyId", wallet.CurrencyId); 
             command.Parameters.AddWithValue("@Balance", wallet.Balance);
             command.Parameters.AddWithValue("@IsSaved", wallet.IsSaved);
-            command.Parameters.AddWithValue("@CurrencyName", wallet.Currency.CurrencyName);
-            command.Parameters.AddWithValue("@ActualValue", wallet.Currency.LiveValue);
 
             await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync();
+            object? result = await command.ExecuteScalarAsync();
+
+            return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
         }
         catch (SqlException ex)
         {
-            HandleSqlException(ex);
+            SqlExceptionHandler.Handle(ex);
             throw;
         }
     }
 
-    public async Task<bool> DeleteWalletAsync(int walletId)
+    public async Task<bool> DeleteWalletAsync(int walletId, int userId)
     {
         try
         {
@@ -4750,46 +4783,24 @@ public class WalletRepository : IWalletRepository
             };
 
             command.Parameters.AddWithValue("@WalletId", walletId);
+            command.Parameters.AddWithValue("@UserId", userId);
 
             await connection.OpenAsync();
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-
-            return rowsAffected > 0;
+            object? result = await command.ExecuteScalarAsync();
+            return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
         }
         catch (SqlException ex)
         {
-            HandleSqlException(ex);
+            SqlExceptionHandler.Handle(ex);
             throw;
-        }
-    }
-
-    private void HandleSqlException(SqlException ex)
-    {
-        switch (ex.Number)
-        {
-            case 2601:
-            case 2627:
-                throw new DuplicateResourceException("This user already has a wallet with this currency.");
-            case 547:
-                throw new InvalidReferenceException("Invalid user, currency, or a negative balance was provided, or you are trying to delete a wallet that has existing transactions.");
-            case -2:
-                throw new TimeoutException("The database took too long to respond. Please try again.");
-            default:
-                throw new Exception($"An unexpected database error occurred. Code: {ex.Number}");
         }
     }
 
     private static Wallet MapWalletFromReader(SqlDataReader reader)
     {
-        var currency = new Currency(
-            id: Convert.ToInt32(reader["CurrencyID"]),
-            currencyName: reader["CurrencyName"].ToString()!,
-            livevalue: Convert.ToDecimal(reader["ActualValue"])
-        );
-
         return new Wallet(
             walletId: Convert.ToInt32(reader["WalletID"]),
-            currency: currency,
+            currencyId: Convert.ToInt32(reader["CurrencyID"]),
             balance: Convert.ToDecimal(reader["Balance"]),
             userId: Convert.ToInt32(reader["UserID"]),
             isSaved: Convert.ToBoolean(reader["IsSaved"])
