@@ -50,7 +50,7 @@ namespace SpendWise.Application.Services
                 UserId = item.UserId,
                 Balance = item.Balance,
                 CurrencyId = item.CurrencyId,
-            });
+            }).ToList();
         }
 
         public async Task<WalletResponse?> AddWalletAsync(WalletDTO walletDTO)

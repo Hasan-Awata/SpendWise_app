@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using SpendWise.Infrastructure.Global; // Make sure to include this
+using System.Data;
 
 namespace SpendWise.Middlewares
 {
@@ -12,57 +14,36 @@ namespace SpendWise.Middlewares
             _logger = logger;
         }
 
-        public async ValueTask<bool> TryHandleAsync(
-            HttpContext httpContext,
-            Exception exception,
-            CancellationToken cancellationToken)
+        public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
         {
-            // 1. Log the full error for debugging
             _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
 
-            // 2. Set up the standard response structure
+            var (statusCode, title, detail) = exception switch
+            {
+                // Catches ALL custom exceptions.
+                SpendWiseException customEx => (customEx.StatusCode, customEx.Title, customEx.Message),
+
+                // Catches the remaining system exceptions.
+                UnauthorizedAccessException ex => (StatusCodes.Status401Unauthorized, "Unauthorized", ex.Message),
+                ArgumentException ex => (StatusCodes.Status400BadRequest, "Bad Request", ex.Message),
+                DataException ex => (StatusCodes.Status503ServiceUnavailable, "Service Busy", ex.Message),
+                TimeoutException ex => (StatusCodes.Status504GatewayTimeout, "Gateway Timeout", ex.Message),
+
+                // The Global Fallback
+                _ => (StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred. Please try again later.")
+            };
+
+            httpContext.Response.StatusCode = statusCode;
+
             var problemDetails = new ProblemDetails
             {
+                Status = statusCode,
+                Title = title,
+                Detail = detail,
                 Instance = httpContext.Request.Path
             };
 
-            // 3. Map the specific custom exceptions to HTTP Status Codes
-            switch (exception)
-            {
-                case DuplicateResourceException duplicateEx:
-                    httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
-                    problemDetails.Title = "Resource Conflict";
-                    problemDetails.Detail = duplicateEx.Message;
-                    problemDetails.Status = StatusCodes.Status409Conflict;
-                    break;
-
-                case InvalidReferenceException referenceEx:
-                    httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-                    problemDetails.Title = "Invalid Reference";
-                    problemDetails.Detail = referenceEx.Message;
-                    problemDetails.Status = StatusCodes.Status400BadRequest;
-                    break;
-
-                case UnauthorizedAccessException unauthorizedEx:
-                    httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    problemDetails.Title = "Unauthorized";
-                    problemDetails.Detail = unauthorizedEx.Message;
-                    problemDetails.Status = StatusCodes.Status401Unauthorized;
-                    break;
-
-                default:
-                    // 4. The Fallback for unexpected crashes (NullReferenceException, Database drops, etc.)
-                    httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                    problemDetails.Title = "Internal Server Error";
-                    problemDetails.Detail = "An unexpected error occurred. Please try again later.";
-                    problemDetails.Status = StatusCodes.Status500InternalServerError;
-                    break;
-            }
-
-            // 5. Write the JSON response back to the client
             await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
-
-            // Return true to tell ASP.NET Core that we successfully handled the error
             return true;
         }
     }

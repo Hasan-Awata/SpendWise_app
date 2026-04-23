@@ -37,7 +37,7 @@ namespace SpendWise.Application.Services
                 Id = item.Id,
                 Label = item.Label,
                 OwnerId = item.OwnerId
-            });
+            }).ToList();
         }
 
         public async Task<TagResponse?> AddTagAsync(TagDTO tagDto)

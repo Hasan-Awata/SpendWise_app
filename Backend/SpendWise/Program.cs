@@ -5,6 +5,8 @@ using SpendWise.Application.DTOs.Income;
 using SpendWise.Application.Interfaces.Authentication;
 using SpendWise.Application.Interfaces.Expenses;
 using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Application.Interfaces.SavingGoals;
+using SpendWise.Application.Interfaces.SharedDebts;
 using SpendWise.Application.Interfaces.Tags;
 using SpendWise.Application.Interfaces.Users;
 using SpendWise.Application.Interfaces.Wallets;
@@ -58,6 +60,11 @@ builder.Services.AddScoped<ITagRepository, TagRepository>();
 
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
+
+builder.Services.AddScoped<ISavingGoalService, SavingGoalsService>();
+builder.Services.AddScoped<ISavingGoalRepository, SavingGoalRepository>();
+
+builder.Services.AddScoped<ISharedDebtService, SharedDebtService>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

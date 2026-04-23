@@ -27,7 +27,7 @@ namespace SpendWise.Application.Services
         // Reading methods --------------------------------------------------
         public async Task<ExpenseResponse?> GetExpenseAsync(int expenseId, int userId)
         {
-            var expense = await _expenseRepo.GetExpenseAsync(expenseId, expenseId);
+            var expense = await _expenseRepo.GetExpenseAsync(expenseId, userId);
 
             if (expense == null)
             {
@@ -63,7 +63,7 @@ namespace SpendWise.Application.Services
                 CategoryId = item.CategoryId,
                 WalletId = item.WalletId,
                 ExpenseTagId = item.ExpenseTagId == -1 ? -1 : item.ExpenseTagId,
-            });
+            }).ToList();
 
             return new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
         }

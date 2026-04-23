@@ -103,7 +103,7 @@ namespace SpendWise.Application.Services
 
 
 
-            });
+            }).ToList();
         }
     }
 

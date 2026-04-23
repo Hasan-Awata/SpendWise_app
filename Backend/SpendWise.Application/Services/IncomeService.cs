@@ -56,7 +56,7 @@ namespace SpendWise.Application.Services
                 // If IncomeTag is null, the result is null. 
                 // Otherwise, it creates the new TagResponse.
                 IncomeTagId = item.IncomeTagId == -1 ? -1 : item.IncomeTagId,
-            });
+            }).ToList();
 
             return new PagedResponse<IncomeResponse> (incomesResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
         }
