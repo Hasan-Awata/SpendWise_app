@@ -14,14 +14,14 @@ namespace SpendWise.Domain.Entities
         public int WalletId { get; set; } 
         public int IncomeTagId { get; set; } 
         public Transaction LinkedTransaction { get; set; } = new Transaction();
-        public Income(int id, int userId, decimal amount, DateTime date, Wallet wallet, Tag? incomeTag, Transaction linkedTransaction)
+        public Income(int id, int userId, decimal amount, DateTime date, int walletId, int incomeTagId, Transaction linkedTransaction)
         {
             Id = id;
             UserId = userId;
             Amount = amount;
             Date = date;
-            Wallet = wallet;
-            IncomeTag = incomeTag;
+            WalletId = walletId;
+            IncomeTagId = incomeTagId;
             LinkedTransaction = linkedTransaction;
         }
         public Income() { }

@@ -10,14 +10,8 @@ namespace SpendWise.Domain.Entities
         public int TransactionId { get; set; } = -1;
         public int UserId { get; set; } = -1;
         public string Title { get; set; } = string.Empty;
-<<<<<<< HEAD
-        public string?
-            Description { get; set; } = string.Empty;
-        public Wallet Wallet { get; set; } = new Wallet();
-=======
         public string Description { get; set; } = string.Empty;
         public int WalletId { get; set; } 
->>>>>>> origin
         public decimal Amount { get; set; } = 0.0m;
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
@@ -33,17 +27,17 @@ namespace SpendWise.Domain.Entities
         // Transaction type is specified here:
         public enTransactionType TransactionType { get; set; } // Addition or Deduction from the balance
 
-        public Transaction(int transactionId, int userId, string title, string? description, Wallet wallet, decimal amount, DateTime transactionDate, Category? transactionCategory, Tag? transactionTag, SavingGoal? savingGoal, Income? income, Expense? expense, enTransactionType transactionType)
+        public Transaction(int transactionId, int userId, string title, string? description, int walletId, decimal amount, DateTime transactionDate, int transactionCategoryId, int transactionTagId, SavingGoal? savingGoal, Income? income, Expense? expense, enTransactionType transactionType)
         {
             TransactionId = transactionId;
             UserId = userId;
             Title = title;
             Description = description;
-            Wallet = wallet;
+            WalletId = walletId;
             Amount = amount;
             TransactionDate = transactionDate;
-            TransactionCategory = transactionCategory;
-            TransactionTag = transactionTag;
+            TransactionCategoryId = transactionCategoryId;
+            TransactionTagId = transactionTagId;
             SavingGoal = savingGoal;
             Income = income;
             Expense = expense;

@@ -12,11 +12,7 @@ namespace SpendWise.Application.Interfaces.Incomes
         // Writing to database
         public Task<int> AddIncomeAsync(Income newIncome, Transaction newTransaction);
         public Task<bool> UpdateIncomeAsync(Income newIncome, Transaction newTransaction);
-<<<<<<< HEAD
-        public Task<bool> DeleteIncomeAsync(int incomeId);
-=======
         public Task<bool> DeleteIncomeAsync(int incomeId, int userId);
->>>>>>> origin
 
         // Reading from the database
         public Task<Income> GetIncomeAsync(int incomeId, int userId); // returns a transaction to store the full information

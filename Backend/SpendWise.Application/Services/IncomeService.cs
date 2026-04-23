@@ -116,24 +116,9 @@ namespace SpendWise.Application.Services
             {
                 UserId = incomeDto.UserId,
                 Amount = incomeDto.Amount,
-<<<<<<< HEAD
-                Wallet = new Wallet
-                {
-                    WalletId = incomeDto.Wallet.WalletId,
-                    UserId = incomeDto.UserId,
-                    Balance = incomeDto.Wallet.Balance,
-                    Currency = new Currency
-                    {
-                        Id = incomeDto.Wallet.Currency.CurrencyId,
-                        CurrencyName = incomeDto.Wallet.Currency.CurrencyName,
-                        LiveValue = incomeDto.Wallet.Currency.LiveValue,
-                    },
-                }
-=======
                 WalletId = incomeDto.WalletId,
                 Date = incomeDto.Date,
                 IncomeTagId = incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId,
->>>>>>> origin
             };
 
             // 4 - Create a Transaction object to store in the database
@@ -151,17 +136,11 @@ namespace SpendWise.Application.Services
             };
 
             // 5 - store both the income and the transaction in the database
-<<<<<<< HEAD
-            if (!await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction)) return null;
-
-=======
-
             // 6 - Check if the update succeeded
             if(!await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction))
             {
                 return null;
             }
->>>>>>> origin
 
             // 7 - Return the created item
             return new IncomeResponse

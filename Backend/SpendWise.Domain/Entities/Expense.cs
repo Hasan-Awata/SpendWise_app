@@ -15,15 +15,15 @@ namespace SpendWise.Domain.Entities
         public int WalletId { get; set; } 
         public DateTime Date { get; set; }
         public Transaction LinkedTransaction { get; set; } = new Transaction();
-        public Expense(int expenseId, int userId, decimal amount, string products, Tag? expenseTag, Category category, Wallet wallet, DateTime date, Transaction linkedTransaction)
+        public Expense(int expenseId, int userId, decimal amount, string products, int expenseTagId, int categoryId, int walletId, DateTime date, Transaction linkedTransaction)
         {
             ExpenseId = expenseId;
             UserId = userId;
             Amount = amount;
             Products = products;
-            ExpenseTag = expenseTag;
-            Category = category;
-            Wallet = wallet;
+            ExpenseTagId = expenseTagId;
+            CategoryId = categoryId;
+            WalletId = walletId;
             Date = date;
             LinkedTransaction = linkedTransaction;
         }

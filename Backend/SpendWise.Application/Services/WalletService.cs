@@ -92,12 +92,8 @@ namespace SpendWise.Application.Services
                 CurrencyId = walletDTO.CurrencyId,
             };
 
-<<<<<<< HEAD
-            if (!await _walletRepo.UpdateWalletAsync(updatedWallet)) return null;
-=======
             if(!await _walletRepo.UpdateWalletAsync(updatedWallet))
                 return null;
->>>>>>> origin
 
             return new WalletResponse
             {

@@ -127,14 +127,9 @@ public class WalletRepository : IWalletRepository
             command.Parameters.AddWithValue("@IsSaved", wallet.IsSaved);
 
             await connection.OpenAsync();
-<<<<<<< HEAD
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-            return rowsAffected > 0;
-=======
             object? result = await command.ExecuteScalarAsync();
 
             return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
->>>>>>> origin
         }
         catch (SqlException ex)
         {

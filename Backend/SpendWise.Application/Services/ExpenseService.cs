@@ -147,12 +147,8 @@ namespace SpendWise.Application.Services
             };
 
             // 3 - store both the income and the transaction in the database
-<<<<<<< HEAD
-            if (!await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction)) return null;
-=======
             if (!await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction))
                 return null;
->>>>>>> origin
 
             // 4 - Return the created item
             return new ExpenseResponse

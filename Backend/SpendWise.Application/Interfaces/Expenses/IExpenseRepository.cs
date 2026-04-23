@@ -11,11 +11,7 @@ namespace SpendWise.Application.Interfaces.Expenses
         // Writing to database
         public Task<int> AddExpenseAsync(Expense newExpense, Transaction newTransaction);
         public Task<bool> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction);
-<<<<<<< HEAD
-        public Task<bool> DeleteExpenseAsync(int expenseId);
-=======
         public Task<bool> DeleteExpenseAsync(int expenseId, int userId);
->>>>>>> origin
 
         // Reading from the database
         public Task<Expense> GetExpenseAsync(int expenseId, int userId);
