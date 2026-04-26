@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
-using SpendWise.Infrastructure.Global; 
+using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -40,17 +40,19 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
                 command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
                 command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
+
+                command.Parameters.AddWithValue("@TransAmountInSp", newTransaction.AmountInSp);
+
                 command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
 
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
 
-                // Clean, one-line evaluation
                 return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
             }
             catch (SqlException ex)
             {
-                SqlExceptionHandler.Handle(ex); // Centralized Exception Handling
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }
@@ -75,6 +77,9 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
                 command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
                 command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
+
+                command.Parameters.AddWithValue("@TransAmountInSp", newTransaction.AmountInSp);
+
                 command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
 
                 await connection.OpenAsync();
@@ -100,7 +105,7 @@ namespace SpendWise.Infrastructure.Repositories
                 };
 
                 command.Parameters.AddWithValue("@IncomeId", incomeId);
-                command.Parameters.AddWithValue("@UserId", userId); // Pass to SQL for ownership check
+                command.Parameters.AddWithValue("@UserId", userId);
 
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
@@ -109,7 +114,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
             catch (SqlException ex)
             {
-                SqlExceptionHandler.Handle(ex); // Centralized Exception Handling
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }
@@ -141,7 +146,6 @@ namespace SpendWise.Infrastructure.Repositories
                         WalletId = Convert.ToInt32(reader["IncomeWalletID"])
                     };
 
-                    // Map ID directly instead of creating a Tag object
                     if (reader["IncomeTagID"] != DBNull.Value)
                     {
                         income.IncomeTagId = Convert.ToInt32(reader["IncomeTagID"]);
@@ -158,7 +162,7 @@ namespace SpendWise.Infrastructure.Repositories
                             Amount = Convert.ToDecimal(reader["TransAmount"]),
                             TransactionDate = Convert.ToDateTime(reader["TransactionDate"]),
                             TransactionType = (enTransactionType)Convert.ToInt32(reader["TransactionType"]),
-                            WalletId = Convert.ToInt32(reader["TransWalletID"]) // Map ID directly instead of Wallet object
+                            WalletId = Convert.ToInt32(reader["TransWalletID"])
                         };
 
                         if (reader["TransTagID"] != DBNull.Value)
@@ -213,7 +217,7 @@ namespace SpendWise.Infrastructure.Repositories
                             UserId = Convert.ToInt32(reader["UserID"]),
                             Amount = Convert.ToDecimal(reader["Amount"]),
                             Date = Convert.ToDateTime(reader["Date"]),
-                            WalletId = Convert.ToInt32(reader["WalletID"]) 
+                            WalletId = Convert.ToInt32(reader["WalletID"])
                         };
 
                         if (reader["TagID"] != DBNull.Value)

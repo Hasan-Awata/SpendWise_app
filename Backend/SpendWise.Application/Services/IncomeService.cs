@@ -5,18 +5,30 @@ using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.DTOs.PagedResponse;
 using SpendWise.Application.DTOs.Tag;
 using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Application.Interfaces.ExchangeRate;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
+using SpendWise.Domain.Constants;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SpendWise.Application.Services
 {
-    public class IncomeService: IIncomeService
+    public class IncomeService : IIncomeService
     {
         private readonly IIncomeRepository _incomeRepo;
-        
-        public IncomeService(IIncomeRepository incomeRepo)
+        private readonly IWalletRepository _walletRepo;
+        private readonly IExchangeRateService _exchangeRateService;
+
+        public IncomeService(
+            IIncomeRepository incomeRepo,
+            IWalletRepository walletRepo,
+            IExchangeRateService exchangeRateService)
         {
             _incomeRepo = incomeRepo;
+            _walletRepo = walletRepo;
+            _exchangeRateService = exchangeRateService;
         }
 
         // Reading methods --------------------------------------------------
@@ -53,12 +65,10 @@ namespace SpendWise.Application.Services
                 Amount = item.Amount,
                 WalletId = item.WalletId,
                 Date = item.Date,
-                // If IncomeTag is null, the result is null. 
-                // Otherwise, it creates the new TagResponse.
                 IncomeTagId = item.IncomeTagId == -1 ? -1 : item.IncomeTagId,
             }).ToList();
 
-            return new PagedResponse<IncomeResponse> (incomesResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
+            return new PagedResponse<IncomeResponse>(incomesResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
         }
 
         // Writing methods --------------------------------------------------
@@ -74,18 +84,41 @@ namespace SpendWise.Application.Services
                 IncomeTagId = incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId,
             };
 
+            // 2 - Fetch the wallet info from the DB and normalize the amount to Syrian Pound
+            var wallet = await _walletRepo.GetWalletByIdAsync(newIncome.WalletId, newIncome.UserId);
+            decimal amountInSp = 0.0m;
+
+            if (wallet == null)
+            {
+                return null;
+            }
+
+            if (wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
+            {
+                amountInSp = newIncome.Amount;
+            }
+            else
+            {
+                Currency? walletCurrency = SupportedCurrencies.GetById(wallet.CurrencyId);
+
+                if (walletCurrency == null) return null;
+
+                amountInSp = await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", newIncome.Amount);
+            }
+
             // 4 - Create a Transaction object to store in the database
             var newTransaction = new Transaction
             {
-              UserId = incomeDto.UserId,
-              Title = "Added Income",
-              Amount = incomeDto.Amount,
-              Description = incomeDto.Description,
-              Income = newIncome,
-              WalletId = newIncome.WalletId,
-              TransactionTagId = newIncome.IncomeTagId,
-              TransactionDate = incomeDto.Date,
-              TransactionType = enTransactionType.Addition,
+                UserId = incomeDto.UserId,
+                Title = "Added Income",
+                Amount = incomeDto.Amount,
+                AmountInSp = amountInSp, // Properly assigned!
+                Description = incomeDto.Description,
+                Income = newIncome,
+                WalletId = newIncome.WalletId,
+                TransactionTagId = newIncome.IncomeTagId,
+                TransactionDate = incomeDto.Date,
+                TransactionType = enTransactionType.Addition,
             };
 
             // 5 - store both the income and the transaction in the database
@@ -98,22 +131,24 @@ namespace SpendWise.Application.Services
             }
 
             // 7 - Return the created item
-            return new IncomeResponse 
-            { 
+            return new IncomeResponse
+            {
                 Id = newIncomeId,
                 UserId = incomeDto.UserId,
                 Title = newTransaction.Title,
-                Amount= newTransaction.Amount,
+                Amount = newTransaction.Amount,
                 WalletId = incomeDto.WalletId,
                 IncomeTagId = newTransaction.TransactionTagId,
                 Date = incomeDto.Date,
             };
         }
+
         public async Task<IncomeResponse?> UpdateIncomeAsync(IncomeDTO incomeDto)
         {
             // 1 - Assign the essential data from incomeDTO into an income object
             var updatedIncome = new Income
             {
+                Id = incomeDto.Id, // Ensure the ID is mapped for updates
                 UserId = incomeDto.UserId,
                 Amount = incomeDto.Amount,
                 WalletId = incomeDto.WalletId,
@@ -121,12 +156,35 @@ namespace SpendWise.Application.Services
                 IncomeTagId = incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId,
             };
 
+            // 2 - Fetch the wallet info from the DB and normalize the amount to Syrian Pound
+            var wallet = await _walletRepo.GetWalletByIdAsync(updatedIncome.WalletId, updatedIncome.UserId);
+            decimal amountInSp = 0.0m;
+
+            if (wallet == null)
+            {
+                return null;
+            }
+
+            if (wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
+            {
+                amountInSp = updatedIncome.Amount;
+            }
+            else
+            {
+                Currency? walletCurrency = SupportedCurrencies.GetById(wallet.CurrencyId);
+
+                if (walletCurrency == null) return null;
+
+                amountInSp = await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", updatedIncome.Amount);
+            }
+
             // 4 - Create a Transaction object to store in the database
             var updatedTransaction = new Transaction
             {
                 UserId = incomeDto.UserId,
-                Title = "Added Income",
+                Title = "Updated Income", // Updated for accuracy
                 Amount = incomeDto.Amount,
+                AmountInSp = amountInSp, // Properly assigned!
                 Description = incomeDto.Description,
                 Income = updatedIncome,
                 WalletId = updatedIncome.WalletId,
@@ -137,7 +195,7 @@ namespace SpendWise.Application.Services
 
             // 5 - store both the income and the transaction in the database
             // 6 - Check if the update succeeded
-            if(!await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction))
+            if (!await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction))
             {
                 return null;
             }

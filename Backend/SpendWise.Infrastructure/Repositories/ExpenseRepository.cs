@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
-using SpendWise.Infrastructure.Global; // Added Global Exception Handler
+using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -31,7 +31,6 @@ namespace SpendWise.Infrastructure.Repositories
                     CommandType = CommandType.StoredProcedure
                 };
 
-                // Directly mapping the IDs as defined in your Expense.cs domain entity
                 command.Parameters.AddWithValue("@ExpenseUserId", newExpense.UserId);
                 command.Parameters.AddWithValue("@ExpenseWalletId", newExpense.WalletId);
                 command.Parameters.AddWithValue("@ExpenseCategoryId", newExpense.CategoryId);
@@ -43,18 +42,20 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
                 command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
                 command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
+
+                command.Parameters.AddWithValue("@TransAmountInSp", newTransaction.AmountInSp);
+
                 command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
                 command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategoryId > 0 ? newTransaction.TransactionCategoryId : DBNull.Value);
 
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
 
-                // Clean, one-line evaluation
                 return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
             }
             catch (SqlException ex)
             {
-                SqlExceptionHandler.Handle(ex); // Centralized Exception Handling
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }
@@ -81,6 +82,9 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
                 command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
                 command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
+
+                command.Parameters.AddWithValue("@TransAmountInSp", newTransaction.AmountInSp);
+
                 command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
                 command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategoryId > 0 ? newTransaction.TransactionCategoryId : DBNull.Value);
 
@@ -96,7 +100,6 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        // Added userId parameter for IDOR security!
         public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
         {
             try
@@ -108,12 +111,11 @@ namespace SpendWise.Infrastructure.Repositories
                 };
 
                 command.Parameters.AddWithValue("@ExpenseId", expenseId);
-                command.Parameters.AddWithValue("@UserId", userId); // Pass to SQL for ownership check
+                command.Parameters.AddWithValue("@UserId", userId);
 
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
 
-                // Clean, one-line evaluation
                 return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
@@ -141,7 +143,6 @@ namespace SpendWise.Infrastructure.Repositories
 
                 if (await reader.ReadAsync())
                 {
-                    // Fixed mapping: creating the object directly using IDs, removing the Income copy-paste bug
                     var expense = new Expense
                     {
                         ExpenseId = Convert.ToInt32(reader["ExpenseID"]),

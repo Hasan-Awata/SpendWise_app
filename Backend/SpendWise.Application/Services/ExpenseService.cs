@@ -12,16 +12,23 @@ using SpendWise.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Application.Interfaces.ExchangeRate;
+using SpendWise.Domain.Constants;
 
 namespace SpendWise.Application.Services
 {
     public class ExpenseService : IExpenseService
     {
         private readonly IExpenseRepository _expenseRepo;
+        private readonly IWalletRepository _walletRepo;
+        private readonly IExchangeRateService _exchangeRateService;
 
-        public ExpenseService(IExpenseRepository expenseRepo)
+        public ExpenseService(IExpenseRepository expenseRepo, IWalletRepository walletRepo, IExchangeRateService exchangeRateService)
         {
             _expenseRepo = expenseRepo;
+            _walletRepo = walletRepo;
+            _exchangeRateService = exchangeRateService;
         }
 
         // Reading methods --------------------------------------------------
@@ -73,7 +80,7 @@ namespace SpendWise.Application.Services
         public async Task<ExpenseResponse?> AddExpenseAsync(ExpenseDTO expenseDto)
         {
             // 1 - map the expenseDTO into an expense object
-            var newExpens = new Expense
+            var newExpense = new Expense
             {
                 UserId = expenseDto.UserId,
                 Amount = expenseDto.Amount,
@@ -84,36 +91,59 @@ namespace SpendWise.Application.Services
                 WalletId = expenseDto.WalletId,
             };
 
-            // 2 - Create a Transaction object to store in the database
+            // 2 - Fethcing the wallet info from the DB and normalizing the amount to Syrian Pound
+            var wallet = await _walletRepo.GetWalletByIdAsync(newExpense.WalletId, newExpense.UserId);
+            decimal amountInSp = 0.0m;
+            
+            if (wallet == null)
+            {
+                return null;
+            }
+
+            if(wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
+            {
+                amountInSp = newExpense.Amount;
+            }
+            else
+            {
+                Currency? walletCurrency = SupportedCurrencies.GetById(wallet.CurrencyId);
+                
+                if (walletCurrency == null) return null;
+
+                amountInSp = await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", newExpense.Amount);
+            }
+
+            // 3 - Create a Transaction object to store in the database
             var newTransaction = new Transaction
             {
                 UserId = expenseDto.UserId,
-                Expense = newExpens,
+                Expense = newExpense,
                 Description = expenseDto.Description,
                 Title = "Added Expense",
                 TransactionType = enTransactionType.Dedduction,
                 Amount = expenseDto.Amount,
-                TransactionCategoryId = newExpens.CategoryId,
-                TransactionDate = newExpens.Date,
-                WalletId = newExpens.WalletId,
-                TransactionTagId = newExpens.ExpenseTagId,
+                AmountInSp = amountInSp,
+                TransactionCategoryId = newExpense.CategoryId,
+                TransactionDate = newExpense.Date,
+                WalletId = newExpense.WalletId,
+                TransactionTagId = newExpense.ExpenseTagId,
             };
 
-            // 3 - store both the income and the transaction in the database
-            int newExpenseId = await _expenseRepo.AddExpenseAsync(newExpens, newTransaction);
+            // 4 - store both the income and the transaction in the database
+            int newExpenseId = await _expenseRepo.AddExpenseAsync(newExpense, newTransaction);
 
-            // 4 - Return the created item
+            // 5 - Return the created item
             return new ExpenseResponse
             {
                 ExpenseId = newExpenseId,
-                UserId = newExpens.UserId,
+                UserId = newExpense.UserId,
                 Title = "Added expense",
-                Amount = newExpens.Amount,
-                Products = newExpens.Products,
-                Date = newExpens.Date,
-                CategoryId = newExpens.CategoryId,
-                WalletId = newExpens.WalletId,
-                ExpenseTagId = newExpens.ExpenseTagId,
+                Amount = newExpense.Amount,
+                Products = newExpense.Products,
+                Date = newExpense.Date,
+                CategoryId = newExpense.CategoryId,
+                WalletId = newExpense.WalletId,
+                ExpenseTagId = newExpense.ExpenseTagId,
             };
         }
         public async Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto)
@@ -131,31 +161,54 @@ namespace SpendWise.Application.Services
                 WalletId = expenseDto.WalletId,
             };
 
-            // 2 - Create a Transaction object to store in the database
+            // 2 - Fethcing the wallet info from the DB and normalizing the amount to Syrian Pound
+            var wallet = await _walletRepo.GetWalletByIdAsync(updatedExpens.WalletId, updatedExpens.UserId);
+            decimal amountInSp = 0.0m;
+
+            if (wallet == null)
+            {
+                return null;
+            }
+
+            if (wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
+            {
+                amountInSp = updatedExpens.Amount;
+            }
+            else
+            {
+                Currency? walletCurrency = SupportedCurrencies.GetById(wallet.CurrencyId);
+
+                if (walletCurrency == null) return null;
+
+                amountInSp = await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", updatedExpens.Amount);
+            }
+
+            // 3 - Create a Transaction object to store in the database
             var newTransaction = new Transaction
             {
                 UserId = expenseDto.UserId,
                 Expense = updatedExpens,
                 Description = expenseDto.Description,
-                Title = "Added Expense",
+                Title = "Updated Expense",
                 TransactionType = enTransactionType.Dedduction,
                 Amount = expenseDto.Amount,
+                AmountInSp = amountInSp,
                 TransactionCategoryId = updatedExpens.CategoryId,
                 TransactionDate = updatedExpens.Date,
                 WalletId = updatedExpens.WalletId,
                 TransactionTagId = updatedExpens.ExpenseTagId,
             };
 
-            // 3 - store both the income and the transaction in the database
+            // 4 - store both the income and the transaction in the database
             if (!await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction))
                 return null;
 
-            // 4 - Return the created item
+            // 5 - Return the created item
             return new ExpenseResponse
             {
                 ExpenseId = updatedExpens.ExpenseId,
                 UserId = updatedExpens.UserId,
-                Title = "Added expense",
+                Title = "Updated expense",
                 Amount = updatedExpens.Amount,
                 Date = updatedExpens.Date,
                 Products = updatedExpens.Products,

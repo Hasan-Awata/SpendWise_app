@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using SpendWise.Application.DTOs.Income;
 using SpendWise.Application.Interfaces.Authentication;
+using SpendWise.Application.Interfaces.ExchangeRate;
 using SpendWise.Application.Interfaces.Expenses;
 using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Application.Interfaces.SavingGoals;
@@ -19,6 +19,7 @@ using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Controllers & JSON ───────────────────────────────────────────────────
+builder.Services.AddMemoryCache(); 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -65,6 +66,8 @@ builder.Services.AddScoped<ISavingGoalService, SavingGoalsService>();
 builder.Services.AddScoped<ISavingGoalRepository, SavingGoalRepository>();
 
 builder.Services.AddScoped<ISharedDebtService, SharedDebtService>();
+
+builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
