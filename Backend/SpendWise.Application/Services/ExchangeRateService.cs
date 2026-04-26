@@ -61,7 +61,7 @@ namespace SpendWise.Application.Services
             
             decimal exchangeRate = await GetExchangeRateAsync(currencyKey , rateType);
 
-            decimal amountInSP = exchangeRate / amount; 
+            decimal amountInSP = exchangeRate * amount; 
 
             return Math.Round(amountInSP / 5, MidpointRounding.AwayFromZero) * 5;
         }
