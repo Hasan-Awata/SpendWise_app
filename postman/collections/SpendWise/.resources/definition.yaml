@@ -7,4 +7,4 @@ auth:
     type: bearer
     name: bearer auth
     credentials:
-      token: "{{bearerToken}}"
+      token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNCIsInByZWZlcnJlZF91c2VybmFtZSI6ImhoaGFhYSIsImp0aSI6Ijc3YjJjNmE4LWE1ODQtNGYwYS1hNWJmLTY0NzlhNWI3MWZhOCIsImV4cCI6MTc3NzY2OTgwMCwiaXNzIjoiU3BlbmRXaXNlIiwiYXVkIjoiU3BlbmRXaXNlVXNlcnMifQ.H9wzdGacwR7jGGGXhx8H3e9zXMsnS5k4pgizh0qblk8
