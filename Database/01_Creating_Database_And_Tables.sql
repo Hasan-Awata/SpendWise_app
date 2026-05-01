@@ -32,9 +32,8 @@ CREATE TABLE Users (
 CREATE TABLE Currencies (
     CurrencyID INT IDENTITY(1,1) PRIMARY KEY,
     CurrencyName NVARCHAR(50) NOT NULL,
-    ActualValue DECIMAL(18,4) NOT NULL,
+    CurrencyCode NVARCHAR(3) NOT NULL,
     CONSTRAINT UQ_Currencies_Name UNIQUE (CurrencyName),
-    CONSTRAINT CHK_Currencies_ActualValue CHECK (ActualValue >= 0)
 );
 
 CREATE TABLE Categories (

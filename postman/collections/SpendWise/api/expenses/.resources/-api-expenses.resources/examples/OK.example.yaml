@@ -1,14 +1,14 @@
 $kind: http-example
 request:
-  url: "{{baseUrl}}/api/expenses?PageSize=92&PageNumber=675599094"
+  url: "{{baseUrl}}/api/expenses?PageSize=55&PageNumber=1470167443"
   method: GET
   headers:
     - key: Authorization
       value: Bearer <token>
       description: "Added as a part of security scheme: bearer"
   queryParams:
-    PageSize: "92"
-    PageNumber: "675599094"
+    PageSize: "55"
+    PageNumber: "1470167443"
 response:
   statusCode: 200
   statusText: OK

@@ -3,8 +3,8 @@ name: SpendWise
 variables:
   baseUrl: /
 auth:
-  - id: 75c6c1a0-86db-49b9-88a6-da05ebd54016
+  - id: be963d0f-f25e-4464-86ef-c6ae3f545325
     type: bearer
     name: bearer auth
     credentials:
-      token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNCIsInByZWZlcnJlZF91c2VybmFtZSI6ImhoaGFhYSIsImp0aSI6Ijc3YjJjNmE4LWE1ODQtNGYwYS1hNWJmLTY0NzlhNWI3MWZhOCIsImV4cCI6MTc3NzY2OTgwMCwiaXNzIjoiU3BlbmRXaXNlIiwiYXVkIjoiU3BlbmRXaXNlVXNlcnMifQ.H9wzdGacwR7jGGGXhx8H3e9zXMsnS5k4pgizh0qblk8
+      token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNSIsInByZWZlcnJlZF91c2VybmFtZSI6Im5ld1VzZXIxIiwianRpIjoiMGY0NDQ1YzgtMjNmYS00MDUyLWEzMDctM2Q3NjVkNDIzMTRlIiwiZXhwIjoxNzc3Njc3ODI0LCJpc3MiOiJTcGVuZFdpc2UiLCJhdWQiOiJTcGVuZFdpc2VVc2VycyJ9.37lhF6F_C8NwYII3Ef7BSrkjbBzPIHBDTWU9kLOJtMs

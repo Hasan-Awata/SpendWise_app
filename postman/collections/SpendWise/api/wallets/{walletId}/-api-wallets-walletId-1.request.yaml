@@ -5,16 +5,16 @@ method: PATCH
 headers:
   Content-Type: application/json
 pathVariables:
-  walletId: "9299"
+  walletId: "348"
 body:
   type: json
   content: |-
     {
-      "currencyId": 3303,
+      "currencyId": 1487674339,
       "isSaved": false,
-      "userId": 1337,
-      "walletId": 2664,
-      "balance": 1.3412597205326854e+308
+      "userId": 8204,
+      "walletId": 523,
+      "balance": 7.159384727974483e+307
     }
 examples: ./.resources/-api-wallets-walletId-1.resources/examples
 order: 2000

@@ -11,18 +11,18 @@ request:
       value: Bearer <token>
       description: "Added as a part of security scheme: bearer"
   pathVariables:
-    debtID: "9299"
+    debtID: "348"
   body:
     type: json
     content: |-
       {
-        "creditorID": 8048,
-        "debtorID": 1636,
-        "dueDate": "2020-01-09T16:42:31.795Z",
+        "creditorID": 3999,
+        "debtorID": 2327,
+        "dueDate": "1954-03-17T18:04:37.882Z",
         "title": "string",
-        "amount": 1.1431448325819525e+307,
+        "amount": 1.5032859263151424e+308,
         "status": "string",
-        "createdAt": "1978-06-13T14:05:34.781Z"
+        "createdAt": "1984-04-27T09:56:24.388Z"
       }
 response:
   statusCode: 404
@@ -35,9 +35,8 @@ response:
       {
         "type": "string",
         "title": "string",
-        "status": 651,
+        "status": 3829,
         "detail": "string",
-        "instance": "string",
-        "key_0": "string"
+        "instance": "string"
       }
 order: 3000

@@ -8,13 +8,13 @@ body:
   type: json
   content: |-
     {
-      "amount": 8.447251545425373e+307,
-      "date": "1962-01-27T18:52:39.145Z",
+      "amount": 5.886967443789969e+306,
+      "date": "2021-03-31T09:03:57.917Z",
       "title": "string",
-      "userId": 3806,
-      "walletId": 711,
-      "id": 4408,
-      "incomeTagId": 8460,
+      "userId": 9390,
+      "walletId": 5230,
+      "id": 2718,
+      "incomeTagId": 7729,
       "description": "string"
     }
 examples: ./.resources/-api-incomes-1.resources/examples

@@ -8,9 +8,9 @@ body:
   type: json
   content: |-
     {
-      "id": 1,
-      "label": "NewTag",
-      "ownerId": 15
+      "id": 9476,
+      "label": "string",
+      "ownerId": 5231
     }
 examples: ./.resources/-api-tags-1.resources/examples
 order: 3000
