@@ -11,6 +11,7 @@ namespace SpendWise.Application.DTOs.Wallet
         public int WalletId { get; set; } = -1;
 
         [Required(ErrorMessage = "Please enter the currencyDto")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select a valid currency.")]
         public int CurrencyId { get; set; }
 
         [Range(0, double.MaxValue, ErrorMessage = "Balance cannot be negative!")]
