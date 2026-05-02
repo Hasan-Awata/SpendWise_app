@@ -2,7 +2,6 @@
 
 namespace SpendWise.Infrastructure.Global
 {
-    // The Base Exception
     public abstract class SpendWiseException : Exception
     {
         public int StatusCode { get; }
@@ -26,5 +25,11 @@ namespace SpendWise.Infrastructure.Global
     {
         public InvalidReferenceException(string message)
             : base(message, 400, "Invalid Reference") { }
+    }
+
+    public class ResourceNotFoundException : SpendWiseException
+    {
+        public ResourceNotFoundException(string message)
+            : base(message, 404, "Resource Not Found") { }
     }
 }

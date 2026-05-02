@@ -61,7 +61,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     IF EXISTS (SELECT 1 FROM [Planning].[Budgets] WHERE UserID = @UserID AND CategoryID = @CategoryID)
-        THROW 2627, 'A budget for this category already exists for the user.', 1;
+        THROW 50004, 'A budget for this category already exists for the user.', 1;
 
     INSERT INTO [Planning].[Budgets] (UserID, CategoryID, PercentageLimit, StartDate, EndDate, IsActive)
     VALUES (@UserID, @CategoryID, @PercentageLimit, @StartDate, @EndDate, @IsActive);

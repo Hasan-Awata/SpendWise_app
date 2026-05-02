@@ -52,7 +52,7 @@ namespace SpendWise.Controllers
             if (budgetDto.UserId != CurrentUserId) return Unauthorized();
 
             var budgetId = await _budgetService.SetCategoryBudgetAsync(budgetDto);
-            return budgetId <= 0 ? BadRequest() : CreatedAtAction(nameof(GetBudgetById), new { budgetId }, budgetId);
+            return budgetId <= 0 ? BadRequest() : CreatedAtAction(nameof(GetBudgetById), new { budgetId = budgetId }, budgetId);
         }
 
         [HttpPatch("{categoryId}")] 

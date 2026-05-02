@@ -40,8 +40,7 @@ ALTER SCHEMA [Ledger] TRANSFER dbo.Incomes;
 ALTER SCHEMA [Ledger] TRANSFER dbo.Transactions;
 GO
 
-
-insert into config.Categories(Name,Priority) values ('Basics',1);
-insert into config.Categories(Name,Priority) values ('Secondaries',2);
-insert into config.Categories(Name,Priority) values ('Expenses',3);
-insert into config.Categories(Name,Priority) values ('Savings',4);
+insert into [config].Categories(Name,Priority) values ('Essentials',1);
+insert into [config].Categories(Name,Priority) values ('Secondaries',2);
+insert into [config].Categories(Name,Priority) values ('Luxuries',3);
+insert into [config].Categories(Name,Priority) values ('Savings',4);
