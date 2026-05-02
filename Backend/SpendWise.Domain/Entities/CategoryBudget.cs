@@ -27,16 +27,6 @@ namespace SpendWise.Domain.Entities
             EndDate = endDate;
             IsActive = isActive;
         }
-        public CategoryBudget(int categoryBudgetId, int userId, Category category, decimal percentageLimit, decimal percentageProgress, DateTime startDate, DateTime endDate, bool isActive)
-        {
-            CategoryBudgetId = categoryBudgetId;
-            UserId = userId;
-            Category = category;
-            PercentageLimit = percentageLimit;
-            PercentageProgress = percentageProgress;
-            StartDate = startDate;
-            EndDate = endDate;
-            IsActive = isActive;
-        }
+        public CategoryBudget() { }
     }
 }

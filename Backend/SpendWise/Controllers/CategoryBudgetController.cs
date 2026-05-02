@@ -1,15 +1,14 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.Category;
-using SpendWise.Application.Interfaces.CategoryBudget;
+using SpendWise.Application.Interfaces.Categories;
 using System.Security.Claims;
 
 namespace SpendWise.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/CategoryBudget")]
+    [Route("api/categories/budgets")] 
     public class CategoryBudgetController : ControllerBase
     {
         private readonly ICategoryBudgetService _budgetService;
@@ -28,65 +27,55 @@ namespace SpendWise.Controllers
 
         public CategoryBudgetController(ICategoryBudgetService budgetService) => _budgetService = budgetService;
 
-        [HttpGet("GetAllBudgets")]
+        [HttpGet] 
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllBudgets()
         {
             return Ok(await _budgetService.GetAllUserBudgetsAsync(CurrentUserId));
         }
 
-        [HttpGet("GetBudgetById/{budgetId}")]
+        [HttpGet("{categoryId}")] 
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetBudgetById([FromRoute] int budgetId)
+        public async Task<IActionResult> GetBudgetById([FromRoute] int categoryId)
         {
-            var budget = await _budgetService.GetCategoryBudgetByIdAsync(budgetId);
+            var budget = await _budgetService.GetCategoryBudgetAsync(CurrentUserId, categoryId);
             return (budget == null || budget.UserId != CurrentUserId) ? NotFound() : Ok(budget);
         }
 
-        [HttpPost("AddBudget/{budgetDto}")]
+        [HttpPost] 
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> AddBudget([FromBody] CategoryBudgetDTO budgetDto)
         {
-            var budgetId = await _budgetService.AddCategoryBudgetAsync(CurrentUserId, budgetDto);
+            if (budgetDto.UserId != CurrentUserId) return Unauthorized();
+
+            var budgetId = await _budgetService.SetCategoryBudgetAsync(budgetDto);
             return budgetId <= 0 ? BadRequest() : CreatedAtAction(nameof(GetBudgetById), new { budgetId }, budgetId);
         }
 
-        [HttpPatch("UpdateBudget/{budgetId}")]
+        [HttpPatch("{categoryId}")] 
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> UpdateBudget([FromRoute] int budgetId, [FromBody] CategoryBudgetDTO budgetDto)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> UpdateBudget([FromRoute] int categoryId, [FromBody] CategoryBudgetDTO budgetDto) 
         {
-            var existing = await _budgetService.GetCategoryBudgetByIdAsync(budgetId);
-            if (existing == null || existing.UserId != CurrentUserId) return NotFound();
+            if (budgetDto.UserId != CurrentUserId) return Unauthorized();
 
-            return await _budgetService.UpdateCategoryBudgetAsync(budgetId, budgetDto) ? NoContent() : BadRequest();
+            budgetDto.CategoryId = categoryId;
+
+            return await _budgetService.UpdateCategoryBudgetAsync(budgetDto) ? NoContent() : BadRequest();
         }
 
-        [HttpDelete("DeleteBudget/{budgetId}")]
+        [HttpDelete("{categoryId}")] 
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> DeleteBudget([FromRoute] int budgetId)
+        public async Task<IActionResult> DeleteBudget([FromRoute] int categoryId) 
         {
-            var existing = await _budgetService.GetCategoryBudgetByIdAsync(budgetId);
-            if (existing == null || existing.UserId != CurrentUserId) return NotFound();
-
-            return await _budgetService.DeleteCategoryBudgetAsync(budgetId) ? NoContent() : BadRequest();
+            return await _budgetService.DeleteCategoryBudgetAsync(CurrentUserId, categoryId) ? NoContent() : BadRequest();
         }
-        [HttpDelete("IsExistBudget/{budgetId}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> IsExistBudget([FromRoute] int budgetId)
-        {
-            if(budgetId<=0) return BadRequest();
-            return (await _budgetService.CategoryBudgetExistsAsync(budgetId)) ? Ok() : NotFound();
-        }
-
-
-
     }
 }

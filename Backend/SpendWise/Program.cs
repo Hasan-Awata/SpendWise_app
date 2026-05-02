@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using SpendWise.Application.Interfaces.Authentication;
+using SpendWise.Application.Interfaces.Categories;
 using SpendWise.Application.Interfaces.ExchangeRate;
 using SpendWise.Application.Interfaces.Expenses;
 using SpendWise.Application.Interfaces.Incomes;
@@ -64,6 +65,9 @@ builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 
 builder.Services.AddScoped<ISavingGoalService, SavingGoalsService>();
 builder.Services.AddScoped<ISavingGoalRepository, SavingGoalRepository>();
+
+builder.Services.AddScoped<ICategoryBudgetRepository, CategoryBudgetRepository>();
+builder.Services.AddScoped<ICategoryBudgetService, CategoryBudgetService>();
 
 builder.Services.AddScoped<ISharedDebtService, SharedDebtService>();
 

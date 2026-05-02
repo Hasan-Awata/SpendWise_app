@@ -8,26 +8,21 @@ namespace SpendWise.Application.DTOs.Category
     public class CategoryBudgetDTO
     {
         public int CategoryBudgetId { get; set; }
-
-        [Required(ErrorMessage = "Please enter the user id")]
         public int UserId { get; set; }
 
-        [Required(ErrorMessage = "Please enter the category info of this budget")]
-        public CategoryDTO CategoryDto { get; set; } = new CategoryDTO();
+        [Required]
+        public int CategoryId { get; set; }
 
-        [Required(ErrorMessage = "Please enter the consumption limit of this category")]
+        [Required]
         public decimal PercentageLimit { get; set; }
 
-        [Required(ErrorMessage = "Please enter the percentage of the money consumed in this category")]
-        public decimal PercentageProgress { get; set; }
+        public decimal PercentageProgress { get; set; } = 0;
 
-        [Required(ErrorMessage = "Please enter the date this budget started")]
+        [Required]
         public DateTime StartDate { get; set; }
 
-        [Required(ErrorMessage = "Please enter the date this budget supposed to end")]
+        [Required]
         public DateTime EndDate { get; set; }
-
-        [Required(ErrorMessage = "Enter the status of this budget")]
         public bool IsActive { get; set; }
     }
 }

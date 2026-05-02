@@ -9,7 +9,7 @@ namespace SpendWise.Application.DTOs.Category
     {
         public int CategoryBudgetId { get; set; }
         public int UserId { get; set; }
-        public CategoryDTO Category { get; set; } = new CategoryDTO();
+        public int CategoryId { get; set; } = -1;
         public decimal PercentageLimit { get; set; }
         public decimal PercentageProgress { get; set; }
         public DateTime StartDate { get; set; }
@@ -19,15 +19,14 @@ namespace SpendWise.Application.DTOs.Category
         {
             CategoryBudgetId = categoryBudget.CategoryBudgetId;
             UserId = categoryBudget.UserId;
-           Category=new CategoryDTO(categoryBudget.Category);
+            CategoryId = categoryBudget.CategoryId;
             PercentageLimit = categoryBudget.PercentageLimit;
             PercentageProgress = categoryBudget.PercentageProgress;
             StartDate = categoryBudget.StartDate;
             EndDate = categoryBudget.EndDate;
             IsActive = categoryBudget.IsActive;
-
-
         }
+        public CategoryBudgetResponse() { }
 
     }
 }

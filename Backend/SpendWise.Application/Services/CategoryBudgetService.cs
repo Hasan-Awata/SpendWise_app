@@ -1,6 +1,6 @@
 ﻿using SpendWise.Application.DTOs.Category;
-using SpendWise.Application.Interfaces.CategoryBudget;
-using SpendWise.Application.Interfaces.Categorys;
+using SpendWise.Application.Interfaces.Categories;
+using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -24,62 +24,57 @@ namespace SpendWise.Application.Services
 
             if (budgets == null) return Enumerable.Empty<CategoryBudgetResponse>();
 
-            // Using the constructor in CategoryBudgetResponse for cleaner mapping
-            return budgets.Select(budget => new CategoryBudgetResponse(budget));
+            return budgets.Select(budget => new CategoryBudgetResponse
+            {
+                CategoryBudgetId = budget.CategoryBudgetId,
+                CategoryId = budget.CategoryId,
+                UserId = budget.UserId,
+                PercentageLimit = budget.PercentageLimit,
+                PercentageProgress = budget.PercentageProgress,
+                IsActive = budget.IsActive,
+                StartDate = budget.StartDate,
+                EndDate = budget.EndDate,
+            });
           
         }
 
        
-        public async Task<CategoryBudgetResponse?> GetCategoryBudgetByIdAsync(int categoryBudgetId)
+        public async Task<CategoryBudgetResponse?> GetCategoryBudgetAsync(int userId, int categoryId)
         {
-            var budget = await _budgetRepo.GetCategoryBudgetByIdAsync(categoryBudgetId);
+            var budget = await _budgetRepo.GetCategoryBudgetAsync(userId, categoryId);
 
-            return budget != null ? new CategoryBudgetResponse(budget) : null;
+            return budget != null ? new CategoryBudgetResponse
+            {
+                CategoryBudgetId = budget.CategoryBudgetId,
+                CategoryId = budget.CategoryId,
+                UserId = budget.UserId,
+                PercentageLimit = budget.PercentageLimit,
+                PercentageProgress = budget.PercentageProgress,
+                IsActive = budget.IsActive,
+                StartDate = budget.StartDate,
+                EndDate = budget.EndDate,
+            }: null;
+        }
+
+        public async Task<int> SetCategoryBudgetAsync(CategoryBudgetDTO budgetDto)
+        {
             
+            var budget = new CategoryBudget(-1, budgetDto.UserId, budgetDto.CategoryId, budgetDto.PercentageLimit, budgetDto.PercentageProgress, budgetDto.StartDate, budgetDto.EndDate, budgetDto.IsActive);
 
+            return await _budgetRepo.SetCategoryBudgetAsync(budgetDto.UserId, budget);
         }
 
-        public async Task<int> AddCategoryBudgetAsync(int userId, CategoryBudgetDTO budgetDto)
+        public async Task<bool> UpdateCategoryBudgetAsync(CategoryBudgetDTO budgetDto)
         {
+            var budget = new CategoryBudget(-1, budgetDto.UserId, budgetDto.CategoryId, budgetDto.PercentageLimit, budgetDto.PercentageProgress, budgetDto.StartDate, budgetDto.EndDate, budgetDto.IsActive);
 
-            var budget = new CategoryBudget(-1, userId, budgetDto.CategoryDto.CategoryId, budgetDto.PercentageLimit, budgetDto.PercentageProgress, budgetDto.StartDate, budgetDto.EndDate, budgetDto.IsActive);
-
-           
-
-            return await _budgetRepo.AddCategoryBudgetAsync(userId,budget);
-           
-
+            return await _budgetRepo.UpdateCategoryBudgetAsync(budget);
         }
 
-        public async Task<bool> UpdateCategoryBudgetAsync(int categoryBudgetId, CategoryBudgetDTO budgetDto)
+
+        public async Task<bool> DeleteCategoryBudgetAsync(int userId, int categoryId)
         {
-            var existingBudget = await _budgetRepo.GetCategoryBudgetByIdAsync(categoryBudgetId);
-            if (existingBudget == null) return false;
-
-            // Map DTO updates to the existing entity
-            existingBudget.PercentageLimit = budgetDto.PercentageLimit;
-            existingBudget.PercentageProgress = budgetDto.PercentageProgress;
-            existingBudget.StartDate = budgetDto.StartDate;
-            existingBudget.EndDate = budgetDto.EndDate;
-            existingBudget.IsActive = budgetDto.IsActive;
-
-            return await _budgetRepo.UpdateCategoryBudgetAsync(categoryBudgetId,existingBudget);
-           
-        }
-
-       
-        public async Task<bool> DeleteCategoryBudgetAsync(int categoryBudgetId)
-        {
-            return await _budgetRepo.DeleteCategoryBudgetAsync(categoryBudgetId);
-           
-        }
-
-        
-        public async Task<bool> CategoryBudgetExistsAsync(int categoryBudgetId)
-        {
-            return await _budgetRepo.CategoryBudgetExistsAsync(categoryBudgetId);
-            
-
+            return await _budgetRepo.DeleteCategoryBudgetAsync(userId, categoryId);
         }
     }
 }

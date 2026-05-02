@@ -14,10 +14,8 @@ namespace SpendWise.Application.DTOs.Category
 
         public CategoryResponse(Domain.Entities.Category category) { 
         CategoryId = category.CategoryId;
-            Name = category.Name;
-            Priority = category.Priority;
-
-        
+        Name = category.Name;
+        Priority = category.Priority;
         }
     }
 }

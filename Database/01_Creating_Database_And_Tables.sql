@@ -82,14 +82,13 @@ CREATE TABLE Budgets (
     BudgetID INT IDENTITY(1,1) PRIMARY KEY,
     UserID INT NOT NULL,
     CategoryID INT NOT NULL,
-    LimitAmount DECIMAL(18,2) NOT NULL,
-    Percentage DECIMAL(5,2) CHECK (Percentage >= 0),
+    PercentageLimit DECIMAL(18,2) NOT NULL,
     StartDate DATE NOT NULL,
     EndDate DATE NOT NULL,
     IsActive BIT NOT NULL DEFAULT 1,
     CONSTRAINT FK_Budgets_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
     CONSTRAINT FK_Budgets_Categories FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID),
-    CONSTRAINT CHK_Budgets_LimitAmount CHECK (LimitAmount >= 0),
+    CONSTRAINT CHK_Budgets_PercentageLimit CHECK (PercentageLimit >= 0),
     CONSTRAINT CHK_Budgets_Dates CHECK (StartDate < EndDate)
 );
 
