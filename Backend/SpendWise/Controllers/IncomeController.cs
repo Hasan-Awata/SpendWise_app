@@ -14,7 +14,7 @@ namespace SpendWise.Controllers
     public class IncomeController : Controller
     {
         private readonly IIncomeService _incomeService;
-
+            
         // Helper property to securely extract the user ID from the auth token
         private int CurrentUserId
         {
