@@ -59,7 +59,7 @@ namespace SpendWise.Infrastructure.Repositories
                     command.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
                     command.Parameters.AddWithValue("@Amount", debt.Amount);
                     command.Parameters.AddWithValue("@Title", debt.Title);
-                    command.Parameters.AddWithValue("@Status", debt.Status);/*CollectionsUtil.CreateCaseInsensitiveHashtable(rowsAffected);*/
+                    command.Parameters.AddWithValue("@Status", debt.Status);
                     command.Parameters.AddWithValue("@DueDate", debt.DueDate);
 
                     try
