@@ -12,7 +12,7 @@ namespace SpendWise.Domain.Entities
         public decimal Amount { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty; 
-        public DateTime CreatedAt { get; set; }            // Added
+        public DateTime CreatedAt { get; set; }           
         public DateTime DueDate { get; set; }
 
         public SharedDebt(int debtID, int creditorID, int debtorID, decimal amount, string title, string status, DateTime createdAt, DateTime dueDate)
