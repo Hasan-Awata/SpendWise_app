@@ -1,0 +1,23 @@
+$kind: http-request
+name: /api/Shared_Debt/UpdateDebt/:debtID
+url: "{{baseUrl}}/api/Shared_Debt/UpdateDebt/:debtID"
+method: PATCH
+headers:
+  Content-Type: application/json
+  Accept: text/plain
+pathVariables:
+  debtID: "348"
+body:
+  type: json
+  content: |-
+    {
+      "creditorID": 3999,
+      "debtorID": 2327,
+      "dueDate": "1954-03-17T18:04:37.882Z",
+      "title": "string",
+      "amount": 1.5032859263151424e+308,
+      "status": "string",
+      "createdAt": "1984-04-27T09:56:24.388Z"
+    }
+examples: ./.resources/-api-Shared_Debt-UpdateDebt-debtID.resources/examples
+order: 1000

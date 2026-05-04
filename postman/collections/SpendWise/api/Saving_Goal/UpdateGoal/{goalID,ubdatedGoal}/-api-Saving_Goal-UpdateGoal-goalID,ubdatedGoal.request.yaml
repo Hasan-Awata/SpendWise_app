@@ -1,0 +1,22 @@
+$kind: http-request
+name: /api/Saving_Goal/UpdateGoal/:goalID,ubdatedGoal
+url: "{{baseUrl}}/api/Saving_Goal/UpdateGoal/:goalID,ubdatedGoal"
+method: PATCH
+headers:
+  Content-Type: application/json
+  Accept: text/plain
+pathVariables:
+  goalID,ubdatedGoal: string
+  goalID: "348"
+body:
+  type: json
+  content: |-
+    {
+      "currentAmount": 7.206777727339053e+307,
+      "deadlineDate": "1970-02-15",
+      "targetAmount": 7.458220144147451e+307,
+      "title": "string",
+      "userId": 2249
+    }
+examples: ./.resources/-api-Saving_Goal-UpdateGoal-goalID,ubdatedGoal.resources/examples
+order: 1000

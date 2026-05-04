@@ -1,0 +1,26 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/Saving_Goal/GetAchievedGoals"
+  method: GET
+  headers:
+    - key: Accept
+      value: text/plain
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+response:
+  statusCode: 404
+  statusText: Not Found
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "type": "string",
+        "title": "string",
+        "status": 3829,
+        "detail": "string",
+        "instance": "string"
+      }
+order: 2000

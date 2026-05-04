@@ -1,0 +1,8 @@
+$kind: http-request
+name: /api/tags/:tagId
+url: "{{baseUrl}}/api/tags/:tagId"
+method: GET
+pathVariables:
+  tagId: "348"
+examples: ./.resources/-api-tags-tagId.resources/examples
+order: 1000
