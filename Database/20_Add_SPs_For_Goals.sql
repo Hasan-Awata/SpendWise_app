@@ -1,7 +1,7 @@
 -- ==========================================
 -- 1. Get Saving Goal By ID
 -- ==========================================
-CREATE OR ALTER PROCEDURE [Ledger].[sp_GetSavingGoalById]
+CREATE OR ALTER PROCEDURE [Planning].[sp_GetSavingGoalById]
     @GoalId INT
 AS
 BEGIN
@@ -23,7 +23,7 @@ GO
 -- ==========================================
 -- 2. Get All User Goals
 -- ==========================================
-CREATE OR ALTER PROCEDURE [Ledger].[sp_GetAllUserGoals]
+CREATE OR ALTER PROCEDURE [Planning].[sp_GetAllUserGoals]
     @UserId INT
 AS
 BEGIN
@@ -46,7 +46,7 @@ GO
 -- ==========================================
 -- 3. Get Achieved Goals (Current >= Target)
 -- ==========================================
-CREATE OR ALTER PROCEDURE [Ledger].[sp_GetAchievedGoals]
+CREATE OR ALTER PROCEDURE [Planning].[sp_GetAchievedGoals]
     @UserId INT
 AS
 BEGIN
@@ -69,7 +69,7 @@ GO
 -- ==========================================
 -- 4. Add Saving Goal
 -- ==========================================
-CREATE OR ALTER PROCEDURE [Ledger].[sp_AddSavingGoal]
+CREATE OR ALTER PROCEDURE [Planning].[sp_AddSavingGoal]
     @UserId INT,
     @Title NVARCHAR(255),
     @TargetAmount DECIMAL(18,2),
@@ -102,7 +102,7 @@ GO
 -- ==========================================
 -- 5. Update Saving Goal (With IDOR Security)
 -- ==========================================
-CREATE OR ALTER PROCEDURE [Ledger].[sp_UpdateSavingGoal]
+CREATE OR ALTER PROCEDURE [Planning].[sp_UpdateSavingGoal]
     @GoalId INT,
     @UserId INT,
     @Title NVARCHAR(255),
@@ -156,7 +156,7 @@ GO
 -- ==========================================
 -- 6. Delete Saving Goal
 -- ==========================================
-CREATE OR ALTER PROCEDURE [Ledger].[sp_DeleteSavingGoal]
+CREATE OR ALTER PROCEDURE [Planning].[sp_DeleteSavingGoal]
     @GoalId INT
 AS
 BEGIN
@@ -182,7 +182,7 @@ GO
 -- ==========================================
 -- 7. Check if Goal Exists
 -- ==========================================
-CREATE OR ALTER PROCEDURE [Ledger].[sp_CheckSavingGoalExists]
+CREATE OR ALTER PROCEDURE [Planning].[sp_CheckSavingGoalExists]
     @GoalId INT
 AS
 BEGIN
