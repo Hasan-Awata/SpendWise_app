@@ -108,8 +108,7 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_UpdateSavingGoal]
     @Title NVARCHAR(255),
     @TargetAmount DECIMAL(18,2),
     @CurrentAmount DECIMAL(18,2),
-    @DeadlineDate DATETIME,
-	@IsAchieved BIT
+    @DeadlineDate DATETIME
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -139,8 +138,7 @@ BEGIN
         SET Title = @Title,
             TargetAmount = @TargetAmount,
             CurrentAmount = @CurrentAmount,
-            DeadlineDate = @DeadlineDate,
-			IsAchieved = @IsAchieved
+            DeadlineDate = @DeadlineDate
         WHERE GoalID = @GoalId AND UserID = @UserId;
         
         DECLARE @RowsAffected INT = @@ROWCOUNT;
