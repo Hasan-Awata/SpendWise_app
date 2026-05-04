@@ -45,7 +45,6 @@ namespace SpendWise.Infrastructure.Repositories
             }
             catch (SqlException ex)
             {
-                // This will catch the THROW 2627 from SQL and convert it to your DuplicateResourceException
                 SqlExceptionHandler.Handle(ex);
                 throw;
             }

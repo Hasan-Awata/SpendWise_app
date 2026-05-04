@@ -27,6 +27,12 @@ namespace SpendWise.Infrastructure.Global
             : base(message, 400, "Invalid Reference") { }
     }
 
+    public class WrongOperation : SpendWiseException
+    {
+        public WrongOperation(string message)
+            : base(message, 400, "Wrong Operation") { }
+    }
+
     public class ResourceNotFoundException : SpendWiseException
     {
         public ResourceNotFoundException(string message)
