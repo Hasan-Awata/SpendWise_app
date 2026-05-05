@@ -1,0 +1,23 @@
+$kind: http-request
+name: /api/expenses
+url: "{{baseUrl}}/api/expenses"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": 1.6799730586231905e+308,
+      "categoryId": 8820,
+      "date": "2022-09-20T22:58:24.259Z",
+      "title": "string",
+      "userId": 7414,
+      "walletId": 247,
+      "expenseId": 4179,
+      "expenseTagId": 1766,
+      "description": "string",
+      "products": "string"
+    }
+examples: ./.resources/-api-expenses-1.resources/examples
+order: 3000

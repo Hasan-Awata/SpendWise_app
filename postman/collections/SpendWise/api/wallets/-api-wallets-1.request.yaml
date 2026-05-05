@@ -1,0 +1,18 @@
+$kind: http-request
+name: /api/wallets
+url: "{{baseUrl}}/api/wallets"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "currencyId": 1487674339,
+      "isSaved": false,
+      "userId": 8204,
+      "walletId": 523,
+      "balance": 7.159384727974483e+307
+    }
+examples: ./.resources/-api-wallets-1.resources/examples
+order: 3000

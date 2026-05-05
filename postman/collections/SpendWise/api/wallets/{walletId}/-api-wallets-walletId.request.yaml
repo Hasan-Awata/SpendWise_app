@@ -1,0 +1,8 @@
+$kind: http-request
+name: /api/wallets/:walletId
+url: "{{baseUrl}}/api/wallets/:walletId"
+method: GET
+pathVariables:
+  walletId: "348"
+examples: ./.resources/-api-wallets-walletId.resources/examples
+order: 1000
