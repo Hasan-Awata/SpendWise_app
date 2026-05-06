@@ -30,8 +30,6 @@ class DeleteExpenseController extends GetxController {
       // إعادة حساب الإجماليات لتحديث أرقام المصروفات في الواجهة
       expensesListController.calculateTotals();
 
-      HelperFunction.showSnackBar("تم بنجاح", "تم حذف المصروف بنجاح");
-
       // إغلاق أي نافذة تأكيد مفتوحة
       if (Get.isOverlaysOpen) Get.back();
     });

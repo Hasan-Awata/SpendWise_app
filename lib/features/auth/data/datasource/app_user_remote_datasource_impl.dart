@@ -1,11 +1,13 @@
 // // تعليق: مصدر بيانات المستخدم البعيد - تم التحويل إلى حزمة http مع معالجة الروابط والوقت المستقطع يدوياً
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
 import 'package:spendwise/features/auth/data/models/login_dto.dart';
 import 'package:spendwise/features/auth/data/models/signup_dto.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_params.dart';
 import 'package:spendwise/features/auth/domain/usecases/signup_params.dart';
+
 import '../models/user_model.dart';
 import 'app_user_remote_datasource.dart';
 
@@ -40,7 +42,7 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
             const Duration(seconds: 10),
           ); // // تعليق: مهلة زمنية 10 ثوانٍ لضمان استقرار الشبكة
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         return UserModel.fromJson(_extractUserPayload(data));
       } else {
@@ -65,7 +67,7 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
           )
           .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         print('✅ Login Response Data: $data');
         return UserModel.fromJson(_extractUserPayload(data));

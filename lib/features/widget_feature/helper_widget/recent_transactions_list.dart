@@ -4,12 +4,11 @@ import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/expense/data/models/expense_model.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
-
 import 'package:spendwise/features/transaction/presentation/widgets/transaction_tile.dart';
 
 class RecentTransactionsList extends StatelessWidget {
   final bool showAll;
-  RecentTransactionsList({super.key, this.showAll = false});
+  const RecentTransactionsList({super.key, this.showAll = false});
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +53,7 @@ class RecentTransactionsList extends StatelessWidget {
             icon: isExpense
                 ? Icons.shopping_bag_outlined
                 : Icons.account_balance_wallet_outlined,
+            currency: item.wallet?.currency.code,
           );
         }).toList(),
       );

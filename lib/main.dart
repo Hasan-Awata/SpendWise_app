@@ -1,54 +1,51 @@
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:hive/hive.dart';
 import 'package:spendwise/core/network/initial_binding.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/services/shared_service.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/auth/data/models/user_adapter.dart';
 import 'package:spendwise/features/expense/data/datasources/expense_local_datasource_impl.dart';
 import 'package:spendwise/features/expense/data/models/expense_adapter.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
 import 'package:spendwise/features/income/data/models/income_adapter.dart';
+import 'package:spendwise/features/savings_goals/data/models/saving_goal_adapter.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_local_datasource_impl.dart';
 import 'package:spendwise/features/tags/data/models/tag_adapter.dart';
 import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
 import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource_impl.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_adapter.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:spendwise/features/wallet/domain/entities/currency_adapter.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // تأكد من تهيئة التواريخ
-  await initializeDateFormatting('ar', null);
-
-  // 1. استخدام initFlutter بدلاً من init اليدوي لضمان استقرار المسارات
   await Hive.initFlutter();
 
-  // تسجيل الـ Adapters
+  await initializeDateFormatting('ar', null);
+
   _registerHiveAdapters();
 
-  // 2. تهيئة الداتا سورس (تأكد أن هذه الدوال تفتح الـ Boxes إذا كانت مغلقة)
   await _initializeDataSources();
 
-  // 3. تهيئة الخدمات الأساسية
-  // ملاحظة: SharedPreferences.getInstance() داخلياً سيعود للعمل فوراً عند إعادة التشغيل
   await Get.putAsync(() => SharedPreferencesService().init(), permanent: true);
 
-  CurrentUser.initializeUser();
-
+  // CurrentUser.initializeUser();
+  // Hive.deleteBoxFromDisk("currencies_box");
+  // CurrencyLocal().initializaCurrencies();
   runApp(DevicePreview(enabled: false, builder: (context) => const MyApp()));
 }
 
-// Future<void> _clearAllData() async {
-//   // قائمة بالأسماء التي تريد حذفها
+// Future<void> _clearAllData(SharedPreferencesService service) async {
+//   SharedPreferencesService().setLoggedIn(false);
+//   await service.setLoggedIn(false);
+//   await service.clear();
 //   List<String> boxesToClear = [
 //     "CURRENTUSER",
 //     "MYINCOME",
@@ -56,13 +53,12 @@ void main() async {
 //     "TAG_BOX",
 //     "WALLET",
 //   ];
-
 //   for (String boxName in boxesToClear) {
 //     // نفتح الـ Box ثم نمسح محتوياته، هذه الطريقة تعمل 100%
 //     var box = await Hive.openBox(boxName);
 //     await box.clear();
 //     // اختياري: إذا أردت حذف الملف نهائياً بعد التصفير
-//     // await box.deleteFromDisk();
+//     await box.deleteFromDisk();
 //   }
 //   print("✅ All local storage cleared successfully");
 // }
@@ -75,12 +71,14 @@ void _registerHiveAdapters() {
   Hive.registerAdapter(IncomeAdapter());
   Hive.registerAdapter(CurrencyAdapter());
   Hive.registerAdapter(ExpenseAdapter());
+  Hive.registerAdapter(SavingGoalAdapter());
 }
 
 // دالة منظمة لتهيئة الداتا سورس
 Future<void> _initializeDataSources() async {
   await AppUserLocalDatasourceImpl().init();
   await TagLocalDatasourceImpl().init();
+  // await SavingGoalLocalDatasourceImpl().init();
   await WalletLocalDatasourceImpl().init();
   await IncomeLocalDataSourceImpl().init();
   await ExpenseLocalDataSourceImpl().init();

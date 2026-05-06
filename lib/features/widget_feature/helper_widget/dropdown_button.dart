@@ -1,284 +1,149 @@
-import 'package:flutter/foundation.dart';
+// // [تصميم مطور: قائمة بحث مدمجة وصغيرة تحل مشكلة اللمس وتظهر بذكاء فوق الكيبورد دون شغل كامل الشاشة]
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
-import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 
-class SPDropdownButton extends StatefulWidget {
-  final TextEditingController? textEditingController;
-  final Color textColor;
-  final String title;
+class SPDropdownSearch extends StatelessWidget {
+  final List<String> items;
+  final String label;
   final String hint;
-  final Widget? prefixIcon;
+  final String? selectedItem;
+  final Function(String?)? onChanged;
+  final Color themeColor;
   final Widget? suffixIcon;
-  final bool isTextField;
-  final List<String> values;
-  final dynamic Function(String)? onChanged;
-  final Function(int index, String value)? onSelected;
-  final int? selectedIndex;
 
-  const SPDropdownButton({
+  const SPDropdownSearch({
     super.key,
-    this.textColor = const Color(0xFF2196F3),
-    required this.title,
+    required this.items,
+    required this.label,
     required this.hint,
-    this.prefixIcon,
-    this.suffixIcon,
-    this.isTextField = true,
-    required this.values,
-    this.onSelected,
-    this.textEditingController,
-    this.selectedIndex,
+    this.selectedItem,
     this.onChanged,
+    this.themeColor = const Color(0xFF2196F3),
+    this.suffixIcon,
   });
 
   @override
-  State<SPDropdownButton> createState() => _SPDropdownButtonState();
-}
-
-class _SPDropdownButtonState extends State<SPDropdownButton>
-    with SingleTickerProviderStateMixin {
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
-  bool _isOpen = false;
-  late List<String> _filteredValues;
-  String _selectedText = "";
-
-  late AnimationController _animationController;
-  late Animation<double> _expandAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _filteredValues = widget.values;
-    _setupInitialSelection();
-
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-    _expandAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    );
-  }
-
-  void _setupInitialSelection() {
-    if (widget.selectedIndex != null &&
-        widget.selectedIndex! < widget.values.length) {
-      _selectedText = widget.values[widget.selectedIndex!];
-    } else {
-      _selectedText = widget.hint;
-    }
-  }
-
-  // // Logic: البحث يبدأ من بداية الكلمة فقط مع تحديث فوري للـ Overlay
-  void _filterList(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredValues = widget.values;
-      } else {
-        _filteredValues = widget.values
-            .where((item) => item.toLowerCase().startsWith(query.toLowerCase()))
-            .toList();
-      }
-
-      if (_isOpen) {
-        _overlayEntry?.markNeedsBuild();
-      } else if (_filteredValues.isNotEmpty) {
-        _openDropdown();
-      }
-    });
-  }
-
-  void _toggleDropdown() {
-    if (_isOpen) {
-      _closeDropdown();
-    } else {
-      _openDropdown();
-    }
-  }
-
-  void _openDropdown() {
-    if (_isOpen) return;
-    _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
-    setState(() => _isOpen = true);
-    _animationController.forward();
-  }
-
-  void _closeDropdown() {
-    if (!_isOpen) return;
-    _animationController.reverse().then((value) {
-      _overlayEntry?.remove();
-      _overlayEntry = null;
-      if (mounted) setState(() => _isOpen = false);
-    });
-  }
-
-  OverlayEntry _createOverlayEntry() {
-    RenderBox renderBox = context.findRenderObject() as RenderBox;
-    var size = renderBox.size;
-
-    return OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          // // Logic: طبقة شفافة خلفية لإغلاق القائمة عند الضغط في أي مكان خارجها دون تعطيل التمرير
-          GestureDetector(
-            onTap: _closeDropdown,
-            behavior: HitTestBehavior.translucent,
-            child: Container(color: Colors.transparent),
-          ),
-          Positioned(
-            width: size.width,
-            child: CompositedTransformFollower(
-              link: _layerLink,
-              showWhenUnlinked: false,
-              offset: Offset(0, size.height + 5),
-              child: Material(
-                elevation: 8,
-                borderRadius: BorderRadius.circular(15),
-                clipBehavior: Clip.hardEdge,
-                color: const Color(0xFF1A1F2E),
-                child: SizeTransition(
-                  sizeFactor: _expandAnimation,
-                  child: Container(
-                    constraints: const BoxConstraints(maxHeight: 250),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                        color: widget.textColor.withOpacity(0.3),
-                      ),
-                    ),
-                    child: ListView.separated(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      physics:
-                          const BouncingScrollPhysics(), // تحسين التمرير لشاشات اللمس
-                      itemCount: _filteredValues.length,
-                      separatorBuilder: (context, index) => Divider(
-                        color: Colors.white.withOpacity(0.05),
-                        height: 1,
-                      ),
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          title: Text(
-                            _filteredValues[index],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
-                          ),
-                          onTap: () => _onItemSelect(_filteredValues[index]),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _onItemSelect(String value) {
-    widget.textEditingController?.text = value;
-    int originalIndex = widget.values.indexOf(value);
-    setState(() {
-      _selectedText = value;
-      _filteredValues = widget.values;
-    });
-    _closeDropdown();
-    if (widget.onSelected != null) widget.onSelected!(originalIndex, value);
-    FocusScope.of(context).unfocus();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // // Logic: استخدام onTap الخاص بالـ TextField مباشرة لضمان الاستجابة مع الحفاظ على القدرة على الكتابة
-          widget.isTextField
-              ? CustomTextField(
-                  textColor: widget.textColor,
-                  label: widget.title,
-                  hint: widget.hint,
-                  textEditingController: widget.textEditingController,
-                  prefixIcon: widget.prefixIcon,
-                  onTap:
-                      _openDropdown, // يفتح القائمة عند الضغط للبدء في الكتابة
-                  suffixIcon: IconButton(
-                    onPressed: _toggleDropdown,
-                    icon: AnimatedRotation(
-                      turns: _isOpen ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child:
-                          widget.suffixIcon ??
-                          const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Colors.white,
-                          ),
-                    ),
-                  ),
-                  onChanged: (val) {
-                    _filterList(val);
-                    if (widget.onChanged != null) widget.onChanged!(val);
-                  },
-                )
-              : GestureDetector(
-                  onTap: _toggleDropdown,
-                  child: _buildStaticSelector(),
-                ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStaticSelector() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: const Color(0xFF1A1F2E),
-        border: Border.all(
-          color: _isOpen ? widget.textColor : Colors.transparent,
-        ),
-      ),
-      child: Row(
-        children: [
-          if (widget.prefixIcon != null) ...[
-            widget.prefixIcon!,
-            const SizedBox(width: 12),
-          ],
-          Expanded(
-            child: Text(
-              _selectedText,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-                fontSize: 16,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "  $label",
+              style: TextStyle(
+                color: themeColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 13, // حجم أصغر ليكون أكثر أناقة
               ),
             ),
-          ),
-          AnimatedRotation(
-            turns: _isOpen ? 0.5 : 0,
-            duration: const Duration(milliseconds: 200),
-            child:
-                widget.suffixIcon ??
-                const Icon(Icons.keyboard_arrow_down, color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
+            ?suffixIcon,
+          ],
+        ),
+        const SizedBox(height: 6),
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _overlayEntry?.remove();
-    super.dispose();
+        DropdownSearch<String>(
+          items: (filter, loadProps) => items
+              .where((i) => i.toLowerCase().contains(filter.toLowerCase()))
+              .toList(),
+          selectedItem: selectedItem,
+          onChanged: onChanged,
+
+          // إعدادات القائمة لتكون "منبثقة صغيرة" (Menu) وليس شاشة كاملة
+          popupProps: PopupProps.menu(
+            showSearchBox: true,
+            fit: FlexFit.loose, // يجعل حجم القائمة يتناسب مع عدد العناصر
+            constraints: const BoxConstraints(
+              maxHeight: 300,
+            ), // تحديد أقصى ارتفاع لتبقى الشاشة خلفها مرئية
+            emptyBuilder: (context, searchEntry) => SizedBox(
+              height: 60,
+              child: Center(
+                child: Text(
+                  "لا توجد نتائج لـ '$searchEntry'",
+                  style: TextStyle(
+                    color: themeColor.withOpacity(0.6), // هنا يمكنك تغيير اللون
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
+            menuProps: MenuProps(
+              backgroundColor: const Color(0xFF1A1F2E),
+              borderRadius: BorderRadius.circular(15),
+              elevation: 8,
+            ),
+            searchFieldProps: TextFieldProps(
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: "بحث سريع...",
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.2)),
+                prefixIcon: Icon(Icons.search, color: themeColor, size: 18),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 0,
+                ),
+                filled: true,
+                fillColor: const Color(0xFF131722),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            itemBuilder: (context, item, isSelected, isFocused) {
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: isSelected
+                      ? themeColor.withOpacity(0.1)
+                      : Colors.transparent,
+                ),
+                child: ListTile(
+                  visualDensity: VisualDensity
+                      .compact, // تقليل المساحات البيضاء ليكون الحجم أصغر
+                  title: Text(
+                    item,
+                    style: TextStyle(
+                      color: isSelected ? themeColor : Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // تصميم الحقل الخارجي ليكون متناسقاً مع باقي واجهة Spendwise
+          decoratorProps: DropDownDecoratorProps(
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: Colors.white.withOpacity(0.3),
+                fontSize: 14,
+              ),
+              filled: true,
+              fillColor: const Color(0xFF1A1F2E),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 15,
+                vertical: 10,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: themeColor.withOpacity(0.4)),
+              ),
+            ),
+            baseStyle: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
+        ),
+      ],
+    );
   }
 }

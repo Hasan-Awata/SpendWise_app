@@ -1,7 +1,7 @@
-// // تعليق: مصدر بيانات المحفظة المصلح مع معالجة دقيقة لعمليات الحذف والتكرار
 import 'package:hive/hive.dart';
 import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
+import 'package:uuid/uuid.dart';
 
 class WalletLocalDatasourceImpl implements WalletLocalDatasource {
   static final WalletLocalDatasourceImpl _instance =
@@ -16,46 +16,39 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
 
   @override
   Future<void> init() async {
-    try {
-      if (!Hive.isBoxOpen(_boxName)) {
-        _box = await Hive.openBox(_boxName);
-      } else {
-        _box = Hive.box(_boxName);
-      }
-    } catch (e) {
-      rethrow;
+    if (!Hive.isBoxOpen(_boxName)) {
+      _box = await Hive.openBox(_boxName);
+    } else {
+      _box = Hive.box(_boxName);
     }
   }
 
   @override
   Future<List<WalletModel>> myWallets() async {
-    try {
-      final data = _box.get(_walletKey);
-      if (data == null) return [];
-      // استخدام cast لضمان تحويل القائمة بشكل سليم
-      return List<WalletModel>.from(data);
-    } catch (e) {
-      return [];
-    }
+    final data = _box.get(_walletKey);
+    if (data == null) return [];
+    return List<WalletModel>.from(data);
   }
 
-  // // تعليق: دالة حفظ ذكية تقوم بالتحديث إذا كان العنصر موجوداً أو الإضافة إذا كان جديداً
   @override
   Future<void> addWaletLocal(WalletModel wallet) async {
     List<WalletModel> wallets = await myWallets();
 
-    // البحث عن وجود المحفظة مسبقاً لمنع التكرار
-    int index = wallets.indexWhere(
-      (w) =>
-          (w.localId == wallet.localId) ||
-          (w.walletId != null && w.walletId == wallet.walletId) ||
-          (w.currency.currencyName == wallet.currency.currencyName),
-    );
+    if (wallet.localId == null || wallet.localId!.isEmpty) {
+      wallet.localId = const Uuid().v4();
+    }
+
+    int index = wallets.indexWhere((w) {
+      if (wallet.walletId != null && wallet.walletId != -1) {
+        return w.walletId == wallet.walletId;
+      }
+      return w.localId == wallet.localId;
+    });
 
     if (index != -1) {
-      wallets[index] = wallet; // تحديث
+      wallets[index] = wallet;
     } else {
-      wallets.insert(0, wallet); // إضافة جديد
+      wallets.insert(0, wallet);
     }
 
     await _box.put(_walletKey, wallets);
@@ -63,53 +56,57 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
 
   @override
   Future<void> deleteWallet(WalletModel wallet) async {
-    try {
-      List<WalletModel> wallets = await myWallets();
-
-      // تم إصلاح المنطق: الحذف يتم دائماً بناءً على localId لأنه فريد وثابت محلياً
-      wallets.removeWhere((w) => w.localId == wallet.localId);
-
-      await _box.put(_walletKey, wallets);
-    } catch (e) {
-      rethrow;
-    }
+    List<WalletModel> wallets = await myWallets();
+    wallets.removeWhere((w) => w.localId == wallet.localId);
+    await _box.put(_walletKey, wallets);
   }
 
   @override
   Future<void> updateWallet(WalletModel wallet) async {
-    try {
-      List<WalletModel> wallets = await myWallets();
-      int index = wallets.indexWhere((w) => w.localId == wallet.localId);
+    List<WalletModel> wallets = await myWallets();
 
-      if (index != -1) {
-        wallets[index] = wallet;
-        await _box.put(_walletKey, wallets);
-      } else {
-        throw Exception("المحفظة غير موجودة لتحديثها");
-      }
-    } catch (e) {
-      rethrow;
+    int index = wallets.indexWhere((w) => w.localId == wallet.localId);
+
+    if (index == -1 && wallet.walletId != null) {
+      index = wallets.indexWhere((w) => w.walletId == wallet.walletId);
     }
+
+    if (index != -1) {
+      wallets[index] = wallet;
+    } else {
+      if (wallet.localId == null || wallet.localId!.isEmpty) {
+        wallet.localId = const Uuid().v4();
+      }
+      wallets.insert(0, wallet);
+    }
+
+    await _box.put(_walletKey, wallets);
   }
 
   @override
   Future<void> clearWallets() async {
-    try {
-      await _box.delete(
-        _walletKey,
-      ); // حذف المفتاح بالكامل أسرع من وضع مصفوفة فارغة
-    } catch (e) {
-      rethrow;
-    }
+    await _box.delete(_walletKey);
   }
 
   @override
-  Future<WalletModel?> getWallet(int id) async {
-    final wallets = await myWallets();
+  WalletModel? getWallet(dynamic id) {
     try {
-      // البحث عن المحفظة بناءً على المعرف القادم من السيرفر
-      return wallets.firstWhere((w) => w.walletId == id);
+      // 1. محاولة البحث كـ integer (معرف السيرفر)
+      if (id is int || int.tryParse(id.toString()) != null) {
+        final intId = int.parse(id.toString());
+        final walletByServerId = _box.values.firstOrNull(
+          (w) => w.walletId == intId,
+        );
+        if (walletByServerId != null) return walletByServerId;
+      }
+
+      // 2. محاولة البحث كـ String (المعرف المحلي UUID)
+      final walletByLocalId = _box.values.firstOrNull(
+        (w) => w.localId == id.toString(),
+      );
+      return walletByLocalId;
     } catch (e) {
+      print("❌ Error in getWallet: $e");
       return null;
     }
   }

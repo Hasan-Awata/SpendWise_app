@@ -44,16 +44,16 @@ class UpdateWalletController extends GetxController {
                 (w.walletId != null && w.walletId == wallet.walletId) ||
                 (w.localId == wallet.localId),
           );
-
           if (index != -1) {
             // استخدام refresh() أو استبدال العنصر لضمان تحديث RxList
             listController.wallets[index] = wallet;
             listController.wallets.refresh();
-            listController.calculateTotals();
+           
             print("📱 UI Updated Instantly at index: $index");
           }
         }
         HelperFunction.showSnackBar("نجاح", "تم تحديث المحفظة");
+        if (Get.isOverlaysOpen) Get.back();
       },
     );
     isUpdating.value = false;

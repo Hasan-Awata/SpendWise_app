@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/category/data/model/category_model.dart';
+import 'package:spendwise/features/expense/data/models/expense_model.dart';
 import 'package:spendwise/features/expense/domain/usecases/get_all_expenses_usecase.dart';
+import 'package:spendwise/features/expense/domain/usecases/get_expenses_usecase.dart';
 import 'package:spendwise/features/expense/domain/usecases/sync_expense_usecase.dart';
 import 'package:spendwise/features/helper_function.dart';
-import 'package:spendwise/features/expense/data/models/expense_model.dart';
-import 'package:spendwise/features/expense/domain/usecases/get_expenses_usecase.dart';
+import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class ExpensesListController extends GetxController {
   final GetExpensesUsecase getExpensesUseCase;
@@ -43,10 +45,18 @@ class ExpensesListController extends GetxController {
     CategoryModel(name: "Expenses", priority: 3),
     CategoryModel(name: "Savings", priority: 4),
   ].obs;
+  RxDouble monthlyAndWalletExpense = 0.0.obs;
+  final mainController = Get.find<MainController>();
+
+  var walletsListController = Get.find<WalletsListController>();
 
   @override
   void onInit() {
     super.onInit();
+    everAll([dashboardMonth, mainController.selectWallet], (_) {
+      calculateTotals();
+    });
+    calculateTotals();
     scrollController.addListener(_scrollListener);
     fetchExpenses(isRefresh: true);
   }
@@ -73,7 +83,6 @@ class ExpensesListController extends GetxController {
         print("🔄 Action: Refreshing Expenses list...");
         currentPage.value = 1;
         hasMoreData.value = true;
-        _runBackgroundSync();
       }
 
       print("📡 Fetching Expenses: Page ${currentPage.value}, Size $pageSize");
@@ -90,7 +99,13 @@ class ExpensesListController extends GetxController {
         (pagedResponse) {
           final newItems = pagedResponse.data;
           print("📦 Received: ${newItems.length} Expenses");
-
+          newItems
+              .map(
+                (e) => e.wallet = walletsListController.wallets.firstWhere(
+                  (w) => w.walletId == e.walletId,
+                ),
+              )
+              .toList();
           if (newItems.isEmpty) {
             hasMoreData.value = false;
             print("🏁 No more Expenses found on server.");
@@ -100,7 +115,7 @@ class ExpensesListController extends GetxController {
               final visibleItems = newItems
                   .where((e) => e.localId != "REMOVE")
                   .toList();
-              expensesList.assignAll(visibleItems);
+              expensesList.assignAll(visibleItems.reversed);
             } else {
               // منع التكرار وتصفية المحذوفات
               final uniqueAndVisible = newItems.where((newItem) {
@@ -113,7 +128,7 @@ class ExpensesListController extends GetxController {
                 return isNotRemoved && isNotDuplicate;
               }).toList();
 
-              expensesList.addAll(uniqueAndVisible);
+              expensesList.assignAll(uniqueAndVisible.reversed);
               print(
                 "➕ Added ${uniqueAndVisible.length} unique Expenses to list",
               );
@@ -135,7 +150,7 @@ class ExpensesListController extends GetxController {
     }
   }
 
-  void _runBackgroundSync() {
+  void runBackgroundSync() {
     syncExpenseUsecase.call().then((result) {
       result.fold(
         (l) => print("⚠️ Expense Background Sync Failed: ${l.message}"),
@@ -175,7 +190,16 @@ class ExpensesListController extends GetxController {
 
         allTimeExpenseTotal.value = allTime;
         monthlyExpenseTotal.value = monthly;
-        print("💰 Expenses Totals Updated: Monthly=$monthly, AllTime=$allTime");
+
+        monthlyAndWalletExpense.value = activeExpenses
+            .where(
+              (e) =>
+                  e.date.year == targetYear &&
+                  e.date.month == targetMonth &&
+                  e.wallet!.currency.currencyName ==
+                      mainController.selectWallet.value?.currency.currencyName,
+            )
+            .fold<double>(0.0, (sum, item) => sum + item.amount);
       },
     );
   }

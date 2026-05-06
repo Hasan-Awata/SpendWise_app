@@ -1,11 +1,12 @@
+// // AddExpenseController - Updated with dynamic product list logic
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/category/data/model/category_model.dart';
-import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
-import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/expense/data/models/expense_model.dart';
 import 'package:spendwise/features/expense/domain/usecases/add_expense_usecase.dart';
+import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
+import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
 import 'package:spendwise/features/tags/presentation/manager/add_tag_controller.dart';
 import 'package:spendwise/features/tags/presentation/manager/tag_view_controller.dart';
@@ -33,6 +34,8 @@ class AddExpenseController extends GetxController {
   final walletTextController = TextEditingController();
   final tagTextController = TextEditingController();
   final categoryTextController = TextEditingController();
+  final productsController = TextEditingController();
+  final repeatController = TextEditingController();
 
   final selectedWallet = Rxn<WalletModel>();
   final selectedTag = Rxn<TagModel>();
@@ -40,11 +43,14 @@ class AddExpenseController extends GetxController {
   final selectedDate = DateTime.now().obs;
   final isLoadingSave = false.obs;
 
+  // // Temporary list to hold products before saving
+  final RxList<String> tempProducts = <String>[].obs;
+
   final RxList<CategoryModel> categories = <CategoryModel>[
-    CategoryModel(name: "Basics", priority: 1),
-    CategoryModel(name: "Secondaries", priority: 2),
-    CategoryModel(name: "Expenses", priority: 3),
-    CategoryModel(name: "Savings", priority: 4),
+    CategoryModel(categoryId: 1, name: "Essentials", priority: 1),
+    CategoryModel(categoryId: 2, name: "Secondaries", priority: 2),
+    CategoryModel(categoryId: 3, name: "Luxuries", priority: 3),
+    CategoryModel(categoryId: 4, name: "Savings", priority: 4),
   ].obs;
 
   @override
@@ -58,6 +64,19 @@ class AddExpenseController extends GetxController {
     tagController.loadTags();
   }
 
+  // // Logic to add product to the chip list
+  void addProductToList() {
+    String product = productsController.text.trim();
+    if (product.isNotEmpty && !tempProducts.contains(product)) {
+      tempProducts.add(product);
+      productsController.clear();
+    }
+  }
+
+  void removeProduct(String productName) {
+    tempProducts.remove(productName);
+  }
+
   Future<void> saveExpense() async {
     if (!_isInputValid()) return;
 
@@ -66,6 +85,9 @@ class AddExpenseController extends GetxController {
 
       final TagModel? finalTag = await _handleTagSelection();
 
+      // // Convert list of products to a single comma-separated string for backend
+      String productsString = tempProducts.join(", ");
+
       final expenseData = ExpenseModel(
         userId: AppUserLocalDatasourceImpl().currentUserId,
         amount: double.parse(amountController.text.trim()),
@@ -73,10 +95,14 @@ class AddExpenseController extends GetxController {
             ? "Untitled Expense"
             : titleTextController.text.trim(),
         description: descriptionController.text.trim(),
+        products: productsString,
         date: selectedDate.value,
         category: selectedCategory.value,
         wallet: selectedWallet.value!,
         tag: finalTag,
+        walletId: selectedWallet.value?.walletId,
+        categoryId: selectedCategory.value?.categoryId,
+        expenseTagId: finalTag?.id,
         isSynced: false,
       );
 
@@ -112,33 +138,29 @@ class AddExpenseController extends GetxController {
   }
 
   void _onSaveSuccess(ExpenseModel savedExpense) {
-    expensesListController.expensesList.insert(0, savedExpense);
+    expensesListController.fetchExpenses(isRefresh: true);
     expensesListController.calculateTotals();
     HelperFunction.showSnackBar("تم بنجاح", "تمت إضافة المصروف الجديد");
     resetFields();
   }
 
   bool _isInputValid() {
-    final amountText = amountController.text.trim();
-    if (amountText.isEmpty || (double.tryParse(amountText) ?? 0.0) <= 0) {
-      _handleError("خطأ في التحقق", "يرجى إدخال مبلغ صحيح أكبر من صفر");
+    if (amountController.text.isEmpty ||
+        (double.tryParse(amountController.text) ?? 0.0) <= 0) {
+      _handleError("خطأ في التحقق", "يرجى إدخال مبلغ صحيح");
       return false;
     }
-
     if (selectedWallet.value == null) {
       _handleError("خطأ في التحقق", "يرجى اختيار محفظة");
       return false;
     }
-
-    if (categoryTextController.text.isEmpty || selectedCategory.value == null) {
-      _handleError("خطأ في التحقق", "يرجى اختيار فئة للمصروف");
+    if (selectedCategory.value == null) {
+      _handleError("خطأ في التحقق", "يرجى اختيار فئة");
       return false;
     }
-
     return true;
   }
 
-  final repeatController = TextEditingController();
   void resetFields() {
     amountController.clear();
     titleTextController.clear();
@@ -146,6 +168,9 @@ class AddExpenseController extends GetxController {
     walletTextController.clear();
     tagTextController.clear();
     categoryTextController.clear();
+    productsController.clear();
+    repeatController.clear();
+    tempProducts.clear();
     selectedDate.value = DateTime.now();
     selectedWallet.value = null;
     selectedTag.value = null;
@@ -169,6 +194,7 @@ class AddExpenseController extends GetxController {
     walletTextController.dispose();
     tagTextController.dispose();
     categoryTextController.dispose();
+    productsController.dispose();
     repeatController.dispose();
     super.onClose();
   }

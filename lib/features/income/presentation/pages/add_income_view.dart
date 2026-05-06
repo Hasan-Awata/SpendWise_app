@@ -23,77 +23,80 @@ class _AddIncomeViewState extends State<AddIncomeView> {
   final RxBool isFixed = false.obs;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: SpColor.primaryDark2,
+      resizeToAvoidBottomInset: true,
       appBar: _buildAppBar(),
-      body: RefreshIndicator(
-        color: SpColor.incomeGreen,
-        onRefresh: () async {
-          // إعادة تعيين الحقول وتحديث البيانات عند السحب للأسفل
-          controller.resetFields();
-          await controller.walletsListController.loadWallets();
-          await controller.tagController.loadTags();
-        },
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25.0),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25.0),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(
+                context,
+              ).viewInsets.bottom, // يعطي مساحة مساوية لارتفاع الكيبورد
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
 
-                  // واجهة المستخدم: حقل إدخال المبلغ
-                  _buildField(
-                    "المبلغ", // Amount
-                    controller.amountController,
-                    Icons.monetization_on_outlined,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
+                // واجهة المستخدم: حقل إدخال المبلغ
+                _buildField(
+                  "المبلغ", // Amount
+                  controller.amountController,
+                  Icons.monetization_on_outlined,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
-                  const SizedBox(height: 25),
+                ),
+                const SizedBox(height: 25),
 
-                  // واجهة المستخدم: حقل إدخال مصدر الدخل
-                  _buildField(
-                    "المصدر", // Source
-                    controller.sourceController,
-                    Icons.source_outlined,
-                  ),
-                  const SizedBox(height: 25),
+                // واجهة المستخدم: حقل إدخال مصدر الدخل
+                _buildField(
+                  "المصدر", // Source
+                  controller.sourceController,
+                  Icons.source_outlined,
+                ),
+                const SizedBox(height: 25),
 
-                  _buildFixedToggle(),
-                  _buildRepetitionField(),
-                  const SizedBox(height: 25),
+                _buildFixedToggle(),
+                _buildRepetitionField(),
+                const SizedBox(height: 25),
 
-                  // واجهة المستخدم: حقل الوصف
-                  CustomTextFieldDescription(
-                    label: "الوصف", // Description
-                    hint: "التفاصيل...", // Details...
-                    textEditingController: controller.descriptionController,
-                    textColor: SpColor.incomeGreen,
-                  ),
-                  const SizedBox(height: 25),
+                // واجهة المستخدم: حقل الوصف
+                CustomTextFieldDescription(
+                  label: "الوصف", // Description
+                  hint: "التفاصيل...", // Details...
+                  textEditingController: controller.descriptionController,
+                  textColor: SpColor.incomeGreen,
+                ),
+                const SizedBox(height: 25),
 
-                  _buildDatePicker(context),
-                  const SizedBox(height: 30),
-                  const Divider(color: Colors.white10, thickness: 1),
-                  const SizedBox(height: 30),
+                _buildDatePicker(context),
+                const SizedBox(height: 30),
+                const Divider(color: Colors.white10, thickness: 1),
+                const SizedBox(height: 30),
 
-                  _buildWalletDropdown(),
-                  const SizedBox(height: 25),
+                _buildWalletDropdown(),
+                const SizedBox(height: 25),
 
-                  _buildTagDropdown(),
-                  _buildTagPreview(),
-                  const SizedBox(height: 40),
+                _buildTagDropdown(),
+                _buildTagPreview(),
+                const SizedBox(height: 40),
 
-                  _buildSubmitButton(),
-                  const SizedBox(height: 50),
-                ],
-              ),
+                _buildSubmitButton(),
+                const SizedBox(height: 50),
+              ],
             ),
           ),
         ),
@@ -146,7 +149,7 @@ class _AddIncomeViewState extends State<AddIncomeView> {
           "دخل ثابت", // Fixed Income
           style: TextStyle(color: Colors.white, fontSize: 15),
         ),
-        activeColor: SpColor.incomeGreen,
+        activeThumbColor: SpColor.incomeGreen,
         value: isFixed.value,
         onChanged: (v) => isFixed.value = v,
       ),
@@ -177,45 +180,50 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     ),
   );
 
-  // قائمة منسدلة لاختيار المحفظة التي سيضاف إليها الدخل
   Widget _buildWalletDropdown() {
-    return Obx(
-      () => SPDropdownButton(
-        title: "اختر المحفظة", // Select Wallet
-        hint: "اختر المحفظة", // Choose wallet
-        textColor: SpColor.incomeGreen,
-        prefixIcon: const Icon(
-          Icons.account_balance_wallet_outlined,
-          color: SpColor.incomeGreen,
-        ),
-        values: controller.walletsListController.wallets
-            .map(
-              (w) =>
-                  "${w.currency.currencyName} (${w.currency.code} ${w.balance})",
-            )
-            .toList(),
-        textEditingController: controller.walletTextController,
-        onSelected: (index, value) {
-          controller.selectedWallet.value =
-              controller.walletsListController.wallets[index];
+    return SPDropdownSearch(
+      themeColor: SpColor.incomeGreen,
+      label: "اضف محفظة",
+      hint: "اختر المحفظة",
+
+      // تحويل قائمة المحافظ إلى نصوص للعرض
+      items: controller.walletsListController.wallets
+          .map(
+            (w) =>
+                "${w.currency.currencyName} (${w.currency.code} ${w.balance})",
+          )
+          .toList(),
+      // القيمة المختارة حالياً من الـ Controller
+      selectedItem: controller.walletTextController.text.isNotEmpty
+          ? controller.walletTextController.text
+          : null,
+      onChanged: (value) {
+        if (value != null) {
           controller.walletTextController.text = value;
+          // العثور على الـ index بناءً على النص المختار لتحديد المحفظة في الـ Controller
+          int index = controller.walletsListController.wallets.indexWhere(
+            (w) =>
+                "${w.currency.currencyName} (${w.currency.code} ${w.balance})" ==
+                value,
+          );
+          if (index != -1) {
+            controller.selectedWallet.value =
+                controller.walletsListController.wallets[index];
+          }
+        }
+      },
+      suffixIcon: IconButton(
+        onPressed: () {
+          Get.toNamed(Routes.ADD_WALLET);
         },
-        suffixIcon: IconButton(
-          onPressed: () async {
-            await Get.toNamed(Routes.ADD_WALLET);
-          },
-          icon: const Icon(
-            Icons.add_circle_outline,
-            color: SpColor.incomeGreen,
-          ),
-        ),
+        icon: Icon(Icons.add),
       ),
     );
   }
 
-  // قائمة منسدلة للوسوم مع ميزة إشعار المستخدم بإنشاء وسم جديد إذا لم يكن موجوداً
   Widget _buildTagDropdown() {
     return Obx(() {
+      // التحقق مما إذا كان النص المكتوب يمثل وسماً جديداً غير موجود في القائمة
       bool isNewTag =
           controller.tagTextController.text.trim().isNotEmpty &&
           !controller.tagController.myTags.any(
@@ -227,23 +235,44 @@ class _AddIncomeViewState extends State<AddIncomeView> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SPDropdownButton(
-            title: "اختر الوسم", // Select Tag
-            isTextField: true,
-            hint: "ابحث أو اكتب الوسم", // Search or Type Tag
-            textColor: SpColor.incomeGreen,
-            prefixIcon: const Icon(
-              Icons.local_offer_outlined,
-              color: SpColor.incomeGreen,
-            ),
-            values: controller.tagController.myTags.map((t) => t.name).toList(),
-            textEditingController: controller.tagTextController,
-            onSelected: (index, value) {
-              controller.selectedTag.value =
-                  controller.tagController.myTags[index];
-              controller.tagTextController.text = value;
+          SPDropdownSearch(
+            themeColor: SpColor.incomeGreen,
+            label: "اختر الوسم",
+            hint: "ابحث أو اكتب الوسم",
+            // عرض قائمة أسماء الوسوم
+            items: controller.tagController.myTags.map((t) => t.name).toList(),
+
+            // ربط القيمة المختارة بالـ Controller
+            selectedItem: controller.tagTextController.text.isNotEmpty
+                ? controller.tagTextController.text
+                : null,
+
+            onChanged: (value) {
+              if (value != null) {
+                controller.tagTextController.text = value;
+
+                // البحث عن الوسم المختار لتخزينه ككائن (Object) في selectedTag
+                int index = controller.tagController.myTags.indexWhere(
+                  (t) => t.name == value,
+                );
+                if (index != -1) {
+                  controller.selectedTag.value =
+                      controller.tagController.myTags[index];
+                } else {
+                  // في حال كان الوسم جديداً (كتبه المستخدم ولم يختاره من القائمة)
+                  controller.selectedTag.value = null;
+                }
+              }
             },
+            suffixIcon: IconButton(
+              onPressed: () {
+                Get.toNamed(Routes.ADD_TAG);
+              },
+              icon: Icon(Icons.add),
+            ),
           ),
+
+          // إظهار تنبيه المستخدم في حال إنشاء وسم جديد
           if (isNewTag)
             Padding(
               padding: const EdgeInsets.only(top: 8.0, left: 10.0),
@@ -262,7 +291,6 @@ class _AddIncomeViewState extends State<AddIncomeView> {
     });
   }
 
-  // عرض معاينة للوسم المختار
   Widget _buildTagPreview() => Obx(
     () => controller.selectedTag.value != null
         ? Padding(
@@ -280,7 +308,6 @@ class _AddIncomeViewState extends State<AddIncomeView> {
         : const SizedBox.shrink(),
   );
 
-  // زر حفظ البيانات مع عرض مؤشر التحميل
   Widget _buildSubmitButton() => SizedBox(
     width: double.infinity,
     child: Obx(

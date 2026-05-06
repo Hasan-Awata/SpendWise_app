@@ -11,6 +11,7 @@ class TransactionTile extends StatefulWidget {
   final IconData icon;
   final Color tagColor;
   final bool isExpense;
+  final String? currency;
 
   const TransactionTile({
     super.key,
@@ -21,6 +22,7 @@ class TransactionTile extends StatefulWidget {
     required this.icon,
     required this.tagColor,
     this.isExpense = true,
+    this.currency = "SYR",
   });
 
   @override
@@ -85,7 +87,7 @@ class _TransactionTileState extends State<TransactionTile> with ScalableState {
           trailing: DefaultTextStyle(
             style: SpConstants.numStyle(widget.isExpense),
             child: Text(
-              "${widget.isExpense ? '-' : '+'} \$${widget.amount.toStringAsFixed(2)}",
+              "${widget.currency} ${widget.isExpense ? '-' : '+'} \$${widget.amount.toStringAsFixed(2)}",
             ),
           ),
         ),

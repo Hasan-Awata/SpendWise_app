@@ -2,11 +2,13 @@
   Implementation for TagRemoteDatasource using http with explicit logging.
 */
 
+import 'dart:async';
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
-import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
+import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_remote_datasource.dart';
@@ -15,20 +17,30 @@ import 'package:spendwise/features/tags/data/models/tag_model.dart';
 class TagRemoteDatasourceImpl implements TagRemoteDatasource {
   final http.Client client;
   TagRemoteDatasourceImpl({required this.client});
+  final Duration timeoutDuration = const Duration(
+    seconds: 15,
+  ); // تحديد مدة المهلة
 
-  // دالة مساعدة لجلب التوكن وتجهيز الـ Headers لضمان عدم وجود خطأ 401
-  Future<Map<String, String>> _getHeaders() async {
-    final user = await AppUserLocalDatasourceImpl().getUser();
-    final String? token;
-    if (user != null) {
-      token = user.token;
-    } else {
-      token = CurrentUser.token;
+  Future<Map<String, String>?> _getHeaders() async {
+    try {
+      final user = await AppUserLocalDatasourceImpl().getUser();
+
+      final String? token;
+      if (user != null) {
+        token = user.token;
+        print("${user.userId} ---- ${user.token}");
+      } else {
+        HelperFunction.showSnackBar("Error Auth", "User Not found");
+        return null;
+      }
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+    } catch (e) {
+      HelperFunction.showSnackBar("Error Auth", e.toString());
+      return null;
     }
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
   }
 
   @override
@@ -41,15 +53,9 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
 
     final response = await client.post(url, headers: headers, body: body);
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      print("AddTag Success: ${response.body} status : ${response.statusCode}");
-      final decodedData = jsonDecode(response.body);
-
-      // معالجة حالة ما إذا كان السيرفر يعيد البيانات داخل حقل 'data'
-      if (decodedData is Map && decodedData.containsKey('data')) {
-        return TagModel.fromJson(decodedData['data']);
-      }
-      return TagModel.fromJson(decodedData);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      print(jsonDecode(response.body));
+      return TagModel.fromJson(jsonDecode(response.body));
     } else {
       print("AddTag Error [${response.statusCode}]: ${response.body}");
       throw Exception("فشل إضافة التاج: ${response.body}");
@@ -57,31 +63,31 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
   }
 
   @override
-  Future<void> updateTag(TagModel tag) async {
-    // استخدام PATCH للتحديث الجزئي كما في الـ Wallet
+  Future<TagModel?> updateTag(TagModel tag) async {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.tag}/${tag.id}",
     );
     final headers = await _getHeaders();
     final body = jsonEncode(tag.toJson());
 
-    print("Updating Tag ${tag.id} at: $url");
+    try {
+      final response = await client
+          .patch(url, headers: headers, body: body)
+          .timeout(timeoutDuration);
 
-    final response = await client.patch(url, headers: headers, body: body);
-
-    if (response.statusCode == 200 || response.statusCode == 204) {
-      print("UpdateTag Success");
-    } else {
-      print("UpdateTag Error [${response.statusCode}]: ${response.body}");
-      throw Exception("فشل تحديث التاج");
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return TagModel.fromJson(jsonDecode(response.body));
+      } else {
+        throw Exception("فشل تحديث المحفظة: رمز الحالة ${response.statusCode}");
+      }
+    } on TimeoutException {
+      throw Exception("انتهت مهلة التحديث، يرجى المحاولة لاحقاً");
     }
   }
 
   @override
-  Future<void> deleteTag(TagModel tag) async {
-    final url = Uri.parse(
-      "${ApiEndpoints.baseUrl}${ApiEndpoints.tag}/${tag.id}",
-    );
+  Future<void> deleteTag(int id) async {
+    final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.tag}/$id");
     final headers = await _getHeaders();
 
     print("Deleting Tag: $url");
@@ -105,7 +111,7 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
 
     final response = await client.get(url, headers: headers);
 
-    if (response.statusCode == 200) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
       print("GetTags Success: تم جلب التاجات");
       final decodedData = jsonDecode(response.body);
 

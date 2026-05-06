@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:spendwise/core/error/failure.dart';
+import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/features/expense/data/datasources/expense_local_datasource.dart';
 import 'package:spendwise/features/expense/data/datasources/expense_remote_datasource.dart';
 import 'package:spendwise/features/expense/data/models/expense_model.dart';
@@ -19,27 +20,23 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
 
   @override
   Future<Either<Failure, Unit>> addExpense(ExpenseModel expense) async {
-    try {
-      print("🚀 Starting addExpense: ${expense.localId}");
-      expense.isSynced = false;
-      await localDataSource.addExpense(expense);
-
-      _safeRemoteCall(() async {
-        final syncedModel = await remoteDatasource.addExpense(expense);
-        if (syncedModel != null) {
-          print("✅ Server Add Success: ${syncedModel.id}");
-          syncedModel.isSynced = true;
-          // الحفاظ على الـ localId لربط البيانات
-          syncedModel.localId = expense.localId;
-          await localDataSource.updateExpense(syncedModel);
-        }
-      });
-
-      return const Right(unit);
-    } catch (e) {
-      print("❌ Local Add Error: $e");
-      return Left(CacheFailure("فشل الحفظ المحلي"));
-    }
+    final network = NetworkService();
+    return await network.saveLocalAndSync<Unit>(
+      localSave: () async {
+        await localDataSource.addExpense(expense);
+      },
+      remoteSave: () async {
+        print("🚀 Sync Expense: ${expense.localId}");
+        expense.isSynced = false;
+        await remoteDatasource.addExpense(expense);
+        return unit;
+      },
+      onSyncSuccess: (_) async {
+        expense.isSynced = true;
+        await localDataSource.updateExpense(expense);
+      },
+      localResult: unit,
+    );
   }
 
   @override
@@ -56,12 +53,12 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
 
       for (var model in remoteResponse.data) {
         model.isSynced = true;
-        await localDataSource.addExpense(model);
+        await localDataSource.updateExpense(model);
       }
       return Right(remoteResponse);
     } catch (e) {
       print("🌐 Connection Issue: Switching to Local Storage. Error: $e");
-      _safeRemoteCall(() => syncPendingExpenses());
+
       return await _getLocalPagedExpenses(page);
     }
   }
@@ -76,11 +73,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       _safeRemoteCall(() async {
         if (expense.id != null) {
           final updatedRemote = await remoteDatasource.updateExpense(expense);
-          if (updatedRemote != null) {
-            print("✅ Server Update Sync Done");
-            updatedRemote.isSynced = true;
-            await localDataSource.updateExpense(updatedRemote);
-          }
+          print("✅ Server Update Sync Done");
+          updatedRemote.isSynced = true;
+          await localDataSource.updateExpense(updatedRemote);
         }
       });
 
@@ -137,11 +132,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
 
           if (expense.id != null) {
             final updated = await remoteDatasource.updateExpense(expense);
-            if (updated != null) {
-              updated.isSynced = true;
-              await localDataSource.updateExpense(updated);
-              print("📤 Synced: UPDATED Expense ${expense.id}");
-            }
+            updated.isSynced = true;
+            await localDataSource.updateExpense(updated);
+            print("📤 Synced: UPDATED Expense ${expense.id}");
           } else {
             final created = await remoteDatasource.addExpense(expense);
             if (created != null) {

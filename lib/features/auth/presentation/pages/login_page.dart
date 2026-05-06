@@ -92,6 +92,7 @@ class LogInPage extends StatelessWidget {
                       : CustomButton(
                           text: "دخول", // Login
                           onPressed: () async => controller.logIn(),
+
                           color: SpColor.accentBlue,
                         ),
                 ),

@@ -69,12 +69,7 @@ class TagActionController extends GetxController {
       isActionLoading.value = true;
       final newTag = TagModel(userId: currentUid, name: name, isSynced: false);
 
-      final result = await addTagUsecase
-          .call(newTag)
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () => throw "انتهت مهلة الطلب، يرجى المحاولة لاحقاً",
-          );
+      final result = await addTagUsecase.call(newTag);
 
       result.fold(
         (failure) {
@@ -86,6 +81,7 @@ class TagActionController extends GetxController {
           if (Get.isRegistered<TagViewController>()) {
             Get.find<TagViewController>().loadTags(isRefresh: true);
           }
+
           HelperFunction.showSnackBar("نجاح", "تمت إضافة الوسم بنجاح");
         },
       );
@@ -100,6 +96,7 @@ class TagActionController extends GetxController {
   Future<void> updateTag(TagModel tag, String newName) async {
     try {
       isActionLoading.value = true;
+
       tag.name = newName;
 
       final result = await updateTagUsecase.call(tag);
@@ -112,6 +109,7 @@ class TagActionController extends GetxController {
             Get.find<TagViewController>().loadTags(isRefresh: true);
           }
           HelperFunction.showSnackBar("نجاح", "تم تحديث الوسم");
+          if (Get.isOverlaysOpen) Get.back();
         },
       );
     } finally {
@@ -119,10 +117,10 @@ class TagActionController extends GetxController {
     }
   }
 
-  // // تعليق: حذف الوسم مع مراعاة الحالة المحلية (Offline) باستخدام localId لضمان دقة التحديث في الواجهة
+  // // تعليق: حذف الوسم مع مراعاة الحالة المحلية (Offline) وعرض رسالة توضيحية لنوع الحذف (سيرفر/محلي)
   Future<void> deleteTag(TagModel tag) async {
     try {
-      // 1. تنفيذ عملية الحذف عبر الـ Usecase (التي بدورها ستسمه بـ REMOVE في المستودع)
+      // 1. تنفيذ عملية الحذف واستقبال الرسالة التوضيحية من المستودع
       final result = await deleteTagUsecase.call(tag);
 
       result.fold(
@@ -131,7 +129,7 @@ class TagActionController extends GetxController {
           "فشل طلب الحذف: ${failure.message}",
           isError: true,
         ),
-        (success) {
+        (successMessage) {
           // 2. تحديث قائمة العرض فوراً (UI Update)
           if (Get.isRegistered<TagViewController>()) {
             // نستخدم localId للحذف من القائمة لأنه المرجع الوحيد المضمون محلياً
@@ -139,8 +137,7 @@ class TagActionController extends GetxController {
               (t) => t.localId == tag.localId,
             );
 
-            // اختياري: إظهار رسالة تأكيد للمستخدم
-            HelperFunction.showSnackBar("نجاح", "تم حذف الوسم بنجاح");
+            if (Get.isOverlaysOpen) Get.back();
           }
         },
       );

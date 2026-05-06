@@ -20,15 +20,16 @@ class Currency extends HiveObject {
     final rawValue = json['LiveValue'] ?? json['actualValue'] ?? 0.0;
     return Currency(
       id: json['CurrencyId'] ?? 140,
-      code: json['Code'] ?? json['code'] ?? "SAR",
-      currencyName: json['CurrencyName'] ?? json['currencyName'] ?? "Syrian ",
+      code: json['Code'] ?? json['code'] ?? "",
+      currencyName: json['CurrencyName'] ?? json['currencyName'] ?? "",
       actualValue: rawValue,
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<dynamic, dynamic> toJson() {
     return {
       "CurrencyId": id,
+      "Code": code,
       "CurrencyName": currencyName,
       "LiveValue": actualValue,
     };

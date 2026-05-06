@@ -11,7 +11,7 @@ class SPBottomNavBar extends StatefulWidget {
 }
 
 class _SPBottomNavBarState extends State<SPBottomNavBar> {
-  MainController controller = MainController.insatnce;
+  MainController controller = MainController.instance;
 
   @override
   Widget build(BuildContext context) {

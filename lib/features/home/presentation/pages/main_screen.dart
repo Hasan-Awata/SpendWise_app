@@ -4,8 +4,8 @@ import 'package:get/get.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/auth/presentation/manager/logout_controller.dart';
-import 'package:spendwise/features/home/presentation/pages/home.dart';
 import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
+import 'package:spendwise/features/home/presentation/pages/home.dart';
 import 'package:spendwise/features/home/presentation/pages/profile.dart';
 import 'package:spendwise/features/home/presentation/widgets/appbar.dart';
 import 'package:spendwise/features/home/presentation/widgets/bottom_nav_bar.dart';
@@ -19,7 +19,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   // استخدام instance الموحد للمتحكم
-  final MainController controller = MainController.insatnce;
+  final MainController controller = MainController.instance;
   final LogoutController logoutController = Get.find<LogoutController>();
 
   // تعريف قائمة الصفحات - تأكد أنها تطابق عدد العناصر في SPBottomNavBar

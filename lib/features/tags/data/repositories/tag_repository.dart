@@ -6,9 +6,9 @@ import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
 
 abstract class TagRepository {
-  Future<Either<Failure, Unit>> addTag(TagModel tag);
+  Future<Either<Failure, String>> addTag(TagModel tag);
   Future<Either<Failure, PagedResponse<TagModel>>> getMyTags(PageRequest page);
-  Future<Either<Failure, Unit>> deleteTag(TagModel tag);
+  Future<Either<Failure, String>> deleteTag(TagModel tag);
   Future<Either<Failure, Unit>> updateTag(TagModel tag);
   Future<Either<Failure, Unit>>
   syncPendingTags(); // مضافة لدعم المزامنة اللاحقة

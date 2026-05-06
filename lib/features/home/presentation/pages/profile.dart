@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/auth/presentation/manager/logout_controller.dart';
@@ -8,7 +7,7 @@ import 'package:spendwise/features/home/presentation/manager/main_controller.dar
 class Profile extends StatelessWidget {
   Profile({super.key});
 
-  final MainController controller = MainController.insatnce;
+  final MainController controller = MainController.instance;
   final LogoutController logoutController = Get.find<LogoutController>();
   @override
   Widget build(BuildContext context) {

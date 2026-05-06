@@ -1,20 +1,18 @@
-// تعليق: واجهة إضافة مصروف - مدمجة مع نظام المزامنة والتحقق المطور
+// // AddExpenseView - Integrated with dynamic product chips
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/expense/presentation/manager/add_expense_controller.dart';
 import 'package:spendwise/features/expense/presentation/widgets/tag_widget.dart';
-
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field_description.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/date_picker_widget.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.dart';
 
-// هذه الفئة تمثل شاشة إضافة مصروف جديد وتدير التفاعل مع المستخدم
 class AddExpenseView extends StatefulWidget {
-  AddExpenseView({super.key});
+  const AddExpenseView({super.key});
 
   @override
   State<AddExpenseView> createState() => _AddExpenseViewState();
@@ -22,7 +20,6 @@ class AddExpenseView extends StatefulWidget {
 
 class _AddExpenseViewState extends State<AddExpenseView> {
   final controller = Get.find<AddExpenseController>();
-
   final RxBool isFixed = false.obs;
 
   @override
@@ -30,92 +27,66 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     return Scaffold(
       backgroundColor: SpColor.primaryDark2,
       appBar: _buildAppBar(),
-      body: RefreshIndicator(
-        color: const Color(0xFFF15A5A),
-        onRefresh: () async {
-          // إعادة تعيين الحقول وتحديث البيانات من المستودع
-          controller.resetFields();
-          await controller.walletsListController.loadWallets();
-          await controller.tagController.loadTags();
-        },
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25.0),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
-
-                  // واجهة المستخدم: حقل العنوان (الاسم أو المصدر)
-                  _buildField(
-                    "عنوان المصروف", // Expense Title
-                    controller.titleTextController,
-                    Icons.title,
-                    hint: "مثال: بقالة، إيجار...", // e.g. Grocery, Rent...
-                  ),
-                  const SizedBox(height: 20),
-
-                  // واجهة المستخدم: حقل المبلغ
-                  _buildField(
-                    "المبلغ (ريال)", // Amount (SAR)
-                    controller.amountController,
-                    Icons.monetization_on_outlined,
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 30),
-
-                  // واجهة المستخدم: اختيار الفئة
-                  _buildCategoryDropdown(),
-
-                  const SizedBox(height: 25),
-                  _buildFixedToggle(),
-                  const SizedBox(height: 15),
-                  _buildRepetitionField(),
-
-                  const SizedBox(height: 25),
-                  CustomTextFieldDescription(
-                    label: "الوصف", // Description
-                    hint: "تفاصيل المصروف...", // Expense details...
-                    textEditingController: controller.descriptionController,
-                    textColor: const Color(0xFFF15A5A),
-                  ),
-
-                  const SizedBox(height: 25),
-                  _buildDatePicker(context),
-
-                  const SizedBox(height: 30),
-                  const Divider(color: Colors.white10),
-                  const SizedBox(height: 30),
-
-                  _buildWalletDropdown(),
-                  const SizedBox(height: 25),
-
-                  // واجهة المستخدم: حقل التاج (يدعم الكتابة لإنشاء تاج جديد تلقائياً)
-                  _buildTagDropdown(),
-                  const SizedBox(height: 15),
-                  _buildTagPreview(),
-
-                  const SizedBox(height: 50),
-                  _buildSubmitButton(),
-                  const SizedBox(height: 50),
-                ],
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 25.0),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              _buildField(
+                "عنوان المصروف",
+                controller.titleTextController,
+                Icons.title,
+                hint: "مثال: بقالة، مطعم...",
               ),
-            ),
+              const SizedBox(height: 20),
+              _buildField(
+                "المبلغ (ريال)",
+                controller.amountController,
+                Icons.monetization_on_outlined,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 30),
+              _buildCategoryDropdown(),
+              const SizedBox(height: 25),
+              // // New Product Section
+              _buildProductSection(),
+              const SizedBox(height: 25),
+              _buildFixedToggle(),
+              const SizedBox(height: 15),
+              _buildRepetitionField(),
+              const SizedBox(height: 25),
+              CustomTextFieldDescription(
+                label: "الوصف",
+                hint: "تفاصيل إضافية...",
+                textEditingController: controller.descriptionController,
+                textColor: const Color(0xFFF15A5A),
+              ),
+              const SizedBox(height: 25),
+              _buildDatePicker(context),
+              const SizedBox(height: 30),
+              const Divider(color: Colors.white10),
+              const SizedBox(height: 30),
+              _buildWalletDropdown(),
+              const SizedBox(height: 25),
+              _buildTagDropdown(),
+              const SizedBox(height: 15),
+              _buildTagPreview(),
+              const SizedBox(height: 50),
+              _buildSubmitButton(),
+              const SizedBox(height: 50),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // --- عناصر الواجهة (Widgets) ---
-
-  // إنشاء شريط التطبيق العلوي
   PreferredSizeWidget _buildAppBar() => AppBar(
     title: const Text(
-      "مصروف جديد", // New Expense
+      "مصروف جديد",
       style: TextStyle(color: Color(0xFFF15A5A), fontWeight: FontWeight.bold),
     ),
     backgroundColor: Colors.transparent,
@@ -129,7 +100,6 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     ],
   );
 
-  // بناء حقل إدخال نصي مخصص
   Widget _buildField(
     String label,
     TextEditingController ctr,
@@ -144,30 +114,91 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     textEditingController: ctr,
   );
 
-  // بناء قائمة منسدلة لاختيار الفئة
   Widget _buildCategoryDropdown() {
     return Obx(
-      () => SPDropdownButton(
-        title: "الفئة", // Category
-        hint: "اختر فئة المصروف", // Select expense category
-        textColor: const Color(0xFFF15A5A),
-        prefixIcon: const Icon(
-          Icons.category_outlined,
-          color: Color(0xFFF15A5A),
-        ),
-        values: controller.categories
-            .map((c) => "${c.name} (أولوية ${c.priority})")
-            .toList(),
-        onSelected: (index, value) {
-          controller.selectedCategory.value = controller.categories[index];
-          controller.categoryTextController.text = value;
+      () => SPDropdownSearch(
+        themeColor: SpColor.expenseRed,
+        label: "الفئة",
+        hint: "اختر الفئة",
+        items: controller.categories.map((c) => c.name).toList(),
+        selectedItem: controller.selectedCategory.value?.name,
+        onChanged: (value) {
+          if (value != null) {
+            final cat = controller.categories.firstWhereOrNull(
+              (c) => c.name == value,
+            );
+            controller.selectedCategory.value = cat;
+          }
         },
-        textEditingController: controller.categoryTextController,
       ),
     );
   }
 
-  // مفتاح تبديل لتحديد ما إذا كان المصروف ثابتاً شهرياً
+  // // Section for adding products as Chips
+  Widget _buildProductSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: CustomTextField(
+                label: "المنتجات",
+                hint: "اكتب اسم المنتج ثم أضفه",
+                prefixIcon: const Icon(
+                  Icons.shopping_basket,
+                  color: Color(0xFFF15A5A),
+                ),
+                textEditingController: controller.productsController,
+                textColor: const Color(0xFFF15A5A),
+                onTap: () => controller.addProductToList(),
+              ),
+            ),
+            const SizedBox(width: 10),
+            IconButton(
+              onPressed: () => controller.addProductToList(),
+              icon: const Icon(
+                Icons.add_circle,
+                color: Color(0xFFF15A5A),
+                size: 38,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Obx(
+          () => Wrap(
+            spacing: 8.0,
+            runSpacing: 4.0,
+            children: controller.tempProducts.map((product) {
+              return Chip(
+                label: Text(
+                  product,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: SpColor.expenseRed,
+                    fontSize: 12,
+                  ),
+                ),
+                backgroundColor: SpColor.surfaceNavy,
+                deleteIcon: const Icon(
+                  Icons.close,
+                  size: 14,
+                  color: SpColor.expenseRed,
+                ),
+                shape: RoundedRectangleBorder(
+                  side: const BorderSide(color: Color(0xFFF15A5A)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                onDeleted: () => controller.removeProduct(product),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildFixedToggle() => Obx(
     () => Container(
       decoration: BoxDecoration(
@@ -176,24 +207,20 @@ class _AddExpenseViewState extends State<AddExpenseView> {
       ),
       child: SwitchListTile(
         title: const Text(
-          "مصروف شهري ثابت", // Fixed Monthly Expense
+          "مصروف شهري ثابت",
           style: TextStyle(color: Colors.white, fontSize: 14),
         ),
-        activeColor: const Color(0xFFF15A5A),
+        activeThumbColor: const Color(0xFFF15A5A),
         value: isFixed.value,
-        onChanged: (v) {
-          isFixed.value = v;
-          if (!v) controller.repeatController.clear();
-        },
+        onChanged: (v) => isFixed.value = v,
       ),
     ),
   );
 
-  // حقل تحديد تكرار المصروف بالأيام
   Widget _buildRepetitionField() => Obx(
     () => isFixed.value
         ? _buildField(
-            "يتكرر كل (أيام)", // Repeat Every (Days)
+            "يتكرر كل (أيام)",
             controller.repeatController,
             Icons.calendar_month,
             keyboardType: TextInputType.number,
@@ -201,7 +228,6 @@ class _AddExpenseViewState extends State<AddExpenseView> {
         : const SizedBox.shrink(),
   );
 
-  // أداة اختيار التاريخ
   Widget _buildDatePicker(BuildContext context) => Obx(
     () => DatePickerWidget(
       onTap: () => controller.fetchDate(context),
@@ -210,68 +236,120 @@ class _AddExpenseViewState extends State<AddExpenseView> {
     ),
   );
 
-  // قائمة منسدلة لاختيار المحفظة المالية
   Widget _buildWalletDropdown() {
-    return SPDropdownButton(
-      title: "اختر المحفظة", // Select Wallet
-      hint: "اختر المحفظة", // Choose wallet
-      textColor: const Color(0xFFF15A5A),
-      prefixIcon: const Icon(Icons.wallet, color: const Color(0xFFF15A5A)),
-      values: controller.walletsListController.wallets
+    return SPDropdownSearch(
+      themeColor: SpColor.expenseRed,
+      label: "اضف محفظة",
+      hint: "اختر المحفظة",
+
+      items: controller.walletsListController.wallets
           .map(
             (w) =>
-                "${w.currency.currencyName}      (${w.currency.code} ${w.balance})",
+                "${w.currency.currencyName} (${w.currency.code} ${w.balance})",
           )
           .toList(),
-      onSelected: (index, value) {
-        controller.selectedWallet.value =
-            controller.walletsListController.wallets[index];
-        controller.walletTextController.text = value;
+
+      selectedItem: controller.walletTextController.text.isNotEmpty
+          ? controller.walletTextController.text
+          : null,
+      onChanged: (value) {
+        if (value != null) {
+          controller.walletTextController.text = value;
+
+          int index = controller.walletsListController.wallets.indexWhere(
+            (w) =>
+                "${w.currency.currencyName} (${w.currency.code} ${w.balance})" ==
+                value,
+          );
+          if (index != -1) {
+            controller.selectedWallet.value =
+                controller.walletsListController.wallets[index];
+          }
+        }
       },
-      textEditingController: controller.walletTextController,
       suffixIcon: IconButton(
-        onPressed: () async {
-          await Get.toNamed('/add-wallet');
-          await controller.walletsListController.loadWallets();
+        onPressed: () {
+          Get.toNamed(Routes.ADD_WALLET);
         },
-        icon: const Icon(Icons.add, color: const Color(0xFFF15A5A)),
+        icon: Icon(Icons.add),
       ),
     );
   }
 
-  // قائمة منسدلة مع إمكانية البحث لتعيين "وسم" للمصروف
-  Widget _buildTagDropdown() => Obx(
-    () => SPDropdownButton(
-      title: "اختر وسماً", // Select Tag
-      isTextField: true, // تفعيل الكتابة لتمكين ميزة إنشاء تاج جديد تلقائياً
-      hint: "ابحث أو اكتب وسماً", // Search/Type Tag
-      textColor: const Color(0xFFF15A5A),
-      prefixIcon: const Icon(Icons.tag, color: Color(0xFFF15A5A)),
-      values: controller.tagController.myTags.map((t) => t.name).toList(),
-      onSelected: (index, value) {
-        controller.selectedTag.value = controller.tagController.myTags[index];
-        controller.tagTextController.text = value;
-      },
-      textEditingController: controller.tagTextController,
-    ),
-  );
+  Widget _buildTagDropdown() {
+    return Obx(() {
+      bool isNewTag =
+          controller.tagTextController.text.trim().isNotEmpty &&
+          !controller.tagController.myTags.any(
+            (t) =>
+                t.name.toLowerCase() ==
+                controller.tagTextController.text.trim().toLowerCase(),
+          );
 
-  // عرض الوسم المختار حالياً مع إمكانية حذفه
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SPDropdownSearch(
+            themeColor: SpColor.expenseRed,
+            label: "اختر الوسم",
+            hint: "ابحث أو اكتب الوسم",
+            // عرض قائمة أسماء الوسوم
+            items: controller.tagController.myTags.map((t) => t.name).toList(),
+            selectedItem: controller.tagTextController.text.isNotEmpty
+                ? controller.tagTextController.text
+                : null,
+
+            onChanged: (value) {
+              if (value != null) {
+                controller.tagTextController.text = value;
+
+                int index = controller.tagController.myTags.indexWhere(
+                  (t) => t.name == value,
+                );
+                if (index != -1) {
+                  controller.selectedTag.value =
+                      controller.tagController.myTags[index];
+                } else {
+                  controller.selectedTag.value = null;
+                }
+              }
+            },
+            suffixIcon: IconButton(
+              onPressed: () {
+                Get.toNamed(Routes.ADD_TAG);
+              },
+              icon: Icon(Icons.add),
+            ),
+          ),
+          if (isNewTag)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, left: 10.0),
+              child: Text(
+                "✨ سيتم إنشاء الوسم \"${controller.tagTextController.text}\".",
+                style: const TextStyle(
+                  color: SpColor.incomeGreen,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          const SizedBox(height: 10),
+        ],
+      );
+    });
+  }
+
   Widget _buildTagPreview() => Obx(
     () => controller.selectedTag.value != null
         ? TagWidget(
             tagName: controller.selectedTag.value!.name,
             icon: Icons.check,
             color: const Color(0xFFF15A5A),
-            onDelete: () {
-              controller.selectedTag.value = null;
-              controller.tagTextController.clear();
-            },
+            onDelete: () => controller.selectedTag.value = null,
           )
         : const SizedBox.shrink(),
   );
 
-  // زر حفظ المصروف مع مؤشر تحميل عند المعالجة
   Widget _buildSubmitButton() => SizedBox(
     width: double.infinity,
     child: Obx(
@@ -280,9 +358,8 @@ class _AddExpenseViewState extends State<AddExpenseView> {
               child: CircularProgressIndicator(color: Color(0xFFF15A5A)),
             )
           : CustomButton(
-              text: "حفظ المصروف", // SAVE EXPENSE
-              onPressed: () =>
-                  controller.saveExpense(), // استدعاء الدالة المحدثة
+              text: "حفظ المصروف",
+              onPressed: () => controller.saveExpense(),
               color: const Color(0xFFF15A5A),
             ),
     ),

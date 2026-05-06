@@ -1,7 +1,6 @@
-// // Matching the model properties with IncomeEntity and Backend DTO PascalCase names
+// // Updated IncomeModel with Wallet retrieval logic
 import 'package:spendwise/features/income/domain/entities/income_entity.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
-import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 import 'package:uuid/uuid.dart';
 
 class IncomeModel extends IncomeEntity {
@@ -10,81 +9,72 @@ class IncomeModel extends IncomeEntity {
 
   IncomeModel({
     String? localId,
-    int id = -1,
-    int userId = 0,
-    required String title,
-    int walletId = 0,
-    required double amount,
-    required DateTime date,
-    int? incomeTagId,
-    required String description,
-    WalletModel? wallet,
+    int super.id,
+    super.userId = 0,
+    required super.title,
+    super.walletId = 0,
+    required super.amount,
+    required super.date,
+    super.incomeTagId,
+    required super.description,
+    super.wallet,
     this.isSynced = false,
-    TagModel? tag,
-  }) : localId = localId ?? const Uuid().v4(),
-       super(
-         id: id,
-         userId: userId,
-         title: title,
-         walletId: walletId,
-         amount: amount,
-         date: date,
-         incomeTagId: incomeTagId,
-         description: description,
-         wallet: wallet,
-         tag: tag,
-       );
+    super.tag,
+  }) : localId = localId ?? const Uuid().v4();
 
-  // تحويل البيانات القادمة من API (PascalCase) إلى Model
+  // ========================= FROM API =========================
   factory IncomeModel.fromJson(Map<dynamic, dynamic> json) {
+    final int wId = json['walletId'] ?? 0;
+
     return IncomeModel(
-      localId: const Uuid().v4(),
-      id: json['Id'] ?? -1,
-      userId: json['UserId'] ?? 0,
-      title: json['Title'] ?? '',
-      walletId: json['WalletId'] ?? 0,
-      amount: (json['Amount'] ?? 0.0).toDouble(),
-      date: json['Date'] != null
-          ? DateTime.parse(json['Date'])
+      localId: json['localId'] ?? const Uuid().v4(),
+      id: json['id'] ?? -1,
+      userId: json['userId'] ?? 0,
+      title: json['title'] ?? '',
+      walletId: wId,
+      amount: (json['amount'] ?? 0).toDouble(),
+      date: json['date'] != null
+          ? DateTime.parse(json['date'])
           : DateTime.now(),
-      incomeTagId: json['IncomeTagId'],
-      description: json['Description'] ?? '',
-      // إذا كان الباكيند يرسل كائن المحفظة كاملاً
-      wallet: json['Wallet'] != null
-          ? WalletModel.fromJson(json['Wallet'])
-          : null,
+      incomeTagId: json['incomeTagId'],
+      description: json['description'] ?? '',
       isSynced: true,
+      tag: json['tag'] != null ? TagModel.fromJson(json['tag']) : null,
     );
   }
 
-  // تحويل الكائن إلى JSON لإرساله إلى الباكيند (PascalCase)
-  Map<String, dynamic> toJson() {
-    return {
-      'Id': id,
-      'UserId': userId,
-      'Title': title,
-      'WalletId': walletId,
-      'Amount': amount,
-      'Date': date.toIso8601String(),
-      'IncomeTagId': incomeTagId ?? tag!.id,
-      'Description': description,
-    };
-  }
-
-  // التعامل مع التخزين المحلي (عادة نستخدم snake_case أو camelCase للمحلي)
+  // ========================= FROM LOCAL =========================
   factory IncomeModel.fromLocal(Map<dynamic, dynamic> map) {
+    final int wId = map['walletId'] ?? 0;
+
     return IncomeModel(
       localId: map['localId'],
       id: map['id'] ?? -1,
       userId: map['userId'] ?? 0,
       title: map['title'] ?? '',
-      walletId: map['walletId'] ?? 0,
-      amount: (map['amount'] ?? 0.0).toDouble(),
+      walletId: wId,
+      amount: (map['amount'] ?? 0).toDouble(),
       date: map['date'] != null ? DateTime.parse(map['date']) : DateTime.now(),
       incomeTagId: map['incomeTagId'],
       description: map['description'] ?? '',
       isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
     );
+  }
+
+  //
+
+  // ========================= TO API & LOCAL =========================
+  Map<String, dynamic> toJson({bool isCreate = false}) {
+    return {
+      if (!isCreate) 'id': id,
+      'userId': userId,
+      'title': title,
+      'walletId': walletId != 0 ? walletId : wallet?.walletId,
+      'amount': amount,
+      'date': date.toUtc().toIso8601String(),
+      'incomeTagId': incomeTagId ?? tag?.id ?? 1,
+      'description': description,
+    };
   }
 
   Map<dynamic, dynamic> toLocal() {
@@ -96,9 +86,14 @@ class IncomeModel extends IncomeEntity {
       'walletId': walletId,
       'amount': amount,
       'date': date.toIso8601String(),
-      'incomeTagId': incomeTagId ?? tag!.id,
+      'incomeTagId': incomeTagId ?? tag?.id,
       'description': description,
       'isSynced': isSynced ? 1 : 0,
     };
+  }
+
+  @override
+  String toString() {
+    return 'IncomeModel(localId: $localId, id: $id, title: $title, amount: $amount, date: $date, walletId: $walletId, walletName: ${wallet?.currency.currencyName}, isSynced: $isSynced)';
   }
 }

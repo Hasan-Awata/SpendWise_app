@@ -1,26 +1,29 @@
 import 'package:get/get.dart';
-import 'package:spendwise/core/network/initial_binding.dart';
 // استيراد الـ Bindings
 import 'package:spendwise/features/auth/presentation/bindings/auth_binding.dart';
-import 'package:spendwise/features/expense/presentation/bindings/expense_binding.dart';
-import 'package:spendwise/features/tags/presentation/bindings/tag_binding.dart';
-import 'package:spendwise/features/wallet/presentation/bindings/wallet_binding.dart';
-import 'package:spendwise/features/income/presentation/bindings/income_binding.dart';
-
 // استيراد الصفحات (Pages)
 import 'package:spendwise/features/auth/presentation/pages/login_page.dart';
 import 'package:spendwise/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:spendwise/features/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:spendwise/features/expense/presentation/bindings/expense_binding.dart';
 import 'package:spendwise/features/expense/presentation/pages/add_expense_view.dart';
 import 'package:spendwise/features/expense/presentation/pages/expense_list_view.dart';
+import 'package:spendwise/features/home/presentation/bindings/main_binding.dart';
 import 'package:spendwise/features/home/presentation/pages/main_screen.dart';
+import 'package:spendwise/features/income/presentation/bindings/income_binding.dart';
+import 'package:spendwise/features/savings_goals/presentation/bindings/saving_goal_binding.dart';
+import 'package:spendwise/features/savings_goals/presentation/pages/add_saving_goal_page.dart';
+import 'package:spendwise/features/savings_goals/presentation/pages/saving_goals_list_page.dart';
 import 'package:spendwise/features/splash/initial_page.dart';
+import 'package:spendwise/features/tags/presentation/bindings/tag_binding.dart';
 import 'package:spendwise/features/tags/presentation/pages/add_tag_page.dart';
 import 'package:spendwise/features/tags/presentation/pages/tags_view.dart';
+import 'package:spendwise/features/wallet/presentation/bindings/wallet_binding.dart';
 import 'package:spendwise/features/wallet/presentation/pages/add_wallet_view.dart';
 import 'package:spendwise/features/wallet/presentation/pages/wallet_view.dart';
-import '../../features/income/presentation/pages/income_list_view.dart';
+
 import '../../features/income/presentation/pages/add_income_view.dart';
+import '../../features/income/presentation/pages/income_list_view.dart';
 
 // This class defines constant route names to maintain a single source of truth and prevent typos
 abstract class Routes {
@@ -45,6 +48,8 @@ abstract class Routes {
   // Income Routes
   static const LIST_INCOME = '/list-income';
   static const ADD_INCOME = '/add-income';
+  static const ADD_GOAL = "/add-goal";
+  static const GOAL_LIST = "/goal-list";
 }
 
 // AppPages manages the mapping between route names and their corresponding pages and bindings
@@ -68,18 +73,25 @@ class AppPages {
       page: () => LogInPage(),
       binding: AuthBinding(),
     ),
-
+    GetPage(
+      name: Routes.GOAL_LIST,
+      page: () => SavingGoalsListPage(),
+      binding: SavingGoalBinding(),
+    ),
     // --- Core Module (Main Screens) ---
     GetPage(
       name: Routes.MAIN_SCREEN,
       page: () => const MainScreen(),
-      // The MainScreen often acts as a hub, so we inject essential bindings here
       bindings: [
         WalletBinding(),
         TagBinding(),
-        ExpenseBinding(),
         IncomeBinding(),
+        MainBinding(),
+        ExpenseBinding(),
+        SavingGoalBinding(),
       ],
+
+      // The MainScreen often acts as a hub, so we inject essential bindings here
     ),
 
     GetPage(name: Routes.DASHBOARD, page: () => const DashboardPage()),
@@ -94,6 +106,12 @@ class AppPages {
       name: Routes.ADD_WALLET,
       page: () => const AddWalletView(),
       binding: WalletBinding(),
+    ),
+
+    GetPage(
+      name: Routes.ADD_GOAL,
+      page: () => const AddSavingGoalPage(),
+      binding: SavingGoalBinding(),
     ),
 
     // --- Tag Module ---
@@ -123,7 +141,7 @@ class AppPages {
     // --- Income Module ---
     GetPage(
       name: Routes.LIST_INCOME,
-      page: () => const IncomeListView(),
+      page: () => IncomeListView(),
       bindings: [IncomeBinding(), WalletBinding(), TagBinding()],
     ),
     GetPage(

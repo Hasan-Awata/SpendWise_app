@@ -9,7 +9,7 @@ class DeleteTagUsecase {
 
   DeleteTagUsecase(this.tagRepository);
 
-  Future<Either<Failure, Unit>> call(TagModel tag) async {
+  Future<Either<Failure, String>> call(TagModel tag) async {
     return await tagRepository.deleteTag(tag);
   }
 }

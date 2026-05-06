@@ -48,6 +48,7 @@ class SignUpController extends GetxController {
         (user) async {
           Get.find<AuthSessionController>().currentUser.value = user;
           final prefs = Get.find<SharedPreferencesService>();
+
           await prefs.setLoggedIn(true);
           await prefs.setToken(user.token);
 

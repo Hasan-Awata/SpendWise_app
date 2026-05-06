@@ -5,9 +5,9 @@ import 'package:spendwise/features/tags/data/models/tag_model.dart';
 abstract class TagRemoteDatasource {
   Future<TagModel?> addTag(TagModel tag);
 
-  Future<void> deleteTag(TagModel tag);
+  Future<void> deleteTag(int id);
 
   Future<PagedResponse<TagModel>> getMyTags(PageRequest page);
 
-  Future<void> updateTag(TagModel tag);
+  Future<TagModel?> updateTag(TagModel tag);
 }

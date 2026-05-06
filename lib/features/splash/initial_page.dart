@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/core/utils/current_user.dart';
@@ -24,25 +25,29 @@ class _InitialPageState extends State<InitialPage> {
   @override
   void initState() {
     super.initState();
+
+    Get.put(NetworkService(), permanent: true);
     _checkLoginAndNavigate();
   }
 
   Future<void> _checkLoginAndNavigate() async {
+    CurrentUser.initializeUser();
     final isLogged = CurrentUser.isUserLoggedIn;
 
     if (isLogged) {
-      CurrentUser.initializeUser();
       setState(() {
         isWaiting = true;
       });
 
       // إعطاء وقت كافٍ للمستخدم لرؤية شعار التطبيق وللنظام لإنهاء الحقن
       await Future.delayed(const Duration(milliseconds: 3500));
-
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       Get.offAllNamed(Routes.MAIN_SCREEN);
     } else {
       _initializeDataSources();
+      CurrentUser.initializeUser();
       setState(() {
         isWaiting = false;
       });

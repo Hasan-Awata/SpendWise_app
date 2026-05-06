@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/expense/presentation/pages/add_expense_view.dart';
 import 'package:spendwise/features/savings_goals/presentation/pages/add_saving_goal_page.dart';
@@ -52,7 +53,7 @@ class DashboardPage extends StatelessWidget {
             subtitle:
                 'حدد هدفًا وتتبع التقدم المحرز', // Set a target and track progress
             color: const Color(0xFFF59E0B),
-            onTap: () => Get.to(() => const AddSavingGoalPage()),
+            onTap: () => Get.toNamed(Routes.ADD_GOAL),
           ),
           _DashboardTile(
             icon: Icons.trending_up,

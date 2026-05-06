@@ -26,6 +26,7 @@ class UserRepositoryImpl implements UserRepository {
       print("📡 Attempting Remote Register...");
       final user = await appUserRemoteDatasource.register(params);
 
+      print("token is --->>>>> :${user.token}");
       print("💾 Saving User Locally...");
       await appUserLocalDatasource.registerLocal(user);
 

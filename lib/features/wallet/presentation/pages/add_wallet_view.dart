@@ -12,7 +12,6 @@ class AddWalletView extends StatefulWidget {
 }
 
 class _AddWalletViewState extends State<AddWalletView> {
-  // استخدام Get.find للوصول للمتحكم المحقون عبر الـ Binding
   final controller = Get.find<AddWalletController>();
 
   @override
@@ -36,6 +35,7 @@ class _AddWalletViewState extends State<AddWalletView> {
         width: double.infinity,
         height: double.infinity,
         child: ListView(
+          physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.all(16),
           children: [
             const Text(
@@ -47,18 +47,24 @@ class _AddWalletViewState extends State<AddWalletView> {
               ),
             ),
             const SizedBox(height: 40),
-
-            // // تعليق: استخدام قائمة العملات المفلترة من الـ Controller
-            SPDropdownButton(
-              title: "العملة",
+            // // استبدال القائمة المنسدلة بالكلاس الجديد المعتمد على مكتبة البحث
+            SPDropdownSearch(
+              label: "العملة",
               hint: "اختر العملة",
-              values: controller.filteredCurrencies,
-              onSelected: (index, value) {
-                controller.currencySearchController.text = value;
-                controller.selectedCurrencyId.value = index;
+              items: controller.filteredCurrencies,
+              selectedItem: controller.currencySearchController.text.isNotEmpty
+                  ? controller.currencySearchController.text
+                  : null,
+              onChanged: (value) {
+                if (value != null) {
+                  controller.currencySearchController.text = value;
+                  // الحصول على الـ index الخاص بالعنصر المختار من القائمة
+                  int index = controller.filteredCurrencies.indexOf(value);
+                  controller.selectedCurrencyId.value = index;
+                }
               },
-              textEditingController: controller.currencySearchController,
             ),
+
             const SizedBox(height: 20),
 
             _buildTextField(
@@ -71,36 +77,44 @@ class _AddWalletViewState extends State<AddWalletView> {
 
             const SizedBox(height: 60),
 
-            // // تعليق: تغيير زر الحفظ ليظهر مؤشر تحميل عند معالجة الطلب
-            Obx(
-              () => SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF43C5F3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                  onPressed: controller.isLoadingSave.value
-                      ? null
-                      : () => controller.addNewWallet(),
-                  child: controller.isLoadingSave.value
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'حفظ المحفظة',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
-              ),
-            ),
             const SizedBox(height: 40),
           ],
+        ),
+      ),
+      bottomNavigationBar: _buildSaveingButton(),
+    );
+  }
+
+  Widget _buildSaveingButton() {
+    return
+    // // تعليق: تغيير زر الحفظ ليظهر مؤشر تحميل عند معالجة الطلب
+    SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Obx(
+          () => SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF43C5F3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+              onPressed: () async => await controller.addNewWallet(),
+              child: controller.isLoadingSave.value
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text(
+                      'حفظ المحفظة',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
+          ),
         ),
       ),
     );

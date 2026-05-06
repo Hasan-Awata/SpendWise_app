@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:spendwise/core/error/failure.dart';
+import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource.dart';
@@ -16,32 +19,28 @@ class WalletRepositoryImpl implements WalletRepository {
     required this.remoteDatasource,
     required this.localDatasource,
   });
-
   @override
   Future<Either<Failure, String?>> addWallet(WalletModel wallet) async {
-    try {
-      print("🚀 Starting addWallet: ${wallet.localId}");
-      wallet.isSynced = false;
-      await localDatasource.addWaletLocal(wallet);
+    final network = NetworkService();
+    return await network.saveLocalAndSync<String?>(
+      localSave: () async {
+        await localDatasource.addWaletLocal(wallet);
+      },
+      remoteSave: () async {
+        final result = await remoteDatasource.addWalet(wallet);
 
-      try {
-        final newWalletFromServer = await remoteDatasource.addWalet(wallet);
-
-        if (newWalletFromServer != null) {
-          print("✅ Server Add Success: ${newWalletFromServer.walletId}");
-          newWalletFromServer.isSynced = true;
-          await localDatasource.addWaletLocal(newWalletFromServer);
-          return const Right("تمت المزامنة والحفظ بنجاح");
+        if (result == null) {
+          throw Exception("Remote addWallet returned null");
         }
-        return const Right("تم الحفظ محلياً");
-      } catch (remoteError) {
-        print("⚠️ Server Add Failed: $remoteError");
-        return const Right("تم الحفظ محلياً فقط");
-      }
-    } catch (localError) {
-      print("❌ Local Add Critical Error: $localError");
-      return Left(CacheFailure("فشل الحفظ المحلي"));
-    }
+
+        return "تم الحفظ بنجاح";
+      },
+      onSyncSuccess: (serverId) async {
+        wallet.isSynced = true;
+        await localDatasource.updateWallet(wallet);
+      },
+      localResult: "تم الحفظ محلياً",
+    );
   }
 
   @override
@@ -49,17 +48,24 @@ class WalletRepositoryImpl implements WalletRepository {
     PageRequest page,
   ) async {
     try {
-      print("📡 Fetching Wallets from Server - Page: ${page.pageNumber}");
-      final remoteResponse = await remoteDatasource.getMyWallet(page);
+      final remoteResponse = await remoteDatasource
+          .getMyWallet(page)
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () => throw SocketException("Timeout"),
+          );
 
-      for (var model in remoteResponse.data) {
-        model.isSynced = true;
-        await localDatasource.addWaletLocal(model);
-      }
+      _safeRemoteCall(() async {
+        await Future.wait(
+          remoteResponse.data.map((model) async {
+            model.isSynced = true;
+            await localDatasource.updateWallet(model);
+          }),
+        );
+      });
+
       return Right(remoteResponse);
     } catch (e) {
-      print("🌐 Connection Issue: Switching to Local Storage. Error: $e");
-      _safeRemoteCall(() => syncPendingWallets());
       return await _getLocalPagedWallet(page);
     }
   }
@@ -67,21 +73,19 @@ class WalletRepositoryImpl implements WalletRepository {
   @override
   Future<Either<Failure, Unit>> updateWallet(WalletModel wallet) async {
     try {
-      print("🔄 Updating Wallet Locally: ${wallet.walletId}");
       wallet.isSynced = false;
       await localDatasource.updateWallet(wallet);
 
       _safeRemoteCall(() async {
         final remote = await remoteDatasource.updateWallet(wallet);
         if (remote != null) {
-          print("✅ Server Update Sync Done");
           remote.isSynced = true;
           await localDatasource.updateWallet(remote);
         }
       });
+
       return const Right(unit);
     } catch (e) {
-      print("❌ Local Update Error: $e");
       return Left(CacheFailure("فشل التحديث المحلي"));
     }
   }
@@ -89,7 +93,6 @@ class WalletRepositoryImpl implements WalletRepository {
   @override
   Future<Either<Failure, Unit>> deleteWallet(WalletModel wallet) async {
     try {
-      print("🗑️ Marking Wallet for Removal: ${wallet.walletId}");
       wallet.localId = "REMOVE";
       wallet.isSynced = false;
       await localDatasource.updateWallet(wallet);
@@ -97,14 +100,13 @@ class WalletRepositoryImpl implements WalletRepository {
       _safeRemoteCall(() async {
         if (wallet.walletId != null && wallet.walletId! > 0) {
           await remoteDatasource.deleteWallet(wallet);
-          print("✅ Server Delete Done");
         }
         await localDatasource.deleteWallet(wallet);
       });
+
       return const Right(unit);
     } catch (e) {
-      print("❌ Local Delete Error: $e");
-      return Left(CacheFailure("فشل الحذف المحلي"));
+      return Left(CacheFailure("فشل الحفظ المحلي"));
     }
   }
 
@@ -116,41 +118,35 @@ class WalletRepositoryImpl implements WalletRepository {
           .where((i) => i.isSynced != true || i.localId == "REMOVE")
           .toList();
 
-      print("🔄 Sync Engine: Found ${pending.length} pending items");
-
       for (var wallet in pending) {
         try {
           if (wallet.localId == "REMOVE") {
-            if (wallet.walletId != null)
+            if (wallet.walletId != null && wallet.walletId != -1) {
               await remoteDatasource.deleteWallet(wallet);
+            }
             await localDatasource.deleteWallet(wallet);
-            print("📤 Synced: DELETED ${wallet.walletId}");
             continue;
           }
 
-          if (wallet.walletId != null) {
+          if (wallet.walletId != null && wallet.walletId != -1) {
             final remote = await remoteDatasource.updateWallet(wallet);
             if (remote != null) {
               remote.isSynced = true;
               await localDatasource.updateWallet(remote);
-              print("📤 Synced: UPDATED ${wallet.walletId}");
             }
           } else {
             final remote = await remoteDatasource.addWalet(wallet);
             if (remote != null) {
               remote.isSynced = true;
               await localDatasource.updateWallet(remote);
-              print("📤 Synced: CREATED ${remote.walletId}");
             }
           }
         } catch (e) {
-          print("⚠️ Sync Error for item: $e");
           continue;
         }
       }
       return const Right(unit);
     } catch (e) {
-      print("❌ Global Sync Engine Failure: $e");
       return Left(CacheFailure("فشل محرك المزامنة"));
     }
   }
@@ -187,7 +183,6 @@ class WalletRepositoryImpl implements WalletRepository {
         end > filtered.length ? filtered.length : end,
       );
 
-      print("📦 Local Data Loaded: ${sliced.length} items");
       return Right(
         PagedResponse(
           data: sliced,
@@ -206,7 +201,7 @@ class WalletRepositoryImpl implements WalletRepository {
     try {
       await call();
     } catch (e) {
-      debugPrint("📢 Background Sync Silent Info: $e");
+      debugPrint(e.toString());
     }
   }
 
@@ -216,7 +211,7 @@ class WalletRepositoryImpl implements WalletRepository {
       final wallets = await localDatasource.myWallets();
       return Right(wallets.where((w) => w.localId != "REMOVE").toList());
     } catch (e) {
-      return Left(CacheFailure("لا يمكن الوصول للمحافظ محلياً"));
+      return Left(CacheFailure("فشل الوصول للمحفظة"));
     }
   }
 }

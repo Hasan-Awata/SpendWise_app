@@ -2,12 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/error/failure.dart';
-
 import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
-
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 import 'package:spendwise/features/wallet/domain/usecases/add_wallet_usecase.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
@@ -18,7 +16,7 @@ class AddWalletController extends GetxController {
   final AddWalletUseCase addWalletUseCase;
 
   final isLoadingSave = false.obs;
-  final selectedCurrencyId = 144.obs;
+  final selectedCurrencyId = 1.obs;
 
   final balanceController = TextEditingController();
   final currencySearchController = TextEditingController();
@@ -64,6 +62,7 @@ class AddWalletController extends GetxController {
       final currency = await CurrencyLocal().getCurrency(
         currencySearchController.text,
       );
+      print("Selected currency: ${currency.toString()}");
       bool isNotExist = !Get.find<WalletsListController>().wallets.any(
         (w) => w.currency.currencyName == currency.currencyName,
       );
@@ -90,6 +89,7 @@ class AddWalletController extends GetxController {
       final newWallet = WalletModel(
         userId: userId ?? CurrentUser.user!.userId,
         currency: currency,
+        currencyId: currency.id,
         balance: double.parse(balanceController.text.trim()),
         isSaved: true,
       );
@@ -107,9 +107,6 @@ class AddWalletController extends GetxController {
           }
         },
         (text) {
-          final listController = Get.find<WalletsListController>();
-
-          listController.wallets.insert(0, newWallet);
           print("📱 UI added Instantly ");
           HelperFunction.showSnackBar("نجاح", text ?? "تمت العملية بنجاح");
           balanceController.clear();

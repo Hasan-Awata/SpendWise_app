@@ -1,23 +1,35 @@
 // // تعليق: واجهة المحافظ المصلحة بالكامل مع ربط دقيق لعمليات التحديث والحذف بالمتحكمات الخاصة بها
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 import 'package:spendwise/features/wallet/presentation/manager/delete_wallet_controller.dart';
 import 'package:spendwise/features/wallet/presentation/manager/update_wallet_controller.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 // // واجهة عرض المحافظ: تستخدم لتمثيل قائمة الحسابات المالية للمستخدم
-class WalletsView extends StatelessWidget {
+class WalletsView extends StatefulWidget {
   const WalletsView({super.key});
+
+  @override
+  State<WalletsView> createState() => _WalletsViewState();
+}
+
+class _WalletsViewState extends State<WalletsView> {
+  final listController = Get.find<WalletsListController>();
+  final deleteController = Get.find<DeleteWalletController>();
+  final updateController = Get.find<UpdateWalletController>();
+
+  @override
+  void initState() {
+    super.initState();
+    listController.loadWallets(isRefresh: true);
+  }
 
   @override
   Widget build(BuildContext context) {
     // // استدعاء المتحكمات المطلوبة للتأكد من وجودها في الذاكرة لربط العمليات (الربط، الحذف، التحديث)
-    final listController = Get.find<WalletsListController>();
-    final deleteController = Get.find<DeleteWalletController>();
-    final updateController = Get.find<UpdateWalletController>();
 
-    listController.loadWallets();
     return Scaffold(
       backgroundColor: const Color(0xFF0B121E),
       appBar: AppBar(
@@ -38,8 +50,10 @@ class WalletsView extends StatelessWidget {
         ),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF43C5F3),
-        onRefresh: () async => listController.loadWallets(),
+        color: SpColor.accentBlue,
+        backgroundColor: SpColor.surfaceNavy,
+
+        onRefresh: () async => listController.loadWallets(isRefresh: true),
 
         child: Obx(() {
           // // حالة التحميل: تظهر مؤشر الانتظار إذا كانت القائمة فارغة ويجري جلب البيانات
@@ -168,7 +182,6 @@ class WalletsView extends StatelessWidget {
       confirmTextColor: Colors.white,
       onConfirm: () {
         deleteCtrl.deleteWallet(wallet);
-        Get.back();
       },
     );
   }
@@ -206,7 +219,6 @@ class WalletsView extends StatelessWidget {
             wallet.balance = newBalance;
             updateCtrl.updateWallet(wallet);
           }
-          Get.back();
         },
         child: const Text("حفظ التعديل"),
       ),

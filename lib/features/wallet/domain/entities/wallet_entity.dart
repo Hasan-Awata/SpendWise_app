@@ -10,7 +10,7 @@ class WalletEntity {
   int currencyId;
 
   WalletEntity({
-    this.walletId,
+    this.walletId = -1,
     required this.userId,
     required this.currency,
     required this.balance,

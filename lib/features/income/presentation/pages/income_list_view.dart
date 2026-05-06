@@ -6,6 +6,7 @@ import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
 import 'package:spendwise/features/income/presentation/manager/delete_income_controller.dart';
 import 'package:spendwise/features/income/presentation/manager/update_income_controller.dart';
+
 import '../manager/incomes_list_controller.dart';
 
 class IncomeListView extends GetView<IncomesListController> {
@@ -31,7 +32,9 @@ class IncomeListView extends GetView<IncomesListController> {
         onPressed: () => Get.toNamed('/add-income'),
       ),
       body: RefreshIndicator(
-        color: SpColor.incomeGreen,
+        color: SpColor.accentBlue,
+        backgroundColor: SpColor.surfaceNavy,
+
         onRefresh: () async => controller.fetchAllIncomes(isRefresh: true),
         child: Obx(() {
           if (controller.isLoading.value && controller.incomesList.isEmpty) {
@@ -105,7 +108,9 @@ class IncomeListView extends GetView<IncomesListController> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                "+${income.amount.toStringAsFixed(2)}",
+                (income.wallet == null)
+                    ? "+${income.amount.toStringAsFixed(2)}"
+                    : "${income.wallet?.currency.code} +${income.amount.toStringAsFixed(2)}",
                 style: const TextStyle(
                   color: SpColor.incomeGreen,
                   fontSize: 18,

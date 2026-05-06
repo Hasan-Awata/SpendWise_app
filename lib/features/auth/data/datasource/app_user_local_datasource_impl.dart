@@ -1,13 +1,11 @@
-import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/services/shared_service.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
-import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/models/user_model.dart';
-import 'package:spendwise/features/helper_function.dart';
 
 class AppUserLocalDatasourceImpl extends GetxService
     implements AppUserLocalDatasource {
@@ -39,16 +37,7 @@ class AppUserLocalDatasourceImpl extends GetxService
   @override
   Future<void> registerLocal(UserModel user) async {
     try {
-      Box<UserModel> userBox;
-
-      if (Hive.isBoxOpen('user_box')) {
-        userBox = Hive.box<UserModel>('user_box');
-      } else {
-        print("📦 User box was closed during reset, re-opening...");
-        userBox = await Hive.openBox<UserModel>('user_box');
-      }
-
-      await userBox.put('current_user', user);
+      await _box.put('current_user', user);
 
       _cachedUserId = user.userId;
 
@@ -89,31 +78,36 @@ class AppUserLocalDatasourceImpl extends GetxService
 
   int? get currentUserId => _cachedUserId;
 
+  // // استخدام أسلوب المسح المتسلسل لضمان عدم تداخل العمليات
   Future<void> resetAppCompletely() async {
     try {
       print("🧹 Starting Safe Reset...");
 
-      Get.deleteAll(force: true);
-      print("🧠 GetX Controllers Purged");
+      // 1. مسح البيانات المحلية أولاً (قبل حذف الـ Controllers)
+      await _clearAllData();
 
-      _clearAllData();
-      await Hive.close();
-      print("📦 Hive Closed");
-
+      // 2. مسح SharedPreferences
       final sharedPrefs = await SharedPreferences.getInstance();
       await sharedPrefs.clear();
+      print("💾 SharedPrefs Cleared");
 
-      await Hive.deleteFromDisk();
-      print("📂 Disk Purged");
+      // 3. حذف كافة المتحكمات من الذاكرة تماماً
+      // ملاحظة: force: true ضروري للمتحكمات التي تحمل صفة permanent
+      await Get.deleteAll(force: true);
+      print("🧠 GetX Controllers Purged");
 
-      await Hive.initFlutter();
+      // 4. إغلاق Hive نهائياً (إذا كنت تنوي حذف الملفات من القرص)
+      await Hive.close();
+      // await Hive.deleteFromDisk(); // حذر: هذا يحذف كل شيء بما في ذلك الإعدادات
 
+      // 5. إعادة بناء الاعتمادات الأساسية فقط التي يحتاجها التطبيق للبدء
       await Get.putAsync(
         () => SharedPreferencesService().init(),
         permanent: true,
       );
 
-      // 6. التوجيه لصفحة البداية
+      // 6. استخدام التوجيه الذي يضمن تفريغ مكدس الصفحات (Stack)
+      // // التأكد من عدم بقاء أي صفحة قديمة في الذاكرة
       Get.offAllNamed(Routes.INITIAL);
     } catch (e) {
       print("❌ Reset Critical Error: $e");
@@ -122,23 +116,23 @@ class AppUserLocalDatasourceImpl extends GetxService
   }
 
   Future<void> _clearAllData() async {
-    // قائمة بالأسماء التي تريد حذفها
     List<String> boxesToClear = [
       "CURRENTUSER",
       "MYINCOME",
       "MYEXPENSE",
       "TAG_BOX",
       "WALLET",
+      "SAVING_GOALS",
     ];
 
     for (String boxName in boxesToClear) {
-      // نفتح الـ Box ثم نمسح محتوياته، هذه الطريقة تعمل 100%
+      // التحقق مما إذا كان الصندوق مفتوحاً أصلاً لتجنب الأخطاء
       var box = await Hive.openBox(boxName);
       await box.clear();
-      // اختياري: إذا أردت حذف الملف نهائياً بعد التصفير
-      // await box.deleteFromDisk();
+      // // تأكد من إغلاق الصندوق بعد مسحه لضمان كتابة التغييرات على القرص
+      await box.close();
     }
-    print("✅ All local storage cleared successfully");
+    print("✅ All targeted boxes cleared and closed");
   }
 
   @override

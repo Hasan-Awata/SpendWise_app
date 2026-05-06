@@ -1,6 +1,6 @@
 import 'package:spendwise/features/category/data/model/category_model.dart';
 import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
-import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
+import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 
 class ExpenseEntity {
   final int? id;
@@ -10,7 +10,7 @@ class ExpenseEntity {
   final DateTime date;
   final TagEntity? tag;
   final String? description;
-  final WalletEntity? wallet;
+  WalletModel? wallet;
   final CategoryModel? category;
   final String? products; // JSON string
   final bool isSynced;

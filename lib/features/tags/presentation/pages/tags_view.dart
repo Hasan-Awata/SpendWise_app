@@ -7,13 +7,26 @@ import 'package:spendwise/features/tags/presentation/manager/add_tag_controller.
 import 'package:spendwise/features/tags/presentation/manager/tag_view_controller.dart';
 
 // // واجهة عرض الأوسمة: تتيح للمستخدم إدارة وتصنيف مصروفاته عبر الأوسمة المخصصة
-class TagsView extends GetView<TagViewController> {
+class TagsView extends StatefulWidget {
   const TagsView({super.key});
+
+  @override
+  State<TagsView> createState() => _TagsViewState();
+}
+
+class _TagsViewState extends State<TagsView> {
+  final controller = Get.find<TagViewController>();
+  final actionController = Get.find<TagActionController>();
+
+  @override
+  void initState() {
+    super.initState();
+    controller.loadTags(isRefresh: true);
+  }
 
   @override
   Widget build(BuildContext context) {
     // // التأكد من وجود TagActionController في الذاكرة للقيام بعمليات المعالجة (حذف/تعديل)
-    final actionController = Get.find<TagActionController>();
 
     return Scaffold(
       backgroundColor: SpColor.primaryDark2,
@@ -28,6 +41,8 @@ class TagsView extends GetView<TagViewController> {
       ),
       body: RefreshIndicator(
         color: SpColor.accentBlue,
+        backgroundColor: SpColor.surfaceNavy,
+
         onRefresh: () async => controller.loadTags(isRefresh: true),
         child: Obx(() {
           // // حالة التحميل: عرض مؤشر الانتظار عند جلب البيانات لأول مرة
@@ -101,8 +116,6 @@ class TagsView extends GetView<TagViewController> {
   }
 
   // --- الحوارات المصلحة ---
-
-  // // تعليق: حوار تأكيد الحذف لاستدعاء دالة الحذف من المتحكم المسؤول TagActionController
   void _showDeleteTagDialog(
     TagModel tag,
     TagActionController actionController,
@@ -115,11 +128,11 @@ class TagsView extends GetView<TagViewController> {
       middleTextStyle: const TextStyle(color: Colors.white70),
       textConfirm: "حذف",
       textCancel: "إلغاء",
+
       confirmTextColor: Colors.white,
       onConfirm: () {
-        // // تنفيذ عملية الحذف عبر المتحكم
-        actionController.deleteTag(tag);
         Get.back();
+        actionController.deleteTag(tag);
       },
     );
   }
@@ -145,10 +158,9 @@ class TagsView extends GetView<TagViewController> {
       ),
       confirm: ElevatedButton(
         style: ElevatedButton.styleFrom(backgroundColor: SpColor.accentBlue),
-        onPressed: () {
+        onPressed: () async {
           // // استدعاء التحديث وتمرير الاسم الجديد المنقح
-          actionController.updateTag(tag, nameController.text.trim());
-          Get.back();
+          await actionController.updateTag(tag, nameController.text.trim());
         },
         child: const Text("تحديث", style: TextStyle(color: Colors.white)),
       ),

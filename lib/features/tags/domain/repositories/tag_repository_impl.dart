@@ -1,12 +1,12 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:spendwise/core/error/failure.dart';
+import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_local_datasource.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_remote_datasource.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
-import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 import 'package:spendwise/features/tags/data/repositories/tag_repository.dart';
 
 class TagRepositoryImpl implements TagRepository {
@@ -18,64 +18,81 @@ class TagRepositoryImpl implements TagRepository {
     required this.tagRemoteDatasource,
   });
 
+  // ========================= ADD =========================
   @override
-  Future<Either<Failure, Unit>> addTag(TagEntity tagEntity) async {
-    final tag = tagEntity as TagModel;
-    try {
-      print("🚀 Starting addTag: ${tag.localId}");
-      tag.isSynced = false;
-      await tagLocalDatasource.addTagLocally(tag);
+  Future<Either<Failure, String>> addTag(TagModel tag) async {
+    final network = NetworkService();
+    return await network.saveLocalAndSync<String>(
+      localSave: () async {
+        await tagLocalDatasource.addTagLocally(tag);
+      },
+      remoteSave: () async {
+        tag.isSynced = false;
 
-      _safeRemoteCall(() async {
-        final remoteTag = await tagRemoteDatasource.addTag(tag);
-        if (remoteTag != null) {
-          print("✅ Server Add Success: ${remoteTag.id}");
-          remoteTag.isSynced = true;
-          remoteTag.localId = tag.localId;
-          await tagLocalDatasource.updateTagLocally(remoteTag);
+        final result = await tagRemoteDatasource.addTag(tag);
+        if (result == null) {
+          throw Exception("Remote addTag returned null");
         }
-      });
 
-      return const Right(unit);
-    } catch (e) {
-      print("❌ Local Add Error: $e");
-      return Left(CacheFailure("فشل الحفظ في التخزين المحلي"));
-    }
+        return "تم الحفظ بنجاح";
+      },
+      onSyncSuccess: (_) async {
+        tag.isSynced = true;
+        await tagLocalDatasource.updateTagLocally(tag);
+      },
+      localResult: "تم حفظ الوسم محلياً",
+    );
   }
 
+  // ========================= GET =========================
   @override
   Future<Either<Failure, PagedResponse<TagModel>>> getMyTags(
     PageRequest page,
   ) async {
     try {
       print("📡 Fetching Tags from Server - Page: ${page.pageNumber}");
+
       final remoteResponse = await tagRemoteDatasource.getMyTags(page);
 
-      for (var model in remoteResponse.data) {
-        model.isSynced = true;
-        await tagLocalDatasource.addTagLocally(model);
-      }
+      // ✅ تحسين الأداء (بدل await داخل loop)
+      await Future.wait(
+        remoteResponse.data.map((model) async {
+          model.isSynced = true;
+          await tagLocalDatasource.addTagLocally(model);
+        }),
+      );
+
       return Right(remoteResponse);
     } catch (e) {
       print("🌐 Connection Issue: Switching to Local Storage. Error: $e");
-      _safeRemoteCall(() => syncPendingTags());
+
       return await _getLocalPagedResponse(page);
     }
   }
 
+  // ========================= UPDATE =========================
   @override
   Future<Either<Failure, Unit>> updateTag(TagModel tag) async {
     try {
       print("🔄 Updating Tag Locally: ${tag.id}");
+
       tag.isSynced = false;
+
+      // ✅ Local First
       await tagLocalDatasource.updateTagLocally(tag);
 
+      // 🔥 Background Sync
       _safeRemoteCall(() async {
-        await tagRemoteDatasource.updateTag(tag);
+        final remote = await tagRemoteDatasource.updateTag(tag);
+
+        if (remote != null) {
+          remote.isSynced = true;
+          await tagLocalDatasource.updateTagLocally(remote);
+        }
+
         print("✅ Server Update Done");
-        tag.isSynced = true;
-        await tagLocalDatasource.updateTagLocally(tag);
       });
+
       return const Right(unit);
     } catch (e) {
       print("❌ Local Update Error: $e");
@@ -83,32 +100,44 @@ class TagRepositoryImpl implements TagRepository {
     }
   }
 
+  // ========================= DELETE =========================
   @override
-  Future<Either<Failure, Unit>> deleteTag(TagModel tag) async {
+  Future<Either<Failure, String>> deleteTag(TagModel tag) async {
     try {
-      print("🗑️ Marking Tag for Removal: ${tag.id}");
+      // ✅ Soft Delete
       tag.localId = "REMOVE";
       tag.isSynced = false;
+
       await tagLocalDatasource.updateTagLocally(tag);
 
+      // 🔥 Background Sync
       _safeRemoteCall(() async {
-        if (tag.id != null && tag.id != -1) {
-          await tagRemoteDatasource.deleteTag(tag);
-          print("✅ Server Delete Done");
+        try {
+          if (tag.id != null && tag.id != -1) {
+            await tagRemoteDatasource.deleteTag(tag.id!);
+          }
+
+          await tagLocalDatasource.deleteTagLocally(tag);
+
+          print("📤 Synced: DELETED Tag ${tag.id}");
+        } catch (e) {
+          print("⚠️ Remote Delete Failed: $e");
         }
-        await tagLocalDatasource.deleteTagLocally(tag);
       });
-      return const Right(unit);
-    } catch (e) {
-      print("❌ Local Delete Error: $e");
+
+      return const Right("تم الحذف");
+    } catch (localError) {
+      print("❌ Local Delete Critical Error: $localError");
       return Left(CacheFailure("فشل عملية الحذف محلياً"));
     }
   }
 
+  // ========================= SYNC ENGINE =========================
   @override
   Future<Either<Failure, Unit>> syncPendingTags() async {
     try {
       final allLocal = await tagLocalDatasource.getMyTags();
+
       final pending = allLocal
           .where((t) => !t.isSynced || t.localId == "REMOVE")
           .toList();
@@ -118,33 +147,42 @@ class TagRepositoryImpl implements TagRepository {
       for (var tag in pending) {
         try {
           if (tag.localId == "REMOVE") {
-            if ((tag.id != null && tag.id != -1) || tag.localId == "REMOVE") {
-              await tagRemoteDatasource.deleteTag(tag);
+            if (tag.id != null && tag.id != -1) {
+              await tagRemoteDatasource.deleteTag(tag.id!);
             }
+
             await tagLocalDatasource.deleteTagLocally(tag);
+
             print("📤 Synced: DELETED Tag ${tag.id}");
             continue;
           }
 
-          if (tag.id == null || tag.id == -1) {
-            final remote = await tagRemoteDatasource.addTag(tag);
+          if (tag.id != null && tag.id != -1) {
+            final remote = await tagRemoteDatasource.updateTag(tag);
+
             if (remote != null) {
               remote.isSynced = true;
-              remote.localId = tag.localId;
               await tagLocalDatasource.updateTagLocally(remote);
-              print("📤 Synced: CREATED Tag ${remote.id}");
+
+              print("📤 Synced: UPDATED ${tag.id}");
             }
           } else {
-            await tagRemoteDatasource.updateTag(tag);
-            tag.isSynced = true;
-            await tagLocalDatasource.updateTagLocally(tag);
-            print("📤 Synced: UPDATED Tag ${tag.id}");
+            final remote = await tagRemoteDatasource.addTag(tag);
+
+            if (remote != null) {
+              remote.isSynced = true;
+
+              await tagLocalDatasource.updateTagLocally(remote);
+
+              print("📤 Synced: CREATED Tag ${remote.id}");
+            }
           }
         } catch (e) {
           print("⚠️ Sync Error for Tag: $e");
           continue;
         }
       }
+
       return const Right(unit);
     } catch (e) {
       print("❌ Global Tag Sync Failure: $e");
@@ -152,11 +190,13 @@ class TagRepositoryImpl implements TagRepository {
     }
   }
 
+  // ========================= LOCAL FALLBACK =========================
   Future<Either<Failure, PagedResponse<TagModel>>> _getLocalPagedResponse(
     PageRequest page,
   ) async {
     try {
       final all = await tagLocalDatasource.getMyTags();
+
       final filtered = all
           .where((t) => t.localId != "REMOVE")
           .toList()
@@ -179,12 +219,14 @@ class TagRepositoryImpl implements TagRepository {
       }
 
       final end = start + page.pageSize;
+
       final sliced = filtered.sublist(
         start,
         end > filtered.length ? filtered.length : end,
       );
 
       print("📦 Local Tags Loaded: ${sliced.length} items");
+
       return Right(
         PagedResponse(
           data: sliced,
@@ -199,6 +241,7 @@ class TagRepositoryImpl implements TagRepository {
     }
   }
 
+  // ========================= SAFE REMOTE =========================
   Future<void> _safeRemoteCall(Future<dynamic> Function() call) async {
     try {
       await call();

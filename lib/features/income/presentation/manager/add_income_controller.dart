@@ -5,12 +5,12 @@ import 'package:spendwise/features/auth/data/datasource/app_user_local_datasourc
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
 import 'package:spendwise/features/income/domain/usecases/add_income_usecase.dart';
+import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
 import 'package:spendwise/features/tags/presentation/manager/add_tag_controller.dart';
 import 'package:spendwise/features/tags/presentation/manager/tag_view_controller.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
-import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
 
 class AddIncomeController extends GetxController {
   AddIncomeController({
@@ -66,10 +66,9 @@ class AddIncomeController extends GetxController {
             AppUserLocalDatasourceImpl().currentUserId ??
             CurrentUser.user!.userId,
         wallet: selectedWallet.value!,
-        walletId: selectedWallet.value!.walletId ?? -1,
-        incomeTagId: finalTag?.id ?? -1,
-        tag:
-            finalTag, // مرر الكائن نفسه أيضاً لضمان عدم حدوث خطأ getter 'tag' الذي ظهر لك سابقاً
+        walletId: selectedWallet.value!.walletId ?? 0,
+        incomeTagId: finalTag?.id,
+        tag: finalTag,
         description: descriptionController.text.trim(),
         date: selectedDate.value,
         title: sourceController.text.trim().isEmpty
@@ -114,7 +113,7 @@ class AddIncomeController extends GetxController {
   }
 
   void _onSaveSuccess(IncomeModel savedIncome) {
-    incomesListController.incomesList.insert(0, savedIncome);
+    incomesListController.fetchAllIncomes(isRefresh: true);
     incomesListController.calculateTotals();
     HelperFunction.showSnackBar("تم بنجاح", "تمت إضافة الدخل الجديد");
 

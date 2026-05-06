@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/helper_function.dart';
+import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
 import 'package:spendwise/features/income/domain/usecases/get_all_local_incomes_usecase.dart';
 import 'package:spendwise/features/income/domain/usecases/get_incomes_usecase.dart';
 import 'package:spendwise/features/income/domain/usecases/synced_income_usecase.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class IncomesListController extends GetxController {
   final GetIncomesUsecase getIncomesUseCase;
@@ -25,20 +28,27 @@ class IncomesListController extends GetxController {
   final RxBool hasMoreData = true.obs;
   final RxInt currentPage = 1.obs;
   final int pageSize = 10;
-
+  final mainController = Get.find<MainController>();
   final Rx<DateTime> dashboardMonth = Rx<DateTime>(
     DateTime(DateTime.now().year, DateTime.now().month, 1),
   );
 
   final RxDouble monthlyIncomeTotal = 0.0.obs;
   final RxDouble allTimeIncomeTotal = 0.0.obs;
+  final RxDouble monthlyAndWalletIncome = 0.0.obs;
 
   final ScrollController scrollController = ScrollController();
   int? userId = AppUserLocalDatasourceImpl().currentUserId;
 
+  var walletsListController = Get.find<WalletsListController>();
+
   @override
   void onInit() {
     super.onInit();
+    everAll([dashboardMonth, mainController.selectWallet], (_) {
+      calculateTotals();
+    });
+    calculateTotals();
     scrollController.addListener(_scrollListener);
     fetchAllIncomes(isRefresh: true);
   }
@@ -65,7 +75,6 @@ class IncomesListController extends GetxController {
         print("🔄 Action: Refreshing Incomes list...");
         currentPage.value = 1;
         hasMoreData.value = true;
-        _runBackgroundSync();
       }
 
       print("📡 Fetching Incomes: Page ${currentPage.value}, Size $pageSize");
@@ -84,6 +93,13 @@ class IncomesListController extends GetxController {
           final newItems = pagedResponse.data;
           print("📦 Received: ${newItems.length} Incomes");
 
+          // newItems
+          //     .map(
+          //       (i) => i.wallet = walletsListController.wallets.firstWhere(
+          //         (w) => w.walletId == i.walletId,
+          //       ),
+          //     )
+          //     .toList();
           if (newItems.isEmpty) {
             hasMoreData.value = false;
             print("🏁 No more Incomes found on server.");
@@ -93,7 +109,7 @@ class IncomesListController extends GetxController {
               final visibleItems = newItems
                   .where((i) => i.localId != "REMOVE")
                   .toList();
-              incomesList.assignAll(visibleItems);
+              incomesList.assignAll(visibleItems.reversed);
             } else {
               // // Logic: الإضافة في نهاية القائمة مع تصفية المكرر والمحذوف
               final uniqueAndVisible = newItems.where((newItem) {
@@ -106,7 +122,7 @@ class IncomesListController extends GetxController {
                 return isNotRemoved && isNotDuplicate;
               }).toList();
 
-              incomesList.addAll(uniqueAndVisible);
+              incomesList.assignAll(uniqueAndVisible.reversed);
               print(
                 "➕ Added ${uniqueAndVisible.length} unique Incomes to list",
               );
@@ -127,7 +143,7 @@ class IncomesListController extends GetxController {
     }
   }
 
-  void _runBackgroundSync() {
+  void runBackgroundSync() {
     syncIncomesUsecase.call().then((result) {
       result.fold(
         (l) => print("⚠️ Incomes Background Sync Failed: ${l.message}"),
@@ -161,13 +177,19 @@ class IncomesListController extends GetxController {
       // حساب إجمالي الشهر المحدد
       monthlyIncomeTotal.value = activeIncomes
           .where(
-            (e) => e.date.year == targetYear && e.date.month == targetMonth,
+            (i) => i.date.year == targetYear && i.date.month == targetMonth,
           )
           .fold<double>(0.0, (sum, item) => sum + item.amount);
 
-      print(
-        "💰 Totals Updated - All Time: ${allTimeIncomeTotal.value}, Monthly: ${monthlyIncomeTotal.value}",
-      );
+      monthlyAndWalletIncome.value = activeIncomes
+          .where(
+            (i) =>
+                i.date.year == targetYear &&
+                i.date.month == targetMonth &&
+                i.wallet?.currency.currencyName ==
+                    mainController.selectWallet.value?.currency.currencyName,
+          )
+          .fold<double>(0.0, (sum, item) => sum + item.amount);
     });
   }
 
@@ -178,6 +200,24 @@ class IncomesListController extends GetxController {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
       helpText: "اختر شهر الإحصائيات",
+      // إضافة التنسيق هنا
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: SpColor.accentBlue,
+              onPrimary: Colors.white,
+              surface: SpColor.surfaceNavy,
+              onSurface: Colors.white,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: SpColor.accentBlue),
+            ),
+            dialogTheme: DialogThemeData(backgroundColor: SpColor.surfaceNavy),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {

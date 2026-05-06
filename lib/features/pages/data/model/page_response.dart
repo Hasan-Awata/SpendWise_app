@@ -27,4 +27,20 @@ class PagedResponse<T> {
       totalPages: json['TotalPages'],
     );
   }
+
+  PagedResponse<T> copyWith({
+    List<T>? data,
+    int? pageNumber,
+    int? pageSize,
+    int? totalRecords,
+    int? totalPages,
+  }) {
+    return PagedResponse<T>(
+      data: data ?? this.data,
+      pageNumber: pageNumber ?? this.pageNumber,
+      pageSize: pageSize ?? this.pageSize,
+      totalRecords: totalRecords ?? this.totalRecords,
+      totalPages: totalPages ?? this.totalPages,
+    );
+  }
 }

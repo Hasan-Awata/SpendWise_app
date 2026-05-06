@@ -4,6 +4,7 @@
 */
 
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
 import 'package:spendwise/core/utils/current_user.dart';
@@ -20,7 +21,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
   // دالة موحدة لجلب التوكن وتجهيز الـ Headers
   Future<Map<String, String>> _getHeaders() async {
     final user = await AppUserLocalDatasourceImpl().getUser();
-    final String? token = user?.token ?? CurrentUser.token;
+    final String token = user?.token ?? CurrentUser.token;
 
     return {
       'Content-Type': 'application/json',
@@ -49,7 +50,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
 
     final response = await client.get(url, headers: headers);
 
-    if (response.statusCode == 200) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
       print("GetExpenses Success: تم جلب المصاريف");
       final decodedData = jsonDecode(response.body);
 
@@ -73,7 +74,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
 
     final response = await client.post(url, headers: headers, body: body);
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
       print("AddExpense Success: ${response.body}");
       return ExpenseModel.fromJson(jsonDecode(response.body));
     } else {
@@ -94,7 +95,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
 
     final response = await client.patch(url, headers: headers, body: body);
 
-    if (response.statusCode == 200 || response.statusCode == 204) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
       print("UpdateExpense Success");
       // ملاحظة: إذا كان السيرفر يعيد 204 No Content، قد تحتاج لإعادة الكائن نفسه
       if (response.body.isEmpty) return expense;

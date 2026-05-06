@@ -1,6 +1,7 @@
 // // UI: features/expense/presentation/pages/expense_list_view.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/expense/data/models/expense_model.dart';
 import 'package:spendwise/features/expense/presentation/manager/delete_expense_controller.dart';
@@ -38,8 +39,10 @@ class ExpenseListView extends GetView<ExpensesListController> {
         }
 
         return RefreshIndicator(
+          color: SpColor.accentBlue,
+          backgroundColor: SpColor.surfaceNavy,
           onRefresh: () => controller.fetchExpenses(isRefresh: true),
-          color: SpColor.expenseRed,
+
           child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             controller: controller.scrollController,
@@ -65,50 +68,95 @@ class ExpenseListView extends GetView<ExpensesListController> {
     );
   }
 
-  // // بناء عنصر المصروف الفردي داخل القائمة
   Widget _buildExpenseItem(ExpenseModel expense) {
-    return Card(
-      color: const Color(0xFF1E293B),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: ListTile(
-        title: Text(
-          expense.category!.name,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: SpColor.expenseRed.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.account_balance_wallet_rounded,
+              color: SpColor.expenseRed,
+            ),
           ),
-        ),
-        subtitle: Text(
-          expense.date.toString().split(' ')[0],
-          style: TextStyle(color: Colors.white.withOpacity(0.6)),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "${expense.amount} ر.س",
-              style: const TextStyle(
-                color: Color(0xFFF15A5A),
-                fontWeight: FontWeight.bold,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  expense.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  DateFormat('yyyy-MM-dd').format(expense.date),
+                  style: const TextStyle(color: Colors.white38, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                (expense.wallet == null)
+                    ? "+${expense.amount.toStringAsFixed(2)}"
+                    : "${expense.wallet?.currency.code} +${expense.amount.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  color: SpColor.expenseRed,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blueGrey, size: 20),
-              onPressed: () {
-                final updateController = Get.find<UpdateExpenseController>();
-                showUpdateDialog(expense, updateController);
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              onPressed: () {
-                final deleteController = Get.find<DeleteExpenseController>();
-                showDeleteDialog(expense, deleteController);
-              },
-            ),
-          ],
-        ),
+              Row(
+                children: [
+                  // زر التعديل
+                  IconButton(
+                    icon: const Icon(
+                      Icons.edit_note,
+                      color: Colors.blueGrey,
+                      size: 22,
+                    ),
+                    onPressed: () {
+                      final updateController =
+                          Get.find<UpdateExpenseController>();
+                      showUpdateDialog(expense, updateController);
+                    },
+                  ),
+                  // زر الحذف
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_sweep_outlined,
+                      color: Colors.redAccent,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      final deleteController =
+                          Get.find<DeleteExpenseController>();
+                      showDeleteDialog(expense, deleteController);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

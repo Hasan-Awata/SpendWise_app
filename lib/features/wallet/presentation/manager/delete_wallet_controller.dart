@@ -12,12 +12,10 @@ class DeleteWalletController extends GetxController {
 
   final isDeleting = false.obs;
 
-  // // تعليق: تنفيذ عملية الحذف مع تحديث قائمة المحافظ العامة بناءً على المعرف المحلي
   Future<void> deleteWallet(WalletModel wallet) async {
     try {
       isDeleting.value = true;
 
-      // تنفيذ الحذف عبر الـ Usecase (التي ستسم المحفظة بـ REMOVE في المستودع)
       final result = await deleteWalletUseCase.call(wallet);
 
       result.fold(
@@ -27,28 +25,28 @@ class DeleteWalletController extends GetxController {
             failure.message,
             isError: true,
           );
-          // في حال فشل الحذف لسبب تقني، نعيد تحميل القائمة للتأكد من حالة البيانات
-          if (Get.isRegistered<WalletsListController>()) {
-            Get.find<WalletsListController>().loadWallets();
-          }
         },
         (_) {
-          // // تعليق: تحديث سريع لواجهة المستخدم بحذف المحفظة من القائمة النشطة
+          // // استخدام Get.find مباشرة لضمان تحديث القائمة فوراً
           if (Get.isRegistered<WalletsListController>()) {
             final listController = Get.find<WalletsListController>();
 
-            // إصلاح: الحذف بناءً على localId لضمان عمله حتى لو كانت المحفظة غير مزامنة بعد
+            // الحذف من القائمة المعروضة بناءً على localId
             listController.wallets.removeWhere(
               (w) => w.localId == wallet.localId,
             );
+            listController.wallets.refresh();
           }
-          HelperFunction.showSnackBar("نجاح", "تم حذف المحفظة بنجاح");
+
+          if (Get.isOverlaysOpen) Get.back();
+
+          // HelperFunction.showSnackBar("نجاح", "تم حذف المحفظة بنجاح");
         },
       );
     } catch (e) {
+      print("Delete Controller Error: $e");
       HelperFunction.showSnackBar("خطأ", "حدث خطأ غير متوقع", isError: true);
     } finally {
-      Get.back();
       isDeleting.value = false;
     }
   }

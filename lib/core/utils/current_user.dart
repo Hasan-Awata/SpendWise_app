@@ -24,6 +24,7 @@ class CurrentUser {
 
   static String get token => _token ?? "noToken";
 
+  static int? get getUserId => _currentUser!.userId;
   static void initializeUser() async {
     final user = await AppUserLocalDatasourceImpl().getUser();
     final pref = Get.find<SharedPreferencesService>();

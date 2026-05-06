@@ -26,7 +26,6 @@ class DeleteIncomeController extends GetxController {
         (e) => e.localId == incomeDelete.localId,
       );
       incomesListController.calculateTotals();
-      HelperFunction.showSnackBar("محذوف", "تم حذف السجل بنجاح");
 
       if (Get.isOverlaysOpen) {
         Get.back();

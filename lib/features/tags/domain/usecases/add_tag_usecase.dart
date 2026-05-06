@@ -10,7 +10,7 @@ class AddTagUsecase {
   AddTagUsecase(this.tagRepository);
 
   // التغيير هنا: استقبال TagEntity بدلاً من TagModel لفك الارتباط بطبقة البيانات
-  Future<Either<Failure, Unit>> call(TagModel tag) async {
+  Future<Either<Failure, String>> call(TagModel tag) async {
     return await tagRepository.addTag(tag);
   }
 }

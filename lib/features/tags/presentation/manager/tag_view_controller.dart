@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
@@ -44,7 +42,6 @@ class TagViewController extends GetxController {
 
   Future<void> loadTags({bool isRefresh = false}) async {
     if (isLoading.value || (!hasMoreData && !isRefresh)) return;
-
     try {
       isLoading.value = true;
 
@@ -52,7 +49,6 @@ class TagViewController extends GetxController {
         print("🔄 Action: Refreshing Tags list...");
         currentPage = 1;
         hasMoreData = true;
-        _runBackgroundSync();
       }
 
       print("📡 Fetching Tags: Page $currentPage, Size $pageSize");
@@ -95,7 +91,7 @@ class TagViewController extends GetxController {
                 return isNotRemoved && isNotDuplicate;
               }).toList();
 
-              myTags.addAll(uniqueAndVisible);
+              myTags.assignAll(uniqueAndVisible);
               print("➕ Added ${uniqueAndVisible.length} unique Tags to list");
             }
 
@@ -114,7 +110,7 @@ class TagViewController extends GetxController {
     }
   }
 
-  void _runBackgroundSync() {
+  void runBackgroundSync() {
     syncPendingTagsUsecase.call().then((result) {
       result.fold(
         (l) => print("⚠️ Tag Background Sync Failed: ${l.message}"),
