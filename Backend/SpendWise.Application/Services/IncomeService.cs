@@ -12,6 +12,7 @@ using SpendWise.Domain.Enums;
 using SpendWise.Domain.Constants;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Linq.Expressions;
 
 namespace SpendWise.Application.Services
 {
@@ -45,7 +46,7 @@ namespace SpendWise.Application.Services
             {
                 Id = income.Id,
                 UserId = income.UserId,
-                Title = "Income",
+                Title = income.LinkedTransaction.Title,
                 Amount = income.Amount,
                 WalletId = income.WalletId,
                 Date = income.Date,
@@ -61,7 +62,7 @@ namespace SpendWise.Application.Services
             {
                 Id = item.Id,
                 UserId = item.UserId,
-                Title = "Income",
+                Title = item.LinkedTransaction.Title,
                 Amount = item.Amount,
                 WalletId = item.WalletId,
                 Date = item.Date,
@@ -110,13 +111,13 @@ namespace SpendWise.Application.Services
             var newTransaction = new Transaction
             {
                 UserId = incomeDto.UserId,
-                Title = "Added Income",
+                Title = incomeDto.Title,
                 Amount = incomeDto.Amount,
-                AmountInSp = amountInSp, // Properly assigned!
+                AmountInSp = amountInSp, 
                 Description = incomeDto.Description,
                 Income = newIncome,
-                WalletId = newIncome.WalletId,
-                TransactionTagId = newIncome.IncomeTagId,
+                WalletId = incomeDto.WalletId,
+                TransactionTagId = incomeDto.IncomeTagId,
                 TransactionDate = incomeDto.Date,
                 TransactionType = enTransactionType.Addition,
             };
@@ -134,12 +135,12 @@ namespace SpendWise.Application.Services
             return new IncomeResponse
             {
                 Id = newIncomeId,
-                UserId = incomeDto.UserId,
+                UserId = newIncome.UserId,
                 Title = newTransaction.Title,
-                Amount = newTransaction.Amount,
-                WalletId = incomeDto.WalletId,
-                IncomeTagId = newTransaction.TransactionTagId,
-                Date = incomeDto.Date,
+                Amount = newIncome.Amount,
+                WalletId = newIncome.WalletId,
+                IncomeTagId = newIncome.IncomeTagId,
+                Date = newIncome.Date,
             };
         }
 
@@ -148,7 +149,7 @@ namespace SpendWise.Application.Services
             // 1 - Assign the essential data from incomeDTO into an income object
             var updatedIncome = new Income
             {
-                Id = incomeDto.Id, // Ensure the ID is mapped for updates
+                Id = incomeDto.Id, 
                 UserId = incomeDto.UserId,
                 Amount = incomeDto.Amount,
                 WalletId = incomeDto.WalletId,
@@ -182,13 +183,13 @@ namespace SpendWise.Application.Services
             var updatedTransaction = new Transaction
             {
                 UserId = incomeDto.UserId,
-                Title = "Updated Income", // Updated for accuracy
+                Title = incomeDto.Title,
                 Amount = incomeDto.Amount,
-                AmountInSp = amountInSp, // Properly assigned!
+                AmountInSp = amountInSp, 
                 Description = incomeDto.Description,
                 Income = updatedIncome,
-                WalletId = updatedIncome.WalletId,
-                TransactionTagId = updatedIncome.IncomeTagId,
+                WalletId = incomeDto.WalletId,
+                TransactionTagId = incomeDto.IncomeTagId,
                 TransactionDate = incomeDto.Date,
                 TransactionType = enTransactionType.Addition,
             };
@@ -203,12 +204,12 @@ namespace SpendWise.Application.Services
             // 7 - Return the created item
             return new IncomeResponse
             {
-                Id = incomeDto.Id,
-                UserId = incomeDto.UserId,
+                Id = updatedIncome.Id,
+                UserId = updatedIncome.UserId,
                 Title = updatedTransaction.Title,
-                Amount = updatedTransaction.Amount,
-                WalletId = updatedTransaction.WalletId,
-                IncomeTagId = updatedTransaction.TransactionTagId,
+                Amount = updatedIncome.Amount,
+                WalletId = updatedIncome.WalletId,
+                IncomeTagId = updatedIncome.IncomeTagId,
                 Date = updatedIncome.Date,
             };
         }
