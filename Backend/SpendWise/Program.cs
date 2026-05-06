@@ -69,7 +69,7 @@ builder.Services.AddScoped<ISavingGoalRepository, SavingGoalRepository>();
 builder.Services.AddScoped<ICategoryBudgetRepository, CategoryBudgetRepository>();
 builder.Services.AddScoped<ICategoryBudgetService, CategoryBudgetService>();
 
-builder.Services.AddScoped<ISharedDebtService, SharedDebtService>();
+//builder.Services.AddScoped<ISharedDebtService, SharedDebtService>();
 
 builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
 

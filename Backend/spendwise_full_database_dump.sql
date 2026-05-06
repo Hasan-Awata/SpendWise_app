@@ -829,7 +829,6 @@ END
 GO
 
 -- Schema: [Ledger] | Procedure: [sp_GetIncome]
-
 -- ==========================================
 -- 1. Get Income By ID (Optimized: No Joins Needed!)
 -- ==========================================
@@ -840,6 +839,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
+    -- Result Set 1: Income and Transaction Details
     SELECT 
         i.IncomeID, i.UserID AS IncomeUserID, i.Amount AS IncomeAmount, i.Date AS IncomeDate,
         i.WalletID AS IncomeWalletID, 
@@ -848,14 +848,25 @@ BEGIN
         tr.TransactionID, tr.UserID AS TransUserID, tr.Title, tr.Description, 
         tr.Amount AS TransAmount, tr.TransactionDate, tr.TransactionType,
         tr.GoalID, tr.FixedExpenseID, tr.FixedIncomeID, tr.DebtID,
-        
         tr.WalletID AS TransWalletID, 
         tr.CategoryID, 
         tr.TagID AS TransTagID
-
     FROM [Ledger].Incomes i
     LEFT JOIN [Ledger].Transactions tr ON tr.IncomeID = i.IncomeID
     WHERE i.IncomeID = @IncomeId AND i.UserID = @UserId;
+
+    -- Result Set 2: Currency and Wallet Info
+    SELECT 
+        w.WalletID, 
+        w.Balance, 
+        w.CurrencyID,
+        c.CurrencyName, 
+        c.CurrencyCode
+    FROM [Banking].Wallets w
+    INNER JOIN [Config].Currencies c ON w.CurrencyID = c.CurrencyID
+    WHERE w.WalletID = (SELECT WalletID FROM [Ledger].Incomes WHERE IncomeID = @IncomeId)
+      AND w.UserID = @UserId;
+
 END
 
 GO
@@ -863,7 +874,7 @@ GO
 -- Schema: [Ledger] | Procedure: [sp_GetIncomesByUserPaged]
 
 -- ==========================================
--- 2. Get Incomes By User Paged (Optimized: No Joins Needed!)
+-- 2. Get Incomes By User Paged 
 -- ==========================================
 CREATE   PROCEDURE [Ledger].[sp_GetIncomesByUserPaged]
     @UserId INT,
@@ -873,17 +884,39 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
+    -- Result Set 1: Total Count 
     SELECT COUNT(*) AS TotalCount
     FROM [Ledger].Incomes
     WHERE UserID = @UserId;
 
+    -- Result Set 2: Paged Incomes
+    -- We use a CTE or a temporary variable to capture which IDs we are looking at
+    -- so we can easily fetch their Wallet info in the next result set.
     SELECT 
         IncomeID, UserID, Amount, Date, WalletID, TagID
+    INTO #CurrentPageIncomes
     FROM [Ledger].Incomes
     WHERE UserID = @UserId
     ORDER BY Date DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT * FROM #CurrentPageIncomes;
+
+    -- Result Set 3: Unique Wallets and Currencies for this page
+    -- This avoids sending "US Dollar" 50 times if all 50 incomes are from the same wallet.
+    SELECT DISTINCT
+        w.WalletID, 
+        w.Balance, 
+        w.CurrencyID,
+        c.CurrencyName, 
+        c.CurrencyCode
+    FROM [Banking].Wallets w
+    INNER JOIN [Config].Currencies c ON w.CurrencyID = c.CurrencyID
+    WHERE w.WalletID IN (SELECT WalletID FROM #CurrentPageIncomes)
+      AND w.UserID = @UserId;
+
+    DROP TABLE #CurrentPageIncomes;
 END
 
 GO

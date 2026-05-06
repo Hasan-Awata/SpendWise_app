@@ -164,7 +164,9 @@ namespace SpendWise.Infrastructure.Repositories
                         UserId = (int)reader["UserID"],
                         CategoryId = (int)reader["CategoryID"],
                         PercentageLimit = (decimal)reader["PercentageLimit"], 
-                        PercentageProgress = (decimal)reader["PercentageProgress"], 
+                        PercentageProgress = (decimal)reader["PercentageProgress"],
+                        MoneyLimit = (decimal)reader["MoneyLimit"], 
+                        SpendingProgress = (decimal)reader["SpendingProgress"],             
                         StartDate = (DateTime)reader["StartDate"],
                         EndDate = (DateTime)reader["EndDate"],
                         IsActive = (bool)reader["IsActive"]
