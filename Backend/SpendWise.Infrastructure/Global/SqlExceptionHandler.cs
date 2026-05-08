@@ -28,6 +28,8 @@ namespace SpendWise.Infrastructure.Global
                         throw new UnauthorizedAccessException(fullMessage); // 401 Unauthorized
                     case 50004:
                         throw new DuplicateResourceException(fullMessage); // 409 Conflict
+                    case 50005:
+                        throw new WrongOperation(fullMessage); // 404 Bad Request
                     default:
                         throw new Exception(fullMessage); // Fallback for future custom errors
                 }

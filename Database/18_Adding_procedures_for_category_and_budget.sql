@@ -84,16 +84,15 @@ CREATE OR ALTER PROCEDURE [Planning].[sp_UpdateCategoryBudget]
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF NOT EXISTS (SELECT 1 FROM [Planning].[Budgets] WHERE BudgetID = @BudgetID AND UserID = @UserID)
+    IF NOT EXISTS (SELECT 1 FROM [Planning].[Budgets] WHERE CategoryID = @CategoryID AND UserID = @UserID)
         THROW 50003, 'Access denied. You do not own this budget.', 1;
 
     UPDATE [Planning].[Budgets]
-    SET CategoryID = @CategoryID,
-        PercentageLimit = @PercentageLimit,
+    SET PercentageLimit = @PercentageLimit,
         StartDate = @StartDate,
         EndDate = @EndDate,
         IsActive = @IsActive
-    WHERE BudgetID = @BudgetID AND UserID = @UserID;
+    WHERE CategoryID = @CategoryID AND UserID = @UserID;
 
     SELECT @@ROWCOUNT;
 END
@@ -108,6 +107,23 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- 1. Aggregate all relevant transactions once
+    ;WITH UserTotals AS (
+        SELECT 
+            CategoryID,
+            SUM(CASE WHEN TransactionType = 0 THEN AmountInSp ELSE 0 END) AS TotalIncome,
+            SUM(CASE WHEN TransactionType = 1 THEN AmountInSp ELSE 0 END) AS TotalSpent
+        FROM [Ledger].[Transactions]
+        WHERE UserID = @UserID
+        GROUP BY CategoryID
+    ),
+    -- 2. Get global income separately (since income isn't usually tied to a category)
+    GlobalIncome AS (
+        SELECT SUM(AmountInSp) as OverallIncome 
+        FROM [Ledger].[Transactions] 
+        WHERE UserID = @UserID AND TransactionType = 0
+    )
+    
     SELECT
         b.BudgetID,
         b.UserID,
@@ -116,29 +132,21 @@ BEGIN
         b.StartDate,
         b.EndDate,
         b.IsActive,
-        -- Calculate Percentage Progress securely to avoid Divide By Zero
-        CAST(
-            CASE
-                WHEN Totals.TotalIncome > 0 AND b.PercentageLimit > 0 THEN
-                    (Totals.TotalSpent / (Totals.TotalIncome * (b.PercentageLimit / 100.0))) * 100.0
-                ELSE 0.0
-            END 
-        AS DECIMAL(18,2)) AS PercentageProgress
-    FROM [Planning].[Budgets] b
-    CROSS APPLY (
-        SELECT
-            -- Get Total Income (Type 0) in SYP during this budget period
-            COALESCE((SELECT SUM(AmountInSp)
-                      FROM [Ledger].[Transactions]
-                      WHERE UserID = b.UserID AND TransactionType = 0
-                      AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalIncome,
 
-            -- Get Total Spent (Type 1) in SYP for this specific category during the budget period
-            COALESCE((SELECT SUM(AmountInSp)
-                      FROM [Ledger].[Transactions]
-                      WHERE UserID = b.UserID AND CategoryID = b.CategoryID AND TransactionType = 1
-                      AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalSpent
-    ) AS Totals
+        -- The "Allowance" in currency (e.g., $300)
+        CAST((gi.OverallIncome * (b.PercentageLimit / 100.0)) AS DECIMAL(18,2)) AS MoneyLimit,
+        -- The "Actual Spent" in currency (e.g., $30)
+        COALESCE(ut.TotalSpent, 0) AS SpendingProgress,
+        -- The Percentage of the Budget used (e.g., 10%)
+        CAST(
+            CASE 
+                WHEN gi.OverallIncome > 0 AND b.PercentageLimit > 0 
+                THEN (COALESCE(ut.TotalSpent, 0) / (gi.OverallIncome * (b.PercentageLimit / 100.0))) * 100.0
+                ELSE 0 
+            END AS DECIMAL(18,2)) AS PercentageProgress
+    FROM [Planning].[Budgets] b
+    CROSS JOIN GlobalIncome gi
+    LEFT JOIN UserTotals ut ON b.CategoryID = ut.CategoryID
     WHERE b.UserID = @UserID;
 END
 GO
@@ -169,5 +177,21 @@ BEGIN
             COALESCE((SELECT SUM(AmountInSp) FROM [Ledger].[Transactions] WHERE UserID = b.UserID AND CategoryID = b.CategoryID AND TransactionType = 1 AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalSpent
     ) AS Totals
     WHERE b.CategoryID = @CategoryID AND b.UserID = @UserID; -- Changed WHERE clause
+END
+GO
+
+-- ==========================================
+-- 5. Delete Single Budget 
+-- ==========================================
+CREATE OR ALTER PROCEDURE [Planning].[sp_DeleteCategoryBudget]
+    @CategoryID INT,
+    @UserID INT
+AS
+BEGIN
+    DELETE FROM [Planning].Budgets 
+    WHERE CategoryID = @CategoryID AND UserID = @UserID;
+
+    -- Returns the number of rows affected to C# (ExecuteNonQueryAsync)
+    SELECT @@ROWCOUNT;
 END
 GO

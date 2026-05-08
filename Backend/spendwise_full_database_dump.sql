@@ -304,7 +304,6 @@ END
 GO
 
 -- Schema: [Config] | Procedure: [sp_CreateTag]
-
 -- ==========================================
 -- 1. Create Tag
 -- ==========================================
@@ -318,8 +317,7 @@ BEGIN
     -- Check for duplicate tag names for this specific user
     IF EXISTS (SELECT 1 FROM [Config].Tags WHERE UserID = @UserID AND Name = @Name)
     BEGIN
-        -- We will let this throw 50001 so the global handler catches it
-        THROW 50001, 'A tag with this name already exists for your account.', 1;
+        THROW 50004, 'A tag with this name already exists for your account.', 1;
     END
 
     INSERT INTO [Config].Tags (UserID, Name)
@@ -831,7 +829,6 @@ END
 GO
 
 -- Schema: [Ledger] | Procedure: [sp_GetIncome]
-
 -- ==========================================
 -- 1. Get Income By ID (Optimized: No Joins Needed!)
 -- ==========================================
@@ -842,6 +839,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
+    -- Result Set 1: Income and Transaction Details
     SELECT 
         i.IncomeID, i.UserID AS IncomeUserID, i.Amount AS IncomeAmount, i.Date AS IncomeDate,
         i.WalletID AS IncomeWalletID, 
@@ -850,14 +848,25 @@ BEGIN
         tr.TransactionID, tr.UserID AS TransUserID, tr.Title, tr.Description, 
         tr.Amount AS TransAmount, tr.TransactionDate, tr.TransactionType,
         tr.GoalID, tr.FixedExpenseID, tr.FixedIncomeID, tr.DebtID,
-        
         tr.WalletID AS TransWalletID, 
         tr.CategoryID, 
         tr.TagID AS TransTagID
-
     FROM [Ledger].Incomes i
     LEFT JOIN [Ledger].Transactions tr ON tr.IncomeID = i.IncomeID
     WHERE i.IncomeID = @IncomeId AND i.UserID = @UserId;
+
+    -- Result Set 2: Currency and Wallet Info
+    SELECT 
+        w.WalletID, 
+        w.Balance, 
+        w.CurrencyID,
+        c.CurrencyName, 
+        c.CurrencyCode
+    FROM [Banking].Wallets w
+    INNER JOIN [Config].Currencies c ON w.CurrencyID = c.CurrencyID
+    WHERE w.WalletID = (SELECT WalletID FROM [Ledger].Incomes WHERE IncomeID = @IncomeId)
+      AND w.UserID = @UserId;
+
 END
 
 GO
@@ -865,7 +874,7 @@ GO
 -- Schema: [Ledger] | Procedure: [sp_GetIncomesByUserPaged]
 
 -- ==========================================
--- 2. Get Incomes By User Paged (Optimized: No Joins Needed!)
+-- 2. Get Incomes By User Paged 
 -- ==========================================
 CREATE   PROCEDURE [Ledger].[sp_GetIncomesByUserPaged]
     @UserId INT,
@@ -875,17 +884,39 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
+    -- Result Set 1: Total Count 
     SELECT COUNT(*) AS TotalCount
     FROM [Ledger].Incomes
     WHERE UserID = @UserId;
 
+    -- Result Set 2: Paged Incomes
+    -- We use a CTE or a temporary variable to capture which IDs we are looking at
+    -- so we can easily fetch their Wallet info in the next result set.
     SELECT 
         IncomeID, UserID, Amount, Date, WalletID, TagID
+    INTO #CurrentPageIncomes
     FROM [Ledger].Incomes
     WHERE UserID = @UserId
     ORDER BY Date DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT * FROM #CurrentPageIncomes;
+
+    -- Result Set 3: Unique Wallets and Currencies for this page
+    -- This avoids sending "US Dollar" 50 times if all 50 incomes are from the same wallet.
+    SELECT DISTINCT
+        w.WalletID, 
+        w.Balance, 
+        w.CurrencyID,
+        c.CurrencyName, 
+        c.CurrencyCode
+    FROM [Banking].Wallets w
+    INNER JOIN [Config].Currencies c ON w.CurrencyID = c.CurrencyID
+    WHERE w.WalletID IN (SELECT WalletID FROM #CurrentPageIncomes)
+      AND w.UserID = @UserId;
+
+    DROP TABLE #CurrentPageIncomes;
 END
 
 GO
@@ -1147,6 +1178,9 @@ BEGIN
     SET NOCOUNT ON;
     IF EXISTS (SELECT 1 FROM [Planning].[Budgets] WHERE UserID = @UserID AND CategoryID = @CategoryID)
         THROW 50004, 'A budget for this category already exists for the user.', 1;
+   
+   IF (SELECT ISNULL(SUM(PercentageLimit), 0) + @PercentageLimit FROM [Planning].[Budgets] WHERE UserID = @UserID) > 100
+    THROW 50005, 'Wrong input, total categories budget percentage cannot exceed 100%.', 1;
 
     INSERT INTO [Planning].[Budgets] (UserID, CategoryID, PercentageLimit, StartDate, EndDate, IsActive)
     VALUES (@UserID, @CategoryID, @PercentageLimit, @StartDate, @EndDate, @IsActive);
@@ -1204,6 +1238,10 @@ END
 GO
 
 -- Schema: [Planning] | Procedure: [sp_GetCategoryBudget]
+
+-- ==========================================
+-- 4. Get Single Budget (DYNAMIC CALCULATION)
+-- ==========================================
 CREATE   PROCEDURE [Planning].[sp_GetCategoryBudget]
     @CategoryID INT,
     @UserID INT
@@ -1226,7 +1264,7 @@ BEGIN
             COALESCE((SELECT SUM(AmountInSp) FROM [Ledger].[Transactions] WHERE UserID = b.UserID AND TransactionType = 0 AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalIncome,
             COALESCE((SELECT SUM(AmountInSp) FROM [Ledger].[Transactions] WHERE UserID = b.UserID AND CategoryID = b.CategoryID AND TransactionType = 1 AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalSpent
     ) AS Totals
-    WHERE b.CategoryID = @CategoryID AND b.UserID = @UserID; -- Changed WHERE clause
+    WHERE b.CategoryID = @CategoryID AND b.UserID = @UserID; 
 END
 
 GO
