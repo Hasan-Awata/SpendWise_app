@@ -1,36 +1,53 @@
 import 'package:spendwise/features/category/data/model/category_model.dart';
 import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
-import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
+import 'package:uuid/uuid.dart' show Uuid;
 
 class ExpenseEntity {
+  final String localId;
   final int? id;
   final int? userId;
-  final String title;
+  String title;
   double amount;
   final DateTime date;
-  final TagEntity? tag;
+
   final String? description;
-  WalletModel? wallet;
-  final CategoryModel? category;
-  final String? products; // JSON string
-  final bool isSynced;
+  final String? products;
+
+  bool isSynced;
+  bool isDeleted;
+
   int? walletId;
   int? categoryId;
   int? expenseTagId;
+
+  final bool? isFixed;
+
+  CategoryModel? category;
+  TagEntity? tag;
+  WalletEntity? wallet;
+
+  DateTime? createdAt;
+  DateTime? updatedAt;
   ExpenseEntity({
+    String? localId,
     this.id,
     this.userId,
     required this.title,
     required this.amount,
     required this.date,
-    this.tag,
     this.description,
-    this.wallet,
-    this.category,
     this.products,
     this.isSynced = false,
-    this.categoryId = 1,
-    this.walletId = -1,
-    this.expenseTagId = -1,
-  });
+    this.isDeleted = false,
+    this.walletId,
+    this.categoryId,
+    this.expenseTagId,
+    this.isFixed = false,
+    this.category,
+    this.tag,
+    this.wallet,
+    this.createdAt,
+    this.updatedAt,
+  }) : localId = localId ?? const Uuid().v4();
 }

@@ -1,61 +1,67 @@
-// // تعليق: تعديل محفظة — جاهز لشاشة التعديل لاحقاً
 import 'package:get/get.dart';
 import 'package:spendwise/features/helper_function.dart';
-import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:spendwise/features/wallet/domain/usecases/update_wallet_usecase.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
-// // تعليق: متحكم التعديل - تم توحيد البارامترات لتسهيل الاستدعاء من واجهة المستخدم مباشرة
 class UpdateWalletController extends GetxController {
-  UpdateWalletController({required this.updateWalletUseCase});
+  UpdateWalletController({
+    required this.updateWalletUseCase,
+    required this.walletsListController,
+  });
 
   final UpdateWalletUseCase updateWalletUseCase;
-  final isUpdating = false.obs;
 
-  // // إصلاح: جعل الدالة تقبل الموديل مباشرة واستخراج المعرف داخلياً
-  Future<void> updateWallet(WalletModel wallet) async {
-    if (wallet.walletId == null) return;
+  final WalletsListController walletsListController;
 
-    isUpdating.value = true;
-    // نمرر الـ ID والموديل لـ Usecase بناءً على توقيعها
-    final result = await updateWalletUseCase.call(
-      wallet.walletId ?? -1,
-      wallet,
-    );
+  // =========================
+  // STATE
+  // =========================
 
-    result.fold(
-      (failure) {
-        HelperFunction.showSnackBar(
-          "فشل التعديل",
-          failure.message,
-          isError: true,
-        );
-      },
-      (_) {
-        print("✅ Update Success in Data Layer");
+  final isLoadingUpdate = false.obs;
 
-        // // Logic: التحديث الفوري في الواجهة دون انتظار السيرفر
-        if (Get.isRegistered<WalletsListController>()) {
-          final listController = Get.find<WalletsListController>();
+  // =========================
+  // UPDATE
+  // =========================
 
-          // البحث عن مكان المحفظة في القائمة الحالية وتحديثها
-          int index = listController.wallets.indexWhere(
-            (w) =>
-                (w.walletId != null && w.walletId == wallet.walletId) ||
-                (w.localId == wallet.localId),
-          );
-          if (index != -1) {
-            // استخدام refresh() أو استبدال العنصر لضمان تحديث RxList
-            listController.wallets[index] = wallet;
-            listController.wallets.refresh();
-           
-            print("📱 UI Updated Instantly at index: $index");
-          }
-        }
-        HelperFunction.showSnackBar("نجاح", "تم تحديث المحفظة");
-        if (Get.isOverlaysOpen) Get.back();
-      },
-    );
-    isUpdating.value = false;
+  Future<void> updateWallet(WalletEntity wallet) async {
+    try {
+      isLoadingUpdate.value = true;
+
+      // =====================
+      // OPTIMISTIC UI
+      // =====================
+
+      walletsListController.updateWalletLocally(wallet);
+
+      // =====================
+      // UPDATE DATABASE/API
+      // =====================
+
+      final result = await updateWalletUseCase.call(wallet);
+
+      result.fold(
+        (failure) {
+          _handleError("فشل التحديث", failure.message);
+        },
+        (_) {
+          Get.back();
+
+          HelperFunction.showSnackBar("تم بنجاح", "تم تحديث المحفظة بنجاح");
+        },
+      );
+    } catch (e) {
+      _handleError("خطأ تقني", e.toString());
+    } finally {
+      isLoadingUpdate.value = false;
+    }
+  }
+
+  // =========================
+  // ERROR
+  // =========================
+
+  void _handleError(String title, String message) {
+    HelperFunction.showSnackBar(title, message, isError: true);
   }
 }

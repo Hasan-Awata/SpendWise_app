@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart'; // لتنسيق التاريخ والعملة
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/savings_goals/data/models/saving_goal_model.dart';
+import 'package:spendwise/features/savings_goals/domain/entities/saving_goal_entity.dart';
 import 'package:spendwise/features/savings_goals/presentation/manager/saving_goal_action_controller.dart';
 import 'package:spendwise/features/savings_goals/presentation/manager/saving_goal_lis_controller.dart';
 
@@ -66,7 +66,7 @@ class _SavingsGoalsSectionState extends State<SavingsGoalsSection> {
   }
 
   // // [بناء كرت الهدف المحسن مع حسابات التقدم الدقيقة]
-  Widget _buildEnhancedGoalCard(SavingGoalModel goal) {
+  Widget _buildEnhancedGoalCard(SavingGoalEntity goal) {
     // حساب النسبة المئوية للتقدم
     double progressValue = (goal.currentAmount / goal.targetAmount).clamp(
       0.0,
@@ -179,7 +179,7 @@ class _SavingsGoalsSectionState extends State<SavingsGoalsSection> {
     );
   }
 
-  void _providingTarger(SavingGoalModel goal) {
+  void _providingTarger(SavingGoalEntity goal) {
     savingGoalAction.titleController.text = goal.title;
 
     savingGoalAction.targetAmountController.text = goal.targetAmount.toString();

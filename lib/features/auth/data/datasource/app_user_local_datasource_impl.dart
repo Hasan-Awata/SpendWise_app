@@ -1,51 +1,72 @@
+// [تعليق: تطبيق الـ Local Datasource باستخدام Isar مع حقن التبعيات عبر المشيد لضمان الأداء العالي]
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
-import 'package:spendwise/core/services/shared_service.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
 import 'package:spendwise/features/auth/data/models/user_model.dart';
 
 class AppUserLocalDatasourceImpl extends GetxService
     implements AppUserLocalDatasource {
-  static final AppUserLocalDatasourceImpl _instance =
-      AppUserLocalDatasourceImpl._internal();
-  AppUserLocalDatasourceImpl._internal();
-  factory AppUserLocalDatasourceImpl() => _instance;
+  // نسخة Isar الممررة عبر المشيد (Constructor Injection)
+  final Isar isar;
 
-  static const String _boxName = 'CURRENTUSER';
-  static const String _userKey = 'current_user';
-
-  late Box _box;
-
+  // مخزن مؤقت للمعرف لضمان الوصول اللحظي دون الحاجة لانتظار القرص الصلب
   int? _cachedUserId;
+
+  // المشيد الجديد الذي يستقبل محرك Isar
+  AppUserLocalDatasourceImpl(this.isar);
 
   @override
   Future<void> init() async {
     try {
-      _box = await Hive.openBox(_boxName);
-      // جلب المعرف وتخزينه في الذاكرة فور تشغيل التطبيق
-      final user = _box.get(_userKey) as UserModel?;
+      final user = await getUser();
       _cachedUserId = user?.userId;
+      print("✅ AppUser Service Initialized. Cached ID: $_cachedUserId");
     } catch (e) {
-      throw Exception("Failed to initialize local storage: $e");
+      throw Exception("Failed to initialize user local storage: $e");
     }
   }
 
-  // // تعليق: تحديث دالة الحفظ المحلي لتكون مقاومة لأخطاء الإغلاق المفاجئ (Offline-Safe)
   @override
   Future<void> registerLocal(UserModel user) async {
     try {
-      await _box.put('current_user', user);
+      // تنفيذ عملية الكتابة داخل Transaction لضمان سلامة البيانات
+      await isar.writeTxn(() async {
+        await isar.userModels.put(user);
+      });
 
       _cachedUserId = user.userId;
-
-      print("✅ User data saved successfully to local storage");
+      print("✅ User saved to Isar successfully");
     } catch (e) {
-      print("❌ Critical Error in registerLocal: $e");
+      print("❌ Error saving user to Isar: $e");
     }
   }
+
+  @override
+  Future<UserModel?> getUser() async {
+    // استرجاع أول سجل مستخدم متاح في المجموعة
+    return await isar.userModels.where().findFirst();
+  }
+
+  @override
+  Future<int?> getUserId() async {
+    // الأولوية دائماً للقيمة الموجودة في الـ RAM
+    if (_cachedUserId != null) {
+      return _cachedUserId!;
+    }
+
+    // محاولة أخيرة من قاعدة البيانات في حال فقدان الكاش
+    final user = await getUser();
+    if (user != null) {
+      _cachedUserId = user.userId;
+      return user.userId;
+    }
+    return null;
+  }
+
+  // Getter للوصول المباشر للمعرف دون await
+  int? get currentUserId => _cachedUserId;
 
   @override
   Future<void> logOut() async {
@@ -57,86 +78,36 @@ class AppUserLocalDatasourceImpl extends GetxService
   }
 
   @override
-  Future<UserModel?> getUser() async {
-    return _box.get(_userKey) as UserModel?;
+  Future<void> clear() async {
+    await isar.writeTxn(() async {
+      await isar.userModels.clear();
+    });
+    _cachedUserId = null;
   }
 
-  // الآن هذه الدالة سريعة جداً لأنها تعيد القيمة من الذاكرة مباشرة
-  @override
-  Future<int> getUserId() async {
-    if (_cachedUserId != null) {
-      return _cachedUserId!;
-    }
-    // محاولة أخيرة للقراءة من الـ Box إذا كانت الذاكرة فارغة
-    final user = await getUser();
-    if (user != null) {
-      _cachedUserId = user.userId;
-      return user.userId;
-    }
-    throw Exception("User not found");
-  }
-
-  int? get currentUserId => _cachedUserId;
-
-  // // استخدام أسلوب المسح المتسلسل لضمان عدم تداخل العمليات
+  // دالة المسح الشامل لإعادة التطبيق لحالة المصنع
   Future<void> resetAppCompletely() async {
     try {
-      print("🧹 Starting Safe Reset...");
+      print("🧹 Starting Global System Reset...");
 
-      // 1. مسح البيانات المحلية أولاً (قبل حذف الـ Controllers)
-      await _clearAllData();
+      await isar.writeTxn(() async {
+        await isar.clear();
+      });
 
-      // 2. مسح SharedPreferences
+      // 2. مسح SharedPreferences (الإعدادات البسيطة)
       final sharedPrefs = await SharedPreferences.getInstance();
       await sharedPrefs.clear();
-      print("💾 SharedPrefs Cleared");
 
-      // 3. حذف كافة المتحكمات من الذاكرة تماماً
-      // ملاحظة: force: true ضروري للمتحكمات التي تحمل صفة permanent
+      // 3. تطهير الذاكرة من كافة الـ Controllers
       await Get.deleteAll(force: true);
-      print("🧠 GetX Controllers Purged");
 
-      // 4. إغلاق Hive نهائياً (إذا كنت تنوي حذف الملفات من القرص)
-      await Hive.close();
-      // await Hive.deleteFromDisk(); // حذر: هذا يحذف كل شيء بما في ذلك الإعدادات
+      Get.put(isar, permanent: true);
 
-      // 5. إعادة بناء الاعتمادات الأساسية فقط التي يحتاجها التطبيق للبدء
-      await Get.putAsync(
-        () => SharedPreferencesService().init(),
-        permanent: true,
-      );
-
-      // 6. استخدام التوجيه الذي يضمن تفريغ مكدس الصفحات (Stack)
-      // // التأكد من عدم بقاء أي صفحة قديمة في الذاكرة
+      // 5. التوجه لصفحة البداية وتصفير الـ Navigation Stack
       Get.offAllNamed(Routes.INITIAL);
     } catch (e) {
-      print("❌ Reset Critical Error: $e");
+      print("❌ Reset Error: $e");
       Get.offAllNamed(Routes.INITIAL);
     }
-  }
-
-  Future<void> _clearAllData() async {
-    List<String> boxesToClear = [
-      "CURRENTUSER",
-      "MYINCOME",
-      "MYEXPENSE",
-      "TAG_BOX",
-      "WALLET",
-      "SAVING_GOALS",
-    ];
-
-    for (String boxName in boxesToClear) {
-      // التحقق مما إذا كان الصندوق مفتوحاً أصلاً لتجنب الأخطاء
-      var box = await Hive.openBox(boxName);
-      await box.clear();
-      // // تأكد من إغلاق الصندوق بعد مسحه لضمان كتابة التغييرات على القرص
-      await box.close();
-    }
-    print("✅ All targeted boxes cleared and closed");
-  }
-
-  @override
-  Future<void> clear() async {
-    await _box.delete(_userKey);
   }
 }

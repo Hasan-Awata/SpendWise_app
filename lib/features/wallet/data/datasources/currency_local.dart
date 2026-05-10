@@ -1,13 +1,12 @@
-import 'package:hive/hive.dart';
+import 'package:isar/isar.dart';
 import 'package:spendwise/features/wallet/domain/entities/currency_model.dart';
 
 class CurrencyLocal {
-  static final CurrencyLocal _instance = CurrencyLocal._internal();
-  CurrencyLocal._internal();
-  factory CurrencyLocal() => _instance;
+  final Isar isar;
 
-  late Box _box;
-  // List of updated currencies for SpendWise application
+  CurrencyLocal(this.isar);
+
+  // قائمة العملات الافتراضية الثابتة للتطبيق
   final List<Currency> allCurrencies = [
     Currency(id: 1, code: "SYP", currencyName: "Syrian Pound", actualValue: 1),
     Currency(
@@ -140,36 +139,58 @@ class CurrencyLocal {
       actualValue: 1,
     ),
   ];
+
+  /// تنفيذ الحفظ لمرة واحدة فقط
   Future<void> initializaCurrencies() async {
     try {
-      _box = await Hive.openBox<Currency>('currencies_box');
-      if (_box.isEmpty) {
-        for (var currency in allCurrencies) {
-          await _box.put(currency.currencyName, currency);
-        }
+      // التأكد من عدد العملات الموجودة في قاعدة البيانات
+      final count = await isar.currencys.count();
+
+      if (count == 0) {
+        print("📥 Seeding initial currencies into Isar...");
+        await isar.writeTxn(() async {
+          await isar.currencys.putAll(allCurrencies);
+        });
+        print("✅ Currencies seeded successfully.");
+      } else {
+        print("ℹ️ Currencies already exist in database.");
       }
-    } catch (_) {
-      rethrow;
+    } catch (e) {
+      print("❌ Error during currency initialization: $e");
     }
   }
 
-  Future<Currency> getCurrency(String name) async {
-    var currency = await _box.get(name);
+  /// يطابق معرف العملة (CurrencyId) مع القائمة المحلية
+  Currency? tryCurrencyById(int? id) {
+    if (id == null) return null;
     try {
-      if (currency == null) {
-        return allCurrencies[1];
-      }
-      return currency;
+      print("id id id is is -   ----------- $id");
+      return allCurrencies.firstWhere((c) => c.id == id);
     } catch (_) {
-      rethrow;
+      return null;
     }
   }
 
-  /// يطابق معرف العملة كما يُخزَّن في المحفظة (CurrencyId) مع القائمة المحلية.
-  Currency? tryCurrencyById(int id) {
-    for (final c in allCurrencies) {
-      if (c.id == id) return c;
+  /// الحصول على عملة من خلال الرمز (مثل USD)
+  Currency? getByCode(String code) {
+    try {
+      return allCurrencies.firstWhere(
+        (c) => c.code?.toUpperCase() == code.toUpperCase(),
+      );
+    } catch (_) {
+      return null;
     }
-    return null;
+  }
+
+  /// الحصول على عملة من خلال الرمز (مثل USD)
+  Currency? getByCurrencyName(String text) {
+    try {
+      return allCurrencies.firstWhere(
+        (c) =>
+            c.currencyName?.toUpperCase().trim() == text.toUpperCase().trim(),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 }

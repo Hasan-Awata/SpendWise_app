@@ -1,28 +1,42 @@
-import 'package:spendwise/features/tags/data/models/tag_model.dart';
-import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
+import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
+import 'package:uuid/uuid.dart';
 
 class IncomeEntity {
+  String localId;
   int? id;
   int userId;
   String title;
-  int walletId;
+  int? walletId;
   double amount;
   DateTime date;
   int? incomeTagId;
-  String description;
-  WalletModel? wallet;
-  TagModel? tag;
+  String? description;
+
+  bool isSynced;
+  bool isDeleted;
+
+  TagEntity? tag;
+  WalletEntity? wallet;
+
+  DateTime? createdAt;
+  DateTime? updatedAt;
 
   IncomeEntity({
-    this.id = -1,
+    String? localId,
+    this.id,
     required this.userId,
-    this.wallet,
-    this.walletId = -1,
     required this.title,
+    this.walletId,
     required this.amount,
     required this.date,
     this.incomeTagId,
-    required this.description,
+    this.description,
+    this.isSynced = false,
+    this.isDeleted = false,
     this.tag,
-  });
+    this.wallet,
+    this.createdAt,
+    this.updatedAt,
+  }) : localId = localId ?? const Uuid().v4();
 }

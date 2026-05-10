@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:isar/isar.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/core/utils/current_user.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
-import 'package:spendwise/features/expense/data/datasources/expense_local_datasource_impl.dart';
-import 'package:spendwise/features/income/data/datasources/income_local_datasources_impl.dart';
 import 'package:spendwise/features/splash/introduction.dart';
-import 'package:spendwise/features/tags/data/datasources/tag_local_datasource_impl.dart';
 import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
-import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource_impl.dart';
 
 class InitialPage extends StatefulWidget {
-  InitialPage({super.key});
+  const InitialPage({super.key});
 
   @override
   State<InitialPage> createState() => _InitialPageState();
@@ -26,12 +21,16 @@ class _InitialPageState extends State<InitialPage> {
   void initState() {
     super.initState();
 
-    Get.put(NetworkService(), permanent: true);
     _checkLoginAndNavigate();
   }
 
   Future<void> _checkLoginAndNavigate() async {
-    CurrentUser.initializeUser();
+    // Get.put<NetworkService>(NetworkService(), permanent: true);
+
+    Get.put(Isar, permanent: true);
+    await CurrentUser.initializeUser();
+    await CurrencyLocal(Get.find<Isar>()).initializaCurrencies();
+
     final isLogged = CurrentUser.isUserLoggedIn;
 
     if (isLogged) {
@@ -39,15 +38,15 @@ class _InitialPageState extends State<InitialPage> {
         isWaiting = true;
       });
 
-      // إعطاء وقت كافٍ للمستخدم لرؤية شعار التطبيق وللنظام لإنهاء الحقن
       await Future.delayed(const Duration(milliseconds: 3500));
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
+
       Get.offAllNamed(Routes.MAIN_SCREEN);
     } else {
-      _initializeDataSources();
-      CurrentUser.initializeUser();
+      await _initializeDataSources();
+
+      if (!mounted) return;
+
       setState(() {
         isWaiting = false;
       });
@@ -78,11 +77,6 @@ class _InitialPageState extends State<InitialPage> {
   }
 
   Future<void> _initializeDataSources() async {
-    await AppUserLocalDatasourceImpl().init();
-    await TagLocalDatasourceImpl().init();
-    await WalletLocalDatasourceImpl().init();
-    await IncomeLocalDataSourceImpl().init();
-    await ExpenseLocalDataSourceImpl().init();
-    await CurrencyLocal().initializaCurrencies();
+    await CurrencyLocal(Get.find<Isar>()).initializaCurrencies();
   }
 }

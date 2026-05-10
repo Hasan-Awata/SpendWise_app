@@ -3,8 +3,6 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
-import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/wallet/data/datasources/wallet_remote_datasource.dart';
@@ -18,32 +16,10 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
 
   WalletRemoteDatasourceImpl({required this.client});
 
-  Future<Map<String, String>?> _getHeaders() async {
-    try {
-      final user = await AppUserLocalDatasourceImpl().getUser();
-
-      final String? token;
-      if (user != null) {
-        token = user.token;
-        print("${user.userId} ---- ${user.token}");
-      } else {
-        HelperFunction.showSnackBar("Error Auth", "User Not found");
-        return null;
-      }
-      return {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
-    } catch (e) {
-      HelperFunction.showSnackBar("Error Auth", e.toString());
-      return null;
-    }
-  }
-
   @override
   Future<PagedResponse<WalletModel>> getMyWallet(PageRequest page) async {
     final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.wallet}");
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
 
     try {
       final response = await client
@@ -72,7 +48,7 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
   @override
   Future<WalletModel> addWalet(WalletModel wallet) async {
     final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.wallet}");
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
     final body = jsonEncode(wallet.toJson());
 
     print("wallettttttttttttttttttt :${wallet.toString()}");
@@ -95,11 +71,11 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
   }
 
   @override
-  Future<WalletModel> updateWallet(WalletModel wallet) async {
+  Future<WalletModel?> updateWallet(WalletModel wallet) async {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.wallet}/${wallet.walletId}",
     );
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
     final body = jsonEncode(wallet.toJson());
 
     try {
@@ -108,6 +84,10 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
           .timeout(timeoutDuration);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (response.body.isEmpty) {
+          print("UpdateTag Success: تم تحديث التاج بنجاح (بدون محتوى)");
+          return null;
+        }
         return WalletModel.fromJson(jsonDecode(response.body));
       } else {
         throw Exception("فشل تحديث المحفظة: رمز الحالة ${response.statusCode}");
@@ -123,14 +103,15 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.wallet}/${wallet.walletId}",
     );
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
 
     try {
       final response = await client
           .delete(url, headers: headers)
           .timeout(timeoutDuration);
 
-      return response.statusCode == 200 || response.statusCode == 204;
+      print("deletete  ${response.body}  status code ${response.statusCode}");
+      return response.statusCode >= 200 && response.statusCode < 300;
     } on TimeoutException {
       return false; // نرجع false في حال انتهت المهلة
     } catch (_) {

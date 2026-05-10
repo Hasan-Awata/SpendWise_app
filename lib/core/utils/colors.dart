@@ -31,5 +31,12 @@ class SpColor {
   static const Color incomeGreen = Color(0xFF10B981); // أخضر للراتب والدخل
   static const Color expenseRed = Color(0xFFEF4444);
 
+  static const Color savinggoalColor = Color.fromARGB(
+    255,
+    250,
+    173,
+    91,
+  ); // أزرق لأهداف الادخار
+  static const Color tagColor = Colors.deepPurpleAccent;
   static const Color primaryDark2 = Color(0xFF0B1220);
 }

@@ -1,56 +1,89 @@
-import 'package:spendwise/core/utils/current_user.dart';
+import 'package:isar/isar.dart';
 import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 import 'package:uuid/uuid.dart';
 
-class TagModel extends TagEntity {
+part 'tag_model.g.dart';
+
+@collection
+class TagModel {
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true)
   String localId;
+
+  @Index()
+  int? id;
+
+  int userId;
+  String name;
+
   bool isSynced;
+  bool isDeleted;
+
+  // 🔥 retry system
+  int syncAttempts;
+  DateTime? lastSyncError;
+
+  DateTime? createdAt;
+  DateTime? updatedAt;
 
   TagModel({
-    String? localId,
-    super.id = -1,
-    required super.userId,
-    required super.name,
+    required this.localId,
+
+    this.id,
+    required this.userId,
+    required this.name,
     this.isSynced = false,
-  }) : localId = localId ?? const Uuid().v4();
+    this.isDeleted = false,
+    this.syncAttempts = 0,
+    this.lastSyncError,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
-  factory TagModel.fromJson(Map<String, dynamic> map) {
+  factory TagModel.fromEntity(TagEntity entity) {
     return TagModel(
-      // السيرفر يرسل id وليس Id
-      id: map['id'] ?? map['Id'] ?? -1,
-      // السيرفر يرسل ownerId وليس OwnerId
-      userId: map['ownerId'] ?? map['OwnerId'] ?? -1,
-      // السيرفر يرسل label وليس Label
-      name: map['label'] ?? map['Label'] ?? "",
+      localId: entity.localId,
+      id: entity.id,
+      userId: entity.userId,
+      name: entity.name,
+      isSynced: entity.isSynced,
+      isDeleted: entity.isDeleted,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    "Id": id ?? -1,
-    "OwnerId": CurrentUser.getUserId,
-    "Label": name,
-  };
+  TagEntity toEntity() {
+    return TagEntity(
+      localId: localId,
+      id: id,
+      userId: userId,
+      name: name,
+      isSynced: isSynced,
+      isDeleted: isDeleted,
 
-  factory TagModel.fromLocal(Map<dynamic, dynamic> map) {
-    return TagModel(
-      localId: map['localId'],
-      id: map['id'] ?? map['Id'] ?? -1,
-      userId: map['ownerId'] ?? map['OwnerId'] ?? -1,
-      name: map['label'] ?? map['Label'] ?? "",
-      isSynced: map['isSynced'] == 1,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 
-  Map<dynamic, dynamic> toLocal() => {
-    "localId": localId,
-    "Id": id ?? -1,
-    "OwnerId": CurrentUser.getUserId ?? -1,
-    "Label": name,
-    "isSynced": isSynced ? 1 : 0,
-  };
+  factory TagModel.fromJson(Map<String, dynamic> json, {String? localId}) {
+    return TagModel(
+      localId: localId ?? const Uuid().v4(),
+      id: json['id'] ?? json['tagId'],
+      userId: json['ownerId'],
+      name: json['label'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {"id": id ?? -1, "ownerId": userId, "label": name};
+  }
 
   @override
-  String toString() {
-    return "id:$id , label:$name , ";
+  toString() {
+    return 'TagModel{localId: $localId, id: $id, userId: $userId, name: $name, isSynced: $isSynced, isDeleted: $isDeleted, syncAttempts: $syncAttempts, lastSyncError: $lastSyncError, createdAt: $createdAt, updatedAt: $updatedAt}';
   }
 }

@@ -1,32 +1,34 @@
-import 'package:hive/hive.dart';
+import 'package:isar/isar.dart';
 
-class Currency extends HiveObject {
-  final int id;
+part 'currency_model.g.dart';
 
-  final String? code;
+@collection
+class Currency {
+  Id get isarId => id ?? 0;
+  // في Isar Embedded، لا نحتاج لـ Id id، لكننا سنحتفظ بالـ id الخاص بالسيرفر
+  int? id;
 
-  final String currencyName;
+  String? code;
 
-  final double actualValue;
+  String? currencyName;
 
-  Currency({
-    required this.id,
-    this.code,
-    required this.currencyName,
-    required this.actualValue,
-  });
+  double? actualValue;
 
-  factory Currency.fromJson(Map<dynamic, dynamic> json) {
+  Currency({this.id, this.code, this.currencyName, this.actualValue});
+
+  // ========================= FROM JSON (API) =========================
+  factory Currency.fromJson(Map<String, dynamic> json) {
     final rawValue = json['LiveValue'] ?? json['actualValue'] ?? 0.0;
     return Currency(
-      id: json['CurrencyId'] ?? 140,
+      id: json['CurrencyId'] ?? json['id'] ?? 140,
       code: json['Code'] ?? json['code'] ?? "",
       currencyName: json['CurrencyName'] ?? json['currencyName'] ?? "",
-      actualValue: rawValue,
+      actualValue: (rawValue is num) ? rawValue.toDouble() : 0.0,
     );
   }
 
-  Map<dynamic, dynamic> toJson() {
+  // ========================= TO JSON (API) =========================
+  Map<String, dynamic> toJson() {
     return {
       "CurrencyId": id,
       "Code": code,

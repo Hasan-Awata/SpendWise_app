@@ -1,9 +1,10 @@
-// // تعليق: متحكم حذف مصروف — يدعم الحذف الذكي من الواجهة دون إعادة تحميل البيانات
+// delete_expense_controller.dart
+
 import 'package:get/get.dart';
-import 'package:spendwise/features/expense/data/models/expense_model.dart';
+import 'package:spendwise/features/expense/domain/entities/expense_entity.dart';
+import 'package:spendwise/features/expense/domain/usecases/delete_expense_usecase.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/helper_function.dart';
-import 'package:spendwise/features/expense/domain/usecases/delete_expense_usecase.dart';
 
 class DeleteExpenseController extends GetxController {
   DeleteExpenseController({
@@ -12,30 +13,56 @@ class DeleteExpenseController extends GetxController {
   });
 
   final DeleteExpenseUsecase deleteUseCase;
+
   final ExpensesListController expensesListController;
 
-  final RxBool isLoadingDelete = false.obs;
+  // =========================
+  // STATE
+  // =========================
 
-  Future<void> deleteExpense(ExpenseModel expenseToDelete) async {
-    isLoadingDelete.value = true;
+  final isLoadingDelete = false.obs;
 
-    final result = await deleteUseCase.call(expenseToDelete);
+  // =========================
+  // DELETE
+  // =========================
 
-    result.fold((failure) => _handleError("فشل الحذف", failure.message), (_) {
-      // حذف العنصر من القائمة المحلية فوراً لتحسين استجابة التطبيق
-      expensesListController.expensesList.removeWhere(
-        (e) => e.localId == expenseToDelete.localId,
+  Future<void> deleteExpense(ExpenseEntity expense) async {
+    try {
+      isLoadingDelete.value = true;
+
+      // =====================
+      // OPTIMISTIC DELETE
+      // =====================
+
+      expensesListController.deleteExpenseLocally(expense.localId);
+
+      // =====================
+      // DELETE FROM DATABASE/API
+      // =====================
+
+      final result = await deleteUseCase.call(expense);
+
+      result.fold(
+        (failure) {
+          _handleError("فشل الحذف", failure.message);
+        },
+        (_) {
+          expensesListController.calculateTotals();
+
+          Get.back();
+          HelperFunction.showSnackBar("تم الحذف", "تم حذف المصروف بنجاح");
+        },
       );
-
-      // إعادة حساب الإجماليات لتحديث أرقام المصروفات في الواجهة
-      expensesListController.calculateTotals();
-
-      // إغلاق أي نافذة تأكيد مفتوحة
-      if (Get.isOverlaysOpen) Get.back();
-    });
-
-    isLoadingDelete.value = false;
+    } catch (e) {
+      _handleError("خطأ تقني", e.toString());
+    } finally {
+      isLoadingDelete.value = false;
+    }
   }
+
+  // =========================
+  // ERROR
+  // =========================
 
   void _handleError(String title, String message) {
     HelperFunction.showSnackBar(title, message, isError: true);

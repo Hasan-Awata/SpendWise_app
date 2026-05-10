@@ -1,66 +1,94 @@
-// // UI: features/expense/presentation/pages/expense_list_view.dart
+// Expense_list_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/expense/data/models/expense_model.dart';
+import 'package:spendwise/features/expense/domain/entities/expense_entity.dart';
 import 'package:spendwise/features/expense/presentation/manager/delete_expense_controller.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/expense/presentation/manager/update_expense_controller.dart';
 
-// // عرض قائمة المصروفات باستخدام GetView للتحكم في الحالة
 class ExpenseListView extends GetView<ExpensesListController> {
   const ExpenseListView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // لون الخلفية الداكن
+      backgroundColor: const Color(0xFF020817),
+
       appBar: AppBar(
-        title: const Text(
-          "المصروفات",
-          style: TextStyle(color: Color(0xFFF15A5A)),
-        ),
-        backgroundColor: Colors.transparent,
         elevation: 0,
+        backgroundColor: Colors.transparent,
+
         centerTitle: true,
+        foregroundColor: SpColor.expenseRed,
+        title: const Text(
+          "الدخل",
+
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFFF15A5A),
-        child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () => Get.toNamed('/add-expense'),
+
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: SpColor.expenseRed,
+
+        onPressed: () => Get.toNamed('/add-Expense'),
+
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+
+        label: const Text(
+          "إضافة دخل",
+
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
+
       body: Obx(() {
-        // // التحقق من حالة التحميل وإذا كانت القائمة فارغة
         if (controller.isLoading.value && controller.expensesList.isEmpty) {
           return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFF15A5A)),
+            child: CircularProgressIndicator(color: SpColor.expenseRed),
+          );
+        }
+
+        if (controller.expensesList.isEmpty) {
+          return const Center(
+            child: Text(
+              "لا يوجد دخل حالياً",
+
+              style: TextStyle(color: Colors.white54),
+            ),
           );
         }
 
         return RefreshIndicator(
-          color: SpColor.accentBlue,
-          backgroundColor: SpColor.surfaceNavy,
           onRefresh: () => controller.fetchExpenses(isRefresh: true),
 
           child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
             controller: controller.scrollController,
+
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+
             itemCount:
                 controller.expensesList.length +
                 (controller.hasMoreData.value ? 1 : 0),
+
             itemBuilder: (context, index) {
               if (index < controller.expensesList.length) {
-                final expense = controller.expensesList[index];
-                return _buildExpenseItem(expense);
-              } else {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: CircularProgressIndicator(),
-                  ),
-                );
+                return _buildExpenseItem(controller.expensesList[index]);
               }
+
+              return const Padding(
+                padding: EdgeInsets.all(20),
+
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              );
             },
           ),
         );
@@ -68,215 +96,372 @@ class ExpenseListView extends GetView<ExpensesListController> {
     );
   }
 
-  Widget _buildExpenseItem(ExpenseModel expense) {
+  // =========================
+  // ITEM
+  // =========================
+
+  Widget _buildExpenseItem(ExpenseEntity Expense) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+
+      padding: const EdgeInsets.all(18),
+
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10),
+        borderRadius: BorderRadius.circular(24),
+
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+        ),
+
+        border: Border.all(color: Colors.white12),
       ),
+
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: SpColor.expenseRed.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.account_balance_wallet_rounded,
-              color: SpColor.expenseRed,
-            ),
-          ),
+          _buildIcon(),
+
           const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+
+          Expanded(child: _buildDetails(Expense)),
+
+          _buildActions(Expense),
+        ],
+      ),
+    );
+  }
+
+  // =========================
+  // ICON
+  // =========================
+
+  Widget _buildIcon() {
+    return Container(
+      width: 58,
+      height: 58,
+
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+
+        gradient: LinearGradient(
+          colors: [SpColor.expenseRed, SpColor.expenseRed.withOpacity(0.7)],
+        ),
+      ),
+
+      child: const Icon(
+        Icons.account_balance_wallet_rounded,
+
+        color: Colors.white,
+        size: 28,
+      ),
+    );
+  }
+
+  // =========================
+  // DETAILS
+  // =========================
+
+  Widget _buildDetails(ExpenseEntity Expense) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+
+      children: [
+        Text(
+          Expense.title,
+
+          maxLines: 1,
+
+          overflow: TextOverflow.ellipsis,
+
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        Text(
+          DateFormat('yyyy-MM-dd').format(Expense.date),
+
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+
+        const SizedBox(height: 10),
+
+        _syncStatus(Expense.isSynced),
+      ],
+    );
+  }
+
+  // =========================
+  // SYNC STATUS
+  // =========================
+
+  Widget _syncStatus(bool synced) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+
+      decoration: BoxDecoration(
+        color: synced
+            ? Colors.green.withOpacity(0.12)
+            : Colors.orange.withOpacity(0.12),
+
+        borderRadius: BorderRadius.circular(20),
+      ),
+
+      child: Text(
+        synced ? "متزامن" : "غير متزامن",
+
+        style: TextStyle(
+          color: synced ? Colors.greenAccent : Colors.orangeAccent,
+
+          fontSize: 11,
+
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // ACTIONS
+  // =========================
+
+  Widget _buildActions(ExpenseEntity expense) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+
+      children: [
+        Text(
+          "${expense.wallet?.currency.code ?? ""} ${expense.amount.toStringAsFixed(2)}",
+
+          style: const TextStyle(
+            color: SpColor.expenseRed,
+
+            fontSize: 18,
+
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        Row(
+          children: [
+            _iconBtn(Icons.edit, Colors.blueAccent, () {
+              final controller = Get.find<UpdateExpenseController>();
+
+              controller.setExpense(expense);
+
+              showUpdateDialog(controller);
+            }),
+            const SizedBox(width: 6),
+
+            _iconBtn(Icons.delete, Colors.redAccent, () {
+              showDeleteDialog(expense, Get.find<DeleteExpenseController>());
+            }),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // =========================
+  // ICON BUTTON
+  // =========================
+
+  Widget _iconBtn(IconData icon, Color color, VoidCallback onTap) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+
+        borderRadius: BorderRadius.circular(12),
+      ),
+
+      child: IconButton(
+        icon: Icon(icon, color: color, size: 20),
+
+        onPressed: onTap,
+      ),
+    );
+  }
+
+  // =========================
+  // UPDATE DIALOG
+  // =========================
+  void showUpdateDialog(UpdateExpenseController controller) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFF111827),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Obx(
+            () => Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  expense.title,
-                  style: const TextStyle(
+                const Text(
+                  "تعديل الدخل",
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  DateFormat('yyyy-MM-dd').format(expense.date),
-                  style: const TextStyle(color: Colors.white38, fontSize: 12),
+
+                const SizedBox(height: 20),
+
+                // العنوان
+                TextField(
+                  controller: controller.titleController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: "العنوان",
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.04),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                // المبلغ
+                TextField(
+                  controller: controller.amountController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: "المبلغ",
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.04),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 25),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: SpColor.expenseRed,
+                    ),
+                    onPressed: controller.isLoadingUpdate.value
+                        ? null
+                        : () => controller.updateExpense(),
+                    child: controller.isLoadingUpdate.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            "حفظ التعديلات",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                  ),
                 ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // DELETE DIALOG
+  // =========================
+
+  void showDeleteDialog(
+    ExpenseEntity expense,
+    DeleteExpenseController controller,
+  ) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFF111827),
+
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+
             children: [
-              Text(
-                (expense.wallet == null)
-                    ? "+${expense.amount.toStringAsFixed(2)}"
-                    : "${expense.wallet?.currency.code} +${expense.amount.toStringAsFixed(2)}",
-                style: const TextStyle(
-                  color: SpColor.expenseRed,
-                  fontSize: 18,
+              const Icon(
+                Icons.delete_forever,
+                color: Colors.redAccent,
+                size: 60,
+              ),
+
+              const SizedBox(height: 15),
+
+              const Text(
+                "حذف الدخل",
+
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
+              const SizedBox(height: 10),
+
+              const Text(
+                "هل تريد حذف هذا الدخل؟",
+
+                textAlign: TextAlign.center,
+
+                style: TextStyle(color: Colors.white70),
+              ),
+
+              const SizedBox(height: 25),
+
               Row(
                 children: [
-                  // زر التعديل
-                  IconButton(
-                    icon: const Icon(
-                      Icons.edit_note,
-                      color: Colors.blueGrey,
-                      size: 22,
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Get.back(),
+
+                      child: const Text("إلغاء"),
                     ),
-                    onPressed: () {
-                      final updateController =
-                          Get.find<UpdateExpenseController>();
-                      showUpdateDialog(expense, updateController);
-                    },
                   ),
-                  // زر الحذف
-                  IconButton(
-                    icon: const Icon(
-                      Icons.delete_sweep_outlined,
-                      color: Colors.redAccent,
-                      size: 20,
+
+                  const SizedBox(width: 10),
+
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                      ),
+
+                      onPressed: () {
+                        controller.deleteExpense(expense);
+                      },
+
+                      child: const Text("حذف"),
                     ),
-                    onPressed: () {
-                      final deleteController =
-                          Get.find<DeleteExpenseController>();
-                      showDeleteDialog(expense, deleteController);
-                    },
                   ),
                 ],
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  // // UI: دالة إظهار حوار التعديل السريع باللغة العربية
-  void showUpdateDialog(
-    ExpenseModel expense,
-    UpdateExpenseController updateController,
-  ) {
-    final amountController = TextEditingController(
-      text: expense.amount.toString(),
-    );
-    final categoryController = TextEditingController(
-      text: expense.category!.name,
-    );
-
-    Get.defaultDialog(
-      title: "تحديث المصروف",
-      backgroundColor: const Color(0xFF1E293B),
-      titleStyle: const TextStyle(
-        color: Color(0xFFF15A5A),
-        fontWeight: FontWeight.bold,
-      ),
-      contentPadding: const EdgeInsets.all(20),
-      content: Column(
-        children: [
-          _buildDialogTextField(
-            controller: amountController,
-            label: "المبلغ (ر.س)",
-            isNumber: true,
-          ),
-          const SizedBox(height: 15),
-          _buildDialogTextField(
-            controller: categoryController,
-            label: "الفئة / المصدر",
-          ),
-        ],
-      ),
-      confirm: Obx(
-        () => SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF15A5A),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: updateController.isLoadingUpdate.value
-                ? null
-                : () {
-                    expense.amount =
-                        double.tryParse(amountController.text) ??
-                        expense.amount;
-                    expense.category!.name = categoryController.text;
-
-                    updateController.updateExpense(expense);
-                  },
-            child: updateController.isLoadingUpdate.value
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Text("تحديث", style: TextStyle(color: Colors.white)),
-          ),
         ),
       ),
-      cancel: TextButton(
-        onPressed: () => Get.back(),
-        child: const Text("إلغاء", style: TextStyle(color: Colors.white54)),
-      ),
-    );
-  }
-
-  // // دالة مساعدة لبناء حقول النص داخل الحوار
-  Widget _buildDialogTextField({
-    required TextEditingController controller,
-    required String label,
-    bool isNumber = false,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFFF15A5A), fontSize: 12),
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white24),
-        ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFFF15A5A)),
-        ),
-      ),
-    );
-  }
-
-  // // UI: دالة إظهار حوار تأكيد الحذف
-  void showDeleteDialog(
-    ExpenseModel expense,
-    DeleteExpenseController deleteController,
-  ) {
-    Get.defaultDialog(
-      title: "تأكيد الحذف",
-      middleText: "هل أنت متأكد أنك تريد حذف هذا المصروف؟",
-      backgroundColor: const Color(0xFF1E293B),
-      titleStyle: const TextStyle(color: Color(0xFFF15A5A)),
-      middleTextStyle: const TextStyle(color: Colors.white),
-      textConfirm: "حذف",
-      textCancel: "إلغاء",
-      confirmTextColor: Colors.white,
-      buttonColor: const Color(0xFFF15A5A),
-      onConfirm: () {
-        deleteController.deleteExpense(expense);
-        Get.back();
-      },
     );
   }
 }

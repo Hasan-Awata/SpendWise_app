@@ -2,8 +2,6 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
-import 'package:spendwise/core/utils/current_user.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/income/data/datasources/income_remote_datasource.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
@@ -14,37 +12,26 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
 
   IncomeRemoteDatasourceImpl({required this.client});
 
-  Future<Map<String, String>> _getHeaders() async {
-    final user = await AppUserLocalDatasourceImpl().getUser();
-    final String token = user?.token ?? CurrentUser.token;
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   @override
   Future<PagedResponse<IncomeModel>> getMyIncomes(
     int userId,
     PageRequest page,
   ) async {
-    final url =
-        Uri.parse(
-          "${ApiEndpoints.baseUrl}${ApiEndpoints.expense}/$userId",
-        ).replace(
+    final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.income}")
+        .replace(
           queryParameters: {
             'PageNumber': page.pageNumber.toString(),
             'PageSize': page.pageSize.toString(),
           },
         );
 
-    final headers = await _getHeaders();
-    print("Fetching Expenses for user $userId from: $url");
+    final headers = await ApiEndpoints().getHeaders();
 
     final response = await client.get(url, headers: headers);
 
+    print("GetIncomes Response [${response.statusCode}]: ${response.body}");
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      print("GetExpenses Success: تم جلب المصاريف");
+      print("Getincomes Success: تم جلب المصاريف");
       final decodedData = jsonDecode(response.body);
 
       return PagedResponse<IncomeModel>.fromJson(
@@ -52,7 +39,7 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
         (json) => IncomeModel.fromJson(json),
       );
     } else {
-      print("GetExpenses Error [${response.statusCode}]: ${response.body}");
+      print("Getincomes Error [${response.statusCode}]: ${response.body}");
       throw Exception("فشل جلب المصاريف من السيرفر");
     }
   }
@@ -62,7 +49,7 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
   Future<IncomeModel> addIncome(IncomeModel income) async {
     print("income is -----> ${income.toString()}}");
     final uri = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.income}");
-    final header = await _getHeaders();
+    final header = await ApiEndpoints().getHeaders();
 
     final response = await client
         .post(uri, headers: header, body: jsonEncode(income.toJson()))
@@ -81,7 +68,7 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
       "${ApiEndpoints.baseUrl}${ApiEndpoints.income}/${income.id}",
     );
 
-    final header = await _getHeaders();
+    final header = await ApiEndpoints().getHeaders();
     final response = await client
         .patch(uri, headers: header, body: jsonEncode(income.toJson()))
         .timeout(Duration(seconds: 10));
@@ -100,11 +87,11 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
     final uri = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.income}/${income.id}",
     );
-    final header = await _getHeaders();
+    final header = await ApiEndpoints().getHeaders();
     final response = await client
         .delete(uri, headers: header)
         .timeout(Duration(seconds: 10));
-
+    print("Delete Income Response [${response.statusCode}]: ${response.body}");
     return response.statusCode == 200 || response.statusCode == 204;
   }
 }

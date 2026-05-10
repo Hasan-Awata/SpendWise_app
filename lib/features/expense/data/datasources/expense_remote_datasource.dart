@@ -9,6 +9,6 @@ abstract class ExpenseRemoteDataSource {
     int userId,
     PageRequest page,
   );
-  Future<ExpenseModel> updateExpense(ExpenseModel expense);
+  Future<ExpenseModel?> updateExpense(ExpenseModel expense);
   Future<bool> deleteExpense(ExpenseModel expense);
 }

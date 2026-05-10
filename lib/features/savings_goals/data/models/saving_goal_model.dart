@@ -1,19 +1,35 @@
-// // [تنبيه: تم تحديث الموديل ليدعم التخزين المحلي والمزامنة بنفس نمط WalletModel]
-
+import 'package:isar/isar.dart';
+import 'package:spendwise/features/savings_goals/domain/entities/saving_goal_entity.dart';
 import 'package:uuid/uuid.dart';
 
+part 'saving_goal_model.g.dart';
+
+@collection
 class SavingGoalModel {
-  int? goalId; // المعرف القادم من السيرفر
-  String? localId; // المعرف المحلي (UUID)
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true)
+  String localId;
+  @Index()
+  int? goalId;
   int userId;
+
   String title;
   double targetAmount;
   double currentAmount;
-  DateTime deadlineDate;
-  bool isSynced;
 
+  DateTime deadlineDate;
+
+  bool isSynced;
+  bool isDeleted;
+
+  int syncAttempts;
+  DateTime? lastSyncError;
+
+  DateTime? createdAt;
+  DateTime? updatedAt;
   SavingGoalModel({
-    String? localId,
+    required this.localId,
     this.goalId,
     required this.userId,
     required this.title,
@@ -21,18 +37,56 @@ class SavingGoalModel {
     required this.currentAmount,
     required this.deadlineDate,
     this.isSynced = false,
-  }) : localId = localId ?? const Uuid().v4();
+    this.isDeleted = false,
+    this.syncAttempts = 0,
+    this.lastSyncError,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
-  // // المصنع الخاص بالبيانات القادمة من السيرفر (API)
-  factory SavingGoalModel.fromJson(Map<String, dynamic> json) {
+  // ========================= MAPPERS =========================
+
+  factory SavingGoalModel.fromEntity(SavingGoalEntity entity) {
     return SavingGoalModel(
-      localId: const Uuid()
-          .v4(), // توليد معرف محلي جديد عند الجلب من السيرفر لأول مرة
+      localId: entity.localId,
+      goalId: entity.goalId,
+      userId: entity.userId,
+      title: entity.title,
+      targetAmount: entity.targetAmount,
+      currentAmount: entity.currentAmount,
+      deadlineDate: entity.deadlineDate,
+      isSynced: entity.isSynced,
+    );
+  }
+
+  SavingGoalEntity toEntity() {
+    return SavingGoalEntity(
+      goalId: goalId,
+      userId: userId,
+      title: title,
+      targetAmount: targetAmount,
+      currentAmount: currentAmount,
+      deadlineDate: deadlineDate,
+      isSynced: isSynced,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+
+  // ========================= JSON =========================
+
+  factory SavingGoalModel.fromJson(
+    Map<String, dynamic> json, {
+    String? localId,
+  }) {
+    return SavingGoalModel(
+      localId: localId ?? const Uuid().v4(),
       goalId: json['goalID'] ?? json['goalId'],
-      userId: (json['userID'] ?? json['userId'] ?? -1) as int,
+      userId: json['userID'] ?? json['userId'] ?? -1,
       title: json['title'] ?? '',
-      targetAmount: (json['targetAmount'] ?? 0.0).toDouble(),
-      currentAmount: (json['currentAmount'] ?? 0.0).toDouble(),
+      targetAmount: (json['targetAmount'] ?? 0).toDouble(),
+      currentAmount: (json['currentAmount'] ?? 0).toDouble(),
       deadlineDate: json['deadlineDate'] != null
           ? DateTime.parse(json['deadlineDate'])
           : DateTime.now(),
@@ -40,10 +94,9 @@ class SavingGoalModel {
     );
   }
 
-  // // تحويل البيانات لإرسالها إلى السيرفر (API)
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson({bool isCreate = false}) {
     return {
-      'goalID': goalId == -1 ? null : goalId,
+      if (!isCreate) 'goalID': goalId,
       'userID': userId,
       'title': title,
       'targetAmount': targetAmount,
@@ -52,46 +105,8 @@ class SavingGoalModel {
     };
   }
 
-  // // المصنع الخاص بالبيانات القادمة من التخزين المحلي (Hive)
-  factory SavingGoalModel.fromLocal(Map<dynamic, dynamic> map) {
-    return SavingGoalModel(
-      localId: map['localId'],
-      goalId: (map['goalId'] ?? map['goalID'] ?? -1) as int,
-      userId: (map['userId'] ?? map['userID'] ?? -1) as int,
-      title: map['title'] ?? '',
-      targetAmount: (map['targetAmount'] ?? 0.0).toDouble(),
-      currentAmount: (map['currentAmount'] ?? 0.0).toDouble(),
-      deadlineDate: map['deadlineDate'] != null
-          ? DateTime.parse(map['deadlineDate'])
-          : DateTime.now(),
-      isSynced: map['isSynced'] == true || map['isSynced'] == 1,
-    );
-  }
-
-  // // تحويل البيانات لحفظها في التخزين المحلي (Hive)
-  Map<dynamic, dynamic> toLocal() {
-    return {
-      'goalId': goalId ?? -1,
-      'localId': localId,
-      'userId': userId,
-      'title': title,
-      'targetAmount': targetAmount,
-      'currentAmount': currentAmount,
-      'deadlineDate': deadlineDate.toIso8601String(),
-      'isSynced': isSynced,
-    };
-  }
-
   @override
   String toString() {
-    return '''SavingGoalModel(
-      localId: $localId, 
-      goalId: $goalId, 
-      userId: $userId, 
-      title: $title, 
-      targetAmount: $targetAmount, 
-      currentAmount: $currentAmount,
-      isSynced: $isSynced
-    )''';
+    return 'SavingGoalModel(title: $title, progress: $currentAmount/$targetAmount)';
   }
 }

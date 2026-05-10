@@ -1,14 +1,8 @@
-/*
-  Implementation for TagRemoteDatasource using http with explicit logging.
-*/
-
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
-import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_remote_datasource.dart';
@@ -18,43 +12,23 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
   final http.Client client;
   TagRemoteDatasourceImpl({required this.client});
   final Duration timeoutDuration = const Duration(
-    seconds: 15,
+    seconds: 7,
   ); // تحديد مدة المهلة
-
-  Future<Map<String, String>?> _getHeaders() async {
-    try {
-      final user = await AppUserLocalDatasourceImpl().getUser();
-
-      final String? token;
-      if (user != null) {
-        token = user.token;
-        print("${user.userId} ---- ${user.token}");
-      } else {
-        HelperFunction.showSnackBar("Error Auth", "User Not found");
-        return null;
-      }
-      return {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
-    } catch (e) {
-      HelperFunction.showSnackBar("Error Auth", e.toString());
-      return null;
-    }
-  }
 
   @override
   Future<TagModel?> addTag(TagModel tag) async {
     final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.tag}");
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
     final body = jsonEncode(tag.toJson());
 
     print("Sending Tag JSON: $body to $url");
 
     final response = await client.post(url, headers: headers, body: body);
 
+    print(
+      "AddTag Response: ${response.body}, status code ${response.statusCode}",
+    );
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      print(jsonDecode(response.body));
       return TagModel.fromJson(jsonDecode(response.body));
     } else {
       print("AddTag Error [${response.statusCode}]: ${response.body}");
@@ -67,7 +41,7 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.tag}/${tag.id}",
     );
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
     final body = jsonEncode(tag.toJson());
 
     try {
@@ -76,6 +50,11 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
           .timeout(timeoutDuration);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (response.body.isEmpty) {
+          print("UpdateTag Success: تم تحديث التاج بنجاح (بدون محتوى)");
+          return null;
+        }
+        print("UpdateTag Success: ${response.body}");
         return TagModel.fromJson(jsonDecode(response.body));
       } else {
         throw Exception("فشل تحديث المحفظة: رمز الحالة ${response.statusCode}");
@@ -88,12 +67,12 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
   @override
   Future<void> deleteTag(int id) async {
     final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.tag}/$id");
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
 
     print("Deleting Tag: $url");
 
     final response = await client.delete(url, headers: headers);
-    print("${response.body}");
+    print("tag remoteeeeeeeeeeee ${response.body} ");
     if (response.statusCode == 200 || response.statusCode == 204) {
       print("DeleteTag Success");
     } else {
@@ -105,7 +84,7 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
   @override
   Future<PagedResponse<TagModel>> getMyTags(PageRequest page) async {
     final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.tag}");
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
 
     print("Fetching Tags from: $url");
 

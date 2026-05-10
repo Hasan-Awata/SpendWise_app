@@ -5,5 +5,9 @@ abstract class SavingGoalLocalDatasource {
 
   Future<void> updateGoalLocal(SavingGoalModel goal);
 
-  Future<void> deleteGoalLocal(String localId);
+  Future<void> deleteGoalLocal(int id);
+
+  SavingGoalModel? getSavingGoal(String localId);
+  SavingGoalModel? getSavingGoalByServerId(int? savingGoalId);
+  Future<void> clear();
 }

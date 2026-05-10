@@ -1,8 +1,8 @@
-// // [تصميم مطور: قائمة بحث مدمجة وصغيرة تحل مشكلة اللمس وتظهر بذكاء فوق الكيبورد دون شغل كامل الشاشة]
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
+import 'package:spendwise/core/utils/colors.dart';
 
-class SPDropdownSearch extends StatelessWidget {
+class SPDropdownSearch extends StatefulWidget {
   final List<String> items;
   final String label;
   final String hint;
@@ -23,6 +23,13 @@ class SPDropdownSearch extends StatelessWidget {
   });
 
   @override
+  State<SPDropdownSearch> createState() => _SPDropdownSearchState();
+}
+
+class _SPDropdownSearchState extends State<SPDropdownSearch> {
+  String _filter = "";
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,59 +38,62 @@ class SPDropdownSearch extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "  $label",
+              "  ${widget.label}",
               style: TextStyle(
-                color: themeColor,
+                color: widget.themeColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 13, // حجم أصغر ليكون أكثر أناقة
+                fontSize: 13,
               ),
             ),
-            ?suffixIcon,
+            widget.suffixIcon ?? const SizedBox(),
           ],
         ),
         const SizedBox(height: 6),
 
         DropdownSearch<String>(
-          items: (filter, loadProps) => items
-              .where((i) => i.toLowerCase().contains(filter.toLowerCase()))
-              .toList(),
-          selectedItem: selectedItem,
-          onChanged: onChanged,
+          items: (filter, loadProps) {
+            _filter = filter;
 
-          // إعدادات القائمة لتكون "منبثقة صغيرة" (Menu) وليس شاشة كاملة
+            return widget.items
+                .where((i) => i.toLowerCase().contains(filter.toLowerCase()))
+                .toList();
+          },
+
+          selectedItem: widget.selectedItem,
+          onChanged: widget.onChanged,
+
           popupProps: PopupProps.menu(
             showSearchBox: true,
-            fit: FlexFit.loose, // يجعل حجم القائمة يتناسب مع عدد العناصر
-            constraints: const BoxConstraints(
-              maxHeight: 300,
-            ), // تحديد أقصى ارتفاع لتبقى الشاشة خلفها مرئية
-            emptyBuilder: (context, searchEntry) => SizedBox(
-              height: 60,
-              child: Center(
-                child: Text(
-                  "لا توجد نتائج لـ '$searchEntry'",
-                  style: TextStyle(
-                    color: themeColor.withOpacity(0.6), // هنا يمكنك تغيير اللون
-                    fontSize: 14,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-            ),
+            fit: FlexFit.loose,
+            constraints: const BoxConstraints(maxHeight: 300),
             menuProps: MenuProps(
-              backgroundColor: const Color(0xFF1A1F2E),
+              backgroundColor: SpColor.surfaceNavy, // 🔙 اللون القديم
               borderRadius: BorderRadius.circular(15),
               elevation: 8,
             ),
+
+            itemBuilder: (context, item, isSelected, isFocused) {
+              return ListTile(
+                title: Text(item, style: const TextStyle(color: Colors.white)),
+              );
+            },
+            // =========================
+            // 🔥 LIVE SEARCH FIX
+            // =========================
             searchFieldProps: TextFieldProps(
+              onChanged: (value) {
+                setState(() {
+                  _filter = value; // إعادة فلترة فورية
+                });
+              },
               style: const TextStyle(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: "بحث سريع...",
                 hintStyle: TextStyle(color: Colors.white.withOpacity(0.2)),
-                prefixIcon: Icon(Icons.search, color: themeColor, size: 18),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 0,
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: widget.themeColor,
+                  size: 18,
                 ),
                 filled: true,
                 fillColor: const Color(0xFF131722),
@@ -93,40 +103,27 @@ class SPDropdownSearch extends StatelessWidget {
                 ),
               ),
             ),
-            itemBuilder: (context, item, isSelected, isFocused) {
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: isSelected
-                      ? themeColor.withOpacity(0.1)
-                      : Colors.transparent,
-                ),
-                child: ListTile(
-                  visualDensity: VisualDensity
-                      .compact, // تقليل المساحات البيضاء ليكون الحجم أصغر
-                  title: Text(
-                    item,
-                    style: TextStyle(
-                      color: isSelected ? themeColor : Colors.white70,
-                      fontSize: 14,
-                    ),
+
+            emptyBuilder: (context, searchEntry) => SizedBox(
+              height: 60,
+              child: Center(
+                child: Text(
+                  "لا توجد نتائج لـ '$searchEntry'",
+                  style: TextStyle(
+                    color: widget.themeColor.withOpacity(0.6),
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
-              );
-            },
+              ),
+            ),
           ),
 
-          // تصميم الحقل الخارجي ليكون متناسقاً مع باقي واجهة Spendwise
           decoratorProps: DropDownDecoratorProps(
             decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(
-                color: Colors.white.withOpacity(0.3),
-                fontSize: 14,
-              ),
+              hintText: widget.hint,
               filled: true,
-              fillColor: const Color(0xFF1A1F2E),
+              fillColor: SpColor.surfaceNavy,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 15,
                 vertical: 10,
@@ -137,7 +134,9 @@ class SPDropdownSearch extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: themeColor.withOpacity(0.4)),
+                borderSide: BorderSide(
+                  color: widget.themeColor.withOpacity(0.4),
+                ),
               ),
             ),
             baseStyle: const TextStyle(color: Colors.white, fontSize: 15),

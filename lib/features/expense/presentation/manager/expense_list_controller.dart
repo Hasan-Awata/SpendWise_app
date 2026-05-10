@@ -1,91 +1,95 @@
+// expenses_list_controller.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
-import 'package:spendwise/features/category/data/model/category_model.dart';
-import 'package:spendwise/features/expense/data/models/expense_model.dart';
+import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
+import 'package:spendwise/features/expense/domain/entities/expense_entity.dart';
 import 'package:spendwise/features/expense/domain/usecases/get_all_expenses_usecase.dart';
 import 'package:spendwise/features/expense/domain/usecases/get_expenses_usecase.dart';
-import 'package:spendwise/features/expense/domain/usecases/sync_expense_usecase.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
+
+// expenses_list_controller.dart
 
 class ExpensesListController extends GetxController {
   final GetExpensesUsecase getExpensesUseCase;
   final GetAllLocalExpensesUsecase getAllLocalExpensesUsecase;
-  final SyncPendingExpensesUsecase syncExpenseUsecase;
+  final GetUserIdUsecase userIdUsecase;
 
   ExpensesListController({
     required this.getExpensesUseCase,
     required this.getAllLocalExpensesUsecase,
-    required this.syncExpenseUsecase,
+    required this.userIdUsecase,
   });
 
-  final RxList<ExpenseModel> expensesList = <ExpenseModel>[].obs;
+  final RxList<ExpenseEntity> expensesList = <ExpenseEntity>[].obs;
   final RxBool isLoading = false.obs;
+  final RxBool isRefreshing = false.obs;
+  final RxBool isLoadingMore = false.obs;
   final RxBool hasMoreData = true.obs;
+  final RxString errorMessage = ''.obs;
   final RxInt currentPage = 1.obs;
   final int pageSize = 10;
 
+  // قفل لمنع التداخل بين الطلبات
+  bool _isProcessing = false;
+
+  final ScrollController scrollController = ScrollController();
+  final mainController = Get.find<MainController>();
   final Rx<DateTime> dashboardMonth = Rx<DateTime>(
     DateTime(DateTime.now().year, DateTime.now().month, 1),
   );
 
-  // المتغيرات المالية
   final RxDouble monthlyExpenseTotal = 0.0.obs;
   final RxDouble allTimeExpenseTotal = 0.0.obs;
-
-  final ScrollController scrollController = ScrollController();
-  final int? userId = AppUserLocalDatasourceImpl().currentUserId;
-
-  final RxList<CategoryModel> categories = <CategoryModel>[
-    CategoryModel(name: "Basics", priority: 1),
-    CategoryModel(name: "Secondaries", priority: 2),
-    CategoryModel(name: "Expenses", priority: 3),
-    CategoryModel(name: "Savings", priority: 4),
-  ].obs;
-  RxDouble monthlyAndWalletExpense = 0.0.obs;
-  final mainController = Get.find<MainController>();
-
-  var walletsListController = Get.find<WalletsListController>();
+  final RxDouble monthlyAndWalletExpense = 0.0.obs;
 
   @override
   void onInit() {
     super.onInit();
-    everAll([dashboardMonth, mainController.selectWallet], (_) {
-      calculateTotals();
-    });
-    calculateTotals();
     scrollController.addListener(_scrollListener);
+    everAll([
+      dashboardMonth,
+      mainController.selectWallet,
+    ], (_) => calculateTotals());
     fetchExpenses(isRefresh: true);
   }
 
   void _scrollListener() {
-    if (scrollController.position.pixels >=
-        scrollController.position.maxScrollExtent * 0.8) {
-      if (!isLoading.value && hasMoreData.value) {
-        print(
-          "🔗 Scroll reaching end: Requesting Expenses page ${currentPage.value}",
-        );
-        fetchExpenses(isRefresh: false);
+    if (!scrollController.hasClients || _isProcessing) return;
+
+    final position = scrollController.position;
+    // التفعيل عند الاقتراب من النهاية بمسافة 100 بكسل
+    if (position.pixels >= position.maxScrollExtent - 100) {
+      if (!isLoadingMore.value && !isLoading.value && hasMoreData.value) {
+        fetchExpenses();
       }
     }
   }
 
   Future<void> fetchExpenses({bool isRefresh = false}) async {
-    if (isLoading.value || (!hasMoreData.value && !isRefresh)) return;
+    if (_isProcessing) return;
+    if (!isRefresh && !hasMoreData.value) return;
 
+    _isProcessing = true;
     try {
-      isLoading.value = true;
+      errorMessage.value = '';
 
       if (isRefresh) {
-        print("🔄 Action: Refreshing Expenses list...");
+        isRefreshing.value = true;
         currentPage.value = 1;
         hasMoreData.value = true;
+      } else {
+        isLoadingMore.value = true;
       }
 
-      print("📡 Fetching Expenses: Page ${currentPage.value}, Size $pageSize");
+      if (expensesList.isEmpty && isRefresh) isLoading.value = true;
+
+      int? userId;
+      final userResult = await userIdUsecase.getUserId();
+      userResult.fold((_) {}, (id) => userId = id);
+
       final result = await getExpensesUseCase.call(
         userId,
         PageRequest(pageNumber: currentPage.value, pageSize: pageSize),
@@ -93,126 +97,146 @@ class ExpensesListController extends GetxController {
 
       result.fold(
         (failure) {
-          print("❌ Expenses Fetch Failure: ${failure.message}");
+          errorMessage.value = failure.message;
+          if (expensesList.isEmpty) _loadLocalFallback(isRefresh);
           HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
         },
-        (pagedResponse) {
-          final newItems = pagedResponse.data;
-          print("📦 Received: ${newItems.length} Expenses");
-          newItems
-              .map(
-                (e) => e.wallet = walletsListController.wallets.firstWhere(
-                  (w) => w.walletId == e.walletId,
-                ),
-              )
+        (pagedResponse) async {
+          final fetchedItems = pagedResponse.data
+              .where((e) => !e.isDeleted)
               .toList();
-          if (newItems.isEmpty) {
-            hasMoreData.value = false;
-            print("🏁 No more Expenses found on server.");
+          await _cleanupDuplicateLocals(fetchedItems);
+          if (isRefresh) {
+            expensesList.assignAll(fetchedItems);
           } else {
-            if (isRefresh) {
-              // تصفية العناصر المحذوفة محلياً قبل العرض
-              final visibleItems = newItems
-                  .where((e) => e.localId != "REMOVE")
-                  .toList();
-              expensesList.assignAll(visibleItems.reversed);
-            } else {
-              // منع التكرار وتصفية المحذوفات
-              final uniqueAndVisible = newItems.where((newItem) {
-                bool isNotRemoved = newItem.localId != "REMOVE";
-                bool isNotDuplicate = !expensesList.any(
-                  (existing) =>
-                      (existing.id != null && existing.id == newItem.id) ||
-                      (existing.localId == newItem.localId),
-                );
-                return isNotRemoved && isNotDuplicate;
-              }).toList();
-
-              expensesList.assignAll(uniqueAndVisible.reversed);
-              print(
-                "➕ Added ${uniqueAndVisible.length} unique Expenses to list",
-              );
-            }
-
-            // تحديث حالة انتهاء البيانات
-            if (newItems.length < pageSize) {
-              hasMoreData.value = false;
-              print("🏁 End of Expenses reached.");
-            } else {
-              currentPage.value++;
-            }
+            _mergeExpenses(fetchedItems);
           }
+
+          // الترتيب من الأحدث للأقدم دائماً
+          expensesList.sort((a, b) => b.date.compareTo(a.date));
+
+          // تحديث حالة الـ Pagination
+          if (fetchedItems.length < pageSize) {
+            hasMoreData.value = false;
+          } else {
+            currentPage.value++;
+          }
+
           calculateTotals();
         },
       );
     } finally {
       isLoading.value = false;
+      isRefreshing.value = false;
+      isLoadingMore.value = false;
+      _isProcessing = false;
     }
   }
 
-  void runBackgroundSync() {
-    syncExpenseUsecase.call().then((result) {
-      result.fold(
-        (l) => print("⚠️ Expense Background Sync Failed: ${l.message}"),
-        (r) {
-          print("✅ Expense Background Sync Completed");
-          calculateTotals();
-        },
-      );
+  Future<void> _cleanupDuplicateLocals(List<ExpenseEntity> remoteItems) async {
+    final localResult = await getAllLocalExpensesUsecase.call();
+
+    await localResult.fold((_) async {}, (allLocal) async {
+      for (var remoteItem in remoteItems) {
+        if (remoteItem.id == null) continue;
+
+        final duplicates = allLocal
+            .where(
+              (local) =>
+                  local.id == remoteItem.id &&
+                  local.localId != remoteItem.localId,
+            )
+            .toList();
+
+        for (var dup in duplicates) {
+          expensesList.removeWhere((e) => e.localId == dup.localId);
+
+          deleteExpenseLocally(dup.localId);
+          debugPrint(
+            "🔥 Duplicate deleted: ${dup.localId} for remote ID: ${dup.id}",
+          );
+        }
+      }
     });
   }
 
-  Future<void> calculateTotals() async {
-    final result = await getAllLocalExpensesUsecase.call();
-    result.fold(
-      (_) {
-        monthlyExpenseTotal.value = 0.0;
-        allTimeExpenseTotal.value = 0.0;
-      },
-      (allLocalExpense) {
-        final targetYear = dashboardMonth.value.year;
-        final targetMonth = dashboardMonth.value.month;
+  void _mergeExpenses(List<ExpenseEntity> newItems) {
+    final Set<String> existingIds = expensesList.map((e) => e.localId).toSet();
+    final List<ExpenseEntity> uniqueItems = newItems
+        .where((item) => !existingIds.contains(item.localId))
+        .toList();
 
-        // تصفية العناصر المسمومة للحذف لضمان دقة الأرقام
-        final activeExpenses = allLocalExpense
-            .where((e) => e.localId != "REMOVE")
-            .toList();
-
-        double allTime = 0.0;
-        double monthly = 0.0;
-
-        for (var item in activeExpenses) {
-          allTime += item.amount;
-          if (item.date.year == targetYear && item.date.month == targetMonth) {
-            monthly += item.amount;
-          }
-        }
-
-        allTimeExpenseTotal.value = allTime;
-        monthlyExpenseTotal.value = monthly;
-
-        monthlyAndWalletExpense.value = activeExpenses
-            .where(
-              (e) =>
-                  e.date.year == targetYear &&
-                  e.date.month == targetMonth &&
-                  e.wallet!.currency.currencyName ==
-                      mainController.selectWallet.value?.currency.currencyName,
-            )
-            .fold<double>(0.0, (sum, item) => sum + item.amount);
-      },
-    );
+    if (uniqueItems.isNotEmpty) {
+      expensesList.addAll(uniqueItems);
+    }
   }
 
-  void changeDashboardMonth(DateTime newDate) {
-    print("📅 Changing Dashboard Month to: ${newDate.month}/${newDate.year}");
-    dashboardMonth.value = DateTime(newDate.year, newDate.month, 1);
+  Future<void> _loadLocalFallback(bool isRefresh) async {
+    final result = await getAllLocalExpensesUsecase.call();
+    result.fold((_) {}, (localExpenses) {
+      final filtered = localExpenses.where((e) => !e.isDeleted).toList();
+      if (isRefresh) {
+        expensesList.assignAll(filtered);
+      } else {
+        _mergeExpenses(filtered);
+      }
+      calculateTotals();
+    });
+  }
+
+  // دالة الحساب المحسنة
+  Future<void> calculateTotals() async {
+    final result = await getAllLocalExpensesUsecase.call();
+    result.fold((_) {}, (expenses) {
+      final m = dashboardMonth.value.month;
+      final y = dashboardMonth.value.year;
+      final walletId = mainController.selectWallet.value?.walletId;
+
+      double monthly = 0, all = 0, monthlyW = 0;
+
+      for (var e in expenses) {
+        if (e.isDeleted) continue;
+        all += e.amount;
+        if (e.date.month == m && e.date.year == y) {
+          monthly += e.amount;
+          if (walletId != null && e.walletId == walletId) {
+            monthlyW += e.amount;
+          }
+        }
+      }
+      monthlyExpenseTotal.value = monthly;
+      allTimeExpenseTotal.value = all;
+      monthlyAndWalletExpense.value = monthlyW;
+    });
+  }
+
+  // بقية الدوال المساعدة (UI Update Helpers)
+  void addExpenseLocally(ExpenseEntity expense) {
+    expensesList.insert(0, expense);
     calculateTotals();
   }
 
+  void updateExpenseLocally(ExpenseEntity updatedExpense) {
+    final index = expensesList.indexWhere(
+      (e) => e.localId == updatedExpense.localId,
+    );
+    if (index != -1) {
+      expensesList[index] = updatedExpense;
+      expensesList.refresh();
+      calculateTotals();
+    }
+  }
+
+  void deleteExpenseLocally(String localId) {
+    expensesList.removeWhere((e) => e.localId == localId);
+    calculateTotals();
+  }
+
+  Future<void> refreshExpenses() => fetchExpenses(isRefresh: true);
+  Future<void> retry() => fetchExpenses(isRefresh: true);
+
   @override
   void onClose() {
-    print("🔌 Closing ExpensesListController");
     scrollController.dispose();
     super.onClose();
   }

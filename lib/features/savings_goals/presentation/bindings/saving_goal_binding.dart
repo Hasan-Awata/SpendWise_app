@@ -1,7 +1,9 @@
 // // تعليق: ملف حقن التبعيات الخاص بأهداف الادخار لضمان الربط الصحيح بين الطبقات المختلفة وتوفير الذاكرة
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:isar/isar.dart';
+import 'package:spendwise/core/network/network_service.dart';
+import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/savings_goals/data/datasources/saving_goal_local_datasource.dart';
 import 'package:spendwise/features/savings_goals/data/datasources/saving_goal_local_datasource_impl.dart';
 import 'package:spendwise/features/savings_goals/data/datasources/saving_goal_remote_datasource.dart';
@@ -27,7 +29,7 @@ class SavingGoalBinding implements Bindings {
       fenix: true,
     );
     Get.lazyPut<SavingGoalLocalDatasource>(
-      () => SavingGoalLocalDatasourceImpl(),
+      () => SavingGoalLocalDatasourceImpl(Get.find<Isar>()),
       fenix: true,
     );
 
@@ -36,6 +38,7 @@ class SavingGoalBinding implements Bindings {
       () => SavingGoalRepositoryImpl(
         remoteDatasource: Get.find(),
         localDatasource: Get.find(),
+        network: Get.find<NetworkService>(),
       ),
       fenix: true,
     );
@@ -52,7 +55,10 @@ class SavingGoalBinding implements Bindings {
 
     // وضع الـ ListController في الـ Memory بمجرد الدخول للقسم لمراقبة القائمة والـ Pagination
     Get.lazyPut(
-      () => SavingGoalListController(getSavingGoalsUseCase: Get.find()),
+      () => SavingGoalListController(
+        getSavingGoalsUseCase: Get.find<GetSavingGoalsUseCase>(),
+        userIdUsecase: Get.find<GetUserIdUsecase>(),
+      ),
       fenix: true,
     );
 
@@ -62,6 +68,7 @@ class SavingGoalBinding implements Bindings {
         addSavingGoalUseCase: Get.find(),
         updateSavingGoalUseCase: Get.find(),
         deleteSavingGoalUseCase: Get.find(),
+        userIdUsecase: Get.find<GetUserIdUsecase>(),
       ),
       fenix: true,
     );

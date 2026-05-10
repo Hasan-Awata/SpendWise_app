@@ -5,6 +5,6 @@ abstract class AppUserLocalDatasource {
   Future<void> registerLocal(UserModel user);
   Future<void> logOut();
   Future<UserModel?> getUser();
-  Future<int> getUserId();
+  Future<int?> getUserId();
   Future<void> clear();
 }

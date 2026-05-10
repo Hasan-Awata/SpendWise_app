@@ -1,72 +1,117 @@
-import 'package:get/get.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:isar/isar.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasource.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
 
-// // Implementation: How Hive actually handles the data
 class IncomeLocalDataSourceImpl implements IncomeLocalDataSource {
-  static final IncomeLocalDataSourceImpl _instance =
-      IncomeLocalDataSourceImpl._internal();
-  factory IncomeLocalDataSourceImpl() => _instance;
-  IncomeLocalDataSourceImpl._internal();
+  // نسخة Isar الممررة عبر التبعيات
+  final Isar isar;
 
-  static const String _boxName = 'MYINCOME';
-  static const String _incomeKey = 'all_incomes';
+  IncomeLocalDataSourceImpl(this.isar);
 
-  late Box _box;
-
+  // ========================= GET =========================
   @override
-  Future<void> init() async {
-    _box = await Hive.openBox(_boxName);
+  Future<List<IncomeModel>> getIncomes() async {
+    try {
+      // جلب كافة السجلات وترتيبها تنازلياً حسب التاريخ لضمان ظهور الأحدث أولاً
+      return await isar.incomeModels.where().sortByDateDesc().findAll();
+    } catch (e) {
+      print("❌ Error fetching incomes from Isar: $e");
+      return [];
+    }
+  }
+
+  // ========================= ADD / SAVE =========================
+  @override
+  Future<void> addIncome(IncomeModel income) async {
+    try {
+      await isar.writeTxn(() async {
+        await isar.incomeModels.put(
+          income,
+        ); // سيقوم بالإدخال أو التحديث بناءً على localId
+      });
+      print("✅ Income added locally: ${income.title}");
+    } catch (e) {
+      print("❌ Error adding income to Isar: $e");
+      rethrow;
+    }
   }
 
   @override
   Future<void> saveIncomes(List<IncomeModel> incomes) async {
     try {
-      await _box.put(_incomeKey, incomes);
-    } catch (_) {
+      await isar.writeTxn(() async {
+        // استخدام putAll للتعامل مع القوائم الكبيرة بكفاءة عالية
+        await isar.incomeModels.putAll(incomes);
+      });
+    } catch (e) {
+      print("❌ Error bulk saving incomes to Isar: $e");
       rethrow;
     }
   }
 
-  // // تعليق: إضافة سجل دخل جديد إلى القائمة المحلية في بداية الذاكرة التخزينية
-  @override
-  Future<void> addIncome(IncomeModel income) async {
-    List<IncomeModel> incomes = await getIncomes();
-    incomes.insert(0, income);
-    await saveIncomes(incomes);
-  }
-
-  @override
-  Future<List<IncomeModel>> getIncomes() async {
-    final List? data = await _box.get(_incomeKey);
-    return data != null ? List<IncomeModel>.from(data) : <IncomeModel>[];
-  }
-
-  @override
-  Future<void> deleteIncome(IncomeModel income) async {
-    List<IncomeModel> incomes = await getIncomes();
-
-    incomes.removeWhere((element) => element.localId == income.localId);
-
-    await saveIncomes(incomes);
-  }
-
+  // ========================= UPDATE =========================
   @override
   Future<void> updateIncome(IncomeModel income) async {
-    List<IncomeModel> incomes = await getIncomes();
+    try {
+      await isar.writeTxn(() async {
+        // البحث عن السجل بناءً على الفهرس الفريد localId وتحديثه
+        await isar.incomeModels.put(income);
+      });
+      print("✅ Income updated locally: ${income.title}");
+    } catch (e) {
+      print("❌ Error updating income in Isar: $e");
+      rethrow;
+    }
+  }
 
-    int index = incomes.indexWhere((w) => w.localId == income.localId);
-    if (index != -1) {
-      incomes[index] = income;
-      await _box.put(_incomeKey, incomes);
-    } else {
-      throw Exception('السجل غير موجود في التخزين المحلي');
+  // ========================= DELETE =========================
+  @override
+  Future<void> deleteIncome(IncomeModel income) async {
+    try {
+      await isar.writeTxn(() async {
+        // الحذف باستخدام معرف Isar الرقمي (isarId) المولد من localId
+        await isar.incomeModels.delete(income.isarId);
+      });
+      print("✅ Income deleted locally: ${income.title}");
+    } catch (e) {
+      print("❌ Error deleting income from Isar: $e");
+      rethrow;
     }
   }
 
   @override
+  IncomeModel? getIncome(String localId) {
+    return isar.incomeModels.filter().localIdEqualTo(localId).findFirstSync();
+  }
+
+  @override
+  IncomeModel? getIncomeByServerId(int? walletId) {
+    if (walletId == null) return null;
+
+    return isar.incomeModels.filter().walletIdEqualTo(walletId).findFirstSync();
+  }
+
+  @override
+  Future<bool> checkIfIncomeExists(String localId) async {
+    // استخدام query مباشر للبحث عن الـ localId فقط دون جلب كافة البيانات للذاكرة
+    final count = await isar.incomeModels
+        .filter()
+        .localIdEqualTo(localId)
+        .count();
+
+    return count > 0;
+  }
+
+  // ========================= CLEAR =========================
+  @override
   Future<void> clear() async {
-    await _box.delete(_incomeKey);
+    try {
+      await isar.writeTxn(() async {
+        await isar.incomeModels.clear();
+      });
+      print("🧹 Income local storage cleared");
+    } catch (e) {
+      print("❌ Error clearing income storage: $e");
+    }
   }
 }

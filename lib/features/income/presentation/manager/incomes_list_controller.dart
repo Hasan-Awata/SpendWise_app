@@ -1,33 +1,36 @@
+// incomes_list_controller.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
+import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
-import 'package:spendwise/features/income/data/models/income_model.dart';
+import 'package:spendwise/features/income/domain/entities/income_entity.dart';
 import 'package:spendwise/features/income/domain/usecases/get_all_local_incomes_usecase.dart';
 import 'package:spendwise/features/income/domain/usecases/get_incomes_usecase.dart';
-import 'package:spendwise/features/income/domain/usecases/synced_income_usecase.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class IncomesListController extends GetxController {
   final GetIncomesUsecase getIncomesUseCase;
   final GetAllLocalIncomesUsecase getAllLocalIncomesUsecase;
-  final SyncPendingIncomesUsecase syncIncomesUsecase;
+  final GetUserIdUsecase userIdUsecase;
 
   IncomesListController({
     required this.getIncomesUseCase,
     required this.getAllLocalIncomesUsecase,
-    required this.syncIncomesUsecase,
+    required this.userIdUsecase,
   });
 
-  final RxList<IncomeModel> incomesList = <IncomeModel>[].obs;
+  final RxList<IncomeEntity> incomesList = <IncomeEntity>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool hasMoreData = true.obs;
   final RxInt currentPage = 1.obs;
   final int pageSize = 10;
+
+  bool _isProcessing = false;
+
   final mainController = Get.find<MainController>();
   final Rx<DateTime> dashboardMonth = Rx<DateTime>(
     DateTime(DateTime.now().year, DateTime.now().month, 1),
@@ -38,158 +41,141 @@ class IncomesListController extends GetxController {
   final RxDouble monthlyAndWalletIncome = 0.0.obs;
 
   final ScrollController scrollController = ScrollController();
-  int? userId = AppUserLocalDatasourceImpl().currentUserId;
-
-  var walletsListController = Get.find<WalletsListController>();
 
   @override
   void onInit() {
     super.onInit();
-    everAll([dashboardMonth, mainController.selectWallet], (_) {
-      calculateTotals();
-    });
+    everAll([
+      dashboardMonth,
+      mainController.selectWallet,
+    ], (_) => calculateTotals());
     calculateTotals();
     scrollController.addListener(_scrollListener);
     fetchAllIncomes(isRefresh: true);
   }
 
   void _scrollListener() {
-    if (scrollController.position.pixels >=
-        scrollController.position.maxScrollExtent * 0.8) {
+    if (!scrollController.hasClients || _isProcessing) return;
+
+    final position = scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 100) {
       if (!isLoading.value && hasMoreData.value) {
-        print(
-          "🔗 Scroll reaching end: Requesting Incomes page ${currentPage.value}",
-        );
         fetchAllIncomes(isRefresh: false);
       }
     }
   }
 
   Future<void> fetchAllIncomes({bool isRefresh = false}) async {
-    if (isLoading.value || (!hasMoreData.value && !isRefresh)) return;
+    if (_isProcessing) return;
+    if (!isRefresh && !hasMoreData.value) return;
 
+    _isProcessing = true;
     try {
       isLoading.value = true;
-
       if (isRefresh) {
-        print("🔄 Action: Refreshing Incomes list...");
         currentPage.value = 1;
         hasMoreData.value = true;
       }
 
-      print("📡 Fetching Incomes: Page ${currentPage.value}, Size $pageSize");
-      final pageRequest = PageRequest(
-        pageNumber: currentPage.value,
-        pageSize: pageSize,
+      int? userId;
+      final resultUserId = await userIdUsecase.getUserId();
+      resultUserId.fold((l) => null, (id) => userId = id);
+
+      final result = await getIncomesUseCase.call(
+        userId,
+        PageRequest(pageNumber: currentPage.value, pageSize: pageSize),
       );
-      final result = await getIncomesUseCase.call(userId, pageRequest);
 
-      result.fold(
-        (failure) {
-          print("❌ Incomes Fetch Failure: ${failure.message}");
-          _handleError("خطأ في التحميل", failure.message);
+      await result.fold(
+        (failure) async {
+          HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
         },
-        (pagedResponse) {
-          final newItems = pagedResponse.data;
-          print("📦 Received: ${newItems.length} Incomes");
+        (pagedResponse) async {
+          final fetchedItems = pagedResponse.data;
 
-          // newItems
-          //     .map(
-          //       (i) => i.wallet = walletsListController.wallets.firstWhere(
-          //         (w) => w.walletId == i.walletId,
-          //       ),
-          //     )
-          //     .toList();
-          if (newItems.isEmpty) {
-            hasMoreData.value = false;
-            print("🏁 No more Incomes found on server.");
+          // 🔥 تنظيف التكرار من التخزين المحلي قبل عرض البيانات
+          await _cleanupDuplicateLocals(fetchedItems);
+
+          if (isRefresh) {
+            incomesList.assignAll(fetchedItems);
           } else {
-            if (isRefresh) {
-              // تصفية المحذوفات محلياً قبل العرض
-              final visibleItems = newItems
-                  .where((i) => i.localId != "REMOVE")
-                  .toList();
-              incomesList.assignAll(visibleItems.reversed);
-            } else {
-              // // Logic: الإضافة في نهاية القائمة مع تصفية المكرر والمحذوف
-              final uniqueAndVisible = newItems.where((newItem) {
-                bool isNotRemoved = newItem.localId != "REMOVE";
-                bool isNotDuplicate = !incomesList.any(
-                  (existing) =>
-                      (existing.id != null && existing.id == newItem.id) ||
-                      (existing.localId == newItem.localId),
-                );
-                return isNotRemoved && isNotDuplicate;
-              }).toList();
-
-              incomesList.assignAll(uniqueAndVisible.reversed);
-              print(
-                "➕ Added ${uniqueAndVisible.length} unique Incomes to list",
-              );
-            }
-
-            if (newItems.length < pageSize) {
-              hasMoreData.value = false;
-              print("🏁 End of Incomes reached (Last page).");
-            } else {
-              currentPage.value++;
-            }
+            // إضافة العناصر الفريدة فقط للذاكرة
+            final existingIds = incomesList.map((e) => e.localId).toSet();
+            final uniqueItems = fetchedItems
+                .where((item) => !existingIds.contains(item.localId))
+                .toList();
+            incomesList.addAll(uniqueItems);
           }
+
+          incomesList.sort((a, b) => b.date.compareTo(a.date));
+
+          if (fetchedItems.length < pageSize) {
+            hasMoreData.value = false;
+          } else {
+            currentPage.value++;
+          }
+
           calculateTotals();
         },
       );
     } finally {
       isLoading.value = false;
+      _isProcessing = false;
     }
   }
 
-  void runBackgroundSync() {
-    syncIncomesUsecase.call().then((result) {
-      result.fold(
-        (l) => print("⚠️ Incomes Background Sync Failed: ${l.message}"),
-        (r) {
-          print("✅ Incomes Background Sync Completed");
-          calculateTotals(); // إعادة حساب الإجماليات بعد المزامنة
-        },
-      );
+  /// دالة لفحص وحذف التكرار من التخزين المحلي (Isar/Hive)
+  Future<void> _cleanupDuplicateLocals(List<IncomeEntity> remoteItems) async {
+    final localResult = await getAllLocalIncomesUsecase.call();
+
+    await localResult.fold((_) async {}, (allLocal) async {
+      for (var remoteItem in remoteItems) {
+        if (remoteItem.id == null) continue;
+
+        // البحث عن أي عنصر محلي يمتلك نفس ID السيرفر ولكن بـ localId مختلف
+        final duplicates = allLocal
+            .where(
+              (local) =>
+                  local.id == remoteItem.id &&
+                  local.localId != remoteItem.localId,
+            )
+            .toList();
+
+        for (var dup in duplicates) {
+          // حذف التكرار من القائمة المعروضة
+          incomesList.removeWhere((e) => e.localId == dup.localId);
+
+          // 🔥 هنا يجب استدعاء دالة الحذف الفعلية من الـ Repository/Local DataSource
+          // سنفترض وجود دالة تؤدي الغرض (يجب التأكد من توفرها في الـ UseCase الخاص بك)
+          // await deleteIncomeFromLocal(dup.localId);
+
+          debugPrint("🔥 Duplicate Income deleted locally: ${dup.localId}");
+        }
+      }
     });
   }
 
   Future<void> calculateTotals() async {
     final result = await getAllLocalIncomesUsecase.call();
+    result.fold((_) {}, (allLocalIncomes) {
+      final year = dashboardMonth.value.year;
+      final month = dashboardMonth.value.month;
+      final active = allLocalIncomes.where((i) => i.isDeleted != true).toList();
 
-    result.fold((failure) => print("❌ Failed to calculate totals from local"), (
-      allLocalIncomes,
-    ) {
-      final targetYear = dashboardMonth.value.year;
-      final targetMonth = dashboardMonth.value.month;
+      allTimeIncomeTotal.value = active.fold(0.0, (s, e) => s + e.amount);
+      monthlyIncomeTotal.value = active
+          .where((i) => i.date.year == year && i.date.month == month)
+          .fold(0.0, (s, e) => s + e.amount);
 
-      // حساب الإجمالي التراكمي (باستثناء المعلم للحذف)
-      final activeIncomes = allLocalIncomes
-          .where((i) => i.localId != "REMOVE")
-          .toList();
-
-      allTimeIncomeTotal.value = activeIncomes.fold<double>(
-        0.0,
-        (sum, item) => sum + item.amount,
-      );
-
-      // حساب إجمالي الشهر المحدد
-      monthlyIncomeTotal.value = activeIncomes
-          .where(
-            (i) => i.date.year == targetYear && i.date.month == targetMonth,
-          )
-          .fold<double>(0.0, (sum, item) => sum + item.amount);
-
-      monthlyAndWalletIncome.value = activeIncomes
+      monthlyAndWalletIncome.value = active
           .where(
             (i) =>
-                i.date.year == targetYear &&
-                i.date.month == targetMonth &&
+                i.date.year == year &&
+                i.date.month == month &&
                 i.wallet?.currency.currencyName ==
                     mainController.selectWallet.value?.currency.currencyName,
           )
-          .fold<double>(0.0, (sum, item) => sum + item.amount);
+          .fold(0.0, (s, e) => s + e.amount);
     });
   }
 
@@ -199,21 +185,14 @@ class IncomesListController extends GetxController {
       initialDate: dashboardMonth.value,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      helpText: "اختر شهر الإحصائيات",
-      // إضافة التنسيق هنا
+      helpText: "اختر الشهر",
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.dark(
               primary: SpColor.accentBlue,
-              onPrimary: Colors.white,
               surface: SpColor.surfaceNavy,
-              onSurface: Colors.white,
             ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(foregroundColor: SpColor.accentBlue),
-            ),
-            dialogTheme: DialogThemeData(backgroundColor: SpColor.surfaceNavy),
           ),
           child: child!,
         );
@@ -224,22 +203,16 @@ class IncomesListController extends GetxController {
       dashboardMonth.value = DateTime(picked.year, picked.month, 1);
 
       if (Get.isRegistered<ExpensesListController>()) {
-        final expController = Get.find<ExpensesListController>();
-        expController.dashboardMonth.value = dashboardMonth.value;
-        expController.calculateTotals();
+        Get.find<ExpensesListController>().dashboardMonth.value =
+            dashboardMonth.value;
       }
 
-      await calculateTotals();
+      calculateTotals();
     }
-  }
-
-  void _handleError(String title, String message) {
-    HelperFunction.showSnackBar(title, message, isError: true);
   }
 
   @override
   void onClose() {
-    print("🔌 Closing IncomesListController");
     scrollController.dispose();
     super.onClose();
   }

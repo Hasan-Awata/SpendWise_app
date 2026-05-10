@@ -1,7 +1,6 @@
 // // تعليق: تسجيل الدخول فقط
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/core/services/shared_service.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_params.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_usecase.dart';
 import 'package:spendwise/features/auth/presentation/manager/auth_session_controller.dart';
@@ -45,11 +44,6 @@ class LoginController extends GetxController {
         },
         (user) async {
           Get.find<AuthSessionController>().currentUser.value = user;
-
-          final prefs = Get.find<SharedPreferencesService>();
-          prefs.clear();
-          await prefs.setLoggedIn(true);
-          await prefs.setToken(user.token);
           HelperFunction.showSnackBar("Success", "Welcome back!");
           Get.offAllNamed('/main-screen');
         },

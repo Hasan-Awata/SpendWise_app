@@ -1,71 +1,125 @@
-// // تعليق: إصلاح الربط بين واجهة المستخدم والمتحكم لضمان عمل عمليات الحذف والتعديل بنجاح
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/tags/data/models/tag_model.dart';
-import 'package:spendwise/features/tags/presentation/manager/add_tag_controller.dart';
+import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
+import 'package:spendwise/features/tags/presentation/manager/tag_action_controller.dart';
 import 'package:spendwise/features/tags/presentation/manager/tag_view_controller.dart';
 
-// // واجهة عرض الأوسمة: تتيح للمستخدم إدارة وتصنيف مصروفاته عبر الأوسمة المخصصة
-class TagsView extends StatefulWidget {
+class TagsView extends GetView<TagViewController> {
   const TagsView({super.key});
 
   @override
-  State<TagsView> createState() => _TagsViewState();
-}
-
-class _TagsViewState extends State<TagsView> {
-  final controller = Get.find<TagViewController>();
-  final actionController = Get.find<TagActionController>();
-
-  @override
-  void initState() {
-    super.initState();
-    controller.loadTags(isRefresh: true);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // // التأكد من وجود TagActionController في الذاكرة للقيام بعمليات المعالجة (حذف/تعديل)
+    final TagActionController tagActionController =
+        Get.find<TagActionController>();
 
     return Scaffold(
-      backgroundColor: SpColor.primaryDark2,
+      backgroundColor: const Color(0xFF020817),
+
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+
+        centerTitle: true,
+
         title: const Text(
-          "الأوسمة الخاصة بي",
+          "الوسوم",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
+      ),
+
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: SpColor.tagColor,
+
+        onPressed: () => Get.toNamed('/add-wallet'),
+
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+
+        label: const Text(
+          "إضافة محفظة",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
-      body: RefreshIndicator(
-        color: SpColor.accentBlue,
-        backgroundColor: SpColor.surfaceNavy,
 
-        onRefresh: () async => controller.loadTags(isRefresh: true),
+      body: RefreshIndicator(
+        color: SpColor.tagColor,
+        backgroundColor: const Color(0xFF1E293B),
+
+        onRefresh: () => controller.refreshTags(),
+
         child: Obx(() {
-          // // حالة التحميل: عرض مؤشر الانتظار عند جلب البيانات لأول مرة
+          // =========================
+          // LOADING
+          // =========================
+
           if (controller.isLoading.value && controller.myTags.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(color: SpColor.tagColor),
+            );
+          }
+
+          // =========================
+          // EMPTY
+          // =========================
+
+          if (controller.myTags.isEmpty) {
             return ListView(
-              controller: controller.scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
+
               children: const [
-                SizedBox(height: 100),
-                Center(child: CircularProgressIndicator()),
+                SizedBox(height: 220),
+
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: Colors.white24,
+                  size: 80,
+                ),
+
+                SizedBox(height: 20),
+
+                Center(
+                  child: Text(
+                    "لا توجد وسوم حالياً",
+                    style: TextStyle(color: Colors.white54, fontSize: 16),
+                  ),
+                ),
               ],
             );
           }
 
-          // // بناء قائمة الأوسمة باستخدام التمرير اللانهائي إذا لزم الأمر
+          // =========================
+          // LIST
+          // =========================
+
           return ListView.builder(
             controller: controller.scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            itemCount: controller.myTags.length,
+
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+
+            padding: const EdgeInsets.all(16),
+
+            itemCount:
+                controller.myTags.length +
+                (controller.hasMoreData.value ? 1 : 0),
+
             itemBuilder: (context, index) {
-              final tag = controller.myTags[index];
-              return _buildTagCard(tag, actionController);
+              if (index < controller.myTags.length) {
+                final tag = controller.myTags[index];
+
+                return _buildTagCard(tag, tagActionController);
+              }
+
+              return const Padding(
+                padding: EdgeInsets.all(20),
+
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              );
             },
           );
         }),
@@ -73,100 +127,365 @@ class _TagsViewState extends State<TagsView> {
     );
   }
 
-  // // بناء بطاقة الوسم الفردية مع أيقونات التحكم
-  Widget _buildTagCard(TagModel tag, TagActionController actionController) {
+  // =========================
+  // WALLET CARD
+  // =========================
+
+  Widget _buildTagCard(TagEntity tag, TagActionController deleteCtrl) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 14),
+
+      padding: const EdgeInsets.all(18),
+
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10),
+        borderRadius: BorderRadius.circular(24),
+
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+        ),
+
+        border: Border.all(color: Colors.white12),
+
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.22),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
+
       child: Row(
         children: [
-          const Icon(Icons.label_outline_rounded, color: SpColor.accentBlue),
+          _buildIcon(),
+
           const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              tag.name,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-          ),
-          // // تعليق: ربط أزرار الواجهة بالدوال المصلحة في متحكم العمليات
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit_note, color: Colors.blueGrey),
-                onPressed: () => _showUpdateTagDialog(tag, actionController),
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.delete_sweep_outlined,
-                  color: Colors.redAccent,
-                ),
-                onPressed: () => _showDeleteTagDialog(tag, actionController),
-              ),
-            ],
-          ),
+
+          Expanded(child: _buildTagDetails(tag)),
+
+          _buildActions(tag, deleteCtrl),
         ],
       ),
     );
   }
 
-  // --- الحوارات المصلحة ---
-  void _showDeleteTagDialog(
-    TagModel tag,
-    TagActionController actionController,
-  ) {
-    Get.defaultDialog(
-      title: "حذف الوسم",
-      middleText: "هل أنت متأكد من حذف '${tag.name}'؟",
-      backgroundColor: SpColor.primaryDark2,
-      titleStyle: const TextStyle(color: Colors.redAccent),
-      middleTextStyle: const TextStyle(color: Colors.white70),
-      textConfirm: "حذف",
-      textCancel: "إلغاء",
+  // =========================
+  // ICON
+  // =========================
 
-      confirmTextColor: Colors.white,
-      onConfirm: () {
-        Get.back();
-        actionController.deleteTag(tag);
-      },
+  Widget _buildIcon() {
+    return Container(
+      width: 58,
+      height: 58,
+
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+
+        gradient: LinearGradient(
+          colors: [SpColor.tagColor, SpColor.tagColor.withOpacity(0.7)],
+        ),
+      ),
+
+      child: const Icon(
+        Icons.account_balance_wallet_rounded,
+        color: Colors.white,
+        size: 28,
+      ),
     );
   }
 
-  // // تعليق: حوار التعديل لتحديث اسم الوسم وتمرير البيانات الجديدة للمتحكم
-  void _showUpdateTagDialog(
-    TagModel tag,
-    TagActionController actionController,
-  ) {
-    final nameController = TextEditingController(text: tag.name);
+  // =========================
+  // DETAILS
+  // =========================
 
-    Get.defaultDialog(
-      title: "تعديل الوسم",
-      backgroundColor: SpColor.primaryDark2,
-      titleStyle: const TextStyle(color: SpColor.accentBlue),
-      content: TextField(
-        controller: nameController,
-        style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
-          labelText: "اسم الوسم الجديد",
-          labelStyle: TextStyle(color: Colors.white54),
+  Widget _buildTagDetails(TagEntity tag) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+
+      children: [
+        Text(
+          tag.name,
+
+          maxLines: 1,
+
+          overflow: TextOverflow.ellipsis,
+
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        Text(
+          tag.name,
+
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+
+        const SizedBox(height: 10),
+
+        _syncStatus(tag.isSynced),
+      ],
+    );
+  }
+
+  // =========================
+  // SYNC STATUS
+  // =========================
+
+  Widget _syncStatus(bool synced) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+
+      decoration: BoxDecoration(
+        color: synced
+            ? Colors.green.withOpacity(0.12)
+            : Colors.orange.withOpacity(0.12),
+
+        borderRadius: BorderRadius.circular(20),
+      ),
+
+      child: Text(
+        synced ? "متزامن" : "غير متزامن",
+
+        style: TextStyle(
+          color: synced ? Colors.greenAccent : Colors.orangeAccent,
+
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
         ),
       ),
-      confirm: ElevatedButton(
-        style: ElevatedButton.styleFrom(backgroundColor: SpColor.accentBlue),
-        onPressed: () async {
-          // // استدعاء التحديث وتمرير الاسم الجديد المنقح
-          await actionController.updateTag(tag, nameController.text.trim());
-        },
-        child: const Text("تحديث", style: TextStyle(color: Colors.white)),
+    );
+  }
+
+  // =========================
+  // ACTIONS
+  // =========================
+
+  Widget _buildActions(TagEntity tag, TagActionController ctrl) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+
+      children: [
+        Text(
+          tag.name,
+          style: const TextStyle(
+            color: SpColor.tagColor,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        Row(
+          children: [
+            _iconBtn(
+              Icons.edit,
+              Colors.blueAccent,
+              () => _showUpdateDialog(tag, ctrl),
+            ),
+
+            const SizedBox(width: 6),
+
+            _iconBtn(
+              Icons.delete,
+              Colors.redAccent,
+              () => _showDeleteDialog(tag, ctrl),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // =========================
+  // ICON BUTTON
+  // =========================
+
+  Widget _iconBtn(IconData icon, Color color, VoidCallback onTap) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+
+        borderRadius: BorderRadius.circular(12),
       ),
-      cancel: TextButton(
-        onPressed: () => Get.back(),
-        child: const Text("تراجع", style: TextStyle(color: Colors.white54)),
+
+      child: IconButton(
+        icon: Icon(icon, color: color, size: 20),
+
+        onPressed: onTap,
+      ),
+    );
+  }
+
+  // =========================
+  // UPDATE DIALOG
+  // =========================
+
+  void _showUpdateDialog(TagEntity tag, TagActionController ctrl) {
+    final textController = TextEditingController(text: tag.name);
+
+    Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFF111827),
+
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+
+            children: [
+              const Text(
+                "تعديل العلامة",
+
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              TextField(
+                controller: textController,
+
+                keyboardType: TextInputType.number,
+
+                style: const TextStyle(color: Colors.white),
+
+                decoration: InputDecoration(
+                  labelText: "الرصيد الجديد",
+
+                  labelStyle: const TextStyle(color: Colors.white70),
+
+                  filled: true,
+
+                  fillColor: Colors.white.withOpacity(0.04),
+
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 25),
+
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: SpColor.tagColor,
+                  ),
+
+                  onPressed: () {
+                    final value = textController.text;
+
+                    ctrl.updateTag(tag, value);
+
+                    Get.back();
+                  },
+
+                  child: const Text(
+                    "حفظ التعديلات",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // DELETE DIALOG
+  // =========================
+
+  void _showDeleteDialog(TagEntity tag, TagActionController ctrl) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFF111827),
+
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+
+            children: [
+              const Icon(
+                Icons.delete_forever,
+                color: Colors.redAccent,
+                size: 60,
+              ),
+
+              const SizedBox(height: 15),
+
+              const Text(
+                "حذف المحفظة",
+
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              const Text(
+                "هل تريد حذف هذه المحفظة؟",
+
+                textAlign: TextAlign.center,
+
+                style: TextStyle(color: Colors.white70),
+              ),
+
+              const SizedBox(height: 25),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Get.back(),
+
+                      child: const Text("إلغاء"),
+                    ),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                      ),
+
+                      onPressed: () {
+                        ctrl.deleteTag(tag);
+                      },
+
+                      child: const Text("حذف"),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

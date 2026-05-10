@@ -1,13 +1,13 @@
-// // واجهة المستخدم: عرض قائمة الدخل مع خيارات التعديل والحذف السريع
+// income_list_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/income/data/models/income_model.dart';
+import 'package:spendwise/features/income/domain/entities/income_entity.dart';
 import 'package:spendwise/features/income/presentation/manager/delete_income_controller.dart';
+import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
 import 'package:spendwise/features/income/presentation/manager/update_income_controller.dart';
-
-import '../manager/incomes_list_controller.dart';
 
 class IncomeListView extends GetView<IncomesListController> {
   const IncomeListView({super.key});
@@ -15,267 +15,452 @@ class IncomeListView extends GetView<IncomesListController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SpColor.primaryDark2,
+      backgroundColor: const Color(0xFF020817),
+
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+
+        centerTitle: true,
+        foregroundColor: SpColor.incomeGreen,
         title: const Text(
-          "سجل الدخل", // Income History
+          "الدخل",
+
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
+      ),
+
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: SpColor.incomeGreen,
+
+        onPressed: () => Get.toNamed('/add-income'),
+
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+
+        label: const Text(
+          "إضافة دخل",
+
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        foregroundColor: SpColor.incomeGreen,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: SpColor.incomeGreen,
-        child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () => Get.toNamed('/add-income'),
-      ),
-      body: RefreshIndicator(
-        color: SpColor.accentBlue,
-        backgroundColor: SpColor.surfaceNavy,
 
-        onRefresh: () async => controller.fetchAllIncomes(isRefresh: true),
-        child: Obx(() {
-          if (controller.isLoading.value && controller.incomesList.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(color: SpColor.incomeGreen),
-            );
-          }
-
-          if (controller.incomesList.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return ListView.builder(
-            controller: controller.scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            itemCount: controller.incomesList.length,
-            itemBuilder: (context, index) {
-              return _buildIncomeCard(controller.incomesList[index]);
-            },
+      body: Obx(() {
+        if (controller.isLoading.value && controller.incomesList.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(color: SpColor.incomeGreen),
           );
-        }),
+        }
+
+        if (controller.incomesList.isEmpty) {
+          return const Center(
+            child: Text(
+              "لا يوجد دخل حالياً",
+
+              style: TextStyle(color: Colors.white54),
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => controller.fetchAllIncomes(isRefresh: true),
+
+          child: ListView.builder(
+            controller: controller.scrollController,
+
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+
+            itemCount:
+                controller.incomesList.length +
+                (controller.hasMoreData.value ? 1 : 0),
+
+            itemBuilder: (context, index) {
+              if (index < controller.incomesList.length) {
+                return _buildIncomeItem(controller.incomesList[index]);
+              }
+
+              return const Padding(
+                padding: EdgeInsets.all(20),
+
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              );
+            },
+          ),
+        );
+      }),
+    );
+  }
+
+  // =========================
+  // ITEM
+  // =========================
+
+  Widget _buildIncomeItem(IncomeEntity income) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+
+      padding: const EdgeInsets.all(18),
+
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+        ),
+
+        border: Border.all(color: Colors.white12),
+      ),
+
+      child: Row(
+        children: [
+          _buildIcon(),
+
+          const SizedBox(width: 16),
+
+          Expanded(child: _buildDetails(income)),
+
+          _buildActions(income),
+        ],
       ),
     );
   }
 
-  Widget _buildIncomeCard(IncomeModel income) {
+  // =========================
+  // ICON
+  // =========================
+
+  Widget _buildIcon() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      width: 58,
+      height: 58,
+
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10),
+        shape: BoxShape.circle,
+
+        gradient: LinearGradient(
+          colors: [SpColor.incomeGreen, SpColor.incomeGreen.withOpacity(0.7)],
+        ),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: SpColor.incomeGreen.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.account_balance_wallet_rounded,
-              color: SpColor.incomeGreen,
-            ),
+
+      child: const Icon(
+        Icons.account_balance_wallet_rounded,
+
+        color: Colors.white,
+        size: 28,
+      ),
+    );
+  }
+
+  // =========================
+  // DETAILS
+  // =========================
+
+  Widget _buildDetails(IncomeEntity income) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+
+      children: [
+        Text(
+          income.title,
+
+          maxLines: 1,
+
+          overflow: TextOverflow.ellipsis,
+
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+
+        const SizedBox(height: 6),
+
+        Text(
+          DateFormat('yyyy-MM-dd').format(income.date),
+
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+
+        const SizedBox(height: 10),
+
+        _syncStatus(income.isSynced),
+      ],
+    );
+  }
+
+  // =========================
+  // SYNC STATUS
+  // =========================
+
+  Widget _syncStatus(bool synced) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+
+      decoration: BoxDecoration(
+        color: synced
+            ? Colors.green.withOpacity(0.12)
+            : Colors.orange.withOpacity(0.12),
+
+        borderRadius: BorderRadius.circular(20),
+      ),
+
+      child: Text(
+        synced ? "متزامن" : "غير متزامن",
+
+        style: TextStyle(
+          color: synced ? Colors.greenAccent : Colors.orangeAccent,
+
+          fontSize: 11,
+
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // ACTIONS
+  // =========================
+
+  Widget _buildActions(IncomeEntity income) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+
+      children: [
+        Text(
+          "${income.wallet?.currency.code ?? ""} ${income.amount.toStringAsFixed(2)}",
+
+          style: const TextStyle(
+            color: SpColor.incomeGreen,
+
+            fontSize: 18,
+
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        Row(
+          children: [
+            _iconBtn(Icons.edit, Colors.blueAccent, () {
+              final controller = Get.find<UpdateIncomeController>();
+
+              controller.setIncome(income);
+
+              showUpdateDialog(controller);
+            }),
+            const SizedBox(width: 6),
+
+            _iconBtn(Icons.delete, Colors.redAccent, () {
+              showDeleteDialog(income, Get.find<DeleteIncomeController>());
+            }),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // =========================
+  // ICON BUTTON
+  // =========================
+
+  Widget _iconBtn(IconData icon, Color color, VoidCallback onTap) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+
+        borderRadius: BorderRadius.circular(12),
+      ),
+
+      child: IconButton(
+        icon: Icon(icon, color: color, size: 20),
+
+        onPressed: onTap,
+      ),
+    );
+  }
+
+  // =========================
+  // UPDATE DIALOG
+  // =========================
+  void showUpdateDialog(UpdateIncomeController controller) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFF111827),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Obx(
+            () => Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  income.title,
-                  style: const TextStyle(
+                const Text(
+                  "تعديل الدخل",
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  DateFormat('yyyy-MM-dd').format(income.date),
-                  style: const TextStyle(color: Colors.white38, fontSize: 12),
+
+                const SizedBox(height: 20),
+
+                // العنوان
+                TextField(
+                  controller: controller.titleController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: "العنوان",
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.04),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                // المبلغ
+                TextField(
+                  controller: controller.amountController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: "المبلغ",
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.04),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 25),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: SpColor.incomeGreen,
+                    ),
+                    onPressed: controller.isLoadingUpdate.value
+                        ? null
+                        : () => controller.updateIncome(),
+                    child: controller.isLoadingUpdate.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            "حفظ التعديلات",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                  ),
                 ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // DELETE DIALOG
+  // =========================
+
+  void showDeleteDialog(
+    IncomeEntity income,
+    DeleteIncomeController controller,
+  ) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFF111827),
+
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+
             children: [
-              Text(
-                (income.wallet == null)
-                    ? "+${income.amount.toStringAsFixed(2)}"
-                    : "${income.wallet?.currency.code} +${income.amount.toStringAsFixed(2)}",
-                style: const TextStyle(
-                  color: SpColor.incomeGreen,
-                  fontSize: 18,
+              const Icon(
+                Icons.delete_forever,
+                color: Colors.redAccent,
+                size: 60,
+              ),
+
+              const SizedBox(height: 15),
+
+              const Text(
+                "حذف الدخل",
+
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
+              const SizedBox(height: 10),
+
+              const Text(
+                "هل تريد حذف هذا الدخل؟",
+
+                textAlign: TextAlign.center,
+
+                style: TextStyle(color: Colors.white70),
+              ),
+
+              const SizedBox(height: 25),
+
               Row(
                 children: [
-                  // زر التعديل
-                  IconButton(
-                    icon: const Icon(
-                      Icons.edit_note,
-                      color: Colors.blueGrey,
-                      size: 22,
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Get.back(),
+
+                      child: const Text("إلغاء"),
                     ),
-                    onPressed: () => _showUpdateIncomeDialog(income),
                   ),
-                  // زر الحذف
-                  IconButton(
-                    icon: const Icon(
-                      Icons.delete_sweep_outlined,
-                      color: Colors.redAccent,
-                      size: 20,
+
+                  const SizedBox(width: 10),
+
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                      ),
+
+                      onPressed: () {
+                        controller.deleteIncome(income);
+                      },
+
+                      child: const Text("حذف"),
                     ),
-                    onPressed: () => _showDeleteIncomeDialog(income),
                   ),
                 ],
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  // --- الحوارات (Dialogs) المترجمة ---
-  void _showDeleteIncomeDialog(IncomeModel income) {
-    Get.defaultDialog(
-      title: "حذف الدخل", // Delete Income
-      middleText: "هل أنت متأكد من رغبتك في حذف هذا السجل؟", // Are you sure...
-      backgroundColor: SpColor.primaryDark2,
-      titleStyle: const TextStyle(
-        color: Colors.redAccent,
-        fontWeight: FontWeight.bold,
-      ),
-      middleTextStyle: const TextStyle(color: Colors.white70),
-      textConfirm: "حذف", // Delete
-      textCancel: "إلغاء", // Cancel
-      confirmTextColor: Colors.white,
-      buttonColor: Colors.redAccent,
-      onConfirm: () {
-        Get.find<DeleteIncomeController>().deleteIncome(income);
-        Get.back();
-      },
-    );
-  }
-
-  void _showUpdateIncomeDialog(IncomeModel income) {
-    final titleController = TextEditingController(text: income.title);
-    final amountController = TextEditingController(
-      text: income.amount.toString(),
-    );
-
-    Get.defaultDialog(
-      title: "تحديث البيانات", // Update Income
-      backgroundColor: SpColor.primaryDark2,
-      titleStyle: const TextStyle(
-        color: SpColor.incomeGreen,
-        fontWeight: FontWeight.bold,
-      ),
-      contentPadding: const EdgeInsets.all(20),
-      content: Column(
-        children: [
-          _buildDialogField(
-            controller: titleController,
-            label: "العنوان / المصدر",
-          ), // Title/Source
-          const SizedBox(height: 15),
-          _buildDialogField(
-            controller: amountController,
-            label: "المبلغ", // Amount
-            isNumber: true,
-          ),
-        ],
-      ),
-      confirm: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: SpColor.incomeGreen,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          onPressed: () {
-            income.title = titleController.text;
-            income.amount =
-                double.tryParse(amountController.text) ?? income.amount;
-            Get.find<UpdateIncomeController>().updateIncome(income);
-            Get.back();
-          },
-          child: const Text(
-            "تحديث",
-            style: TextStyle(color: Colors.white),
-          ), // Update
         ),
-      ),
-      cancel: TextButton(
-        onPressed: () => Get.back(),
-        child: const Text(
-          "إلغاء",
-          style: TextStyle(color: Colors.white38),
-        ), // Cancel
-      ),
-    );
-  }
-
-  Widget _buildDialogField({
-    required TextEditingController controller,
-    required String label,
-    bool isNumber = false,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: SpColor.incomeGreen, fontSize: 12),
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white10),
-        ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: SpColor.incomeGreen),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return LayoutBuilder(
-      builder: (context, constraints) => ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          SizedBox(
-            height: constraints.maxHeight,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.inbox_rounded,
-                    size: 80,
-                    color: Colors.white.withValues(alpha: 0.1),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "لا توجد سجلات دخل حالياً", // No income records found
-                    style: TextStyle(color: Colors.white38),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

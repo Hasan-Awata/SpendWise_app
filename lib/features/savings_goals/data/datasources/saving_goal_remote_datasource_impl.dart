@@ -5,8 +5,6 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
-import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/savings_goals/data/datasources/saving_goal_remote_datasource.dart';
@@ -18,24 +16,6 @@ class SavingGoalRemoteDatasourceImpl implements SavingGoalRemoteDatasource {
 
   SavingGoalRemoteDatasourceImpl({required this.client});
 
-  Future<Map<String, String>?> _getHeaders() async {
-    try {
-      final user = await AppUserLocalDatasourceImpl().getUser();
-      if (user != null) {
-        return {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${user.token}',
-        };
-      } else {
-        HelperFunction.showSnackBar("Error Auth", "User Not found");
-        return null;
-      }
-    } catch (e) {
-      HelperFunction.showSnackBar("Error Auth", e.toString());
-      return null;
-    }
-  }
-
   @override
   Future<PagedResponse<SavingGoalModel>> getAllUserGoals(
     int userId,
@@ -45,7 +25,7 @@ class SavingGoalRemoteDatasourceImpl implements SavingGoalRemoteDatasource {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.savingGoalsBase}/${ApiEndpoints.getAllUserGoals}",
     );
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
 
     try {
       final response = await client
@@ -80,7 +60,7 @@ class SavingGoalRemoteDatasourceImpl implements SavingGoalRemoteDatasource {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.savingGoalsBase}/${ApiEndpoints.addGoal}",
     );
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
     final body = jsonEncode(goal.toJson());
 
     try {
@@ -105,7 +85,7 @@ class SavingGoalRemoteDatasourceImpl implements SavingGoalRemoteDatasource {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.savingGoalsBase}/${ApiEndpoints.updateGoal}/${goal.goalId}",
     );
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
     final body = jsonEncode(goal.toJson());
 
     try {
@@ -129,7 +109,7 @@ class SavingGoalRemoteDatasourceImpl implements SavingGoalRemoteDatasource {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.savingGoalsBase}/${ApiEndpoints.deleteGoal}/$goalId",
     );
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
 
     try {
       final response = await client
@@ -149,7 +129,7 @@ class SavingGoalRemoteDatasourceImpl implements SavingGoalRemoteDatasource {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.savingGoalsBase}/${ApiEndpoints.getGoalById}/$goalId",
     );
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
 
     try {
       final response = await client
@@ -170,7 +150,7 @@ class SavingGoalRemoteDatasourceImpl implements SavingGoalRemoteDatasource {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.savingGoalsBase}/${ApiEndpoints.getAchievedGoals}",
     );
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
 
     try {
       final response = await client

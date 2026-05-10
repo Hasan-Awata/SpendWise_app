@@ -1,93 +1,130 @@
-// // تعليق: واجهة المحافظ المصلحة بالكامل مع ربط دقيق لعمليات التحديث والحذف بالمتحكمات الخاصة بها
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:spendwise/features/wallet/presentation/manager/delete_wallet_controller.dart';
 import 'package:spendwise/features/wallet/presentation/manager/update_wallet_controller.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
-// // واجهة عرض المحافظ: تستخدم لتمثيل قائمة الحسابات المالية للمستخدم
-class WalletsView extends StatefulWidget {
+class WalletsView extends GetView<WalletsListController> {
   const WalletsView({super.key});
 
   @override
-  State<WalletsView> createState() => _WalletsViewState();
-}
-
-class _WalletsViewState extends State<WalletsView> {
-  final listController = Get.find<WalletsListController>();
-  final deleteController = Get.find<DeleteWalletController>();
-  final updateController = Get.find<UpdateWalletController>();
-
-  @override
-  void initState() {
-    super.initState();
-    listController.loadWallets(isRefresh: true);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // // استدعاء المتحكمات المطلوبة للتأكد من وجودها في الذاكرة لربط العمليات (الربط، الحذف، التحديث)
+    final deleteController = Get.find<DeleteWalletController>();
+
+    final updateController = Get.find<UpdateWalletController>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B121E),
+      backgroundColor: const Color(0xFF020817),
+
       appBar: AppBar(
-        title: const Text(
-          'محافظي',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
+        backgroundColor: Colors.transparent,
+
+        centerTitle: true,
+
+        title: const Text(
+          "محافظي",
+          style: TextStyle(
             color: Colors.white,
-            size: 20,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
           ),
-          onPressed: () => Get.back(),
         ),
       ),
-      body: RefreshIndicator(
-        color: SpColor.accentBlue,
-        backgroundColor: SpColor.surfaceNavy,
 
-        onRefresh: () async => listController.loadWallets(isRefresh: true),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: SpColor.mutedGrey,
+
+        onPressed: () => Get.toNamed('/add-wallet'),
+
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+
+        label: const Text(
+          "إضافة محفظة",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
+
+      body: RefreshIndicator(
+        color: SpColor.mutedGrey,
+        backgroundColor: const Color(0xFF1E293B),
+
+        onRefresh: () => controller.refreshWallets(),
 
         child: Obx(() {
-          // // حالة التحميل: تظهر مؤشر الانتظار إذا كانت القائمة فارغة ويجري جلب البيانات
-          if (listController.isLoading.value &&
-              listController.wallets.isEmpty) {
+          // =========================
+          // LOADING
+          // =========================
+
+          if (controller.isLoading.value && controller.wallets.isEmpty) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF43C5F3)),
+              child: CircularProgressIndicator(color: SpColor.mutedGrey),
             );
           }
 
-          // // الحالة الفارغة: تظهر رسالة للمستخدم في حال عدم وجود أي محفظة
-          if (listController.wallets.isEmpty) {
+          // =========================
+          // EMPTY
+          // =========================
+
+          if (controller.wallets.isEmpty) {
             return ListView(
-              controller: listController.scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                const SizedBox(height: 300),
-                Center(child: _buildEmptyState()),
+
+              children: const [
+                SizedBox(height: 220),
+
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: Colors.white24,
+                  size: 80,
+                ),
+
+                SizedBox(height: 20),
+
+                Center(
+                  child: Text(
+                    "لا توجد محافظ حالياً",
+                    style: TextStyle(color: Colors.white54, fontSize: 16),
+                  ),
+                ),
               ],
             );
           }
 
-          // // بناء القائمة: عرض المحافظ بشكل ديناميكي عند توفر البيانات
+          // =========================
+          // LIST
+          // =========================
+
           return ListView.builder(
-            controller: listController.scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
+            controller: controller.scrollController,
+
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+
             padding: const EdgeInsets.all(16),
-            itemCount: listController.wallets.length,
+
+            itemCount:
+                controller.wallets.length +
+                (controller.hasMoreData.value ? 1 : 0),
+
             itemBuilder: (context, index) {
-              final wallet = listController.wallets[index];
-              return _buildWalletCard(
-                wallet,
-                deleteController,
-                updateController,
+              if (index < controller.wallets.length) {
+                final wallet = controller.wallets[index];
+
+                return _buildWalletCard(
+                  wallet,
+                  deleteController,
+                  updateController,
+                );
+              }
+
+              return const Padding(
+                padding: EdgeInsets.all(20),
+
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
               );
             },
           );
@@ -96,156 +133,380 @@ class _WalletsViewState extends State<WalletsView> {
     );
   }
 
-  // // تعليق: بناء بطاقة المحفظة التي تعرض تفاصيل الرصيد والعملة وتوفر أزرار التحكم
+  // =========================
+  // WALLET CARD
+  // =========================
+
   Widget _buildWalletCard(
-    WalletModel wallet,
+    WalletEntity wallet,
     DeleteWalletController deleteCtrl,
     UpdateWalletController updateCtrl,
   ) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 14),
+
+      padding: const EdgeInsets.all(18),
+
       decoration: BoxDecoration(
-        color: const Color(0xFF162030),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10),
+        borderRadius: BorderRadius.circular(24),
+
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+        ),
+
+        border: Border.all(color: Colors.white12),
+
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.22),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
+
       child: Row(
         children: [
           _buildIcon(),
+
           const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  wallet.currency.currencyName,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-                Text(
-                  '${wallet.balance} ${wallet.currency.code}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // // ربط الأزرار بالعمليات البرمجية (تعديل وحذف)
-          _buildActionButtons(wallet, deleteCtrl, updateCtrl),
+
+          Expanded(child: _buildWalletDetails(wallet)),
+
+          _buildActions(wallet, deleteCtrl, updateCtrl),
         ],
       ),
     );
   }
 
-  // // ويدجت فرعي لبناء أزرار التحكم داخل البطاقة
-  Widget _buildActionButtons(
-    WalletModel wallet,
+  // =========================
+  // ICON
+  // =========================
+
+  Widget _buildIcon() {
+    return Container(
+      width: 58,
+      height: 58,
+
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+
+        gradient: LinearGradient(
+          colors: [SpColor.mutedGrey, SpColor.mutedGrey.withOpacity(0.7)],
+        ),
+      ),
+
+      child: const Icon(
+        Icons.account_balance_wallet_rounded,
+        color: Colors.white,
+        size: 28,
+      ),
+    );
+  }
+
+  // =========================
+  // DETAILS
+  // =========================
+
+  Widget _buildWalletDetails(WalletEntity wallet) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+
+      children: [
+        Text(
+          wallet.currency.currencyName ?? "Unknown Currency",
+
+          maxLines: 1,
+
+          overflow: TextOverflow.ellipsis,
+
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        Text(
+          wallet.currency.code ?? "NO Code",
+
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+
+        const SizedBox(height: 10),
+
+        _syncStatus(wallet.isSynced),
+      ],
+    );
+  }
+
+  // =========================
+  // SYNC STATUS
+  // =========================
+
+  Widget _syncStatus(bool synced) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+
+      decoration: BoxDecoration(
+        color: synced
+            ? Colors.green.withOpacity(0.12)
+            : Colors.orange.withOpacity(0.12),
+
+        borderRadius: BorderRadius.circular(20),
+      ),
+
+      child: Text(
+        synced ? "متزامن" : "غير متزامن",
+
+        style: TextStyle(
+          color: synced ? Colors.greenAccent : Colors.orangeAccent,
+
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // ACTIONS
+  // =========================
+
+  Widget _buildActions(
+    WalletEntity wallet,
     DeleteWalletController deleteCtrl,
     UpdateWalletController updateCtrl,
   ) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+
       children: [
-        // // زر التعديل - يفتح حوار التعديل ويمرر متحكم التحديث لتنفيذ العملية
-        IconButton(
-          icon: const Icon(Icons.edit_note, color: Colors.blueGrey),
-          onPressed: () => _showUpdateDialog(wallet, updateCtrl),
-        ),
-        // // زر الحذف - يفتح حوار التأكيد ويمرر متحكم الحذف لتنفيذ العملية
-        IconButton(
-          icon: const Icon(
-            Icons.delete_sweep_outlined,
-            color: Colors.redAccent,
+        Text(
+          "${wallet.balance.toStringAsFixed(2)} ${wallet.currency.code}",
+
+          style: const TextStyle(
+            color: SpColor.mutedGrey,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
           ),
-          onPressed: () => _showDeleteDialog(wallet, deleteCtrl),
+        ),
+
+        const SizedBox(height: 12),
+
+        Row(
+          children: [
+            _iconBtn(
+              Icons.edit,
+              Colors.blueAccent,
+              () => _showUpdateDialog(wallet, updateCtrl),
+            ),
+
+            const SizedBox(width: 6),
+
+            _iconBtn(
+              Icons.delete,
+              Colors.redAccent,
+              () => _showDeleteDialog(wallet, deleteCtrl),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  // // تعليق: حوار تأكيد الحذف المرتبط بمتحكم الحذف المنفصل لضمان تجربة مستخدم آمنة
-  void _showDeleteDialog(
-    WalletModel wallet,
-    DeleteWalletController deleteCtrl,
-  ) {
-    Get.defaultDialog(
-      title: "تأكيد الحذف",
-      middleText: "هل تريد حذف محفظة ${wallet.currency.currencyName}؟",
-      backgroundColor: const Color(0xFF162030),
-      titleStyle: const TextStyle(color: Colors.redAccent),
-      middleTextStyle: const TextStyle(color: Colors.white),
-      textConfirm: "حذف الآن",
-      textCancel: "تراجع",
-      confirmTextColor: Colors.white,
-      onConfirm: () {
-        deleteCtrl.deleteWallet(wallet);
-      },
+  // =========================
+  // ICON BUTTON
+  // =========================
+
+  Widget _iconBtn(IconData icon, Color color, VoidCallback onTap) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+
+        borderRadius: BorderRadius.circular(12),
+      ),
+
+      child: IconButton(
+        icon: Icon(icon, color: color, size: 20),
+
+        onPressed: onTap,
+      ),
     );
   }
 
-  // // تعليق: حوار التعديل المرتبط بمتحكم التحديث المصلح لتغيير الرصيد الحالي للمحفظة
-  void _showUpdateDialog(
-    WalletModel wallet,
-    UpdateWalletController updateCtrl,
-  ) {
-    final amountController = TextEditingController(
+  // =========================
+  // UPDATE DIALOG
+  // =========================
+
+  void _showUpdateDialog(WalletEntity wallet, UpdateWalletController ctrl) {
+    final textController = TextEditingController(
       text: wallet.balance.toString(),
     );
 
-    Get.defaultDialog(
-      title: "تعديل الرصيد",
-      backgroundColor: const Color(0xFF162030),
-      titleStyle: const TextStyle(color: Color(0xFF43C5F3)),
-      content: TextField(
-        controller: amountController,
-        keyboardType: TextInputType.number,
-        style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
-          labelText: "الرصيد الجديد",
-          labelStyle: TextStyle(color: Colors.white54),
+    Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFF111827),
+
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+
+            children: [
+              const Text(
+                "تعديل الرصيد",
+
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              TextField(
+                controller: textController,
+
+                keyboardType: TextInputType.number,
+
+                style: const TextStyle(color: Colors.white),
+
+                decoration: InputDecoration(
+                  labelText: "الرصيد الجديد",
+
+                  labelStyle: const TextStyle(color: Colors.white70),
+
+                  filled: true,
+
+                  fillColor: Colors.white.withOpacity(0.04),
+
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 25),
+
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: SpColor.mutedGrey,
+                  ),
+
+                  onPressed: () {
+                    final value = double.tryParse(textController.text);
+
+                    if (value != null) {
+                      wallet.balance = value;
+
+                      ctrl.updateWallet(wallet);
+                    }
+
+                    Get.back();
+                  },
+
+                  child: const Text(
+                    "حفظ التعديلات",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      confirm: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF43C5F3),
-        ),
-        onPressed: () {
-          double? newBalance = double.tryParse(amountController.text);
-          if (newBalance != null) {
-            // // تحديث قيمة الرصيد في الكائن قبل إرساله للمتحكم للمعالجة
-            wallet.balance = newBalance;
-            updateCtrl.updateWallet(wallet);
-          }
-        },
-        child: const Text("حفظ التعديل"),
       ),
     );
   }
 
-  // // بناء الأيقونة الجمالية للمحفظة
-  Widget _buildIcon() {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF43C5F3).withOpacity(0.1),
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(
-        Icons.account_balance_wallet_rounded,
-        color: Color(0xFF43C5F3),
-      ),
-    );
-  }
+  // =========================
+  // DELETE DIALOG
+  // =========================
 
-  // // تعليق: واجهة تظهر في حالة عدم وجود أي بيانات لعرضها
-  Widget _buildEmptyState() {
-    return const Center(
-      child: Text(
-        "لا توجد محافظ حالياً",
-        style: TextStyle(color: Colors.white38),
+  void _showDeleteDialog(WalletEntity wallet, DeleteWalletController ctrl) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFF111827),
+
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+
+            children: [
+              const Icon(
+                Icons.delete_forever,
+                color: Colors.redAccent,
+                size: 60,
+              ),
+
+              const SizedBox(height: 15),
+
+              const Text(
+                "حذف المحفظة",
+
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              const Text(
+                "هل تريد حذف هذه المحفظة؟",
+
+                textAlign: TextAlign.center,
+
+                style: TextStyle(color: Colors.white70),
+              ),
+
+              const SizedBox(height: 25),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Get.back(),
+
+                      child: const Text("إلغاء"),
+                    ),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                      ),
+
+                      onPressed: () {
+                        ctrl.deleteWallet(wallet);
+                      },
+
+                      child: const Text("حذف"),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,99 +1,126 @@
-// // Updated IncomeModel with Wallet retrieval logic
+import 'package:isar/isar.dart';
 import 'package:spendwise/features/income/domain/entities/income_entity.dart';
-import 'package:spendwise/features/tags/data/models/tag_model.dart';
 import 'package:uuid/uuid.dart';
 
-class IncomeModel extends IncomeEntity {
+part 'income_model.g.dart';
+
+@collection
+class IncomeModel {
+  Id isarId = Isar.autoIncrement;
+  @Index(unique: true)
   String localId;
-  bool isSynced;
+  @Index()
+  int? id;
+  int userId;
 
+  int? walletId;
+  int? incomeTagId;
+
+  String? title;
+  double amount;
+  DateTime date;
+
+  String? description;
+
+  int syncAttempts;
+  DateTime? lastSyncError;
+
+  bool isSynced = false;
+  bool isDeleted = false;
+
+  DateTime? createdAt;
+  DateTime? updatedAt;
   IncomeModel({
-    String? localId,
-    int super.id,
-    super.userId = 0,
-    required super.title,
-    super.walletId = 0,
-    required super.amount,
-    required super.date,
-    super.incomeTagId,
-    required super.description,
-    super.wallet,
+    required this.localId,
+    this.id,
+    required this.userId,
+    this.walletId,
+    this.incomeTagId,
+    required this.title,
+    required this.amount,
+    required this.date,
+    this.description,
     this.isSynced = false,
-    super.tag,
-  }) : localId = localId ?? const Uuid().v4();
+    this.isDeleted = false,
+    this.syncAttempts = 0,
+    this.lastSyncError,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
-  // ========================= FROM API =========================
-  factory IncomeModel.fromJson(Map<dynamic, dynamic> json) {
-    final int wId = json['walletId'] ?? 0;
+  // ========================= MAPPERS =========================
 
+  /// Model → Entity
+  IncomeEntity toEntity() {
+    return IncomeEntity(
+      localId: localId,
+      id: id,
+      userId: userId,
+      title: title ?? "no title",
+      walletId: walletId!,
+      amount: amount,
+      date: date,
+      incomeTagId: incomeTagId,
+      description: description ?? "",
+      isSynced: isSynced,
+      isDeleted: isDeleted,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+
+  /// Entity → Model
+  factory IncomeModel.fromEntity(IncomeEntity entity) {
     return IncomeModel(
-      localId: json['localId'] ?? const Uuid().v4(),
-      id: json['id'] ?? -1,
-      userId: json['userId'] ?? 0,
-      title: json['title'] ?? '',
-      walletId: wId,
-      amount: (json['amount'] ?? 0).toDouble(),
+      localId: entity.localId,
+      id: entity.id,
+      userId: entity.userId,
+      title: entity.title,
+      walletId: entity.walletId,
+      amount: entity.amount,
+      date: entity.date,
+      incomeTagId: entity.incomeTagId,
+      description: entity.description,
+      isSynced: entity.isSynced,
+      isDeleted: entity.isDeleted,
+    );
+  }
+
+  // ========================= JSON =========================
+
+  factory IncomeModel.fromJson(Map<String, dynamic> json, {String? localId}) {
+    return IncomeModel(
+      localId: localId ?? const Uuid().v4(),
+      id: json['id'] ?? json['Id'],
+      userId: json['userId'] ?? json['UserId'] ?? 0,
+      title: json['title'] ?? json['Title'] ?? '',
+      walletId: json['walletId'] ?? json['WalletId'],
+      amount: (json['amount'] ?? json['Amount'] ?? 0).toDouble(),
       date: json['date'] != null
           ? DateTime.parse(json['date'])
           : DateTime.now(),
-      incomeTagId: json['incomeTagId'],
-      description: json['description'] ?? '',
+      incomeTagId: json['incomeTagId'] ?? json['IncomeTagId'],
+      description: json['description'] ?? json['Description'],
       isSynced: true,
-      tag: json['tag'] != null ? TagModel.fromJson(json['tag']) : null,
     );
   }
 
-  // ========================= FROM LOCAL =========================
-  factory IncomeModel.fromLocal(Map<dynamic, dynamic> map) {
-    final int wId = map['walletId'] ?? 0;
-
-    return IncomeModel(
-      localId: map['localId'],
-      id: map['id'] ?? -1,
-      userId: map['userId'] ?? 0,
-      title: map['title'] ?? '',
-      walletId: wId,
-      amount: (map['amount'] ?? 0).toDouble(),
-      date: map['date'] != null ? DateTime.parse(map['date']) : DateTime.now(),
-      incomeTagId: map['incomeTagId'],
-      description: map['description'] ?? '',
-      isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
-    );
-  }
-
-  //
-
-  // ========================= TO API & LOCAL =========================
   Map<String, dynamic> toJson({bool isCreate = false}) {
     return {
-      if (!isCreate) 'id': id,
+      'id': id ?? -1,
       'userId': userId,
-      'title': title,
-      'walletId': walletId != 0 ? walletId : wallet?.walletId,
-      'amount': amount,
-      'date': date.toUtc().toIso8601String(),
-      'incomeTagId': incomeTagId ?? tag?.id ?? 1,
-      'description': description,
-    };
-  }
-
-  Map<dynamic, dynamic> toLocal() {
-    return {
-      'localId': localId,
-      'id': id,
-      'userId': userId,
-      'title': title,
+      'title': (title == null || title!.isEmpty) ? "no title" : title,
       'walletId': walletId,
       'amount': amount,
-      'date': date.toIso8601String(),
-      'incomeTagId': incomeTagId ?? tag?.id,
-      'description': description,
-      'isSynced': isSynced ? 1 : 0,
+      'date': date.toUtc().toIso8601String(),
+      'incomeTagId': incomeTagId ?? -1,
+      'description': description ?? "no description",
     };
   }
 
   @override
   String toString() {
-    return 'IncomeModel(localId: $localId, id: $id, title: $title, amount: $amount, date: $date, walletId: $walletId, walletName: ${wallet?.currency.currencyName}, isSynced: $isSynced)';
+    return 'IncomeModel(title: $title, amount: $amount, isSynced: $isSynced)';
   }
 }

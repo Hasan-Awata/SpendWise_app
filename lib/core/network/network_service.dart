@@ -1,39 +1,102 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dartz/dartz.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/error/failure.dart';
-import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
-import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
-import 'package:spendwise/features/tags/presentation/manager/tag_view_controller.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class NetworkService extends GetxService {
   final Connectivity _connectivity = Connectivity();
   late StreamSubscription<List<ConnectivityResult>> _subscription;
-  bool _isSyncing = false;
 
-  @override
-  void onInit() {
-    super.onInit();
-    _subscription = _connectivity.onConnectivityChanged.listen(
-      _updateConnectionStatus,
-    );
-  }
+  final bool _isSyncing = false;
+  Timer? _debounceTimer;
 
-  void _updateConnectionStatus(List<ConnectivityResult> results) {
-    if (results.contains(ConnectivityResult.mobile) ||
-        results.contains(ConnectivityResult.wifi)) {
-      _runSyncTasks();
+  // =====================================================
+  // CHECK REAL INTERNET (IMPORTANT FIX)
+  // =====================================================
+  Future<bool> _hasRealInternet() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
     }
   }
 
+  // =====================================================
+  // CONNECTIVITY HANDLER (IMPROVED)
+  // =====================================================
+  // void _updateConnectionStatus(List<ConnectivityResult> results) async {
+  //   final isNetworkAvailable =
+  //       results.contains(ConnectivityResult.mobile) ||
+  //       results.contains(ConnectivityResult.wifi);
+
+  //   if (!isNetworkAvailable) return;
+
+  //   // 🔥 Debounce (منع تكرار التشغيل)
+  //   _debounceTimer?.cancel();
+  //   _debounceTimer = Timer(const Duration(seconds: 2), () async {
+  //     final hasInternet = await _hasRealInternet();
+
+  //     if (hasInternet) {
+  //       _runSyncTasks();
+  //     }
+  //   });
+  // }
+
   Future<bool> get isConnected async {
     final results = await _connectivity.checkConnectivity();
-    return results.contains(ConnectivityResult.mobile) ||
+    final network =
+        results.contains(ConnectivityResult.mobile) ||
         results.contains(ConnectivityResult.wifi);
+
+    if (!network) return false;
+
+    return await _hasRealInternet();
   }
+
+  // =====================================================
+  // SYNC TASKS (IMPROVED STABILITY)
+  // =====================================================
+  // Future<void> _runSyncTasks() async {
+  //   if (_isSyncing) return;
+
+  //   final hasUser = CurrentUser.user != null;
+  //   if (!hasUser) return;
+
+  //   _isSyncing = true;
+
+  //   try {
+  //     await Future.delayed(const Duration(seconds: 1));
+  //     // 🔥 يعطي وقت لاستقرار الشبكة
+
+  //     if (Get.isRegistered<WalletsListController>()) {
+  //       Get.find<WalletsListController>().runBackgroundSync();
+  //     }
+
+  //     if (Get.isRegistered<TagViewController>()) {
+  //       Get.find<TagViewController>().runBackgroundSync();
+  //     }
+
+  //     if (Get.isRegistered<IncomesListController>()) {
+  //       Get.find<IncomesListController>().runBackgroundSync();
+  //     }
+
+  //     // if (Get.isRegistered<ExpensesListController>()) {
+  //     //   Get.find<ExpensesListController>().runBackgroundSync();
+  //     // }
+  //   } catch (e) {
+  //     print("Sync Error: $e");
+  //   } finally {
+  //     _isSyncing = false;
+  //   }
+  // }
+
+  // =====================================================
+  // باقي الكود بدون تغيير
+  // =====================================================
 
   Future<Either<Failure, T>> executeWithSync<T>({
     required Future<T> Function() remoteTask,
@@ -42,37 +105,15 @@ class NetworkService extends GetxService {
   }) async {
     try {
       if (await isConnected) {
-        try {
-          final result = await remoteTask();
-          await localTask(true);
-          return Right(result);
-        } catch (e) {
-          return Left(ServerFailure("Server Error"));
-        }
+        final result = await remoteTask();
+        await localTask(true);
+        return Right(result);
       } else {
         await localTask(false);
         return Right(localData);
       }
     } catch (e) {
       return Left(CacheFailure("Local Storage Error"));
-    }
-  }
-
-  // // Correction for _runSyncTasks
-  Future<void> _runSyncTasks() async {
-    if (_isSyncing) return;
-
-    _isSyncing = true;
-    try {
-      // استدعاء الدوال بشكل مباشر ومنفصل لتجنب مشاكل النوع (Type Inference)
-      Get.find<WalletsListController>().runBackgroundSync();
-      Get.find<TagViewController>().runBackgroundSync();
-      Get.find<IncomesListController>().runBackgroundSync();
-      Get.find<ExpensesListController>().runBackgroundSync();
-    } catch (e) {
-      print("Sync Error: $e");
-    } finally {
-      _isSyncing = false;
     }
   }
 
@@ -83,22 +124,18 @@ class NetworkService extends GetxService {
     required T localResult,
   }) async {
     try {
-      // 1️⃣ Save local first (must succeed)
       await localSave();
 
-      // 2️⃣ If no internet → success local only
       final connected = await isConnected;
       if (!connected) {
         return Right(localResult);
       }
 
-      // 3️⃣ Try remote sync
       try {
         final remote = await remoteSave();
         await onSyncSuccess(remote);
         return Right(remote);
       } catch (e) {
-        // local success but remote failed → still success
         return Right(localResult);
       }
     } catch (e) {
@@ -109,6 +146,7 @@ class NetworkService extends GetxService {
   @override
   void onClose() {
     _subscription.cancel();
+    _debounceTimer?.cancel();
     super.onClose();
   }
 }

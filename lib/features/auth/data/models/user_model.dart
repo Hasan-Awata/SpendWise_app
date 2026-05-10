@@ -1,6 +1,13 @@
+import 'package:isar/isar.dart';
 import 'package:spendwise/features/auth/domain/entities/user_entity.dart';
 
+// هذا السطر ضروري لتوليد الملف التلقائي
+part 'user_model.g.dart';
+
+@collection
 class UserModel extends UserEntity {
+  Id isarId = Isar.autoIncrement;
+
   UserModel({
     required super.userId,
     super.firstName,
@@ -36,6 +43,7 @@ class UserModel extends UserEntity {
       userId: parsedUserId,
     );
   }
+
   Map<String, dynamic> toJson() {
     return {
       "UserId": userId,
@@ -43,7 +51,8 @@ class UserModel extends UserEntity {
       "LastName": lastName,
       "UserName": userName,
       "Token": token,
-      "Expiry": expiry,
+      "Expiry": expiry
+          ?.toIso8601String(), // يفضل تحويل التاريخ لنص عند التحويل لـ JSON
     };
   }
 

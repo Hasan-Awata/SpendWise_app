@@ -1,44 +1,73 @@
-// // تعليق: متحكم تحديث بيانات مصروف — يدعم تحديث الحالة الفوري (Reactive UI)
+// ==========================
+// UpdateExpenseController
+// نسخة مطورة ومتوافقة مع الواجهات الجديدة
+// ==========================
+
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/features/expense/domain/entities/expense_entity.dart';
 import 'package:spendwise/features/expense/domain/usecases/update_expense_usecases.dart';
-import 'package:spendwise/features/helper_function.dart';
-import 'package:spendwise/features/expense/data/models/expense_model.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
+import 'package:spendwise/features/helper_function.dart';
 
 class UpdateExpenseController extends GetxController {
   UpdateExpenseController({
-    required this.updateUseCase,
+    required this.updateExpenseUseCase,
     required this.expensesListController,
   });
 
-  final UpdateExpenseUsecase updateUseCase;
+  final UpdateExpenseUsecase updateExpenseUseCase;
   final ExpensesListController expensesListController;
 
-  final RxBool isLoadingUpdate = false.obs;
+  final isLoadingUpdate = false.obs;
 
-  Future<void> updateExpense(ExpenseModel updatedExpense) async {
+  final titleController = TextEditingController();
+  final amountController = TextEditingController();
+
+  ExpenseEntity? currentExpense;
+
+  void setExpense(ExpenseEntity expense) {
+    currentExpense = expense;
+
+    titleController.text = expense.title;
+    amountController.text = expense.amount.toString();
+  }
+
+  Future<void> updateExpense() async {
+    if (currentExpense == null) return;
+
     isLoadingUpdate.value = true;
 
-    final result = await updateUseCase.call(updatedExpense);
+    final updated = ExpenseEntity(
+      localId: currentExpense!.localId,
+      userId: currentExpense!.userId,
+      wallet: currentExpense!.wallet,
+      walletId: currentExpense!.walletId,
+      expenseTagId: currentExpense!.expenseTagId,
+      tag: currentExpense!.tag,
+      date: currentExpense!.date,
+      description: currentExpense!.description,
+
+      title: titleController.text.trim(),
+      amount: double.tryParse(amountController.text.trim()) ?? 0.0,
+    );
+
+    final result = await updateExpenseUseCase.call(updated);
 
     result.fold((failure) => _handleError("فشل التحديث", failure.message), (_) {
-      // البحث عن العنصر المعدل في القائمة الحالية وتحديثه فوراً
       final index = expensesListController.expensesList.indexWhere(
-        (e) => e.localId == updatedExpense.localId,
+        (e) => e.localId == updated.localId,
       );
 
       if (index != -1) {
-        expensesListController.expensesList[index] = updatedExpense;
-        expensesListController.expensesList.refresh(); // إخطار الواجهة بالتغيير
+        expensesListController.expensesList[index] = updated;
+        expensesListController.expensesList.refresh();
       }
 
-      // إعادة حساب الإجماليات (مثل إجمالي المصاريف الشهرية)
       expensesListController.calculateTotals();
 
-      HelperFunction.showSnackBar("تم بنجاح", "تم تحديث بيانات المصروف");
-
-      // إغلاق أي نافذة مفتوحة (مثل BottomSheet أو Dialog)
-      if (Get.isOverlaysOpen) Get.back();
+      Get.back();
+      HelperFunction.showSnackBar("تم بنجاح", "تم تحديث المصروف");
     });
 
     isLoadingUpdate.value = false;
@@ -46,5 +75,12 @@ class UpdateExpenseController extends GetxController {
 
   void _handleError(String title, String message) {
     HelperFunction.showSnackBar(title, message, isError: true);
+  }
+
+  @override
+  void onClose() {
+    titleController.dispose();
+    amountController.dispose();
+    super.onClose();
   }
 }

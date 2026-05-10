@@ -1,96 +1,208 @@
-// [The model preserves the localId during JSON conversion to maintain identity across sync cycles]
-
-import 'package:spendwise/core/utils/current_user.dart';
-import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
+import 'package:isar/isar.dart';
 import 'package:spendwise/features/wallet/domain/entities/currency_model.dart';
 import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
-import 'package:uuid/uuid.dart' show Uuid;
+import 'package:uuid/uuid.dart';
 
-class WalletModel extends WalletEntity {
+part 'wallet_model.g.dart';
+
+@collection
+class WalletModel {
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true)
+  String localId;
+
+  @Index()
+  int? walletId;
+
+  int userId;
+  double balance;
+  int currencyId;
+
   bool isSynced;
-  String? localId;
+  bool isDeleted;
+  bool isSaved;
+
+  @ignore
+  Currency? currency;
+
+  // =====================================================
+  // SYNC RETRY SYSTEM
+  // =====================================================
+
+  int syncAttempts;
+  DateTime? lastSyncError;
+
+  // =====================================================
+  // TIMESTAMPS
+  // =====================================================
+
+  DateTime? createdAt;
+  DateTime? updatedAt;
 
   WalletModel({
-    this.localId,
-    super.walletId,
-    required super.userId,
-    required super.currency,
-    required super.balance,
-    required super.isSaved,
+    required this.localId,
+    this.walletId,
+    required this.userId,
+    required this.balance,
+    required this.currencyId,
+    this.isSaved = false,
     this.isSynced = false,
-    super.currencyId,
+    this.isDeleted = false,
+    this.syncAttempts = 0,
+    this.lastSyncError,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
+
+  // =====================================================
+  // SAFE FACTORY
+  // =====================================================
+
+  factory WalletModel.create({
+    int? walletId,
+    required int userId,
+    required double balance,
+    required int currencyId,
+    String? localId,
+    bool isSaved = false,
+    bool isSynced = false,
+    bool isDeleted = false,
   }) {
-    // لا تولد UUID جديد إذا كان الـ localId موجوداً أصلاً
-    localId ??= const Uuid().v4();
+    return WalletModel(
+      localId: localId ?? const Uuid().v4(),
+      walletId: walletId,
+      userId: userId,
+      balance: balance,
+      currencyId: currencyId,
+      isSaved: isSaved,
+      isSynced: isSynced,
+      isDeleted: isDeleted,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
   }
 
-  factory WalletModel.fromJson(Map<dynamic, dynamic> json) {
+  // =====================================================
+  // ENTITY MAPPER
+  // =====================================================
+
+  factory WalletModel.fromEntity(WalletEntity entity) {
     return WalletModel(
-      // ابحث عن localId في الـ JSON أولاً، إذا لم يوجد (بيانات جديدة من السيرفر) اترك المنشئ يولد واحداً
-      localId: json["localId"],
+      localId: entity.localId,
+      walletId: entity.walletId,
+      userId: entity.userId,
+      balance: entity.balance,
+      currencyId: entity.currencyId,
+      isSaved: entity.isSaved,
+      isSynced: entity.isSynced,
+      isDeleted: entity.isDeleted,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    );
+  }
+
+  WalletEntity toEntity() {
+    return WalletEntity(
+      localId: localId,
+      walletId: walletId,
+      userId: userId,
+      balance: balance,
+      currencyId: currencyId,
+      isSaved: isSaved,
+      isSynced: isSynced,
+      isDeleted: isDeleted,
+      currency: currency ?? Currency(code: "", currencyName: ""),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+
+  // =====================================================
+  // JSON
+  // =====================================================
+
+  factory WalletModel.fromJson(Map<String, dynamic> json, {String? localId}) {
+    return WalletModel(
+      localId: localId ?? const Uuid().v4(),
       walletId: json["walletId"] ?? json["id"],
-      userId: (json["userId"] ?? json["UserId"] ?? -1) as int,
-      balance: (json["balance"] ?? json["Balance"] ?? 0.0).toDouble(),
+      userId: json["userId"] ?? json["UserId"],
+      balance: (json["balance"] ?? json["Balance"] ?? 0).toDouble(),
+      currencyId: json["currencyId"] ?? json["CurrencyId"],
       isSaved: json['isSaved'] ?? json['IsSaved'] ?? false,
       isSynced: true,
-      currencyId: json["currencyId"] ?? json["CurrencyId"] ?? 1,
-      currency: _currencyFromWalletJson(json),
+      isDeleted: false,
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson({bool isCreate = false}) {
     return {
-      "localId": localId, // أضف هذا لتتبع العنصر محلياً حتى بعد إرساله
       "walletId": walletId ?? -1,
-      "userId": (CurrentUser.getUserId) ?? -1,
+      "userId": userId,
       "balance": balance,
+      "currencyId": currencyId,
       "isSaved": isSaved,
-      "currencyId": currency.id,
     };
   }
 
-  factory WalletModel.fromLocal(Map<dynamic, dynamic> json) {
+  // =====================================================
+  // COPY WITH
+  // =====================================================
+
+  WalletModel copyWith({
+    Id? isarId,
+    String? localId,
+    int? walletId,
+    int? userId,
+    double? balance,
+    int? currencyId,
+    bool? isSynced,
+    bool? isDeleted,
+    bool? isSaved,
+    int? syncAttempts,
+    DateTime? lastSyncError,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
     return WalletModel(
-      // في البيانات المحلية، الـ localId ضروري جداً لمنع التكرار
-      localId: json["localId"],
-      walletId: json["walletId"],
-      userId: (json["userId"] ?? -1) as int,
-      balance: (json["balance"] ?? 0.0).toDouble(),
-      isSaved: json['isSaved'] ?? false,
-      isSynced: json['isSynced'] ?? true,
-      currencyId: json["currencyId"] ?? 1,
-      currency: _currencyFromWalletJson(json),
-    );
+      localId: localId ?? this.localId,
+      walletId: walletId ?? this.walletId,
+      userId: userId ?? this.userId,
+      balance: balance ?? this.balance,
+      currencyId: currencyId ?? this.currencyId,
+      isSaved: isSaved ?? this.isSaved,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
+      syncAttempts: syncAttempts ?? this.syncAttempts,
+      lastSyncError: lastSyncError ?? this.lastSyncError,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    )..isarId = isarId ?? this.isarId;
   }
 
-  Map<String, dynamic> toLocal() {
-    return {
-      "localId": localId, // تخزين المعرف المحلي في Hive
-      "walletId": walletId ?? -1,
-      "userId": (CurrentUser.getUserId) ?? -1,
-      "balance": balance,
-      "isSaved": isSaved,
-      "isSynced": isSynced,
-      "currencyId": currency.id,
-    };
-  }
-
-  static Currency _currencyFromWalletJson(Map<dynamic, dynamic> json) {
-    final cId = json["currencyId"] ?? json["CurrencyId"] ?? 1;
-    return CurrencyLocal().allCurrencies.firstWhere(
-      (c) => c.id == cId,
-      orElse: () => Currency(id: 0, currencyName: "", actualValue: 0),
-    );
-  }
+  // =====================================================
+  // DEBUG
+  // =====================================================
 
   @override
   String toString() {
-    return '''WalletModel(
-      localId: $localId, 
-      currency:${currency.code}
-      walletId: $walletId, 
-      balance: $balance, 
-      isSynced: $isSynced
-    )''';
+    return '''
+WalletModel(
+  isarId: $isarId,
+  localId: $localId,
+  walletId: $walletId,
+  userId: $userId,
+  balance: $balance,
+  currencyId: $currencyId,
+  isSaved: $isSaved,
+  isSynced: $isSynced,
+  isDeleted: $isDeleted,
+  syncAttempts: $syncAttempts,
+  lastSyncError: $lastSyncError,
+  createdAt: $createdAt,
+  updatedAt: $updatedAt
+)
+''';
   }
 }

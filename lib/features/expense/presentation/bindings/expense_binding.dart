@@ -1,19 +1,21 @@
 // Logic: features/expense/presentation/bindings/expense_binding.dart
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:isar/isar.dart';
+import 'package:spendwise/core/network/network_service.dart';
+import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/expense/data/datasources/expense_local_datasource_impl.dart';
 import 'package:spendwise/features/expense/data/datasources/expense_remote_datasource.dart';
 import 'package:spendwise/features/expense/data/repositories/expense_repository.dart';
 import 'package:spendwise/features/expense/domain/repositories/expense_repository_impl.dart';
 import 'package:spendwise/features/expense/domain/usecases/delete_expense_usecase.dart';
 import 'package:spendwise/features/expense/domain/usecases/get_all_expenses_usecase.dart';
-import 'package:spendwise/features/expense/domain/usecases/sync_expense_usecase.dart';
 import 'package:spendwise/features/expense/domain/usecases/update_expense_usecases.dart';
 import 'package:spendwise/features/expense/presentation/manager/add_expense_controller.dart';
 import 'package:spendwise/features/expense/presentation/manager/delete_expense_controller.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/expense/presentation/manager/update_expense_controller.dart';
-import 'package:spendwise/features/tags/presentation/manager/add_tag_controller.dart'; // تأكد من استيراد الـ TagActionController
+
 import '../../data/datasources/expense_local_datasource.dart';
 import '../../data/datasources/expense_remote_datasource_impl.dart';
 import '../../domain/usecases/add_expense_usecase.dart';
@@ -30,7 +32,9 @@ class ExpenseBinding extends Bindings {
       );
     }
     if (!Get.isRegistered<ExpenseLocalDataSource>()) {
-      Get.put<ExpenseLocalDataSource>(ExpenseLocalDataSourceImpl());
+      Get.put<ExpenseLocalDataSource>(
+        ExpenseLocalDataSourceImpl(Get.find<Isar>()),
+      );
     }
 
     // 2. Repository (المستودع)
@@ -39,6 +43,7 @@ class ExpenseBinding extends Bindings {
         ExpenseRepositoryImpl(
           remoteDatasource: Get.find<ExpenseRemoteDataSource>(),
           localDataSource: Get.find<ExpenseLocalDataSource>(),
+          network: Get.find<NetworkService>(),
         ),
       );
     }
@@ -59,9 +64,6 @@ class ExpenseBinding extends Bindings {
     if (!Get.isRegistered<DeleteExpenseUsecase>()) {
       Get.put(DeleteExpenseUsecase(Get.find<ExpenseRepository>()));
     }
-    if (!Get.isRegistered<SyncPendingExpensesUsecase>()) {
-      Get.put(SyncPendingExpensesUsecase(Get.find()));
-    }
 
     // 4. Controllers (المتحكمات)
     // استخدام Get.put لضمان الجاهزية الفورية عند الانتقال لواجهة المصروفات
@@ -70,7 +72,8 @@ class ExpenseBinding extends Bindings {
         ExpensesListController(
           getExpensesUseCase: Get.find<GetExpensesUsecase>(),
           getAllLocalExpensesUsecase: Get.find<GetAllLocalExpensesUsecase>(),
-          syncExpenseUsecase: Get.find<SyncPendingExpensesUsecase>(),
+
+          userIdUsecase: Get.find<GetUserIdUsecase>(),
         ),
       );
     }
@@ -83,6 +86,7 @@ class ExpenseBinding extends Bindings {
           tagController: Get.find(),
           tagActionController: Get.find(),
           expensesListController: Get.find<ExpensesListController>(),
+          userIdUsecase: Get.find<GetUserIdUsecase>(),
         ),
       );
     }
@@ -90,8 +94,7 @@ class ExpenseBinding extends Bindings {
     if (!Get.isRegistered<UpdateExpenseController>()) {
       Get.put(
         UpdateExpenseController(
-          updateUseCase: Get.find<UpdateExpenseUsecase>(),
-          // إضافة المتحكمات المرتبطة لضمان تحديث القائمة بعد التعديل
+          updateExpenseUseCase: Get.find<UpdateExpenseUsecase>(),
           expensesListController: Get.find<ExpensesListController>(),
         ),
       );

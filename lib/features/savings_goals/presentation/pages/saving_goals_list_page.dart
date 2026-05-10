@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/savings_goals/data/models/saving_goal_model.dart';
+import 'package:spendwise/features/savings_goals/domain/entities/saving_goal_entity.dart';
 import 'package:spendwise/features/savings_goals/presentation/manager/saving_goal_action_controller.dart';
 import 'package:spendwise/features/savings_goals/presentation/manager/saving_goal_lis_controller.dart';
 
@@ -25,7 +25,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           return RefreshIndicator(
-            color: Colors.amberAccent,
+            color: SpColor.savinggoalColor,
             backgroundColor: SpColor.surfaceNavy,
             onRefresh: () => controller.loadSavingGoals(isRefresh: true),
             child: SingleChildScrollView(
@@ -37,7 +37,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                       controller.savingGoals.isEmpty) {
                     return const Center(
                       child: CircularProgressIndicator(
-                        color: Colors.amberAccent,
+                        color: SpColor.savinggoalColor,
                       ),
                     );
                   }
@@ -74,7 +74,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
     );
   }
 
-  Widget _buildGoalCard(SavingGoalModel goal) {
+  Widget _buildGoalCard(SavingGoalEntity goal) {
     double progress = (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0);
     int percentage = (progress * 100).toInt();
 
@@ -86,7 +86,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
         decoration: BoxDecoration(
           color: SpColor.primaryDark2,
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.amberAccent.withOpacity(0.1)),
+          border: Border.all(color: SpColor.savinggoalColor.withOpacity(0.1)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.3),
@@ -107,7 +107,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                       percentage >= 100
                           ? Icons.check_circle
                           : Icons.trending_up,
-                      color: Colors.amberAccent,
+                      color: SpColor.savinggoalColor,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -171,7 +171,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                 Text(
                   "الهدف: \$${goal.targetAmount}",
                   style: const TextStyle(
-                    color: Colors.amberAccent,
+                    color: SpColor.savinggoalColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -215,7 +215,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
     );
   }
 
-  void _showEditSheet(SavingGoalModel goal) {
+  void _showEditSheet(SavingGoalEntity goal) {
     savingGoalAction.titleController.text = goal.title;
     savingGoalAction.targetAmountController.text = goal.targetAmount.toString();
     savingGoalAction.currentAmountController.text = goal.currentAmount
@@ -269,7 +269,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amberAccent,
+                      backgroundColor: SpColor.savinggoalColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -297,7 +297,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
     );
   }
 
-  void _providingTarger(SavingGoalModel goal) {
+  void _providingTarger(SavingGoalEntity goal) {
     savingGoalAction.titleController.text = goal.title;
 
     savingGoalAction.targetAmountController.text = goal.targetAmount.toString();
@@ -342,7 +342,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amberAccent,
+                      backgroundColor: SpColor.savinggoalColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -391,7 +391,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.white38),
-        prefixIcon: Icon(icon, color: Colors.amberAccent, size: 20),
+        prefixIcon: Icon(icon, color: SpColor.savinggoalColor, size: 20),
         filled: true,
         fillColor: SpColor.surfaceNavy,
         border: OutlineInputBorder(
@@ -402,7 +402,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
     );
   }
 
-  void _showDeleteConfirmation(SavingGoalModel goal) {
+  void _showDeleteConfirmation(SavingGoalEntity goal) {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(20),

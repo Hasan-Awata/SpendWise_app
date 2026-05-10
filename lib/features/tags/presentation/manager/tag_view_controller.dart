@@ -1,134 +1,114 @@
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
-import 'package:spendwise/features/tags/data/models/tag_model.dart';
+import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 import 'package:spendwise/features/tags/domain/usecases/get_my_tags_usecase.dart';
-import 'package:spendwise/features/tags/domain/usecases/sync_pending_tags_usecase.dart';
+
+// tag_view_controller.dart
 
 class TagViewController extends GetxController {
   final GetMyTagsUsecase getMyTagsUsecase;
-  final SyncPendingTagsUsecase syncPendingTagsUsecase;
 
-  TagViewController({
-    required this.getMyTagsUsecase,
-    required this.syncPendingTagsUsecase,
-  });
+  TagViewController({required this.getMyTagsUsecase});
 
-  final myTags = <TagModel>[].obs;
+  final RxList<TagEntity> myTags = <TagEntity>[].obs;
   final isLoading = false.obs;
-  final ScrollController scrollController = ScrollController();
+  final isRefreshing = false.obs;
+  final isLoadingMore = false.obs;
+  final hasMoreData = true.obs;
+  final errorMessage = ''.obs;
 
-  int currentPage = 1;
-  bool hasMoreData = true;
+  int page = 1;
   final int pageSize = 20;
+  bool _isRequestRunning = false;
+  final ScrollController scrollController = ScrollController();
 
   @override
   void onInit() {
     super.onInit();
-    scrollController.addListener(_scrollListener);
-    loadTags(isRefresh: true);
+    scrollController.addListener(_onScroll);
+    loadTags(refresh: true);
   }
 
-  void _scrollListener() {
-    if (scrollController.position.pixels >=
-        scrollController.position.maxScrollExtent * 0.8) {
-      if (!isLoading.value && hasMoreData) {
-        print("🔗 Scroll reaching end: Requesting Tags page $currentPage");
-        loadTags(isRefresh: false);
-      }
+  void _onScroll() {
+    if (!scrollController.hasClients || _isRequestRunning) return;
+
+    // التحميل المبكر قبل الوصول للنهاية بـ 200 بكسل
+    if (scrollController.position.extentAfter < 200 && hasMoreData.value) {
+      loadTags(refresh: false);
     }
   }
 
-  Future<void> loadTags({bool isRefresh = false}) async {
-    if (isLoading.value || (!hasMoreData && !isRefresh)) return;
-    try {
-      isLoading.value = true;
+  Future<void> loadTags({required bool refresh}) async {
+    if (_isRequestRunning) return;
+    _isRequestRunning = true;
 
-      if (isRefresh) {
-        print("🔄 Action: Refreshing Tags list...");
-        currentPage = 1;
-        hasMoreData = true;
+    try {
+      errorMessage.value = '';
+
+      if (refresh) {
+        isRefreshing.value = true;
+        page = 1;
+        hasMoreData.value = true;
+      } else {
+        isLoadingMore.value = true;
       }
 
-      print("📡 Fetching Tags: Page $currentPage, Size $pageSize");
+      if (myTags.isEmpty && refresh) isLoading.value = true;
+
       final result = await getMyTagsUsecase.call(
-        PageRequest(pageNumber: currentPage, pageSize: pageSize),
+        PageRequest(pageNumber: page, pageSize: pageSize),
       );
 
-      result.fold(
-        (failure) {
-          print("❌ Tags Fetch Failure: ${failure.message}");
-          HelperFunction.showSnackBar(
-            "خطأ في الجلب",
-            failure.message,
-            isError: true,
+      result.fold((failure) => errorMessage.value = failure.message, (
+        response,
+      ) {
+        final newItems = response.data;
+
+        if (refresh) {
+          myTags.assignAll(newItems);
+        } else {
+          // منع التكرار بكفاءة عالية
+          final existingIds = myTags.map((e) => e.localId).toSet();
+          final uniqueItems = newItems.where(
+            (tag) => !existingIds.contains(tag.localId),
           );
-        },
-        (pagedResponse) {
-          final newItems = pagedResponse.data;
-          print("📦 Received: ${newItems.length} Tags");
+          myTags.addAll(uniqueItems);
+        }
 
-          if (newItems.isEmpty) {
-            hasMoreData = false;
-            print("🏁 No more Tags found on server.");
-          } else {
-            if (isRefresh) {
-              // تصفية العناصر المحذوفة محلياً قبل العرض
-              final visibleItems = newItems
-                  .where((t) => t.localId != "REMOVE")
-                  .toList();
-              myTags.assignAll(visibleItems);
-            } else {
-              // تصفية المحذوفات + التكرار ثم الإضافة في نهاية القائمة
-              final uniqueAndVisible = newItems.where((newItem) {
-                bool isNotRemoved = newItem.localId != "REMOVE";
-                bool isNotDuplicate = !myTags.any(
-                  (existing) =>
-                      (existing.id != null && existing.id == newItem.id) ||
-                      (existing.localId == newItem.localId),
-                );
-                return isNotRemoved && isNotDuplicate;
-              }).toList();
+        // ترتيب البيانات: الأحدث (الذي يملك ID أكبر أو تاريخ أحدث) في الأعلى
+        myTags.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
 
-              myTags.assignAll(uniqueAndVisible);
-              print("➕ Added ${uniqueAndVisible.length} unique Tags to list");
-            }
-
-            // تحديث حالة "هل يوجد المزيد"
-            if (newItems.length < pageSize) {
-              hasMoreData = false;
-              print("🏁 End of Tags reached.");
-            } else {
-              currentPage++;
-            }
-          }
-        },
-      );
+        if (newItems.length < pageSize) {
+          hasMoreData.value = false;
+        } else {
+          page++;
+        }
+      });
     } finally {
       isLoading.value = false;
+      isRefreshing.value = false;
+      isLoadingMore.value = false;
+      _isRequestRunning = false;
     }
   }
 
-  void runBackgroundSync() {
-    syncPendingTagsUsecase.call().then((result) {
-      result.fold(
-        (l) => print("⚠️ Tag Background Sync Failed: ${l.message}"),
-        (r) => print("✅ Tag Background Sync Completed Successfully"),
-      );
-    });
+  void addTagLocally(TagEntity tag) {
+    myTags.insert(0, tag);
+    myTags.refresh();
   }
 
-  void resetFields() {
-    print("🧹 Resetting Tag fields");
-    myTags.clear();
-    currentPage = 1;
-    hasMoreData = true;
+  void deleteTagLocally(String localId) {
+    myTags.removeWhere((e) => e.localId == localId);
+    myTags.refresh();
+  }
+
+  Future<void> refreshTags() async {
+    await loadTags(refresh: true);
   }
 
   @override
   void onClose() {
-    print("🔌 Closing TagViewController");
     scrollController.dispose();
     super.onClose();
   }

@@ -8,245 +8,191 @@ import 'package:spendwise/features/tags/data/datasources/tag_local_datasource.da
 import 'package:spendwise/features/tags/data/datasources/tag_remote_datasource.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
 import 'package:spendwise/features/tags/data/repositories/tag_repository.dart';
+import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
+
+// tag_repository_impl.dart
 
 class TagRepositoryImpl implements TagRepository {
-  final TagLocalDatasource tagLocalDatasource;
-  final TagRemoteDatasource tagRemoteDatasource;
+  final TagLocalDatasource local;
+  final TagRemoteDatasource remote;
+  final NetworkService network;
 
   TagRepositoryImpl({
-    required this.tagLocalDatasource,
-    required this.tagRemoteDatasource,
+    required this.local,
+    required this.remote,
+    required this.network,
   });
 
-  // ========================= ADD =========================
+  // =========================
+  // ADD
+  // =========================
   @override
-  Future<Either<Failure, String>> addTag(TagModel tag) async {
-    final network = NetworkService();
-    return await network.saveLocalAndSync<String>(
-      localSave: () async {
-        await tagLocalDatasource.addTagLocally(tag);
-      },
-      remoteSave: () async {
-        tag.isSynced = false;
-
-        final result = await tagRemoteDatasource.addTag(tag);
-        if (result == null) {
-          throw Exception("Remote addTag returned null");
-        }
-
-        return "تم الحفظ بنجاح";
-      },
-      onSyncSuccess: (_) async {
-        tag.isSynced = true;
-        await tagLocalDatasource.updateTagLocally(tag);
-      },
-      localResult: "تم حفظ الوسم محلياً",
-    );
-  }
-
-  // ========================= GET =========================
-  @override
-  Future<Either<Failure, PagedResponse<TagModel>>> getMyTags(
-    PageRequest page,
-  ) async {
+  Future<Either<Failure, String>> addTag(TagEntity tag) async {
     try {
-      print("📡 Fetching Tags from Server - Page: ${page.pageNumber}");
+      final model = TagModel.fromEntity(tag)
+        ..isSynced = false
+        ..isDeleted = false
+        ..createdAt = DateTime.now()
+        ..updatedAt = DateTime.now();
 
-      final remoteResponse = await tagRemoteDatasource.getMyTags(page);
+      await local.addTagLocally(model);
 
-      // ✅ تحسين الأداء (بدل await داخل loop)
-      await Future.wait(
-        remoteResponse.data.map((model) async {
-          model.isSynced = true;
-          await tagLocalDatasource.addTagLocally(model);
-        }),
-      );
+      // مزامنة فورية (ننتظرها لضمان تحديث الـ UI بشكل صحيح)
+      if (await network.isConnected) {
+        await _syncItemSafe(model);
+      }
 
-      return Right(remoteResponse);
+      return const Right("تم الحفظ محلياً");
     } catch (e) {
-      print("🌐 Connection Issue: Switching to Local Storage. Error: $e");
-
-      return await _getLocalPagedResponse(page);
+      return Left(CacheFailure("فشل إضافة الوسم"));
     }
   }
 
-  // ========================= UPDATE =========================
+  // =========================
+  // UPDATE
+  // =========================
   @override
-  Future<Either<Failure, Unit>> updateTag(TagModel tag) async {
+  Future<Either<Failure, Unit>> updateTag(TagEntity tag) async {
     try {
-      print("🔄 Updating Tag Locally: ${tag.id}");
+      final localTag = await local.getTag(tag.localId);
+      if (localTag == null) return Left(CacheFailure("الوسم غير موجود"));
 
-      tag.isSynced = false;
+      localTag
+        ..name = tag.name
+        ..updatedAt = DateTime.now()
+        ..isSynced = false;
 
-      // ✅ Local First
-      await tagLocalDatasource.updateTagLocally(tag);
+      await local.updateTagLocally(localTag);
 
-      // 🔥 Background Sync
-      _safeRemoteCall(() async {
-        final remote = await tagRemoteDatasource.updateTag(tag);
-
-        if (remote != null) {
-          remote.isSynced = true;
-          await tagLocalDatasource.updateTagLocally(remote);
-        }
-
-        print("✅ Server Update Done");
-      });
-
-      return const Right(unit);
-    } catch (e) {
-      print("❌ Local Update Error: $e");
-      return Left(CacheFailure("فشل تحديث البيانات محلياً"));
-    }
-  }
-
-  // ========================= DELETE =========================
-  @override
-  Future<Either<Failure, String>> deleteTag(TagModel tag) async {
-    try {
-      // ✅ Soft Delete
-      tag.localId = "REMOVE";
-      tag.isSynced = false;
-
-      await tagLocalDatasource.updateTagLocally(tag);
-
-      // 🔥 Background Sync
-      _safeRemoteCall(() async {
-        try {
-          if (tag.id != null && tag.id != -1) {
-            await tagRemoteDatasource.deleteTag(tag.id!);
-          }
-
-          await tagLocalDatasource.deleteTagLocally(tag);
-
-          print("📤 Synced: DELETED Tag ${tag.id}");
-        } catch (e) {
-          print("⚠️ Remote Delete Failed: $e");
-        }
-      });
-
-      return const Right("تم الحذف");
-    } catch (localError) {
-      print("❌ Local Delete Critical Error: $localError");
-      return Left(CacheFailure("فشل عملية الحذف محلياً"));
-    }
-  }
-
-  // ========================= SYNC ENGINE =========================
-  @override
-  Future<Either<Failure, Unit>> syncPendingTags() async {
-    try {
-      final allLocal = await tagLocalDatasource.getMyTags();
-
-      final pending = allLocal
-          .where((t) => !t.isSynced || t.localId == "REMOVE")
-          .toList();
-
-      print("🔄 Sync Engine: Found ${pending.length} pending tags");
-
-      for (var tag in pending) {
-        try {
-          if (tag.localId == "REMOVE") {
-            if (tag.id != null && tag.id != -1) {
-              await tagRemoteDatasource.deleteTag(tag.id!);
-            }
-
-            await tagLocalDatasource.deleteTagLocally(tag);
-
-            print("📤 Synced: DELETED Tag ${tag.id}");
-            continue;
-          }
-
-          if (tag.id != null && tag.id != -1) {
-            final remote = await tagRemoteDatasource.updateTag(tag);
-
-            if (remote != null) {
-              remote.isSynced = true;
-              await tagLocalDatasource.updateTagLocally(remote);
-
-              print("📤 Synced: UPDATED ${tag.id}");
-            }
-          } else {
-            final remote = await tagRemoteDatasource.addTag(tag);
-
-            if (remote != null) {
-              remote.isSynced = true;
-
-              await tagLocalDatasource.updateTagLocally(remote);
-
-              print("📤 Synced: CREATED Tag ${remote.id}");
-            }
-          }
-        } catch (e) {
-          print("⚠️ Sync Error for Tag: $e");
-          continue;
-        }
+      if (await network.isConnected) {
+        await _syncItemSafe(localTag);
       }
 
       return const Right(unit);
     } catch (e) {
-      print("❌ Global Tag Sync Failure: $e");
-      return Left(ServerFailure("خطأ غير متوقع أثناء المزامنة"));
+      return Left(CacheFailure("فشل التحديث"));
     }
   }
 
-  // ========================= LOCAL FALLBACK =========================
-  Future<Either<Failure, PagedResponse<TagModel>>> _getLocalPagedResponse(
+  // =========================
+  // DELETE
+  // =========================
+  @override
+  Future<Either<Failure, String>> deleteTag(TagEntity tag) async {
+    try {
+      final localTag = await local.getTag(tag.localId);
+      if (localTag == null) return Left(CacheFailure("الوسم غير موجود"));
+
+      localTag
+        ..isDeleted = true
+        ..updatedAt = DateTime.now()
+        ..isSynced = false;
+
+      await local.updateTagLocally(localTag);
+
+      if (await network.isConnected) {
+        await _syncItemSafe(localTag);
+      }
+
+      return const Right("تم الحذف محلياً");
+    } catch (e) {
+      return Left(CacheFailure("فشل الحذف"));
+    }
+  }
+
+  // =========================
+  // GET (FETCH + BACKGROUND SYNC)
+  // =========================
+  @override
+  Future<Either<Failure, PagedResponse<TagEntity>>> getMyTags(
     PageRequest page,
   ) async {
     try {
-      final all = await tagLocalDatasource.getMyTags();
+      // 1. جلب البيانات المحلية فوراً
+      final localData = await local.getMyTags();
 
-      final filtered = all
-          .where((t) => t.localId != "REMOVE")
-          .toList()
-          .reversed
-          .toList();
+      // 2. المزامنة في الخلفية (بدون await) للعناصر غير المتزامنة
+      if (await network.isConnected) {
+        _performBackgroundSync(localData);
+      }
 
-      final start = (page.pageNumber - 1) * page.pageSize;
-      final totalPages = (filtered.length / page.pageSize).ceil();
-
-      if (start >= filtered.length) {
-        return Right(
-          PagedResponse(
-            data: [],
-            totalRecords: filtered.length,
-            pageNumber: page.pageNumber,
-            pageSize: page.pageSize,
-            totalPages: totalPages,
+      // 3. معالجة البيانات للعرض
+      final filtered = localData.where((e) => !e.isDeleted).toList()
+        ..sort(
+          (a, b) => (b.createdAt ?? DateTime.now()).compareTo(
+            a.createdAt ?? DateTime.now(),
           ),
         );
-      }
 
-      final end = start + page.pageSize;
-
-      final sliced = filtered.sublist(
-        start,
-        end > filtered.length ? filtered.length : end,
-      );
-
-      print("📦 Local Tags Loaded: ${sliced.length} items");
+      // 4. Pagination
+      final start = (page.pageNumber - 1) * page.pageSize;
+      final end = (start + page.pageSize).clamp(0, filtered.length);
+      final slice = start >= filtered.length
+          ? <TagModel>[]
+          : filtered.sublist(start, end);
 
       return Right(
         PagedResponse(
-          data: sliced,
+          data: slice.map((e) => e.toEntity()).toList(),
           totalRecords: filtered.length,
           pageNumber: page.pageNumber,
           pageSize: page.pageSize,
-          totalPages: totalPages,
+          totalPages: (filtered.length / page.pageSize).ceil(),
         ),
       );
     } catch (e) {
-      return Left(CacheFailure("خطأ في قراءة البيانات المحلية"));
+      return Left(CacheFailure("فشل جلب البيانات"));
     }
   }
 
-  // ========================= SAFE REMOTE =========================
-  Future<void> _safeRemoteCall(Future<dynamic> Function() call) async {
+  // =========================
+  // CORE SYNC LOGIC
+  // =========================
+
+  void _performBackgroundSync(List<TagModel> items) {
+    for (final item in items) {
+      if (!item.isSynced) {
+        _syncItemSafe(item).catchError((e) => debugPrint("Sync Error: $e"));
+      }
+    }
+  }
+
+  Future<void> _syncItemSafe(TagModel item) async {
     try {
-      await call();
+      // حالة الحذف
+      if (item.isDeleted) {
+        if (item.id != null) {
+          await remote.deleteTag(item.id!);
+        }
+        await local.deleteTagLocally(item);
+        return;
+      }
+
+      // حالة الإضافة (إذا لم يكن هناك ID من السيرفر)
+      if (item.id == null || item.id == -1) {
+        final res = await remote.addTag(item);
+        if (res != null) {
+          item.id = res.id;
+        }
+      }
+      // حالة التحديث
+      else {
+        await remote.updateTag(item);
+      }
+
+      // تحديث الحالة لمتزامن
+      item
+        ..isSynced = true
+        ..syncAttempts = 0;
+
+      await local.updateTagLocally(item);
     } catch (e) {
-      debugPrint("📢 Tag Background Sync Info: $e");
+      item.syncAttempts += 1;
+      // التوقف عن المحاولة بعد 5 مرات (تعتبر متزامنة وهمياً لمنع الـ Loop)
+      if (item.syncAttempts > 5) {
+        item.isSynced = true;
+      }
+      await local.updateTagLocally(item);
     }
   }
 }

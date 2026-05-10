@@ -1,6 +1,7 @@
 // // تعليق: تنفيذ مستودع المستخدم - تم التحديث ليتوافق مع أخطاء حزمة http بدلاً من Dio
 import 'dart:async';
 import 'dart:io';
+
 import 'package:dartz/dartz.dart';
 import 'package:spendwise/core/error/failure.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
@@ -86,7 +87,10 @@ class UserRepositoryImpl implements UserRepository {
   Future<Either<Failure, int>> getUserId() async {
     try {
       final id = await appUserLocalDatasource.getUserId();
-      return Right(id);
+      if (id != null) {
+        return Right(id);
+      }
+      return Left(CacheFailure("لا يوجد مستخدم مسجل حالياً"));
     } catch (e) {
       return Left(CacheFailure("فشل في الحصول على معرف المستخدم"));
     }

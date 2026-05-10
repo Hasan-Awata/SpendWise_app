@@ -1,11 +1,12 @@
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:isar/isar.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource_impl.dart';
-import 'package:spendwise/features/auth/domain/repositories/user_repository.dart';
 import 'package:spendwise/features/auth/data/repositories/user_repository_impl.dart';
+import 'package:spendwise/features/auth/domain/repositories/user_repository.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_usecase.dart';
@@ -23,8 +24,11 @@ class AuthBinding extends Bindings {
 
   @override
   void dependencies() {
+    Get.put(Isar, permanent: true);
     if (!Get.isRegistered<AppUserLocalDatasource>()) {
-      Get.lazyPut<AppUserLocalDatasource>(() => AppUserLocalDatasourceImpl());
+      Get.lazyPut<AppUserLocalDatasource>(
+        () => AppUserLocalDatasourceImpl(Get.find<Isar>()),
+      );
     }
     if (!Get.isRegistered<AppUserRemoteDatasource>()) {
       Get.lazyPut<AppUserRemoteDatasource>(
@@ -49,10 +53,10 @@ class AuthBinding extends Bindings {
       Get.lazyPut(() => LogoutUsecase(Get.find<UserRepository>()));
     }
     if (!Get.isRegistered<GetUserUsecase>()) {
-      Get.lazyPut(() => GetUserUsecase(Get.find<UserRepository>()));
+      Get.put(GetUserUsecase(Get.find<UserRepository>()), permanent: true);
     }
     if (!Get.isRegistered<GetUserIdUsecase>()) {
-      Get.lazyPut(() => GetUserIdUsecase(Get.find<UserRepository>()));
+      Get.put(GetUserIdUsecase(Get.find<UserRepository>()), permanent: true);
     }
 
     if (!Get.isRegistered<AuthSessionController>()) {

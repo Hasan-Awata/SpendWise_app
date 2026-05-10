@@ -1,7 +1,6 @@
 // // تعليق: إنشاء حساب فقط
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/core/services/shared_service.dart';
 import 'package:spendwise/features/auth/domain/usecases/signup_params.dart';
 import 'package:spendwise/features/auth/domain/usecases/signup_usecase.dart';
 import 'package:spendwise/features/auth/presentation/manager/auth_session_controller.dart';
@@ -47,10 +46,6 @@ class SignUpController extends GetxController {
         },
         (user) async {
           Get.find<AuthSessionController>().currentUser.value = user;
-          final prefs = Get.find<SharedPreferencesService>();
-
-          await prefs.setLoggedIn(true);
-          await prefs.setToken(user.token);
 
           HelperFunction.showSnackBar(
             "Success",

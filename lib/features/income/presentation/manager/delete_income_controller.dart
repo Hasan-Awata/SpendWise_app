@@ -1,7 +1,6 @@
-// // تعليق: حذف دخل — جاهز لاستدعاء من قائمة الدخل لاحقاً
 import 'package:get/get.dart';
 import 'package:spendwise/features/helper_function.dart';
-import 'package:spendwise/features/income/data/models/income_model.dart';
+import 'package:spendwise/features/income/domain/entities/income_entity.dart';
 import 'package:spendwise/features/income/domain/usecases/delete_income_usecase.dart';
 import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
 
@@ -14,26 +13,57 @@ class DeleteIncomeController extends GetxController {
   final DeleteIncomeUseCase deleteIncomeUseCase;
   final IncomesListController incomesListController;
 
-  final isLoadingDelete = false.obs;
+  // ==========================
+  // States
+  // ==========================
 
-  Future<void> deleteIncome(IncomeModel incomeDelete) async {
-    isLoadingDelete.value = true;
+  final RxBool isLoadingDelete = false.obs;
 
-    final result = await deleteIncomeUseCase.call(incomeDelete);
+  // ==========================
+  // Delete Income
+  // ==========================
 
-    result.fold((failure) => _handleError("فشل الحذف", failure.message), (_) {
-      incomesListController.incomesList.removeWhere(
-        (e) => e.localId == incomeDelete.localId,
+  Future<void> deleteIncome(IncomeEntity income) async {
+    if (isLoadingDelete.value) return;
+
+    try {
+      isLoadingDelete.value = true;
+
+      final result = await deleteIncomeUseCase.call(income);
+
+      result.fold(
+        (failure) {
+          _handleError("فشل الحذف", failure.message);
+        },
+        (_) {
+          // حذف ذكي من الواجهة مباشرة بدون reload
+
+          incomesListController.incomesList.removeWhere(
+            (e) =>
+                e.localId == income.localId ||
+                (e.id != null && e.id == income.id),
+          );
+
+          incomesListController.incomesList.refresh();
+
+          // تحديث الإحصائيات
+
+          incomesListController.calculateTotals();
+
+          Get.back();
+          HelperFunction.showSnackBar("تم الحذف", "تم حذف سجل الدخل بنجاح");
+        },
       );
-      incomesListController.calculateTotals();
-
-      if (Get.isOverlaysOpen) {
-        Get.back();
-      }
-    });
-
-    isLoadingDelete.value = false;
+    } catch (e) {
+      _handleError("خطأ", e.toString());
+    } finally {
+      isLoadingDelete.value = false;
+    }
   }
+
+  // ==========================
+  // Error Handler
+  // ==========================
 
   void _handleError(String title, String message) {
     HelperFunction.showSnackBar(title, message, isError: true);

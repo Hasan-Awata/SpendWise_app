@@ -1,19 +1,22 @@
-import 'package:hive/hive.dart';
-import 'expense_model.dart';
+// import 'package:hive/hive.dart';
 
-class ExpenseAdapter extends TypeAdapter<ExpenseModel> {
-  @override
-  final typeId = 6;
+// import 'expense_model.dart';
 
-  @override
-  ExpenseModel read(BinaryReader reader) {
-    // قراءة البيانات كـ Map وتحويلها لموديل
-    return ExpenseModel.fromLocal(reader.read());
-  }
+// class ExpenseAdapter extends TypeAdapter<ExpenseModel> {
+//   @override
+//   final typeId = 6;
 
-  @override
-  void write(BinaryWriter writer, ExpenseModel obj) {
-    // تحويل الموديل لـ Map وحفظه
-    writer.write(obj.toLocal());
-  }
-}
+//   @override
+//   ExpenseModel read(BinaryReader reader) {
+//     // قراءة البيانات كـ Map وتحويلها لموديل
+//     throw UnimplementedError(
+//       "ExpenseAdapter read method is not implemented yet.",
+//     );
+//   }
+
+//   @override
+//   void write(BinaryWriter writer, ExpenseModel obj) {
+//     // تحويل الموديل لـ Map وحفظه
+//     // writer.write(obj.toLocal());
+//   }
+// }

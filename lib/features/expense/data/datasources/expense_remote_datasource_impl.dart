@@ -1,14 +1,7 @@
-/*
-  Implementation for ExpenseRemoteDataSource using http with explicit logging.
-  تأكد من مطابقة الروابط مع الـ Backend (UserId في المسار أم كـ Query Parameter)
-*/
-
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
-import 'package:spendwise/core/utils/current_user.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/expense/data/datasources/expense_remote_datasource.dart';
 import 'package:spendwise/features/expense/data/models/expense_model.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
@@ -18,34 +11,21 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
   final http.Client client;
   ExpenseRemoteDataSourceImpl({required this.client});
 
-  // دالة موحدة لجلب التوكن وتجهيز الـ Headers
-  Future<Map<String, String>> _getHeaders() async {
-    final user = await AppUserLocalDatasourceImpl().getUser();
-    final String token = user?.token ?? CurrentUser.token;
-
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   @override
   Future<PagedResponse<ExpenseModel>> getMyExpenses(
     int userId,
     PageRequest page,
   ) async {
     // بناء الرابط مع الـ Query Parameters يدوياً في http
-    final url =
-        Uri.parse(
-          "${ApiEndpoints.baseUrl}${ApiEndpoints.expense}/$userId",
-        ).replace(
+    final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.expense}")
+        .replace(
           queryParameters: {
             'PageNumber': page.pageNumber.toString(),
             'PageSize': page.pageSize.toString(),
           },
         );
 
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
     print("Fetching Expenses for user $userId from: $url");
 
     final response = await client.get(url, headers: headers);
@@ -67,7 +47,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
   @override
   Future<ExpenseModel> addExpense(ExpenseModel expense) async {
     final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.expense}");
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
     final body = jsonEncode(expense.toJson());
 
     print("Sending Expense JSON: $body to $url");
@@ -84,11 +64,11 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
   }
 
   @override
-  Future<ExpenseModel> updateExpense(ExpenseModel expense) async {
+  Future<ExpenseModel?> updateExpense(ExpenseModel expense) async {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.expense}/${expense.id}",
     );
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
     final body = jsonEncode(expense.toJson());
 
     print("Updating Expense ${expense.id} at: $url");
@@ -111,7 +91,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.expense}/${expense.id}",
     );
-    final headers = await _getHeaders();
+    final headers = await ApiEndpoints().getHeaders();
 
     print("Deleting Expense ID: ${expense.id} from: $url");
 

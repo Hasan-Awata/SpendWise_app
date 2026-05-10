@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
+import 'package:spendwise/core/utils/current_user.dart';
 
 class SPAppbar extends StatelessWidget implements PreferredSizeWidget {
   const SPAppbar({super.key});
@@ -46,7 +46,7 @@ class SPAppbar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.notifications_outlined),
           onPressed: () async {
-            final user = await AppUserLocalDatasourceImpl().getUser();
+            final user = CurrentUser.user;
 
             if (user == null) {
               Get.snackbar(

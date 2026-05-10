@@ -3,13 +3,13 @@ import 'package:spendwise/features/expense/presentation/manager/expense_list_con
 import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart'
     show IncomesListController;
 import 'package:spendwise/features/savings_goals/presentation/manager/saving_goal_lis_controller.dart';
-import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class MainController extends GetxController {
   static MainController get instance => Get.find<MainController>();
 
-  final Rxn<WalletModel> selectWallet = Rxn<WalletModel>();
+  final Rxn<WalletEntity> selectWallet = Rxn<WalletEntity>();
   final RxBool showAll = false.obs;
   final RxInt currentIndex = 0.obs;
   RxBool isLoading = false.obs;

@@ -1,22 +1,30 @@
+import 'package:isar/isar.dart';
 import 'package:uuid/uuid.dart';
 
+part 'category_model.g.dart';
+
+@collection
 class CategoryModel {
-  final String localId; // المعرف المحلي الفريد لضمان العمل Offline
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true)
+  String localId; // المعرف المحلي الفريد لضمان العمل Offline
+  @Index()
   int? categoryId; // المعرف القادم من الباك إند (CategoryId)
   String name; // اسم التصنيف (Name)
   final int priority; // الأولوية (Priority من 1 إلى 4)
 
   CategoryModel({
-    String? localId,
+    String? localIdUid,
     this.categoryId = 1, // القيمة الافتراضية كما ذكرت في الباك إند
     required this.name,
     required this.priority,
-  }) : localId = localId ?? const Uuid().v4();
+  }) : localId = localIdUid ?? const Uuid().v4();
 
   // // Logic: دالة copyWith للحفاظ على الـ Immutability وتعديل البيانات
   CategoryModel copyWith({String? name, int? priority, int? categoryId}) {
     return CategoryModel(
-      localId: this.localId,
+      localIdUid: localId,
       name: name ?? this.name,
       priority: priority ?? this.priority,
       categoryId: categoryId ?? this.categoryId,
@@ -27,7 +35,7 @@ class CategoryModel {
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
       // نتحقق من وجود المعرف المحلي، إذا لم يوجد نولد واحد جديد
-      localId: json['localId'],
+      localIdUid: json['localId'],
       categoryId: json['categoryId'] ?? -1,
       name: json['name'] ?? '',
       priority: json['priority'] ?? 1,

@@ -83,10 +83,10 @@ class AppPages {
       name: Routes.MAIN_SCREEN,
       page: () => const MainScreen(),
       bindings: [
+        MainBinding(),
         WalletBinding(),
         TagBinding(),
         IncomeBinding(),
-        MainBinding(),
         ExpenseBinding(),
         SavingGoalBinding(),
       ],
@@ -122,7 +122,7 @@ class AppPages {
     ),
     GetPage(
       name: Routes.ADD_TAG,
-      page: () => AddtagPage(),
+      page: () => AddTagPage(),
       binding: TagBinding(),
     ),
 

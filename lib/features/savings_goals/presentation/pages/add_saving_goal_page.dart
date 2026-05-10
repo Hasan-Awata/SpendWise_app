@@ -12,74 +12,108 @@ class AddSavingGoalPage extends GetView<SavingGoalActionController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SpColor.primaryDark2,
+      backgroundColor: const Color(0xFF0B121E),
+
+      // ================= APP BAR =================
       appBar: AppBar(
-        backgroundColor: SpColor.primaryDark2,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          'هدف ادخار جديد',
-          style: TextStyle(
-            color: Colors.amberAccent,
-            fontWeight: FontWeight.bold,
-          ),
+          'هدف ادخاري جديد',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        // // تعليق: زر ينقل المستخدم إلى قائمة الأهداف المحفوظة في يسار الـ AppBar
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(
-              Icons.account_balance_wallet_outlined,
-              color: Colors.amberAccent,
+              Icons.list_alt_rounded,
+              color: SpColor.savinggoalColor,
             ),
             onPressed: () => Get.toNamed(Routes.GOAL_LIST),
           ),
-          const SizedBox(width: 8),
         ],
-        iconTheme: const IconThemeData(color: Colors.amberAccent),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(22.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CustomTextField(
-                label: 'اسم الهدف',
-                hint: 'مثال: شراء سيارة جديدة',
-                prefixIcon: const Icon(Icons.flag_rounded),
-                textEditingController: controller.titleController,
-                textColor: Colors.amberAccent.withAlpha(160),
+
+      // ================= BODY =================
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+
+            // ================= CARD =================
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF162030),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              CustomTextField(
-                label: 'المبلغ المستهدف',
-                hint: '0.00',
-                isNumber: true,
-                prefixIcon: const Icon(Icons.ads_click),
-                textEditingController: controller.targetAmountController,
-                textColor: Colors.amberAccent.withAlpha(160),
+              child: Column(
+                children: [
+                  // TITLE
+                  CustomTextField(
+                    label: 'اسم الهدف',
+                    hint: 'مثال: شراء سيارة جديدة',
+                    prefixIcon: const Icon(Icons.flag_rounded),
+                    textEditingController: controller.titleController,
+                    textColor: Colors.white70,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // TARGET
+                  CustomTextField(
+                    label: 'المبلغ المستهدف',
+                    hint: '0.00',
+                    isNumber: true,
+                    prefixIcon: const Icon(Icons.flag_circle_outlined),
+                    textEditingController: controller.targetAmountController,
+                    textColor: Colors.white70,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // CURRENT
+                  CustomTextField(
+                    label: 'المبلغ المتوفر (اختياري)',
+                    hint: '0.00',
+                    isNumber: true,
+                    prefixIcon: const Icon(Icons.savings_outlined),
+                    textEditingController: controller.currentAmountController,
+                    textColor: Colors.white70,
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              CustomTextField(
-                label: 'المبلغ المتوفر حالياً (اختياري)',
-                hint: '0.00',
-                isNumber: true,
-                prefixIcon: const Icon(Icons.savings_outlined),
-                textEditingController: controller.currentAmountController,
-                textColor: Colors.amberAccent.withAlpha(160),
-              ),
-              const SizedBox(height: 32),
-              // // تعليق: زر الحفظ مع حالة التحميل لضمان تجربة مستخدم سلسة
-              Obx(
-                () => CustomButton(
+            ),
+
+            const SizedBox(height: 24),
+
+            // ================= BUTTON =================
+            Obx(
+              () => SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: CustomButton(
                   text: controller.isActionLoading.value
                       ? "جاري الحفظ..."
                       : "حفظ الهدف",
                   onPressed: () => controller.addSavingGoal(),
-                  color: Colors.amberAccent.withAlpha(195),
+                  color: SpColor.savinggoalColor,
                 ),
               ),
-            ],
-          ),
+            ),
+
+            const SizedBox(height: 10),
+          ],
         ),
       ),
     );

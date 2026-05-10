@@ -1,125 +1,211 @@
-// [The following code ensures the controller handles local and remote data without loss]
-
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
-import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:spendwise/features/wallet/domain/usecases/get_all_wallets_local_usecase.dart';
 import 'package:spendwise/features/wallet/domain/usecases/get_wallets_usecase.dart';
-import 'package:spendwise/features/wallet/domain/usecases/sync_wallets_usecase.dart';
 
 class WalletsListController extends GetxController {
-  final SyncWalletsUseCase syncWalletsUseCase;
-  final GetMyWalletsUseCase getMyWalletsUseCase;
-  final GetAllWalletsLocalUseCase getAllWalletsLocalUseCase;
-
   WalletsListController({
     required this.getMyWalletsUseCase,
-    required this.syncWalletsUseCase,
-    required this.getAllWalletsLocalUseCase,
+    required this.getAllLocalWalletsUseCase,
   });
 
-  final wallets = <WalletModel>[].obs;
-  final isLoading = false.obs;
-  final totalBalance = 0.0.obs;
-  final ScrollController scrollController = ScrollController();
+  final GetMyWalletsUseCase getMyWalletsUseCase;
+  final GetAllWalletsLocalUseCase getAllLocalWalletsUseCase;
 
-  int currentPage = 1;
-  bool hasMore = true;
+  final RxList<WalletEntity> wallets = <WalletEntity>[].obs;
+  final isLoading = false.obs;
+  final isRefreshing = false.obs;
+  final isLoadingMore = false.obs;
+  final hasMoreData = true.obs;
+  final errorMessage = ''.obs;
+
+  final ScrollController scrollController = ScrollController();
+  final currentPage = 1.obs;
   final int pageSize = 20;
+
+  // قفل لمنع استدعاء الدالة أكثر من مرة في نفس الوقت
+  bool _isProcessing = false;
 
   @override
   void onInit() {
     super.onInit();
     scrollController.addListener(_scrollListener);
+    loadWallets(isRefresh: true);
   }
 
   void _scrollListener() {
-    if (scrollController.position.pixels >=
-        scrollController.position.maxScrollExtent * 0.8) {
-      if (!isLoading.value && hasMore) {
-        loadWallets(isRefresh: false);
+    if (!scrollController.hasClients || _isProcessing) return;
+
+    final position = scrollController.position;
+    // التحقق من الوصول للنهاية بمسافة 100 بكسل (أدق من النسبة المئوية)
+    if (position.pixels >= position.maxScrollExtent - 100) {
+      if (!isLoading.value && !isLoadingMore.value && hasMoreData.value) {
+        loadWallets();
       }
     }
   }
 
-  Future<void> loadWallets({bool isRefresh = false}) async {
-    if (isLoading.value || (!hasMore && !isRefresh)) return;
+  // =========================
+  // LOAD
+  // =========================
 
+  Future<void> loadWallets({bool isRefresh = false}) async {
+    // منع الدخول إذا كان هناك عملية جارية
+    if (_isProcessing) return;
+
+    if (!isRefresh && !hasMoreData.value) return;
+
+    _isProcessing = true;
     try {
-      isLoading.value = true;
+      errorMessage.value = '';
 
       if (isRefresh) {
-        currentPage = 1;
-        hasMore = true;
+        isRefreshing.value = true;
+        currentPage.value = 1;
+        hasMoreData.value = true;
+      } else {
+        isLoadingMore.value = true;
       }
 
+      if (wallets.isEmpty && isRefresh) isLoading.value = true;
+
       final result = await getMyWalletsUseCase.call(
-        PageRequest(pageNumber: currentPage, pageSize: pageSize),
+        PageRequest(pageNumber: currentPage.value, pageSize: pageSize),
       );
 
       result.fold(
         (failure) {
-          HelperFunction.showSnackBar("تنبيه", failure.message, isError: true);
-          // في حال فشل السيرفر، نحاول التحديث من البيانات المحلية كخيار أخير
-          _refreshLocalData();
+          errorMessage.value = failure.message;
+          if (wallets.isEmpty) _loadLocalFallback(isRefresh);
         },
         (pagedResponse) {
-          final newItems = pagedResponse.data;
-          for (int i = 0; i < newItems.length; i++) {
-            print("items   sssssss ${newItems[i]}");
-          }
+          final fetchedItems = pagedResponse.data
+              .where((e) => !e.isDeleted)
+              .toList();
+
           if (isRefresh) {
-            // تحديث القائمة بالكامل بالبيانات الجديدة (سواء كانت كاش أو سيرفر)
-            wallets.assignAll(newItems.reversed);
+            wallets.assignAll(fetchedItems);
           } else {
-            // إضافة العناصر الجديدة مع فحص دقيق جداً للتكرار
-            for (var newItem in newItems) {
-              bool isDuplicate = wallets.any(
-                (existing) =>
-                    (newItem.walletId != null &&
-                        existing.walletId == newItem.walletId) ||
-                    (existing.localId == newItem.localId),
-              );
-
-              if (!isDuplicate) {
-                wallets.add(newItem);
-              }
-            }
+            _mergeWallets(fetchedItems);
           }
 
-          if (newItems.length < pageSize) {
-            hasMore = false;
+          // ترتيب نهائي لضمان صحة العرض
+          wallets.sort(
+            (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
+              a.createdAt ?? DateTime(0),
+            ),
+          );
+
+          // تحديث الصفحة التالية
+          if (fetchedItems.length < pageSize) {
+            hasMoreData.value = false;
           } else {
-            currentPage++;
+            currentPage.value++;
           }
         },
       );
     } finally {
       isLoading.value = false;
+      isRefreshing.value = false;
+      isLoadingMore.value = false;
+      _isProcessing = false; // فتح القفل
+    }
+  }
+  // =========================
+  // LOCAL FALLBACK
+  // =========================
+
+  Future<void> _loadLocalFallback(bool isRefresh) async {
+    final result = await getAllLocalWalletsUseCase.call();
+
+    result.fold((_) {}, (localWallets) {
+      final filtered = localWallets.where((e) => !e.isDeleted).toList();
+
+      if (isRefresh) {
+        wallets.assignAll(filtered);
+      } else {
+        _mergeWallets(filtered);
+      }
+
+      wallets.sort(
+        (a, b) =>
+            (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
+      );
+      HelperFunction.showSnackBar("نجاح", "تمت العملية");
+    });
+  }
+
+  // =========================
+  // SMART MERGE
+  // =========================
+
+  void _mergeWallets(List<WalletEntity> newItems) {
+    final Set<String> existingIds = wallets.map((e) => e.localId).toSet();
+    final List<WalletEntity> uniqueItems = newItems
+        .where((item) => !existingIds.contains(item.localId))
+        .toList();
+
+    if (uniqueItems.isNotEmpty) {
+      wallets.addAll(uniqueItems);
     }
   }
 
-  // دالة لجلب كل البيانات المحلية الصافية (تُستخدم كـ Fallback)
-  Future<void> _refreshLocalData() async {
-    final result = await getAllWalletsLocalUseCase.call();
-    result.fold((failure) => print("❌ Local Refresh Failed"), (localWallets) {
-      if (localWallets.isNotEmpty) {
-        wallets.assignAll(localWallets);
-      }
-    });
+  // =========================
+  // LOCAL UI UPDATE
+  // =========================
+
+  void addWalletLocally(WalletEntity wallet) {
+    wallets.insert(0, wallet);
+
+    wallets.refresh();
   }
 
-  void runBackgroundSync() {
-    syncWalletsUseCase.call().then((result) {
-      result.fold((l) => print("⚠️ Sync Error"), (r) => _refreshLocalData());
-    });
+  void updateWalletLocally(WalletEntity updatedWallet) {
+    final index = wallets.indexWhere((e) => e.localId == updatedWallet.localId);
+
+    if (index == -1) {
+      return;
+    }
+
+    wallets[index] = updatedWallet;
+
+    wallets.refresh();
   }
 
-  @override
-  void onClose() {
-    scrollController.dispose();
-    super.onClose();
+  void deleteWalletLocally(String localId) {
+    wallets.removeWhere((e) => e.localId == localId);
+
+    wallets.refresh();
+  }
+
+  // =========================
+  // SYNC
+  // =========================
+
+  // Future<void> runBackgroundSync() async {
+  //   final result = await syncWalletsUseCase.call();
+
+  //   result.fold((_) {}, (_) async {
+  //     await loadWallets(isRefresh: true);
+  //   });
+  // }
+
+  // =========================
+  // REFRESH
+  // =========================
+
+  Future<void> refreshWallets() async {
+    await loadWallets(isRefresh: true);
+  }
+
+  // =========================
+  // RETRY
+  // =========================
+
+  Future<void> retry() async {
+    await loadWallets(isRefresh: true);
   }
 }

@@ -1,55 +1,46 @@
-// // تعليق: مصدر بيانات الأوسمة المحلي يعتمد الآن على مفتاح واحد لتخزين مصفوفة كاملة
-import 'package:hive/hive.dart';
+import 'package:isar/isar.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_local_datasource.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
 
 class TagLocalDatasourceImpl implements TagLocalDatasource {
-  static final TagLocalDatasourceImpl _instance =
-      TagLocalDatasourceImpl._internal();
-  factory TagLocalDatasourceImpl() => _instance;
-  TagLocalDatasourceImpl._internal();
+  final Isar isar;
 
-  static const String _boxName = "TAG_BOX";
-  static const String _tagKey = "tag_list_key"; // المفتاح الوحيد للمصفوفة
-
-  late Box _box;
-
-  @override
-  Future<void> init() async {
-    try {
-      if (!Hive.isBoxOpen(_boxName)) {
-        _box = await Hive.openBox(_boxName);
-      } else {
-        _box = Hive.box(_boxName);
-      }
-    } catch (e) {
-      rethrow;
-    }
-  }
+  TagLocalDatasourceImpl(this.isar);
 
   @override
   Future<List<TagModel>> getMyTags() async {
     try {
-      final data = _box.get(_tagKey);
-      if (data == null) return [];
-      // تحويل البيانات من النوع الديناميكي إلى قائمة موديلات
-      return List<TagModel>.from(data);
+      // جلب كافة الأوسمة من جدول TagModel
+      return await isar.tagModels.where().findAll();
     } catch (e) {
       return <TagModel>[];
     }
   }
 
   @override
+  Future<TagModel?> getTag(String localId) async {
+    return await isar.tagModels.filter().localIdEqualTo(localId).findFirst();
+  }
+
+  @override
   Future<TagModel?> addTagLocally(TagModel? tag) async {
     if (tag == null) return null;
     try {
-      final tags = await getMyTags();
-      // منع تكرار الوسم بنفس الاسم محلياً
-      if (tags.any((t) => t.name.toLowerCase() == tag.name.toLowerCase())) {
+      // التحقق من تكرار الاسم باستخدام استعلام Isar (أسرع من الفلترة اليدوية)
+      final existingTag = await isar.tagModels
+          .filter()
+          .nameEqualTo(tag.name, caseSensitive: false)
+          .findFirst();
+
+      if (existingTag != null) {
         throw Exception("هذا الوسم موجود بالفعل");
       }
-      final newTags = List<TagModel>.from(tags)..add(tag);
-      await _box.put(_tagKey, newTags);
+
+      // حفظ الوسم في قاعدة البيانات
+      await isar.writeTxn(() async {
+        await isar.tagModels.put(tag);
+      });
+
       return tag;
     } catch (e) {
       rethrow;
@@ -59,13 +50,10 @@ class TagLocalDatasourceImpl implements TagLocalDatasource {
   @override
   Future<void> updateTagLocally(TagModel tag) async {
     try {
-      List<TagModel> tags = await getMyTags();
-      int index = tags.indexWhere((t) => t.localId == tag.localId);
-
-      if (index != -1) {
-        tags[index] = tag;
-        await _box.put(_tagKey, tags);
-      }
+      await isar.writeTxn(() async {
+        // Isar سيقوم بالتحديث تلقائياً لأن isarId (المشتق من localId) سيكون متطابقاً
+        await isar.tagModels.put(tag);
+      });
     } catch (e) {
       rethrow;
     }
@@ -74,10 +62,10 @@ class TagLocalDatasourceImpl implements TagLocalDatasource {
   @override
   Future<void> deleteTagLocally(TagModel tag) async {
     try {
-      List<TagModel> tags = await getMyTags();
-      // الحذف باستخدام localId لضمان الدقة قبل المزامنة
-      tags.removeWhere((t) => t.localId == tag.localId);
-      await _box.put(_tagKey, tags);
+      await isar.writeTxn(() async {
+        // الحذف باستخدام الـ isarId الفريد
+        await isar.tagModels.delete(tag.isarId);
+      });
     } catch (e) {
       rethrow;
     }
@@ -85,16 +73,16 @@ class TagLocalDatasourceImpl implements TagLocalDatasource {
 
   @override
   Future<List<TagModel>> getUnsyncedTags() async {
-    final allTags = await getMyTags();
-    return allTags.where((tag) => tag.isSynced == false).toList();
+    // استعلام مباشر لجلب الأوسمة غير المتزامنة
+    return await isar.tagModels.filter().isSyncedEqualTo(false).findAll();
   }
 
   @override
   Future<void> clear() async {
     try {
-      await _box.delete(
-        _tagKey,
-      ); // حذف المفتاح بالكامل أسرع من وضع مصفوفة فارغة
+      await isar.writeTxn(() async {
+        await isar.tagModels.clear();
+      });
     } catch (e) {
       rethrow;
     }
