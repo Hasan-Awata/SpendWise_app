@@ -2,13 +2,14 @@
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.Category;
 using SpendWise.Application.Interfaces.Categories;
+using System.Diagnostics;
 using System.Security.Claims;
 
 namespace SpendWise.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/categories/budgets")] 
+    [Route("api/categories/")] 
     public class CategoryBudgetController : ControllerBase
     {
         private readonly ICategoryBudgetService _budgetService;
@@ -51,8 +52,9 @@ namespace SpendWise.Controllers
         {
             if (budgetDto.UserId != CurrentUserId) return Unauthorized();
 
-            var budgetId = await _budgetService.SetCategoryBudgetAsync(budgetDto);
-            return budgetId <= 0 ? BadRequest() : CreatedAtAction(nameof(GetBudgetById), new { budgetId = budgetId }, budgetId);
+            var createdBudget = await _budgetService.SetCategoryBudgetAsync(budgetDto);
+
+            return createdBudget == null ? BadRequest() : CreatedAtAction(nameof(GetBudgetById), new { categoryId = budgetDto.CategoryId}, createdBudget);
         }
 
         [HttpPatch("{categoryId}")] 

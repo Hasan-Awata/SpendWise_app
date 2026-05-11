@@ -12,7 +12,7 @@ namespace SpendWise.Application.Interfaces.Categories
 
         public Task<CategoryBudgetResponse?> GetCategoryBudgetAsync(int userId, int categoryId);
 
-        public Task<int> SetCategoryBudgetAsync(CategoryBudgetDTO budgetDto);
+        public Task<CategoryBudgetResponse?> SetCategoryBudgetAsync(CategoryBudgetDTO budgetDto);
 
         public Task<bool> UpdateCategoryBudgetAsync(CategoryBudgetDTO budgetDto);
 

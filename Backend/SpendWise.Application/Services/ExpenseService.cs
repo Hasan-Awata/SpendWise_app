@@ -45,7 +45,7 @@ namespace SpendWise.Application.Services
             {
                 ExpenseId = expense.ExpenseId,
                 UserId = expense.UserId,
-                Title = "Added expense",
+                Title = expense.LinkedTransaction.Title,
                 Amount = expense.Amount,
                 Date = expense.Date,
                 Products = expense.Products,
@@ -63,7 +63,7 @@ namespace SpendWise.Application.Services
             {
                 ExpenseId = item.ExpenseId,
                 UserId = item.UserId,
-                Title = "Added expense",
+                Title = item.LinkedTransaction.Title,
                 Amount = item.Amount,
                 Date = item.Date,
                 Products = item.Products,
@@ -119,14 +119,14 @@ namespace SpendWise.Application.Services
                 UserId = expenseDto.UserId,
                 Expense = newExpense,
                 Description = expenseDto.Description,
-                Title = "Added Expense",
+                Title = expenseDto.Title,
                 TransactionType = enTransactionType.Dedduction,
                 Amount = expenseDto.Amount,
                 AmountInSp = amountInSp,
-                TransactionCategoryId = newExpense.CategoryId,
-                TransactionDate = newExpense.Date,
-                WalletId = newExpense.WalletId,
-                TransactionTagId = newExpense.ExpenseTagId,
+                TransactionCategoryId = expenseDto.CategoryId,
+                TransactionDate = expenseDto.Date,
+                WalletId = expenseDto.WalletId,
+                TransactionTagId = expenseDto.ExpenseTagId,
             };
 
             // 4 - store both the income and the transaction in the database
@@ -137,7 +137,7 @@ namespace SpendWise.Application.Services
             {
                 ExpenseId = newExpenseId,
                 UserId = newExpense.UserId,
-                Title = "Added expense",
+                Title = newExpense.LinkedTransaction.Title,
                 Amount = newExpense.Amount,
                 Products = newExpense.Products,
                 Date = newExpense.Date,
@@ -189,14 +189,14 @@ namespace SpendWise.Application.Services
                 UserId = expenseDto.UserId,
                 Expense = updatedExpens,
                 Description = expenseDto.Description,
-                Title = "Updated Expense",
+                Title = expenseDto.Title,
                 TransactionType = enTransactionType.Dedduction,
                 Amount = expenseDto.Amount,
                 AmountInSp = amountInSp,
-                TransactionCategoryId = updatedExpens.CategoryId,
-                TransactionDate = updatedExpens.Date,
-                WalletId = updatedExpens.WalletId,
-                TransactionTagId = updatedExpens.ExpenseTagId,
+                TransactionCategoryId = expenseDto.CategoryId,
+                TransactionDate = expenseDto.Date,
+                WalletId = expenseDto.WalletId,
+                TransactionTagId = expenseDto.ExpenseTagId,
             };
 
             // 4 - store both the income and the transaction in the database

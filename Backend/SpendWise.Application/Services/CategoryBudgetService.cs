@@ -4,6 +4,7 @@ using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
+using System.Net.Http.Headers;
 using System.Text;
 
 namespace SpendWise.Application.Services
@@ -24,17 +25,7 @@ namespace SpendWise.Application.Services
 
             if (budgets == null) return Enumerable.Empty<CategoryBudgetResponse>();
 
-            return budgets.Select(budget => new CategoryBudgetResponse
-            {
-                CategoryBudgetId = budget.CategoryBudgetId,
-                CategoryId = budget.CategoryId,
-                UserId = budget.UserId,
-                PercentageLimit = budget.PercentageLimit,
-                PercentageProgress = budget.PercentageProgress,
-                IsActive = budget.IsActive,
-                StartDate = budget.StartDate,
-                EndDate = budget.EndDate,
-            });
+            return budgets.Select(budget => new CategoryBudgetResponse(budget));
           
         }
 
@@ -43,25 +34,24 @@ namespace SpendWise.Application.Services
         {
             var budget = await _budgetRepo.GetCategoryBudgetAsync(userId, categoryId);
 
-            return budget != null ? new CategoryBudgetResponse
-            {
-                CategoryBudgetId = budget.CategoryBudgetId,
-                CategoryId = budget.CategoryId,
-                UserId = budget.UserId,
-                PercentageLimit = budget.PercentageLimit,
-                PercentageProgress = budget.PercentageProgress,
-                IsActive = budget.IsActive,
-                StartDate = budget.StartDate,
-                EndDate = budget.EndDate,
-            }: null;
+            return budget != null ? new CategoryBudgetResponse(budget): null;
         }
 
-        public async Task<int> SetCategoryBudgetAsync(CategoryBudgetDTO budgetDto)
+        public async Task<CategoryBudgetResponse?> SetCategoryBudgetAsync(CategoryBudgetDTO budgetDto)
         {
             
             var budget = new CategoryBudget(-1, budgetDto.UserId, budgetDto.CategoryId, budgetDto.PercentageLimit, budgetDto.PercentageProgress, budgetDto.StartDate, budgetDto.EndDate, budgetDto.IsActive);
 
-            return await _budgetRepo.SetCategoryBudgetAsync(budgetDto.UserId, budget);
+            var budgetId = await _budgetRepo.SetCategoryBudgetAsync(budgetDto.UserId, budget);
+            
+            if (budgetId == -1)
+            {
+                return null;
+            }
+
+            budgetDto.CategoryBudgetId = budgetId;
+
+            return new CategoryBudgetResponse(budget);
         }
 
         public async Task<bool> UpdateCategoryBudgetAsync(CategoryBudgetDTO budgetDto)
