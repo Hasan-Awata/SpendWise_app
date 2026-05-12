@@ -20,6 +20,7 @@ namespace SpendWise.Domain.Entities
             Balance = balance;
             UserId = userId;
             IsSaved = isSaved;
+            
         }
         public Wallet(int walletId, decimal balance, int userId, bool isSaved)
         {

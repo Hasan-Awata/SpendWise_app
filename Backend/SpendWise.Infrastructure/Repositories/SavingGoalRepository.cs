@@ -124,7 +124,8 @@ namespace SpendWise.Infrastructure.Repositories
                         reader["Title"].ToString()!,
                         Convert.ToDecimal(reader["TargetAmount"]),
                         Convert.ToDecimal(reader["CurrentAmount"]),
-                        Convert.ToDateTime(reader["DeadlineDate"])
+                        Convert.ToDateTime(reader["DeadlineDate"]),
+                        Convert.ToInt32(reader["CurrencyID"])
                     );
                 }
 
@@ -174,7 +175,8 @@ namespace SpendWise.Infrastructure.Repositories
                             reader["Title"].ToString()!,
                             Convert.ToDecimal(reader["TargetAmount"]),
                             Convert.ToDecimal(reader["CurrentAmount"]),
-                            Convert.ToDateTime(reader["DeadlineDate"])
+                            Convert.ToDateTime(reader["DeadlineDate"]),
+                        Convert.ToInt32(reader["CurrencyID"])
                         ));
                     }
                 }
@@ -213,7 +215,8 @@ namespace SpendWise.Infrastructure.Repositories
                         reader["Title"].ToString()!,
                         Convert.ToDecimal(reader["TargetAmount"]),
                         Convert.ToDecimal(reader["CurrentAmount"]),
-                        Convert.ToDateTime(reader["DeadlineDate"])
+                        Convert.ToDateTime(reader["DeadlineDate"]),
+                        Convert.ToInt32(reader["CurrencyID"] )
                     ));
                 }
 

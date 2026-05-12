@@ -14,11 +14,11 @@ namespace SpendWise.Domain.Entities
         public decimal TargetAmount { get; set; }
 
         public decimal CurrentAmount { get; set; }
-
+        public int CurrencyId { get; set; }
         public DateTime DeadlineDate { get; set; }
         public bool IsAchieved { get; set; }
         public SavingGoal() { }
-        public SavingGoal(int goalID, int userID, string title, decimal targetAmount, decimal currentAmount, DateTime deadlineDate)
+        public SavingGoal(int goalID, int userID, string title, decimal targetAmount, decimal currentAmount, DateTime deadlineDate, int currencyId)
         {
             GoalID = goalID;
             UserID = userID;
@@ -27,6 +27,7 @@ namespace SpendWise.Domain.Entities
             CurrentAmount = currentAmount;
             DeadlineDate = deadlineDate;
             IsAchieved = (currentAmount == targetAmount);
+            CurrencyId = currencyId;
         }
     }
 }
