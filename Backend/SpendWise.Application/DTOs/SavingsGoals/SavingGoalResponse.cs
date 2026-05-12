@@ -28,7 +28,7 @@ namespace SpendWise.Application.DTOs.SavingsGoals
             DeadlineDate = deadlineDate;
         }
         public SavingGoalResponse(SpendWise.Domain.Entities.SavingGoal savingGoals) {
-        this.GoalID= savingGoals.GoalID;
+             this.GoalID= savingGoals.GoalID;
             this.DeadlineDate = savingGoals.DeadlineDate;
             this.UserID = savingGoals.UserID;
             this.CurrentAmount = savingGoals.CurrentAmount;

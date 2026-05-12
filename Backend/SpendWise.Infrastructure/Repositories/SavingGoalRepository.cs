@@ -137,36 +137,49 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<IEnumerable<SavingGoal>>? GetAllUserGoalsAsync(int userId)
+        public async Task<(IEnumerable<SavingGoal> goals, int totalCount)> GetAllUserGoalsAsync(int userId, int pageNumber, int pageSize)
         {
             var goals = new List<SavingGoal>();
+            int totalCount = 0;
 
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetAllUserGoals]", connection)
+                using var command = new SqlCommand("[Ledger].[sp_GetAllUserGoalsPaged]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
 
                 command.Parameters.AddWithValue("@UserId", userId);
+                command.Parameters.AddWithValue("@PageNumber", pageNumber);
+                command.Parameters.AddWithValue("@PageSize", pageSize);
 
                 await connection.OpenAsync();
                 using var reader = await command.ExecuteReaderAsync();
 
-                while (await reader.ReadAsync())
+                // First Result Set: Total Count
+                if (await reader.ReadAsync())
                 {
-                    goals.Add(new SavingGoal(
-                        Convert.ToInt32(reader["GoalID"]),
-                        Convert.ToInt32(reader["UserID"]),
-                        reader["Title"].ToString()!,
-                        Convert.ToDecimal(reader["TargetAmount"]),
-                        Convert.ToDecimal(reader["CurrentAmount"]),
-                        Convert.ToDateTime(reader["DeadlineDate"])
-                    ));
+                    totalCount = Convert.ToInt32(reader["TotalCount"]);
                 }
 
-                return goals;
+                // Second Result Set: The Goals
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        goals.Add(new SavingGoal(
+                            Convert.ToInt32(reader["GoalID"]),
+                            Convert.ToInt32(reader["UserID"]),
+                            reader["Title"].ToString()!,
+                            Convert.ToDecimal(reader["TargetAmount"]),
+                            Convert.ToDecimal(reader["CurrentAmount"]),
+                            Convert.ToDateTime(reader["DeadlineDate"])
+                        ));
+                    }
+                }
+
+                return (goals, totalCount);
             }
             catch (SqlException ex)
             {

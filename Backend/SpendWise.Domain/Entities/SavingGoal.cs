@@ -17,6 +17,7 @@ namespace SpendWise.Domain.Entities
 
         public DateTime DeadlineDate { get; set; }
         public bool IsAchieved { get; set; }
+        public SavingGoal() { }
         public SavingGoal(int goalID, int userID, string title, decimal targetAmount, decimal currentAmount, DateTime deadlineDate)
         {
             GoalID = goalID;

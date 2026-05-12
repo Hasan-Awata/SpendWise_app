@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.DTOs.SavingGoals;
 using SpendWise.Application.DTOs.SavingsGoals;
 using SpendWise.Application.Interfaces.SavingGoals;
@@ -41,12 +42,12 @@ namespace SpendWise.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetGoalByID([FromRoute]int id) {
+        public async Task<IActionResult> GetGoalByID([FromRoute] int id) {
 
             if (id <= 0)
                 return BadRequest("Please enter correct ID");
             //int userId = CurrentUserId; 
-           var goal =await _savingGoalService.GetGoalByIdAsync(id);
+            var goal = await _savingGoalService.GetGoalByIdAsync(id);
 
             if (goal == null)
             {
@@ -54,13 +55,13 @@ namespace SpendWise.Controllers
             }
             return Ok(goal);
         }
-        [HttpGet("GetAllUserGoals")]
+        [HttpGet("GetAllUserGoals / {pageDTO}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetAllUserGoalsAsync()
+        public async Task<IActionResult> GetAllUserGoalsAsync([FromQuery] PageDTO pageDTO)
         {
             int userId = CurrentUserId;
-            var ListGoalsUser = await _savingGoalService.GetAllUserGoalsAsync(userId);
+            var ListGoalsUser = await _savingGoalService.GetAllUserGoalsAsync(userId, pageDTO);
             if(ListGoalsUser == null)
             {  return NotFound(); }
             return Ok(ListGoalsUser);
