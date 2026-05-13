@@ -24,5 +24,5 @@ BEGIN
             COALESCE((SELECT SUM(AmountInSp) FROM [Ledger].[Transactions] WHERE UserID = b.UserID AND TransactionType = 0 AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalIncome,
             COALESCE((SELECT SUM(AmountInSp) FROM [Ledger].[Transactions] WHERE UserID = b.UserID AND CategoryID = b.CategoryID AND TransactionType = 1 AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalSpent
     ) AS Totals
-    WHERE b.CategoryID = @CategoryID AND b.UserID = @UserID; -- Changed WHERE clause
+    WHERE b.CategoryID = @CategoryID AND b.UserID = @UserID; 
 END

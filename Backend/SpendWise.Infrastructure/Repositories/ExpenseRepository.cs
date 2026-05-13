@@ -21,7 +21,7 @@ namespace SpendWise.Infrastructure.Repositories
                                             ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
         }
 
-        public async Task<int> AddExpenseAsync(Expense newExpense, Transaction newTransaction)
+        public async Task<(int ExpenseId, bool IsOverLimit)> AddExpenseAsync(Expense newExpense, Transaction newTransaction)
         {
             try
             {
@@ -31,27 +31,41 @@ namespace SpendWise.Infrastructure.Repositories
                     CommandType = CommandType.StoredProcedure
                 };
 
+                // Expense Parameters
                 command.Parameters.AddWithValue("@ExpenseUserId", newExpense.UserId);
                 command.Parameters.AddWithValue("@ExpenseWalletId", newExpense.WalletId);
                 command.Parameters.AddWithValue("@ExpenseCategoryId", newExpense.CategoryId);
-                command.Parameters.AddWithValue("@Products", string.IsNullOrEmpty(newExpense.Products) ? DBNull.Value : newExpense.Products);
+                command.Parameters.AddWithValue("@Products", (object)newExpense.Products ?? DBNull.Value);
                 command.Parameters.AddWithValue("@ExpenseAmount", newExpense.Amount);
                 command.Parameters.AddWithValue("@ExpenseDate", newExpense.Date);
                 command.Parameters.AddWithValue("@ExpenseTagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
 
+                // Transaction Parameters
                 command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
-                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
+                command.Parameters.AddWithValue("@TransDescription", (object)newTransaction.Description ?? DBNull.Value);
                 command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
-
                 command.Parameters.AddWithValue("@TransAmountInSp", newTransaction.AmountInSp);
-
                 command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
                 command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategoryId > 0 ? newTransaction.TransactionCategoryId : DBNull.Value);
 
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
+                // Define Output Parameters 
+                command.Parameters.Add("@NewExpenseID", SqlDbType.Int).Direction = ParameterDirection.Output;
+                command.Parameters.Add("@IsOverLimit", SqlDbType.Bit).Direction = ParameterDirection.Output;
 
-                return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
+                await connection.OpenAsync();
+
+                // Use ExecuteReader to get the result set from the SELECT at the end of the SP
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return (
+                        ExpenseId: reader.GetInt32(0),
+                        IsOverLimit: reader.GetBoolean(1)
+                    );
+                }
+
+                return (-1, false);
             }
             catch (SqlException ex)
             {

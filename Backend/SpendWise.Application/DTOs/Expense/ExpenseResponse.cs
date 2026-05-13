@@ -19,5 +19,6 @@ namespace SpendWise.Application.DTOs.Expense
         public int ExpenseTagId { get; set; }
         public string Products { get; set; } = string.Empty; // JSON as a string
         public int CategoryId { get; set; } 
+        public bool IsOverLimit { get; set; }
     }
 }

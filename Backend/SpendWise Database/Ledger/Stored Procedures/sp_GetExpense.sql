@@ -1,7 +1,4 @@
-﻿-- ==========================================
--- 1. Get Expense By ID (Optimized: No Joins!)
--- ==========================================
-CREATE   PROCEDURE [Ledger].[sp_GetExpense]
+﻿CREATE PROCEDURE [Ledger].[sp_GetExpense]
     @ExpenseId INT,
     @UserId INT
 AS
@@ -13,7 +10,7 @@ BEGIN
         UserID, 
         Amount, 
         Products, 
-        Date, 
+        [Date], 
         WalletID, 
         CategoryID, 
         TagID

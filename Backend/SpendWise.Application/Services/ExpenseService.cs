@@ -130,7 +130,7 @@ namespace SpendWise.Application.Services
             };
 
             // 4 - store both the income and the transaction in the database
-            int newExpenseId = await _expenseRepo.AddExpenseAsync(newExpense, newTransaction);
+            (int newExpenseId, bool IsOverLimit) = await _expenseRepo.AddExpenseAsync(newExpense, newTransaction);
 
             // 5 - Return the created item
             return new ExpenseResponse
@@ -144,6 +144,7 @@ namespace SpendWise.Application.Services
                 CategoryId = newExpense.CategoryId,
                 WalletId = newExpense.WalletId,
                 ExpenseTagId = newExpense.ExpenseTagId,
+                IsOverLimit = IsOverLimit
             };
         }
         public async Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto)
