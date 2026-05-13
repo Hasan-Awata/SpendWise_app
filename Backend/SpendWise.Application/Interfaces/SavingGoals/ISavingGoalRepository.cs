@@ -10,7 +10,7 @@ namespace SpendWise.Application.Interfaces.SavingGoals
     public interface ISavingGoalRepository
     {
         public Task<SavingGoal?> GetGoalByIdAsync(int goalId);
-        public Task<IEnumerable<SavingGoal>>? GetAllUserGoalsAsync(int userId);
+        public Task<(IEnumerable<SavingGoal> goals, int totalCount)> GetAllUserGoalsAsync(int userId, int pageNumber, int pageSize);
         public Task<int> AddGoalAsync(SavingGoal goal);
         public Task<bool> UpdateGoalAsync(SavingGoal ubdatedGoal);
         public Task<bool> DeleteGoalAsync(int goalId);

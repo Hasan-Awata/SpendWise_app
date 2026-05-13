@@ -32,7 +32,7 @@ namespace SpendWise.Application.Services
             _exchangeRateService = exchangeRateService;
         }
 
-        // Reading methods --------------------------------------------------
+        
         public async Task<IncomeResponse?> GetIncomeAsync(int incomeId, int userId)
         {
             var income = await _incomeRepo.GetIncomeAsync(incomeId, userId);
