@@ -8,24 +8,26 @@ namespace SpendWise.Domain.Entities
     {
         public int ExpenseId { get; set; }
         public int UserId { get; set; }
+        public string Title { get; set; } = string.Empty;
         public decimal Amount { get; set; }
         public string Products { get; set; } = string.Empty;
         public int ExpenseTagId { get; set; }
         public int CategoryId { get; set; } 
         public int WalletId { get; set; } 
+        public int LinkedTransactionId { get; set; } = -1;
         public DateTime Date { get; set; }
-        public Transaction LinkedTransaction { get; set; } = new Transaction();
-        public Expense(int expenseId, int userId, decimal amount, string products, int expenseTagId, int categoryId, int walletId, DateTime date, Transaction linkedTransaction)
+        public Expense(int expenseId, int userId, string title, decimal amount, string products, int expenseTagId, int categoryId, int walletId, int linkedTransactionId, DateTime date)
         {
             ExpenseId = expenseId;
             UserId = userId;
+            Title = title;
             Amount = amount;
             Products = products;
             ExpenseTagId = expenseTagId;
             CategoryId = categoryId;
             WalletId = walletId;
+            LinkedTransactionId = linkedTransactionId;
             Date = date;
-            LinkedTransaction = linkedTransaction;
         }
         public Expense() { }
     }

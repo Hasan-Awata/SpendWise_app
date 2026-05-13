@@ -33,7 +33,8 @@ namespace SpendWise.Application.DTOs.Income
         [Required(ErrorMessage = "Please enter the date of the transaction")]
         public DateTime Date { get; set; }
 
-        public int ExpenseTagId { get; set; }
+        public int LinkedTransactionId { get; set; } = -1;
+        public int ExpenseTagId { get; set; } = -1;
         public string Description { get; set; } = string.Empty;
         public string Products {  get; set; } = string.Empty; // JSON 
     }

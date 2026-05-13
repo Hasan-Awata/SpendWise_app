@@ -31,6 +31,46 @@ namespace SpendWise.Application.Services
             _exchangeRateService = exchangeRateService;
         }
 
+        // Helpers methods --------------------------------------------------
+        private Expense MapExpenseDTOtoExpenseObject(ExpenseDTO expenseDTO)
+        {
+            return new Expense
+            (
+                expenseDTO.ExpenseId,
+                expenseDTO.UserId,
+                expenseDTO.Title,
+                expenseDTO.Amount,
+                expenseDTO.Products,
+                expenseDTO.ExpenseTagId,
+                expenseDTO.CategoryId,
+                expenseDTO.WalletId,
+                expenseDTO.LinkedTransactionId,
+                expenseDTO.Date
+            );
+        }
+
+        private Transaction MapExpenseDTOtoTransactionObject(ExpenseDTO expenseDTO)
+        {
+            var transaction =  new Transaction
+            (
+                expenseDTO.LinkedTransactionId,
+                expenseDTO.UserId,
+                expenseDTO.Title,
+                expenseDTO.Description,
+                expenseDTO.WalletId,
+                expenseDTO.Amount,
+                0, // Amount in Syrian pounds -> calculated later through out the process
+                expenseDTO.Date,
+                enTransactionType.Dedduction
+            );
+
+            // Custom attributes for expenses only:
+            transaction.TransactionCategoryId = expenseDTO.CategoryId;
+            transaction.TransactionTagId = expenseDTO.ExpenseTagId;
+
+            return transaction;
+        }
+
         // Reading methods --------------------------------------------------
         public async Task<ExpenseResponse?> GetExpenseAsync(int expenseId, int userId)
         {
@@ -41,36 +81,14 @@ namespace SpendWise.Application.Services
                 return null;
             }
 
-            return new ExpenseResponse
-            {
-                ExpenseId = expense.ExpenseId,
-                UserId = expense.UserId,
-                Title = expense.LinkedTransaction.Title,
-                Amount = expense.Amount,
-                Date = expense.Date,
-                Products = expense.Products,
-                CategoryId = expense.CategoryId,
-                WalletId = expense.WalletId,
-                ExpenseTagId = expense.ExpenseTagId == -1 ? -1 : expense.ExpenseTagId,
-            };
+            return new ExpenseResponse(expense);
         }
 
         public async Task<PagedResponse<ExpenseResponse>> GetExpenseByUserAsync(int userId, PageDTO pageDto)
         {
             var (expensesList, totalCount) = await _expenseRepo.GetExpensesByUserAsync(userId, pageDto.PageNumber, pageDto.PageSize);
 
-            var expenseResponse = expensesList.Select(item => new ExpenseResponse
-            {
-                ExpenseId = item.ExpenseId,
-                UserId = item.UserId,
-                Title = item.LinkedTransaction.Title,
-                Amount = item.Amount,
-                Date = item.Date,
-                Products = item.Products,
-                CategoryId = item.CategoryId,
-                WalletId = item.WalletId,
-                ExpenseTagId = item.ExpenseTagId == -1 ? -1 : item.ExpenseTagId,
-            }).ToList();
+            var expenseResponse = expensesList.Select(item => new ExpenseResponse(item)).ToList();
 
             return new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
         }
@@ -80,16 +98,7 @@ namespace SpendWise.Application.Services
         public async Task<ExpenseResponse?> AddExpenseAsync(ExpenseDTO expenseDto)
         {
             // 1 - map the expenseDTO into an expense object
-            var newExpense = new Expense
-            {
-                UserId = expenseDto.UserId,
-                Amount = expenseDto.Amount,
-                Products = expenseDto.Products,
-                Date = expenseDto.Date,
-                CategoryId = expenseDto.CategoryId,
-                ExpenseTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
-                WalletId = expenseDto.WalletId,
-            };
+            var newExpense = MapExpenseDTOtoExpenseObject(expenseDto);
 
             // 2 - Fethcing the wallet info from the DB and normalizing the amount to Syrian Pound
             var wallet = await _walletRepo.GetWalletByIdAsync(newExpense.WalletId, newExpense.UserId);
@@ -114,53 +123,28 @@ namespace SpendWise.Application.Services
             }
 
             // 3 - Create a Transaction object to store in the database
-            var newTransaction = new Transaction
-            {
-                UserId = expenseDto.UserId,
-                Expense = newExpense,
-                Description = expenseDto.Description,
-                Title = expenseDto.Title,
-                TransactionType = enTransactionType.Dedduction,
-                Amount = expenseDto.Amount,
-                AmountInSp = amountInSp,
-                TransactionCategoryId = expenseDto.CategoryId,
-                TransactionDate = expenseDto.Date,
-                WalletId = expenseDto.WalletId,
-                TransactionTagId = expenseDto.ExpenseTagId,
-            };
+            var newTransaction = MapExpenseDTOtoTransactionObject(expenseDto);
+            newTransaction.AmountInSp = amountInSp;
 
-            // 4 - store both the income and the transaction in the database
+            // 4 - store both the expense and the transaction in the database
             (int newExpenseId, bool IsOverLimit) = await _expenseRepo.AddExpenseAsync(newExpense, newTransaction);
+            
+            if(newExpenseId == -1) return null;
 
-            // 5 - Return the created item
-            return new ExpenseResponse
-            {
-                ExpenseId = newExpenseId,
-                UserId = newExpense.UserId,
-                Title = newExpense.LinkedTransaction.Title,
-                Amount = newExpense.Amount,
-                Products = newExpense.Products,
-                Date = newExpense.Date,
-                CategoryId = newExpense.CategoryId,
-                WalletId = newExpense.WalletId,
-                ExpenseTagId = newExpense.ExpenseTagId,
-                IsOverLimit = IsOverLimit
-            };
+            // 5 - map important data before return the response
+            newExpense.ExpenseId = newExpenseId;
+
+            // 6 - Return the created item
+            var expenseResponse = new ExpenseResponse(newExpense);
+            expenseResponse.IsOverLimit = IsOverLimit;
+
+            return expenseResponse;
         }
+
         public async Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto)
         {
             // 1 - map the expenseDTO into an expense object
-            var updatedExpens = new Expense
-            {
-                ExpenseId = expenseDto.ExpenseId,
-                UserId = expenseDto.UserId,
-                Amount = expenseDto.Amount,
-                Products = expenseDto.Products,
-                Date = expenseDto.Date,
-                CategoryId = expenseDto.CategoryId,
-                ExpenseTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
-                WalletId = expenseDto.WalletId,
-            };
+            var updatedExpens = MapExpenseDTOtoExpenseObject(expenseDto);
 
             // 2 - Fethcing the wallet info from the DB and normalizing the amount to Syrian Pound
             var wallet = await _walletRepo.GetWalletByIdAsync(updatedExpens.WalletId, updatedExpens.UserId);
@@ -185,38 +169,18 @@ namespace SpendWise.Application.Services
             }
 
             // 3 - Create a Transaction object to store in the database
-            var newTransaction = new Transaction
-            {
-                UserId = expenseDto.UserId,
-                Expense = updatedExpens,
-                Description = expenseDto.Description,
-                Title = expenseDto.Title,
-                TransactionType = enTransactionType.Dedduction,
-                Amount = expenseDto.Amount,
-                AmountInSp = amountInSp,
-                TransactionCategoryId = expenseDto.CategoryId,
-                TransactionDate = expenseDto.Date,
-                WalletId = expenseDto.WalletId,
-                TransactionTagId = expenseDto.ExpenseTagId,
-            };
+            var newTransaction = MapExpenseDTOtoTransactionObject(expenseDto);
 
-            // 4 - store both the income and the transaction in the database
-            if (!await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction))
-                return null;
+            // 4 - store both the expense and the transaction in the database
+            (bool Success, bool IsOverLimit) = await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction);
+                
+            if (!Success) return null;
 
-            // 5 - Return the created item
-            return new ExpenseResponse
-            {
-                ExpenseId = updatedExpens.ExpenseId,
-                UserId = updatedExpens.UserId,
-                Title = "Updated expense",
-                Amount = updatedExpens.Amount,
-                Date = updatedExpens.Date,
-                Products = updatedExpens.Products,
-                CategoryId = updatedExpens.CategoryId,
-                WalletId = updatedExpens.WalletId,
-                ExpenseTagId = updatedExpens.ExpenseTagId == -1 ? -1 : updatedExpens.ExpenseTagId,
-            };
+            // 5 - Return the updated item
+            var expenseResponse =  new ExpenseResponse(updatedExpens);
+            expenseResponse.IsOverLimit = IsOverLimit; 
+
+            return expenseResponse;
         }
 
         public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)

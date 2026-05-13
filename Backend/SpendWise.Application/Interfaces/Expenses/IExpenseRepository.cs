@@ -10,7 +10,7 @@ namespace SpendWise.Application.Interfaces.Expenses
     {
         // Writing to database
         public Task<(int ExpenseId, bool IsOverLimit)> AddExpenseAsync(Expense newExpense, Transaction newTransaction);
-        public Task<bool> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction);
+        public Task<(bool Success, bool IsOverLimit)> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction);
         public Task<bool> DeleteExpenseAsync(int expenseId, int userId);
 
         // Reading from the database

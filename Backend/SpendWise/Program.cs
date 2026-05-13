@@ -17,14 +17,7 @@ using SpendWise.Application.Interfaces.Expenses;
 using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Application.Interfaces.SavingGoals;
 using SpendWise.Application.Interfaces.SharedDebts;
-using SpendWise.Application.Interfaces.Tags;
-using SpendWise.Application.Interfaces.Users;
 using SpendWise.Application.Interfaces.Wallets;
-using SpendWise.Application.Services;
-using SpendWise.Infrastructure.Repositories;
-using System.Text;
-using System.Text.Json.Serialization;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,11 +68,15 @@ builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<ISavingGoalService, SavingGoalsService>();
 builder.Services.AddScoped<ISavingGoalRepository, SavingGoalRepository>();
 
-builder.Services.AddScoped<ICategoryBudgetRepository, CategoryBudgetRepository>();
 builder.Services.AddScoped<ICategoryBudgetService, CategoryBudgetService>();
+builder.Services.AddScoped<ICategoryBudgetRepository, CategoryBudgetRepository>();
 
-builder.Services.AddScoped<ISharedDebtRepository, SharedDebtRepository>();
 builder.Services.AddScoped<ISharedDebtService, SharedDebtService>();
+builder.Services.AddScoped<ISharedDebtRepository, SharedDebtRepository>();
+
+builder.Services.AddScoped<IFixedObligationsService, FixedObligationsService>();
+builder.Services.AddScoped<IFixedObligationRepository, FixedObligationRepository>();
+
 builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────

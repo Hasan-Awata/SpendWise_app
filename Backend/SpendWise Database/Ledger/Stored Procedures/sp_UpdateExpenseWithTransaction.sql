@@ -21,22 +21,24 @@ CREATE   PROCEDURE [Ledger].[sp_UpdateExpenseWithTransaction]
     @GoalId INT = NULL,
     @FixedExpenseId INT = NULL,
     @FixedIncomeId INT = NULL,
-    @DebtId INT = NULL
+    @DebtId INT = NULL,
+
+    @IsOverLimit BIT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
         -- ==========================================
-        -- PRE-FLIGHT WALLET SECURITY CHECKS
+        -- PRE-FLIGHT WALLET SECURITY CHECKS (IDOR)
         -- ==========================================
         IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId)
         BEGIN
-            THROW 50001, 'Wallet not found.', 1;
+            ;THROW 50001, 'Wallet not found.', 1;
         END
 
         IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId)
         BEGIN
-            THROW 50003, 'Access denied. You do not own the target wallet.', 1;
+            ;THROW 50003, 'Access denied. You do not own the target wallet.', 1;
         END
 
         -- ==========================================
@@ -52,12 +54,12 @@ BEGIN
 
         IF @ActualOwnerId IS NULL 
         BEGIN
-            THROW 50002, 'Expense record was not found.', 1;
+            ;THROW 50002, 'Expense record was not found.', 1;
         END
         
         IF @ActualOwnerId <> @ExpenseUserId
         BEGIN
-            THROW 50003, 'Access denied. You do not own this expense record.', 1;
+            ;THROW 50003, 'Access denied. You do not own this expense record.', 1;
         END
 
         BEGIN TRAN; 
@@ -74,17 +76,13 @@ BEGIN
         
         DECLARE @RowsAffected INT = @@ROWCOUNT;
 
+        -- Update Transaction and Wallets (Only if expense exists)
         IF @RowsAffected > 0
         BEGIN
-            -- 2. Update Transaction
             UPDATE [Ledger].Transactions
             SET WalletID = @ExpenseWalletId,
                 CategoryID = @TransCategoryId,
                 TagID = @TransTagId,
-                GoalID = @GoalId,
-                FixedExpenseID = @FixedExpenseId,
-                FixedIncomeID = @FixedIncomeId,
-                DebtID = @DebtId,
                 Title = @TransTitle,
                 Amount = @ExpenseAmount,
                 AmountInSp = @TransAmountInSp, 
@@ -93,7 +91,7 @@ BEGIN
                 Description = @TransDescription
             WHERE ExpenseID = @ExpenseId AND UserID = @ExpenseUserId;
 
-            -- 3. BALANCE MATH (Revert old deduction, apply new deduction)
+            -- Balance Math logic 
             IF @OldWalletId = @ExpenseWalletId
             BEGIN
                 UPDATE [Banking].Wallets
@@ -107,8 +105,14 @@ BEGIN
             END
         END
 
+        -- Update the output variable using the function
+        SET @IsOverLimit = [Planning].[fn_IsOverCategoryBudget](@ExpenseUserId, @ExpenseCategoryId, @ExpenseDate);
+
         COMMIT TRAN; 
-        SELECT @RowsAffected;
+
+        -- Return as result set for the Reader
+        SELECT @RowsAffected AS RowsAffected, @IsOverLimit AS IsOverLimit;
+
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK TRAN; 

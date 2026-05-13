@@ -74,7 +74,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction)
+        public async Task<(bool Success, bool IsOverLimit)> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction)
         {
             try
             {
@@ -84,28 +84,39 @@ namespace SpendWise.Infrastructure.Repositories
                     CommandType = CommandType.StoredProcedure
                 };
 
+                // Parameters 
                 command.Parameters.AddWithValue("@ExpenseId", newExpense.ExpenseId);
                 command.Parameters.AddWithValue("@ExpenseUserId", newExpense.UserId);
                 command.Parameters.AddWithValue("@ExpenseWalletId", newExpense.WalletId);
                 command.Parameters.AddWithValue("@ExpenseCategoryId", newExpense.CategoryId);
-                command.Parameters.AddWithValue("@Products", string.IsNullOrEmpty(newExpense.Products) ? DBNull.Value : newExpense.Products);
+                command.Parameters.AddWithValue("@Products", (object)newExpense.Products ?? DBNull.Value);
                 command.Parameters.AddWithValue("@ExpenseAmount", newExpense.Amount);
                 command.Parameters.AddWithValue("@ExpenseDate", newExpense.Date);
                 command.Parameters.AddWithValue("@ExpenseTagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
 
                 command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
-                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
+                command.Parameters.AddWithValue("@TransDescription", (object)newTransaction.Description ?? DBNull.Value);
                 command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
-
                 command.Parameters.AddWithValue("@TransAmountInSp", newTransaction.AmountInSp);
-
                 command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
                 command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategoryId > 0 ? newTransaction.TransactionCategoryId : DBNull.Value);
 
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
+                // Define the Output parameter to match the SP header
+                command.Parameters.Add("@IsOverLimit", SqlDbType.Bit).Direction = ParameterDirection.Output;
 
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+                await connection.OpenAsync();
+
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    int rowsAffected = reader.GetInt32(0);
+                    bool isOverLimit = reader.GetBoolean(1);
+
+                    return (Success: rowsAffected > 0, IsOverLimit: isOverLimit);
+                }
+
+                return (false, false);
             }
             catch (SqlException ex)
             {
@@ -158,24 +169,18 @@ namespace SpendWise.Infrastructure.Repositories
                 if (await reader.ReadAsync())
                 {
                     var expense = new Expense
-                    {
-                        ExpenseId = Convert.ToInt32(reader["ExpenseID"]),
-                        UserId = Convert.ToInt32(reader["UserID"]),
-                        Amount = Convert.ToDecimal(reader["Amount"]),
-                        Products = reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
-                        Date = Convert.ToDateTime(reader["Date"]),
-                        WalletId = Convert.ToInt32(reader["WalletID"]),
-                        CategoryId = Convert.ToInt32(reader["CategoryID"])
-                    };
-
-                    if (reader["TagID"] != DBNull.Value)
-                    {
-                        expense.ExpenseTagId = Convert.ToInt32(reader["TagID"]);
-                    }
-                    else
-                    {
-                        expense.ExpenseTagId = -1;
-                    }
+                    (
+                        Convert.ToInt32(reader["ExpenseID"]),
+                        Convert.ToInt32(reader["UserID"]),
+                        reader["Title"] != DBNull.Value ? Convert.ToString(reader["Title"])! : string.Empty,
+                        Convert.ToDecimal(reader["Amount"]),
+                        reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
+                        reader["TagID"] != DBNull.Value ? Convert.ToInt32(reader["TagID"]) : -1,
+                        Convert.ToInt32(reader["CategoryID"]),
+                        Convert.ToInt32(reader["WalletID"]),
+                        Convert.ToInt32(reader["LinkedTransactionID"]),
+                        Convert.ToDateTime(reader["Date"])
+                    );
 
                     return expense;
                 }
@@ -219,24 +224,18 @@ namespace SpendWise.Infrastructure.Repositories
                     while (await reader.ReadAsync())
                     {
                         var expense = new Expense
-                        {
-                            ExpenseId = Convert.ToInt32(reader["ExpenseID"]),
-                            UserId = Convert.ToInt32(reader["UserID"]),
-                            Amount = Convert.ToDecimal(reader["Amount"]),
-                            Products = reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
-                            Date = Convert.ToDateTime(reader["Date"]),
-                            WalletId = Convert.ToInt32(reader["WalletID"]),
-                            CategoryId = Convert.ToInt32(reader["CategoryID"])
-                        };
-
-                        if (reader["TagID"] != DBNull.Value)
-                        {
-                            expense.ExpenseTagId = Convert.ToInt32(reader["TagID"]);
-                        }
-                        else
-                        {
-                            expense.ExpenseTagId = -1;
-                        }
+                        (
+                            Convert.ToInt32(reader["ExpenseID"]),
+                            Convert.ToInt32(reader["UserID"]),
+                            reader["Title"] != DBNull.Value ? Convert.ToString(reader["Title"])! : string.Empty,
+                            Convert.ToDecimal(reader["Amount"]),
+                            reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
+                            reader["TagID"] != DBNull.Value ? Convert.ToInt32(reader["TagID"]) : -1,
+                            Convert.ToInt32(reader["CategoryID"]),
+                            Convert.ToInt32(reader["WalletID"]),
+                            Convert.ToInt32(reader["LinkedTransactionID"]),
+                            Convert.ToDateTime(reader["Date"])
+                        );
 
                         expenses.Add(expense);
                     }

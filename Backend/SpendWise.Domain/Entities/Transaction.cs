@@ -16,19 +16,19 @@ namespace SpendWise.Domain.Entities
         public decimal AmountInSp { get; set; } = 0.0m;
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
-        public int TransactionCategoryId { get; set; }
-        public int TransactionTagId { get; set; }
-        public SavingGoal? SavingGoal { get; set; }
+        public int TransactionCategoryId { get; set; } = -1;
+        public int TransactionTagId { get; set; } = -1;
+        public int SavingGoal { get; set; } = -1;   
         //public FixedExpense? FixedExpense { get; set; }
         //public FixedIncome? FixedIncome { get; set; }
         //public Debt? Debt { get; set; }
-        public Income? Income { get; set; }
-        public Expense? Expense { get; set; }
+        public int Income { get; set; } = -1;
+        public int Expense { get; set; } = -1;
 
         // Transaction type is specified here:
         public enTransactionType TransactionType { get; set; } // Addition or Deduction from the balance
 
-        public Transaction(int transactionId, int userId, string title, string? description, int walletId, decimal amount, decimal amountInSp, DateTime transactionDate, int transactionCategoryId, int transactionTagId, SavingGoal? savingGoal, Income? income, Expense? expense, enTransactionType transactionType)
+        public Transaction(int transactionId, int userId, string title, string description, int walletId, decimal amount, decimal amountInSp, DateTime transactionDate, enTransactionType transactionType)
         {
             TransactionId = transactionId;
             UserId = userId;
@@ -38,11 +38,6 @@ namespace SpendWise.Domain.Entities
             Amount = amount;
             AmountInSp = amountInSp;
             TransactionDate = transactionDate;
-            TransactionCategoryId = transactionCategoryId;
-            TransactionTagId = transactionTagId;
-            SavingGoal = savingGoal;
-            Income = income;
-            Expense = expense;
             TransactionType = transactionType;
         }
         public Transaction() { }

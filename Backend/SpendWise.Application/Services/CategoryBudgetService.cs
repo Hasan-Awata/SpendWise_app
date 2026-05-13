@@ -23,7 +23,7 @@ namespace SpendWise.Application.Services
         {
             var budgets = await _budgetRepo.GetAllUserBudgetsAsync(userId);
 
-            if (budgets == null) return Enumerable.Empty<CategoryBudgetResponse>();
+            if (budgets == Enumerable.Empty<CategoryBudget>()) return Enumerable.Empty<CategoryBudgetResponse>();
 
             return budgets.Select(budget => new CategoryBudgetResponse(budget));
           

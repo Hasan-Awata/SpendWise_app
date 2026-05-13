@@ -37,12 +37,12 @@ BEGIN
         -- ==========================================
         IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId)
         BEGIN
-            THROW 50001, 'Wallet not found.', 1;
+            ;THROW 50001, 'Wallet not found.', 1;
         END
 
         IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId)
         BEGIN
-            THROW 50003, 'Access denied. You do not own this wallet.', 1;
+            ;THROW 50003, 'Access denied. You do not own this wallet.', 1;
         END
 
         BEGIN TRAN; 

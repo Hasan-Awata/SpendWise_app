@@ -7,7 +7,8 @@ BEGIN
     
     SELECT 
         ExpenseID, 
-        UserID, 
+        UserID,
+        Title,
         Amount, 
         Products, 
         [Date], 

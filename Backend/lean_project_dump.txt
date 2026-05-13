@@ -2,2350 +2,6 @@ PROJECT ARCHITECTURE SNAPSHOT
 =============================
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\spendwise_full_database_dump.sql
-----------------------------------------
-=========================================
- SPENDWISE DATABASE FULL DUMP
-=========================================
-
--- =========================================
--- TABLES 
--- =========================================
-
-CREATE TABLE [Banking].[Wallets] (
-    [WalletID] int NOT NULL,
-    [UserID] int NOT NULL,
-    [CurrencyID] int NOT NULL,
-    [Balance] decimal NOT NULL,
-    [IsSaved] bit NOT NULL
-);
-GO
-
-CREATE TABLE [Config].[Categories] (
-    [CategoryID] int NOT NULL,
-    [Name] nvarchar(100) NOT NULL,
-    [Priority] int NOT NULL
-);
-GO
-
-CREATE TABLE [Config].[Currencies] (
-    [CurrencyID] int NOT NULL,
-    [CurrencyName] nvarchar(50) NOT NULL,
-    [CurrencyCode] char(3) NOT NULL
-);
-GO
-
-CREATE TABLE [Config].[Tags] (
-    [TagID] int NOT NULL,
-    [UserID] int NOT NULL,
-    [Name] nvarchar(100) NOT NULL
-);
-GO
-
-CREATE TABLE [Identity].[Users] (
-    [UserID] int NOT NULL,
-    [FirstName] nvarchar(100) NOT NULL,
-    [LastName] nvarchar(100) NOT NULL,
-    [Username] nvarchar(100) NOT NULL,
-    [Password] nvarchar(255) NOT NULL
-);
-GO
-
-CREATE TABLE [Ledger].[Expenses] (
-    [ExpenseID] int NOT NULL,
-    [UserID] int NOT NULL,
-    [TagID] int NULL,
-    [CategoryID] int NOT NULL,
-    [WalletID] int NOT NULL,
-    [Products] nvarchar(1000) NOT NULL,
-    [Amount] decimal NOT NULL,
-    [Date] datetime NOT NULL
-);
-GO
-
-CREATE TABLE [Ledger].[Incomes] (
-    [IncomeID] int NOT NULL,
-    [UserID] int NOT NULL,
-    [TagID] int NULL,
-    [WalletID] int NOT NULL,
-    [Amount] decimal NOT NULL,
-    [Date] datetime NOT NULL
-);
-GO
-
-CREATE TABLE [Ledger].[Transactions] (
-    [TransactionID] int NOT NULL,
-    [UserID] int NOT NULL,
-    [WalletID] int NOT NULL,
-    [CategoryID] int NULL,
-    [TagID] int NULL,
-    [GoalID] int NULL,
-    [FixedExpenseID] int NULL,
-    [DebtID] int NULL,
-    [FixedIncomeID] int NULL,
-    [ExpenseID] int NULL,
-    [IncomeID] int NULL,
-    [Title] nvarchar(255) NOT NULL,
-    [Amount] decimal NOT NULL,
-    [TransactionDate] datetime NOT NULL,
-    [TransactionType] int NOT NULL,
-    [Description] nvarchar(255) NULL,
-    [AmountInSp] decimal NOT NULL
-);
-GO
-
-CREATE TABLE [Planning].[Budgets] (
-    [BudgetID] int NOT NULL,
-    [UserID] int NOT NULL,
-    [CategoryID] int NOT NULL,
-    [PercentageLimit] decimal NOT NULL,
-    [StartDate] date NOT NULL,
-    [EndDate] date NOT NULL,
-    [IsActive] bit NOT NULL
-);
-GO
-
-CREATE TABLE [Planning].[FixedExpenses] (
-    [FixedExpenseID] int NOT NULL,
-    [UserID] int NOT NULL,
-    [CategoryID] int NOT NULL,
-    [Title] nvarchar(200) NOT NULL,
-    [Amount] decimal NOT NULL,
-    [DueDate] date NOT NULL,
-    [IsActive] bit NOT NULL
-);
-GO
-
-CREATE TABLE [Planning].[FixedIncomes] (
-    [FixedIncomeID] int NOT NULL,
-    [UserID] int NOT NULL,
-    [Title] nvarchar(200) NOT NULL,
-    [Amount] decimal NOT NULL,
-    [IsMonthly] bit NOT NULL,
-    [IsActive] bit NOT NULL,
-    [Days] int NULL,
-    [LastTime] datetime NULL
-);
-GO
-
-CREATE TABLE [Planning].[SavingsGoals] (
-    [GoalID] int NOT NULL,
-    [UserID] int NOT NULL,
-    [Title] nvarchar(200) NOT NULL,
-    [TargetAmount] decimal NOT NULL,
-    [CurrentAmount] decimal NOT NULL,
-    [DeadlineDate] date NULL,
-    [IsAchieved] bit NOT NULL
-);
-GO
-
-CREATE TABLE [Planning].[SharedDebts] (
-    [DebtID] int NOT NULL,
-    [CreditorID] int NOT NULL,
-    [DebtorID] int NOT NULL,
-    [Amount] decimal NOT NULL,
-    [Title] nvarchar(200) NOT NULL,
-    [Status] nvarchar(50) NOT NULL,
-    [CreatedAt] datetime NOT NULL,
-    [DueDate] datetime NULL
-);
-GO
-
--- =========================================
--- STORED PROCEDURES 
--- =========================================
-
--- Schema: [Banking] | Procedure: [sp_AddWallet]
-
-
--- ==========================================
-
--- Add Wallet (Strict Currency Link)
-
--- ==========================================
-
-CREATE   PROCEDURE [Banking].[sp_AddWallet]
-
-    @UserId INT,
-
-    @CurrencyId INT,
-
-    @Balance DECIMAL(18,2),
-
-    @IsSaved BIT
-
-AS
-
-BEGIN
-
-    BEGIN TRY
-
-        BEGIN TRAN; -- Start Data Consistency Lock
-
-        
-
-        -- 1. Explicitly verify the CurrencyId exists before inserting
-
-        -- (Optional, but provides a clean error message that your new SqlExceptionHandler can catch!)
-
-        IF NOT EXISTS (SELECT 1 FROM [Config].Currencies WHERE CurrencyID = @CurrencyId)
-
-        BEGIN
-
-            THROW 50001, 'The specified Currency ID does not exist.', 1; 
-
-        END
-
-
-
-        -- 2. Create the Wallet using the directly provided CurrencyId
-
-        INSERT INTO [Banking].Wallets (UserID, CurrencyID, Balance, IsSaved)
-
-        VALUES (@UserId, @CurrencyId, @Balance, @IsSaved);
-
-        
-
-        DECLARE @NewWalletID INT = SCOPE_IDENTITY();
-
-
-
-        COMMIT TRAN; -- Lock Released: Operation succeeded
-
-        
-
-        -- Return the new WalletID to C#
-
-        SELECT @NewWalletID;
-
-        
-
-    END TRY
-
-    BEGIN CATCH
-
-        IF @@TRANCOUNT > 0 ROLLBACK TRAN; -- Emergency Revert
-
-        THROW;
-
-    END CATCH
-
-END
-
-
-GO
-
--- Schema: [Banking] | Procedure: [sp_DeleteWallet]
-
-
--- ==========================================
-
--- 5. Delete a Wallet
-
--- ==========================================
-
-CREATE   PROCEDURE [Banking].[sp_DeleteWallet]
-
-    @WalletId INT,
-
-    @UserId INT
-
-AS
-
-BEGIN
-
-    DELETE FROM [Banking].Wallets
-
-    WHERE WalletID = @WalletId AND UserID = @UserId;
-
-    
-
-    -- Returns the number of rows affected to C# (ExecuteNonQueryAsync)
-
-    SELECT @@ROWCOUNT;
-
-END
-
-
-GO
-
--- Schema: [Banking] | Procedure: [sp_GetUserWallets]
-
-
--- ==========================================
-
--- 2. Get All Wallets for a User (Optimized)
-
--- ==========================================
-
-CREATE   PROCEDURE [Banking].[sp_GetUserWallets]
-
-    @UserId INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    
-
-    SELECT 
-
-        WalletID, 
-
-        Balance, 
-
-        UserID, 
-
-        IsSaved,
-
-        CurrencyID
-
-    FROM [Banking].Wallets
-
-    WHERE UserID = @UserId;
-
-END
-
-
-GO
-
--- Schema: [Banking] | Procedure: [sp_GetWalletById]
-
-
--- ==========================================
-
--- 1. Get Wallet By ID (Optimized)
-
--- ==========================================
-
-CREATE   PROCEDURE [Banking].[sp_GetWalletById]
-
-    @WalletId INT,
-
-    @UserId INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    
-
-    SELECT 
-
-        WalletID, 
-
-        Balance, 
-
-        UserID, 
-
-        IsSaved,
-
-        CurrencyID
-
-    FROM [Banking].Wallets
-
-    WHERE WalletID = @WalletId AND UserID = @UserId;
-
-END
-
-
-GO
-
--- Schema: [Banking] | Procedure: [sp_UpdateWallet]
-
-
--- ==========================================
-
--- Update Wallet 
-
--- ==========================================
-
-CREATE   PROCEDURE [Banking].[sp_UpdateWallet]
-
-    @WalletId INT,
-
-    @UserId INT,
-
-    @CurrencyId INT,
-
-    @Balance DECIMAL(18,2),
-
-    @IsSaved BIT 
-
-AS
-
-BEGIN
-
-    BEGIN TRY
-
-        BEGIN TRAN; -- Start Data Consistency Lock
-
-        
-
-        -- Optional: Explicitly verify the CurrencyId exists before updating.
-
-        -- (If you have a Foreign Key constraint on Wallets.CurrencyID, the database will handle this automatically!)
-
-        IF NOT EXISTS (SELECT 1 FROM [Config].Currencies WHERE CurrencyID = @CurrencyId)
-
-        BEGIN
-
-            THROW 50001, 'The specified Currency ID does not exist.', 1; 
-
-        END
-
-
-
-        -- Update the Wallet using the directly provided CurrencyId
-
-        UPDATE [Banking].Wallets
-
-        SET CurrencyID = @CurrencyId,
-
-            Balance = @Balance,
-
-            IsSaved = @IsSaved
-
-        WHERE WalletID = @WalletId AND UserID = @UserId;
-
-        
-
-        DECLARE @RowsAffected INT = @@ROWCOUNT;
-
-
-
-        COMMIT TRAN; -- Lock Released
-
-        
-
-        -- Return the number of rows affected
-
-        SELECT @RowsAffected;
-
-        
-
-    END TRY
-
-    BEGIN CATCH
-
-        IF @@TRANCOUNT > 0 ROLLBACK TRAN; -- Emergency Revert
-
-        THROW;
-
-    END CATCH
-
-END
-
-
-GO
-
--- Schema: [Config] | Procedure: [sp_CreateTag]
--- ==========================================
-
--- 1. Create Tag
-
--- ==========================================
-
-CREATE   PROCEDURE [Config].[sp_CreateTag]
-
-    @UserID INT,
-
-    @Name NVARCHAR(100)
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-
-
-    -- Check for duplicate tag names for this specific user
-
-    IF EXISTS (SELECT 1 FROM [Config].Tags WHERE UserID = @UserID AND Name = @Name)
-
-    BEGIN
-
-        THROW 50004, 'A tag with this name already exists for your account.', 1;
-
-    END
-
-
-
-    INSERT INTO [Config].Tags (UserID, Name)
-
-    VALUES (@UserID, @Name);
-
-
-
-    -- Return the new ID on success
-
-    SELECT CAST(SCOPE_IDENTITY() AS INT);
-
-END
-
-
-GO
-
--- Schema: [Config] | Procedure: [sp_DeleteTag]
-
-
--- ==========================================
-
--- 3. Delete Tag (Secured)
-
--- ==========================================
-
-CREATE   PROCEDURE [Config].[sp_DeleteTag]
-
-    @TagID INT,
-
-    @UserID INT -- Added IDOR Security
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-
-
-    -- STRICT IDOR CHECKS
-
-    DECLARE @ActualOwnerId INT;
-
-    SELECT @ActualOwnerId = UserID FROM [Config].Tags WHERE TagID = @TagID;
-
-
-
-    IF @ActualOwnerId IS NULL 
-
-        THROW 50002, 'Tag not found.', 1;
-
-
-
-    IF @ActualOwnerId <> @UserID 
-
-        THROW 50003, 'Access denied. You do not own this tag.', 1;
-
-
-
-    DELETE FROM [Config].Tags
-
-    WHERE TagID = @TagID AND UserID = @UserID;
-
-
-
-    SELECT @@ROWCOUNT;
-
-END
-
-
-GO
-
--- Schema: [Config] | Procedure: [sp_GetTag]
-
-
--- ==========================================
-
--- 4. Get Tag By ID
-
--- ==========================================
-
-CREATE   PROCEDURE [Config].[sp_GetTag]
-
-    @TagID INT,
-
-    @UserID INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-
-
-    SELECT TagID, UserID, Name
-
-    FROM [Config].Tags
-
-    WHERE TagID = @TagID AND UserID = @UserID;
-
-END
-
-
-GO
-
--- Schema: [Config] | Procedure: [sp_GetTags]
-
-
--- ==========================================
-
--- 5. Get All Tags By User
-
--- ==========================================
-
-CREATE   PROCEDURE [Config].[sp_GetTags]
-
-    @UserID INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-
-
-    SELECT TagID, UserID, Name
-
-    FROM [Config].Tags
-
-    WHERE UserID = @UserID;
-
-END
-
-
-GO
-
--- Schema: [Config] | Procedure: [sp_UpdateTag]
-
-
--- ==========================================
-
--- 2. Update Tag (Secured)
-
--- ==========================================
-
-CREATE   PROCEDURE [Config].[sp_UpdateTag]
-
-    @TagID INT,
-
-    @UserID INT,
-
-    @Name NVARCHAR(100)
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    
-
-    -- STRICT IDOR CHECKS
-
-    DECLARE @ActualOwnerId INT;
-
-    SELECT @ActualOwnerId = UserID FROM [Config].Tags WHERE TagID = @TagID;
-
-
-
-    IF @ActualOwnerId IS NULL 
-
-        THROW 50002, 'Tag not found.', 1;
-
-
-
-    IF @ActualOwnerId <> @UserID 
-
-        THROW 50003, 'Access denied. You do not own this tag.', 1;
-
-
-
-    UPDATE [Config].Tags
-
-    SET Name = @Name
-
-    WHERE TagID = @TagID AND UserID = @UserID;
-
-
-
-    SELECT @@ROWCOUNT;
-
-END
-
-
-GO
-
--- Schema: [Identity] | Procedure: [sp_AddUser]
-
-
--- ==========================================
-
--- 1. Add User (Optimized and Secured)
-
--- ==========================================
-
-CREATE   PROCEDURE [Identity].[sp_AddUser]
-
-    @FirstName NVARCHAR(100),
-
-    @LastName NVARCHAR(100),
-
-    @Username NVARCHAR(100),
-
-    @Password NVARCHAR(255)
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    BEGIN TRY
-
-        -- Explicit duplicate username check
-
-        IF EXISTS (SELECT 1 FROM [Identity].Users WHERE Username = @Username)
-
-        BEGIN
-
-            -- This maps to your DuplicateResourceException in C#
-
-            THROW 2627, 'This username is already taken.', 1; 
-
-        END
-
-
-
-        INSERT INTO [Identity].Users (FirstName, LastName, Username, Password)
-
-        VALUES (@FirstName, @LastName, @Username, @Password);
-
-        
-
-        -- Return the newly generated UserID directly
-
-        SELECT CAST(SCOPE_IDENTITY() AS INT);
-
-    END TRY
-
-    BEGIN CATCH
-
-        THROW;
-
-    END CATCH
-
-END
-
-
-GO
-
--- Schema: [Identity] | Procedure: [sp_CheckUsernameExists]
-
-
--- ==========================================
-
--- 4. Check if Username Exists (Optimized)
-
--- ==========================================
-
-CREATE   PROCEDURE [Identity].[sp_CheckUsernameExists]
-
-    @Username NVARCHAR(100)
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    
-
-    -- Returns a simple boolean (1 or 0) for C# to read via ExecuteScalarAsync
-
-    IF EXISTS (SELECT 1 FROM [Identity].Users WHERE Username = @Username)
-
-        SELECT CAST(1 AS BIT);
-
-    ELSE
-
-        SELECT CAST(0 AS BIT);
-
-END
-
-
-GO
-
--- Schema: [Identity] | Procedure: [sp_GetUserById]
-
-
--- ==========================================
-
--- 3. Get User By ID (For Session Management)
-
--- ==========================================
-
-CREATE   PROCEDURE [Identity].[sp_GetUserById]
-
-    @UserId INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    
-
-    SELECT UserID, FirstName, LastName, Username, Password
-
-    FROM [Identity].Users
-
-    WHERE UserID = @UserId;
-
-END
-
-
-GO
-
--- Schema: [Identity] | Procedure: [sp_GetUserByUsername]
-
-
--- ==========================================
-
--- 2. Get User By Username (For Login)
-
--- ==========================================
-
-CREATE   PROCEDURE [Identity].[sp_GetUserByUsername]
-
-    @Username NVARCHAR(100)
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    
-
-    SELECT UserID, FirstName, LastName, Username, Password
-
-    FROM [Identity].Users
-
-    WHERE Username = @Username;
-
-END
-
-
-GO
-
--- Schema: [Ledger] | Procedure: [sp_AddExpenseWithTransaction]
-
-
--- ==========================================
-
--- 3. Add Expense, Transaction, and Deduct Balance
-
--- ==========================================
-
-CREATE   PROCEDURE [Ledger].[sp_AddExpenseWithTransaction]
-
-    @ExpenseUserId INT,
-
-    @ExpenseWalletId INT,
-
-    @ExpenseCategoryId INT,
-
-    @Products NVARCHAR(MAX) = NULL, 
-
-    @ExpenseTagId INT = NULL,
-
-    @ExpenseAmount DECIMAL(18,2),
-
-    @ExpenseDate DATETIME,
-
-    
-
-    @TransTitle NVARCHAR(255),
-
-    @TransDescription NVARCHAR(MAX) = NULL,
-
-    @TransType INT,
-
-    @TransAmountInSp DECIMAL(18,2), 
-
-    @TransCategoryId INT,
-
-    @TransTagId INT = NULL,
-
-    @GoalId INT = NULL,
-
-    @FixedExpenseId INT = NULL,
-
-    @FixedIncomeId INT = NULL,
-
-    @DebtId INT = NULL
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    BEGIN TRY
-
-        -- ==========================================
-
-        -- PRE-FLIGHT SECURITY CHECKS
-
-        -- ==========================================
-
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId)
-
-        BEGIN
-
-            THROW 50001, 'Wallet not found.', 1;
-
-        END
-
-
-
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId)
-
-        BEGIN
-
-            THROW 50003, 'Access denied. You do not own this wallet.', 1;
-
-        END
-
-
-
-        BEGIN TRAN; 
-
-        
-
-        DECLARE @NewExpenseID INT;
-
-
-
-        -- 1. Insert Expense (Now including Products)
-
-        INSERT INTO [Ledger].Expenses (UserID, WalletID, TagID, CategoryID, Products, Amount, Date)
-
-        VALUES (@ExpenseUserId, @ExpenseWalletId, @ExpenseTagId, @ExpenseCategoryId, @Products, @ExpenseAmount, @ExpenseDate);
-
-        
-
-        SET @NewExpenseID = SCOPE_IDENTITY();
-
-
-
-        -- 2. Insert Transaction (Linking to ExpenseID instead of IncomeID)
-
-        INSERT INTO [Ledger].Transactions 
-
-        (UserID, WalletID, CategoryID, TagID, GoalID, FixedExpenseID, FixedIncomeID, DebtID, ExpenseID, Title, Amount, AmountInSp, TransactionDate, TransactionType, Description)
-
-        VALUES 
-
-        (@ExpenseUserId, @ExpenseWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewExpenseID, @TransTitle, @ExpenseAmount, @TransAmountInSp, @ExpenseDate, @TransType, @TransDescription);
-
-
-
-        -- 3. UPDATE WALLET BALANCE (DEDUCT FOR EXPENSE)
-
-        UPDATE [Banking].Wallets
-
-        SET Balance = Balance - @ExpenseAmount
-
-        WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId;
-
-
-
-        COMMIT TRAN; 
-
-        SELECT @NewExpenseID;
-
-    END TRY
-
-    BEGIN CATCH
-
-        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
-
-        THROW; 
-
-    END CATCH
-
-END
-
-
-GO
-
--- Schema: [Ledger] | Procedure: [sp_AddIncomeWithTransaction]
-
-
--- ==========================================
-
--- 3. Add Income, Transaction, and Update Balance
-
--- ==========================================
-
-CREATE   PROCEDURE [Ledger].[sp_AddIncomeWithTransaction]
-
-    @IncomeUserId INT,
-
-    @IncomeWalletId INT,
-
-    @IncomeTagId INT = NULL,
-
-    @IncomeAmount DECIMAL(18,2),
-
-    @IncomeDate DATETIME,
-
-    
-
-    @TransTitle NVARCHAR(255),
-
-    @TransDescription NVARCHAR(MAX) = NULL,
-
-    @TransType INT,
-
-    @TransAmountInSp DECIMAL(18,2), 
-
-    @TransCategoryId INT = NULL,
-
-    @TransTagId INT = NULL,
-
-    @GoalId INT = NULL,
-
-    @FixedExpenseId INT = NULL,
-
-    @FixedIncomeId INT = NULL,
-
-    @DebtId INT = NULL
-
-AS
-
-BEGIN
-
-    BEGIN TRY
-
-        -- ==========================================
-
-        -- PRE-FLIGHT SECURITY CHECKS
-
-        -- ==========================================
-
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId)
-
-        BEGIN
-
-            THROW 50001, 'Wallet not found.', 1;
-
-        END
-
-
-
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId)
-
-        BEGIN
-
-            THROW 50003, 'Access denied. You do not own this wallet.', 1;
-
-        END
-
-
-
-        BEGIN TRAN; 
-
-        
-
-        DECLARE @NewIncomeID INT;
-
-
-
-        INSERT INTO [Ledger].Incomes (UserID, WalletID, TagID, Amount, Date)
-
-        VALUES (@IncomeUserId, @IncomeWalletId, @IncomeTagId, @IncomeAmount, @IncomeDate);
-
-        
-
-        SET @NewIncomeID = SCOPE_IDENTITY();
-
-
-
-        INSERT INTO [Ledger].Transactions 
-
-        (UserID, WalletID, CategoryID, TagID, GoalID, FixedExpenseID, FixedIncomeID, DebtID, IncomeID, Title, Amount, AmountInSp, TransactionDate, TransactionType, Description)
-
-        VALUES 
-
-        (@IncomeUserId, @IncomeWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewIncomeID, @TransTitle, @IncomeAmount, @TransAmountInSp, @IncomeDate, @TransType, @TransDescription);
-
-        
-
-        UPDATE [Banking].Wallets
-
-        SET Balance = Balance + @IncomeAmount
-
-        WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
-
-
-
-        COMMIT TRAN; 
-
-        SELECT @NewIncomeID;
-
-    END TRY
-
-    BEGIN CATCH
-
-        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
-
-        THROW; 
-
-    END CATCH
-
-END
-
-
-GO
-
--- Schema: [Ledger] | Procedure: [sp_DeleteExpense]
-
-
--- ==========================================
-
--- 5. Delete Expense, Transaction, and Refund Balance
-
--- ==========================================
-
-CREATE   PROCEDURE [Ledger].[sp_DeleteExpense]
-
-    @ExpenseId INT,
-
-    @UserId INT -- Added for IDOR Security
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    BEGIN TRY
-
-        -- ==========================================
-
-        -- STRICT SECURITY CHECKS (IDOR)
-
-        -- ==========================================
-
-        DECLARE @ActualOwnerId INT;
-
-        DECLARE @AmountToRevert DECIMAL(18,2);
-
-        DECLARE @WalletId INT;
-
-        
-
-        SELECT @ActualOwnerId = UserID, @AmountToRevert = Amount, @WalletId = WalletID 
-
-        FROM [Ledger].Expenses 
-
-        WHERE ExpenseID = @ExpenseId;
-
-
-
-        IF @ActualOwnerId IS NULL 
-
-        BEGIN
-
-            THROW 50002, 'Expense record was not found.', 1;
-
-        END
-
-
-
-        IF @ActualOwnerId <> @UserId
-
-        BEGIN
-
-            THROW 50003, 'Access denied. You do not own this expense record.', 1;
-
-        END
-
-
-
-        BEGIN TRAN; 
-
-        
-
-        -- 1. Delete dependencies safely
-
-        DELETE FROM [Ledger].Transactions WHERE ExpenseID = @ExpenseId;
-
-        DELETE FROM [Ledger].Expenses WHERE ExpenseID = @ExpenseId;
-
-        
-
-        DECLARE @RowsAffected INT = @@ROWCOUNT;
-
-
-
-        -- 2. Refund the money to the wallet since the expense was deleted
-
-        IF @RowsAffected > 0
-
-        BEGIN
-
-            UPDATE [Banking].Wallets 
-
-            SET Balance = Balance + @AmountToRevert 
-
-            WHERE WalletID = @WalletId AND UserID = @UserId;
-
-        END
-
-
-
-        COMMIT TRAN; 
-
-        SELECT @RowsAffected;
-
-    END TRY
-
-    BEGIN CATCH
-
-        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
-
-        THROW;
-
-    END CATCH
-
-END
-
-
-GO
-
--- Schema: [Ledger] | Procedure: [sp_DeleteIncome]
-
-
--- ==========================================
-
--- 5. Delete Income, Transaction, and Revert Balance (Secured)
-
--- ==========================================
-
-CREATE   PROCEDURE [Ledger].[sp_DeleteIncome]
-
-    @IncomeId INT,
-
-    @UserId INT -- Enforcing IDOR Security
-
-AS
-
-BEGIN
-
-    BEGIN TRY
-
-        BEGIN TRAN; 
-
-        
-
-        -- 1. Capture the amount and wallet to revert (Ensuring ownership)
-
-        DECLARE @AmountToRevert DECIMAL(18,2);
-
-        DECLARE @WalletId INT;
-
-        
-
-        SELECT @AmountToRevert = Amount, @WalletId = WalletID 
-
-        FROM [Ledger].Incomes 
-
-        WHERE IncomeID = @IncomeId AND UserID = @UserId; 
-
-
-
-        IF @AmountToRevert IS NULL 
-
-            THROW 50002, 'Income record was not found or access is denied.', 1;
-
-
-
-        -- 2. Delete dependencies safely
-
-        DELETE FROM [Ledger].Transactions WHERE IncomeID = @IncomeId AND UserID = @UserId;
-
-        DELETE FROM [Ledger].Incomes WHERE IncomeID = @IncomeId AND UserID = @UserId;
-
-        
-
-        DECLARE @RowsAffected INT = @@ROWCOUNT;
-
-
-
-        -- 3. Subtract the money from the wallet since the income was deleted
-
-        IF @RowsAffected > 0
-
-        BEGIN
-
-            UPDATE [Banking].Wallets 
-
-            SET Balance = Balance - @AmountToRevert 
-
-            WHERE WalletID = @WalletId AND UserID = @UserId;
-
-        END
-
-
-
-        COMMIT TRAN; 
-
-        SELECT @RowsAffected;
-
-    END TRY
-
-    BEGIN CATCH
-
-        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
-
-        THROW;
-
-    END CATCH
-
-END
-
-
-GO
-
--- Schema: [Ledger] | Procedure: [sp_GetExpense]
--- ==========================================
-
--- 1. Get Expense By ID (Optimized: No Joins!)
-
--- ==========================================
-
-CREATE   PROCEDURE [Ledger].[sp_GetExpense]
-
-    @ExpenseId INT,
-
-    @UserId INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    
-
-    SELECT 
-
-        ExpenseID, 
-
-        UserID, 
-
-        Amount, 
-
-        Products, 
-
-        Date, 
-
-        WalletID, 
-
-        CategoryID, 
-
-        TagID
-
-    FROM [Ledger].[Expenses]
-
-    WHERE ExpenseID = @ExpenseId AND UserID = @UserId;
-
-END
-
-
-GO
-
--- Schema: [Ledger] | Procedure: [sp_GetExpensesByUserPaged]
-
-
--- ==========================================
-
--- 2. Get Expenses By User Paged (Optimized: No Joins!)
-
--- ==========================================
-
-CREATE   PROCEDURE [Ledger].[sp_GetExpensesByUserPaged]
-
-    @UserId INT,
-
-    @PageNumber INT,
-
-    @PageSize INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    
-
-    SELECT COUNT(*) AS TotalCount
-
-    FROM [Ledger].Expenses
-
-    WHERE UserID = @UserId;
-
-
-
-    SELECT 
-
-        ExpenseID, 
-
-        UserID, 
-
-        Amount, 
-
-        Products, 
-
-        Date, 
-
-        WalletID, 
-
-        CategoryID, 
-
-        TagID
-
-    FROM [Ledger].[Expenses]
-
-    WHERE UserID = @UserId
-
-    ORDER BY Date DESC
-
-    OFFSET (@PageNumber - 1) * @PageSize ROWS
-
-    FETCH NEXT @PageSize ROWS ONLY;
-
-END
-
-
-GO
-
--- Schema: [Ledger] | Procedure: [sp_GetIncome]
--- ==========================================
-
--- 1. Get Income By ID (Optimized: No Joins Needed!)
-
--- ==========================================
-
-CREATE   PROCEDURE [Ledger].[sp_GetIncome]
-
-    @IncomeId INT,
-
-    @UserId INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    
-
-    -- Result Set 1: Income and Transaction Details
-
-    SELECT 
-
-        i.IncomeID, i.UserID AS IncomeUserID, i.Amount AS IncomeAmount, i.Date AS IncomeDate,
-
-        i.WalletID AS IncomeWalletID, 
-
-        i.TagID AS IncomeTagID, 
-
-        
-
-        tr.TransactionID, tr.UserID AS TransUserID, tr.Title, tr.Description, 
-
-        tr.Amount AS TransAmount, tr.TransactionDate, tr.TransactionType,
-
-        tr.GoalID, tr.FixedExpenseID, tr.FixedIncomeID, tr.DebtID,
-
-        tr.WalletID AS TransWalletID, 
-
-        tr.CategoryID, 
-
-        tr.TagID AS TransTagID
-
-    FROM [Ledger].Incomes i
-
-    LEFT JOIN [Ledger].Transactions tr ON tr.IncomeID = i.IncomeID
-
-    WHERE i.IncomeID = @IncomeId AND i.UserID = @UserId;
-
-
-
-    -- Result Set 2: Currency and Wallet Info
-
-    SELECT 
-
-        w.WalletID, 
-
-        w.Balance, 
-
-        w.CurrencyID,
-
-        c.CurrencyName, 
-
-        c.CurrencyCode
-
-    FROM [Banking].Wallets w
-
-    INNER JOIN [Config].Currencies c ON w.CurrencyID = c.CurrencyID
-
-    WHERE w.WalletID = (SELECT WalletID FROM [Ledger].Incomes WHERE IncomeID = @IncomeId)
-
-      AND w.UserID = @UserId;
-
-
-
-END
-
-
-GO
-
--- Schema: [Ledger] | Procedure: [sp_GetIncomesByUserPaged]
-
-
--- ==========================================
-
--- 2. Get Incomes By User Paged 
-
--- ==========================================
-
-CREATE   PROCEDURE [Ledger].[sp_GetIncomesByUserPaged]
-
-    @UserId INT,
-
-    @PageNumber INT,
-
-    @PageSize INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    
-
-    -- Result Set 1: Total Count 
-
-    SELECT COUNT(*) AS TotalCount
-
-    FROM [Ledger].Incomes
-
-    WHERE UserID = @UserId;
-
-
-
-    -- Result Set 2: Paged Incomes
-
-    -- We use a CTE or a temporary variable to capture which IDs we are looking at
-
-    -- so we can easily fetch their Wallet info in the next result set.
-
-    SELECT 
-
-        IncomeID, UserID, Amount, Date, WalletID, TagID
-
-    INTO #CurrentPageIncomes
-
-    FROM [Ledger].Incomes
-
-    WHERE UserID = @UserId
-
-    ORDER BY Date DESC
-
-    OFFSET (@PageNumber - 1) * @PageSize ROWS
-
-    FETCH NEXT @PageSize ROWS ONLY;
-
-
-
-    SELECT * FROM #CurrentPageIncomes;
-
-
-
-    -- Result Set 3: Unique Wallets and Currencies for this page
-
-    -- This avoids sending "US Dollar" 50 times if all 50 incomes are from the same wallet.
-
-    SELECT DISTINCT
-
-        w.WalletID, 
-
-        w.Balance, 
-
-        w.CurrencyID,
-
-        c.CurrencyName, 
-
-        c.CurrencyCode
-
-    FROM [Banking].Wallets w
-
-    INNER JOIN [Config].Currencies c ON w.CurrencyID = c.CurrencyID
-
-    WHERE w.WalletID IN (SELECT WalletID FROM #CurrentPageIncomes)
-
-      AND w.UserID = @UserId;
-
-
-
-    DROP TABLE #CurrentPageIncomes;
-
-END
-
-
-GO
-
--- Schema: [Ledger] | Procedure: [sp_GetProducts]
-
-
--- ==========================================
-
--- 6. Get Products JSON String
-
--- ==========================================
-
-CREATE   PROCEDURE [Ledger].[sp_GetProducts]
-
-    @ExpenseId INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-
-
-    SELECT Products 
-
-    FROM [Ledger].[Expenses] 
-
-    WHERE ExpenseID = @ExpenseId;
-
-END
-
-
-GO
-
--- Schema: [Ledger] | Procedure: [sp_UpdateExpenseWithTransaction]
-
-
--- ==========================================
-
--- 4. Update Expense, Transaction, and Adjust Balance
-
--- ==========================================
-
-CREATE   PROCEDURE [Ledger].[sp_UpdateExpenseWithTransaction]
-
-    @ExpenseId INT,
-
-    @ExpenseUserId INT,
-
-    @ExpenseWalletId INT,
-
-    @ExpenseCategoryId INT,
-
-    @Products NVARCHAR(MAX) = NULL, 
-
-    @ExpenseTagId INT = NULL,
-
-    @ExpenseAmount DECIMAL(18,2),
-
-    @ExpenseDate DATETIME,
-
-    
-
-    @TransTitle NVARCHAR(255),
-
-    @TransDescription NVARCHAR(MAX) = NULL,
-
-    @TransType INT,
-
-    @TransAmountInSp DECIMAL(18,2),
-
-    @TransCategoryId INT = NULL,
-
-    @TransTagId INT = NULL,
-
-    @GoalId INT = NULL,
-
-    @FixedExpenseId INT = NULL,
-
-    @FixedIncomeId INT = NULL,
-
-    @DebtId INT = NULL
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    BEGIN TRY
-
-        -- ==========================================
-
-        -- PRE-FLIGHT WALLET SECURITY CHECKS
-
-        -- ==========================================
-
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId)
-
-        BEGIN
-
-            THROW 50001, 'Wallet not found.', 1;
-
-        END
-
-
-
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId)
-
-        BEGIN
-
-            THROW 50003, 'Access denied. You do not own the target wallet.', 1;
-
-        END
-
-
-
-        -- ==========================================
-
-        -- STRICT EXPENSE SECURITY CHECKS (IDOR)
-
-        -- ==========================================
-
-        DECLARE @ActualOwnerId INT;
-
-        DECLARE @OldAmount DECIMAL(18,2);
-
-        DECLARE @OldWalletId INT;
-
-        
-
-        SELECT @ActualOwnerId = UserID, @OldAmount = Amount, @OldWalletId = WalletID 
-
-        FROM [Ledger].Expenses 
-
-        WHERE ExpenseID = @ExpenseId;
-
-
-
-        IF @ActualOwnerId IS NULL 
-
-        BEGIN
-
-            THROW 50002, 'Expense record was not found.', 1;
-
-        END
-
-        
-
-        IF @ActualOwnerId <> @ExpenseUserId
-
-        BEGIN
-
-            THROW 50003, 'Access denied. You do not own this expense record.', 1;
-
-        END
-
-
-
-        BEGIN TRAN; 
-
-
-
-        -- 1. Update Expense
-
-        UPDATE [Ledger].Expenses
-
-        SET WalletID = @ExpenseWalletId,
-
-            CategoryID = @ExpenseCategoryId,
-
-            TagID = @ExpenseTagId,
-
-            Products = @Products,
-
-            Amount = @ExpenseAmount,
-
-            Date = @ExpenseDate
-
-        WHERE ExpenseID = @ExpenseId AND UserID = @ExpenseUserId;
-
-        
-
-        DECLARE @RowsAffected INT = @@ROWCOUNT;
-
-
-
-        IF @RowsAffected > 0
-
-        BEGIN
-
-            -- 2. Update Transaction
-
-            UPDATE [Ledger].Transactions
-
-            SET WalletID = @ExpenseWalletId,
-
-                CategoryID = @TransCategoryId,
-
-                TagID = @TransTagId,
-
-                GoalID = @GoalId,
-
-                FixedExpenseID = @FixedExpenseId,
-
-                FixedIncomeID = @FixedIncomeId,
-
-                DebtID = @DebtId,
-
-                Title = @TransTitle,
-
-                Amount = @ExpenseAmount,
-
-                AmountInSp = @TransAmountInSp, 
-
-                TransactionDate = @ExpenseDate,
-
-                TransactionType = @TransType,
-
-                Description = @TransDescription
-
-            WHERE ExpenseID = @ExpenseId AND UserID = @ExpenseUserId;
-
-
-
-            -- 3. BALANCE MATH (Revert old deduction, apply new deduction)
-
-            IF @OldWalletId = @ExpenseWalletId
-
-            BEGIN
-
-                UPDATE [Banking].Wallets
-
-                SET Balance = Balance + @OldAmount - @ExpenseAmount
-
-                WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId;
-
-            END
-
-            ELSE
-
-            BEGIN
-
-                UPDATE [Banking].Wallets SET Balance = Balance + @OldAmount WHERE WalletID = @OldWalletId AND UserID = @ExpenseUserId;
-
-                UPDATE [Banking].Wallets SET Balance = Balance - @ExpenseAmount WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId;
-
-            END
-
-        END
-
-
-
-        COMMIT TRAN; 
-
-        SELECT @RowsAffected;
-
-    END TRY
-
-    BEGIN CATCH
-
-        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
-
-        THROW;
-
-    END CATCH
-
-END
-
-
-GO
-
--- Schema: [Ledger] | Procedure: [sp_UpdateIncomeWithTransaction]
--- ==========================================
-
--- 4. Update Income, Transaction, and Adjust Balance
-
--- ==========================================
-
-CREATE   PROCEDURE [Ledger].[sp_UpdateIncomeWithTransaction]
-
-    @IncomeId INT,
-
-    @IncomeUserId INT,
-
-    @IncomeWalletId INT,
-
-    @IncomeTagId INT = NULL,
-
-    @IncomeAmount DECIMAL(18,2),
-
-    @IncomeDate DATETIME,
-
-    
-
-    @TransTitle NVARCHAR(255),
-
-    @TransDescription NVARCHAR(MAX) = NULL,
-
-    @TransType INT,
-
-    @TransAmountInSp DECIMAL(18,2), 
-
-    @TransCategoryId INT = NULL,
-
-    @TransTagId INT = NULL,
-
-    @GoalId INT = NULL,
-
-    @FixedExpenseId INT = NULL,
-
-    @FixedIncomeId INT = NULL,
-
-    @DebtId INT = NULL
-
-AS
-
-BEGIN
-
-    BEGIN TRY
-
-        -- ==========================================
-
-        -- PRE-FLIGHT SECURITY CHECKS
-
-        -- ==========================================
-
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId)
-
-        BEGIN
-
-            THROW 50001, 'Wallet not found.', 1;
-
-        END
-
-
-
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId)
-
-        BEGIN
-
-            THROW 50003, 'Access denied. You do not own this wallet.', 1;
-
-        END
-
-
-
-        BEGIN TRAN; 
-
-
-
-        DECLARE @OldAmount DECIMAL(18,2);
-
-        DECLARE @OldWalletId INT;
-
-        
-
-        SELECT @OldAmount = Amount, @OldWalletId = WalletID 
-
-        FROM [Ledger].Incomes 
-
-        WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
-
-
-
-        -- 3. Ensure the Income record actually exists and belongs to the user
-
-        IF @OldAmount IS NULL 
-
-            THROW 50002, 'Income record was not found.', 1;
-
-        
-
-        UPDATE [Ledger].Incomes
-
-        SET WalletID = @IncomeWalletId,
-
-            TagID = @IncomeTagId,
-
-            Amount = @IncomeAmount,
-
-            Date = @IncomeDate
-
-        WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
-
-        
-
-        DECLARE @RowsAffected INT = @@ROWCOUNT;
-
-
-
-        IF @RowsAffected > 0
-
-        BEGIN
-
-            UPDATE [Ledger].Transactions
-
-            SET WalletID = @IncomeWalletId,
-
-                CategoryID = @TransCategoryId,
-
-                TagID = @TransTagId,
-
-                GoalID = @GoalId,
-
-                FixedExpenseID = @FixedExpenseId,
-
-                FixedIncomeID = @FixedIncomeId,
-
-                DebtID = @DebtId,
-
-                Title = @TransTitle,
-
-                Amount = @IncomeAmount,
-
-                AmountInSp = @TransAmountInSp, 
-
-                TransactionDate = @IncomeDate,
-
-                TransactionType = @TransType,
-
-                Description = @TransDescription
-
-            WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
-
-
-
-            IF @OldWalletId = @IncomeWalletId
-
-            BEGIN
-
-                UPDATE [Banking].Wallets
-
-                SET Balance = Balance - @OldAmount + @IncomeAmount
-
-                WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
-
-            END
-
-            ELSE
-
-            BEGIN
-
-                UPDATE [Banking].Wallets SET Balance = Balance - @OldAmount WHERE WalletID = @OldWalletId AND UserID = @IncomeUserId;
-
-                UPDATE [Banking].Wallets SET Balance = Balance + @IncomeAmount WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
-
-            END
-
-        END
-
-
-
-        COMMIT TRAN; 
-
-        SELECT @RowsAffected;
-
-    END TRY
-
-    BEGIN CATCH
-
-        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
-
-        THROW;
-
-    END CATCH
-
-END
-
-
-GO
-
--- Schema: [Planning] | Procedure: [sp_AddCategoryBudget]
--- ==========================================
-
--- 1. Add Category Budget (Updated)
-
--- ==========================================
-
-CREATE   PROCEDURE [Planning].[sp_AddCategoryBudget]
-
-    @UserID INT,
-
-    @CategoryID INT,
-
-    @PercentageLimit DECIMAL(18,2),
-
-    @StartDate DATE,
-
-    @EndDate DATE,
-
-    @IsActive BIT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    IF EXISTS (SELECT 1 FROM [Planning].[Budgets] WHERE UserID = @UserID AND CategoryID = @CategoryID)
-
-        THROW 50004, 'A budget for this category already exists for the user.', 1;
-
-   
-
-   IF (SELECT ISNULL(SUM(PercentageLimit), 0) + @PercentageLimit FROM [Planning].[Budgets] WHERE UserID = @UserID) > 100
-
-    THROW 50005, 'Wrong input, total categories budget percentage cannot exceed 100%.', 1;
-
-
-
-    INSERT INTO [Planning].[Budgets] (UserID, CategoryID, PercentageLimit, StartDate, EndDate, IsActive)
-
-    VALUES (@UserID, @CategoryID, @PercentageLimit, @StartDate, @EndDate, @IsActive);
-
-    
-
-    SELECT CAST(SCOPE_IDENTITY() AS INT);
-
-END
-
-
-GO
-
--- Schema: [Planning] | Procedure: [sp_GetAllUserBudgets]
-
-
--- ==========================================
-
--- 3. Get All Budgets (DYNAMIC CALCULATION)
-
--- ==========================================
-
-CREATE   PROCEDURE [Planning].[sp_GetAllUserBudgets]
-
-    @UserID INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-
-
-    SELECT
-
-        b.BudgetID,
-
-        b.UserID,
-
-        b.CategoryID,
-
-        b.PercentageLimit,
-
-        b.StartDate,
-
-        b.EndDate,
-
-        b.IsActive,
-
-        -- Calculate Percentage Progress securely to avoid Divide By Zero
-
-        CAST(
-
-            CASE
-
-                WHEN Totals.TotalIncome > 0 AND b.PercentageLimit > 0 THEN
-
-                    (Totals.TotalSpent / (Totals.TotalIncome * (b.PercentageLimit / 100.0))) * 100.0
-
-                ELSE 0.0
-
-            END 
-
-        AS DECIMAL(18,2)) AS PercentageProgress
-
-    FROM [Planning].[Budgets] b
-
-    CROSS APPLY (
-
-        SELECT
-
-            -- Get Total Income (Type 0) in SYP during this budget period
-
-            COALESCE((SELECT SUM(AmountInSp)
-
-                      FROM [Ledger].[Transactions]
-
-                      WHERE UserID = b.UserID AND TransactionType = 0
-
-                      AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalIncome,
-
-
-
-            -- Get Total Spent (Type 1) in SYP for this specific category during the budget period
-
-            COALESCE((SELECT SUM(AmountInSp)
-
-                      FROM [Ledger].[Transactions]
-
-                      WHERE UserID = b.UserID AND CategoryID = b.CategoryID AND TransactionType = 1
-
-                      AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalSpent
-
-    ) AS Totals
-
-    WHERE b.UserID = @UserID;
-
-END
-
-
-GO
-
--- Schema: [Planning] | Procedure: [sp_GetCategoryBudget]
-
-
--- ==========================================
-
--- 4. Get Single Budget (DYNAMIC CALCULATION)
-
--- ==========================================
-
-CREATE   PROCEDURE [Planning].[sp_GetCategoryBudget]
-
-    @CategoryID INT,
-
-    @UserID INT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-
-
-    SELECT
-
-        b.BudgetID, b.UserID, b.CategoryID, b.PercentageLimit, b.StartDate, b.EndDate, b.IsActive,
-
-        CAST(
-
-            CASE
-
-                WHEN Totals.TotalIncome > 0 AND b.PercentageLimit > 0 THEN
-
-                    (Totals.TotalSpent / (Totals.TotalIncome * (b.PercentageLimit / 100.0))) * 100.0
-
-                ELSE 0.0
-
-            END 
-
-        AS DECIMAL(18,2)) AS PercentageProgress
-
-    FROM [Planning].[Budgets] b
-
-    CROSS APPLY (
-
-        SELECT
-
-            COALESCE((SELECT SUM(AmountInSp) FROM [Ledger].[Transactions] WHERE UserID = b.UserID AND TransactionType = 0 AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalIncome,
-
-            COALESCE((SELECT SUM(AmountInSp) FROM [Ledger].[Transactions] WHERE UserID = b.UserID AND CategoryID = b.CategoryID AND TransactionType = 1 AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalSpent
-
-    ) AS Totals
-
-    WHERE b.CategoryID = @CategoryID AND b.UserID = @UserID; 
-
-END
-
-
-GO
-
--- Schema: [Planning] | Procedure: [sp_UpdateCategoryBudget]
-
-
--- ==========================================
-
--- 2. Update Category Budget (Updated)
-
--- ==========================================
-
-CREATE   PROCEDURE [Planning].[sp_UpdateCategoryBudget]
-
-    @BudgetID INT,
-
-    @UserID INT,
-
-    @CategoryID INT,
-
-    @PercentageLimit DECIMAL(18,2),
-
-    @StartDate DATE,
-
-    @EndDate DATE,
-
-    @IsActive BIT
-
-AS
-
-BEGIN
-
-    SET NOCOUNT ON;
-
-    IF NOT EXISTS (SELECT 1 FROM [Planning].[Budgets] WHERE BudgetID = @BudgetID AND UserID = @UserID)
-
-        THROW 50003, 'Access denied. You do not own this budget.', 1;
-
-
-
-    UPDATE [Planning].[Budgets]
-
-    SET CategoryID = @CategoryID,
-
-        PercentageLimit = @PercentageLimit,
-
-        StartDate = @StartDate,
-
-        EndDate = @EndDate,
-
-        IsActive = @IsActive
-
-    WHERE BudgetID = @BudgetID AND UserID = @UserID;
-
-
-
-    SELECT @@ROWCOUNT;
-
-END
-
-
-GO
-
-
-
-
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise\appsettings.Development.json
 ----------------------------------------
 {
@@ -2414,6 +70,15 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise\Program.cs
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+
+using System.Text;
+using System.Text.Json.Serialization;
+using SpendWise.Application.Services;
+using SpendWise.Infrastructure.Repositories;
+using SpendWise.Application.Interfaces.Tags;
+using SpendWise.Application.Interfaces.Users;
+using SpendWise.Application.Interfaces;
+
 using SpendWise.Application.Interfaces.Authentication;
 using SpendWise.Application.Interfaces.Categories;
 using SpendWise.Application.Interfaces.ExchangeRate;
@@ -2421,14 +86,7 @@ using SpendWise.Application.Interfaces.Expenses;
 using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Application.Interfaces.SavingGoals;
 using SpendWise.Application.Interfaces.SharedDebts;
-using SpendWise.Application.Interfaces.Tags;
-using SpendWise.Application.Interfaces.Users;
 using SpendWise.Application.Interfaces.Wallets;
-using SpendWise.Application.Services;
-using SpendWise.Infrastructure.Repositories;
-using System.Text;
-using System.Text.Json.Serialization;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -2479,10 +137,14 @@ builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<ISavingGoalService, SavingGoalsService>();
 builder.Services.AddScoped<ISavingGoalRepository, SavingGoalRepository>();
 
-builder.Services.AddScoped<ICategoryBudgetRepository, CategoryBudgetRepository>();
 builder.Services.AddScoped<ICategoryBudgetService, CategoryBudgetService>();
+builder.Services.AddScoped<ICategoryBudgetRepository, CategoryBudgetRepository>();
 
 builder.Services.AddScoped<ISharedDebtService, SharedDebtService>();
+builder.Services.AddScoped<ISharedDebtRepository, SharedDebtRepository>();
+
+builder.Services.AddScoped<IFixedObligationsService, FixedObligationsService>();
+builder.Services.AddScoped<IFixedObligationRepository, FixedObligationRepository>();
 
 builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
 
@@ -2639,13 +301,14 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise\Controllers\Cat
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.Category;
 using SpendWise.Application.Interfaces.Categories;
+using System.Diagnostics;
 using System.Security.Claims;
 
 namespace SpendWise.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/categories/budgets")] 
+    [Route("api/categories/")] 
     public class CategoryBudgetController : ControllerBase
     {
         private readonly ICategoryBudgetService _budgetService;
@@ -2688,8 +351,9 @@ namespace SpendWise.Controllers
         {
             if (budgetDto.UserId != CurrentUserId) return Unauthorized();
 
-            var budgetId = await _budgetService.SetCategoryBudgetAsync(budgetDto);
-            return budgetId <= 0 ? BadRequest() : CreatedAtAction(nameof(GetBudgetById), new { budgetId = budgetId }, budgetId);
+            var createdBudget = await _budgetService.SetCategoryBudgetAsync(budgetDto);
+
+            return createdBudget == null ? BadRequest() : CreatedAtAction(nameof(GetBudgetById), new { categoryId = budgetDto.CategoryId}, createdBudget);
         }
 
         [HttpPatch("{categoryId}")] 
@@ -2826,6 +490,133 @@ namespace SpendWise.Controllers
         }
     }
 }
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise\Controllers\FixcedObligationsController.cs
+----------------------------------------
+﻿using Azure;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SpendWise.Application.DTOs.FixedObligations;
+using SpendWise.Application.Interfaces;
+using SpendWise.Application.Interfaces.Tags;
+using SpendWise.Application.Services;
+using SpendWise.Domain.Entities;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+namespace SpendWise.Controllers
+{
+    [Authorize]
+    [ApiController]
+    [Route("api/fixed-obligations")]
+    public class FixedObligationsController : ControllerBase
+    {
+        private readonly IFixedObligationsService _fixedObligationService;
+
+        // Helper property to securely extract the user ID from the auth token
+        private int CurrentUserId
+        {
+            get
+            {
+                // 1. Get the string value from the claim
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                // 2. Safely attempt to parse it into an integer
+                if (int.TryParse(userIdString, out int userId))
+                {
+                    return userId;
+                }
+
+                // 3. Fallback/Safety Net: If the claim is missing or somehow isn't a valid number
+                throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
+            }
+        }
+        public FixedObligationsController(IFixedObligationsService fixedObligationService)
+        {
+            _fixedObligationService = fixedObligationService;
+        }
+
+        [HttpGet("{fixedObligationId}")]
+        public async Task<IActionResult> GetFixedObligation([FromRoute] int fixedObligationId)
+        {
+            int userId = CurrentUserId;
+
+            var fixedObligation = _fixedObligationService.GetFixedObligationAsync(fixedObligationId, userId);
+
+            if (fixedObligation == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(fixedObligation);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUserFixedObligations()
+        {
+            int userId = CurrentUserId;
+
+            var fixedObligationsList = _fixedObligationService.GetFixedObligationsByUserIdAsync(userId);
+            
+            return Ok(fixedObligationsList);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateFixedObligationAsync([FromBody] FixedObligationDTO fixedObligationDTO)
+        {
+            if (fixedObligationDTO.OwnerId == CurrentUserId)
+                return Unauthorized();
+
+            await _fixedObligationService.CreateFixedObligationAsync(fixedObligationDTO); // make this return boolean later
+
+            // This generates a 201 status and a Location header like:
+            // Location: https://mydomain.com/api/fixed-obligations/5
+            return CreatedAtAction(
+                nameof(GetFixedObligation),                     // 1. Action Name
+                new { obligationId = fixedObligationDTO.Id },   // 2. Route Values
+                fixedObligationDTO                              // 3. Response Body
+            );
+        }
+
+        [HttpPatch("{fixedObligationId}")]
+        public async Task<IActionResult> UpdateFixedObligation([FromRoute] int fixedObligationId, 
+            [FromBody] FixedObligationDTO fixedObligationDTO)
+        {
+            if (fixedObligationDTO.OwnerId != CurrentUserId)
+            {
+                return Unauthorized();
+            }
+
+            int userId = CurrentUserId;
+
+            // 1. Guard against mismatched IDs 
+            if (fixedObligationDTO.Id != 0 && fixedObligationDTO.Id != fixedObligationId)
+                return BadRequest("The tag ID in the body does not match the URL.");
+
+            // 2. Force the DTO to match the URL parameters
+            fixedObligationDTO.Id = fixedObligationId;
+            fixedObligationDTO.OwnerId = CurrentUserId;
+
+            await _fixedObligationService.UpdateFixedObligationAsync(fixedObligationDTO);
+
+            return NoContent();
+        }
+
+        [HttpDelete("{fixedObligationId}")]
+        public async Task<IActionResult> DeleteTag([FromRoute] int fixedObligationId)
+        {
+            int userId = CurrentUserId;
+
+            await _fixedObligationService.DeleteFixedObligationAsync(fixedObligationId, userId);
+
+            return NoContent();
+        }
+
+    }
+}
+
 
 
 
@@ -3551,6 +1342,1624 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise\Properties\laun
 
 
 
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Banking\Stored Procedures\sp_AddWallet.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- Add Wallet (Strict Currency Link)
+-- ==========================================
+CREATE   PROCEDURE [Banking].[sp_AddWallet]
+    @UserId INT,
+    @CurrencyId INT,
+    @Balance DECIMAL(18,2),
+    @IsSaved BIT
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRAN; -- Start Data Consistency Lock
+        
+        -- 1. Explicitly verify the CurrencyId exists before inserting
+        -- (Optional, but provides a clean error message that your new SqlExceptionHandler can catch!)
+        IF NOT EXISTS (SELECT 1 FROM [Config].Currencies WHERE CurrencyID = @CurrencyId)
+        BEGIN
+            THROW 50001, 'The specified Currency ID does not exist.', 1; 
+        END
+
+        -- 2. Create the Wallet using the directly provided CurrencyId
+        INSERT INTO [Banking].Wallets (UserID, CurrencyID, Balance, IsSaved)
+        VALUES (@UserId, @CurrencyId, @Balance, @IsSaved);
+        
+        DECLARE @NewWalletID INT = SCOPE_IDENTITY();
+
+        COMMIT TRAN; -- Lock Released: Operation succeeded
+        
+        -- Return the new WalletID to C#
+        SELECT @NewWalletID;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; -- Emergency Revert
+        THROW;
+    END CATCH
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Banking\Stored Procedures\sp_DeleteWallet.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 5. Delete a Wallet
+-- ==========================================
+CREATE   PROCEDURE [Banking].[sp_DeleteWallet]
+    @WalletId INT,
+    @UserId INT
+AS
+BEGIN
+    DELETE FROM [Banking].Wallets
+    WHERE WalletID = @WalletId AND UserID = @UserId;
+    
+    -- Returns the number of rows affected to C# (ExecuteNonQueryAsync)
+    SELECT @@ROWCOUNT;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Banking\Stored Procedures\sp_GetUserWallets.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 2. Get All Wallets for a User (Optimized)
+-- ==========================================
+CREATE   PROCEDURE [Banking].[sp_GetUserWallets]
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        WalletID, 
+        Balance, 
+        UserID, 
+        IsSaved,
+        CurrencyID
+    FROM [Banking].Wallets
+    WHERE UserID = @UserId;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Banking\Stored Procedures\sp_GetWalletById.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 1. Get Wallet By ID (Optimized)
+-- ==========================================
+CREATE   PROCEDURE [Banking].[sp_GetWalletById]
+    @WalletId INT,
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        WalletID, 
+        Balance, 
+        UserID, 
+        IsSaved,
+        CurrencyID
+    FROM [Banking].Wallets
+    WHERE WalletID = @WalletId AND UserID = @UserId;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Banking\Stored Procedures\sp_UpdateWallet.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- Update Wallet 
+-- ==========================================
+CREATE   PROCEDURE [Banking].[sp_UpdateWallet]
+    @WalletId INT,
+    @UserId INT,
+    @CurrencyId INT,
+    @Balance DECIMAL(18,2),
+    @IsSaved BIT 
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRAN; -- Start Data Consistency Lock
+        
+        -- Optional: Explicitly verify the CurrencyId exists before updating.
+        -- (If you have a Foreign Key constraint on Wallets.CurrencyID, the database will handle this automatically!)
+        IF NOT EXISTS (SELECT 1 FROM [Config].Currencies WHERE CurrencyID = @CurrencyId)
+        BEGIN
+            THROW 50001, 'The specified Currency ID does not exist.', 1; 
+        END
+
+        -- Update the Wallet using the directly provided CurrencyId
+        UPDATE [Banking].Wallets
+        SET CurrencyID = @CurrencyId,
+            Balance = @Balance,
+            IsSaved = @IsSaved
+        WHERE WalletID = @WalletId AND UserID = @UserId;
+        
+        DECLARE @RowsAffected INT = @@ROWCOUNT;
+
+        COMMIT TRAN; -- Lock Released
+        
+        -- Return the number of rows affected
+        SELECT @RowsAffected;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; -- Emergency Revert
+        THROW;
+    END CATCH
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Banking\Tables\Wallets.sql
+----------------------------------------
+﻿CREATE TABLE [Banking].[Wallets] (
+    [WalletID]   INT             IDENTITY (1, 1) NOT NULL,
+    [UserID]     INT             NOT NULL,
+    [CurrencyID] INT             NOT NULL,
+    [Balance]    DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
+    [IsSaved]    BIT             NOT NULL,
+    PRIMARY KEY CLUSTERED ([WalletID] ASC),
+    CONSTRAINT [CHK_Wallets_Balance] CHECK ([Balance]>=(0)),
+    CONSTRAINT [FK_Wallets_Currencies] FOREIGN KEY ([CurrencyID]) REFERENCES [Config].[Currencies] ([CurrencyID]),
+    CONSTRAINT [FK_Wallets_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID]),
+    CONSTRAINT [UQ_Wallets_UserCurrencySaved] UNIQUE NONCLUSTERED ([UserID] ASC, [CurrencyID] ASC, [IsSaved] ASC)
+);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Wallets_User]
+    ON [Banking].[Wallets]([UserID] ASC)
+    INCLUDE([Balance], [CurrencyID]);
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Config\Stored Procedures\sp_CreateTag.sql
+----------------------------------------
+﻿-- ==========================================
+-- 1. Create Tag
+-- ==========================================
+CREATE   PROCEDURE [Config].[sp_CreateTag]
+    @UserID INT,
+    @Name NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Check for duplicate tag names for this specific user
+    IF EXISTS (SELECT 1 FROM [Config].Tags WHERE UserID = @UserID AND Name = @Name)
+    BEGIN
+        THROW 50004, 'A tag with this name already exists for your account.', 1;
+    END
+
+    INSERT INTO [Config].Tags (UserID, Name)
+    VALUES (@UserID, @Name);
+
+    -- Return the new ID on success
+    SELECT CAST(SCOPE_IDENTITY() AS INT);
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Config\Stored Procedures\sp_DeleteTag.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 3. Delete Tag (Secured)
+-- ==========================================
+CREATE   PROCEDURE [Config].[sp_DeleteTag]
+    @TagID INT,
+    @UserID INT -- Added IDOR Security
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- STRICT IDOR CHECKS
+    DECLARE @ActualOwnerId INT;
+    SELECT @ActualOwnerId = UserID FROM [Config].Tags WHERE TagID = @TagID;
+
+    IF @ActualOwnerId IS NULL 
+        THROW 50002, 'Tag not found.', 1;
+
+    IF @ActualOwnerId <> @UserID 
+        THROW 50003, 'Access denied. You do not own this tag.', 1;
+
+    DELETE FROM [Config].Tags
+    WHERE TagID = @TagID AND UserID = @UserID;
+
+    SELECT @@ROWCOUNT;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Config\Stored Procedures\sp_GetTag.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 4. Get Tag By ID
+-- ==========================================
+CREATE   PROCEDURE [Config].[sp_GetTag]
+    @TagID INT,
+    @UserID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TagID, UserID, Name
+    FROM [Config].Tags
+    WHERE TagID = @TagID AND UserID = @UserID;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Config\Stored Procedures\sp_GetTags.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 5. Get All Tags By User
+-- ==========================================
+CREATE   PROCEDURE [Config].[sp_GetTags]
+    @UserID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TagID, UserID, Name
+    FROM [Config].Tags
+    WHERE UserID = @UserID;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Config\Stored Procedures\sp_UpdateTag.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 2. Update Tag (Secured)
+-- ==========================================
+CREATE   PROCEDURE [Config].[sp_UpdateTag]
+    @TagID INT,
+    @UserID INT,
+    @Name NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- STRICT IDOR CHECKS
+    DECLARE @ActualOwnerId INT;
+    SELECT @ActualOwnerId = UserID FROM [Config].Tags WHERE TagID = @TagID;
+
+    IF @ActualOwnerId IS NULL 
+        THROW 50002, 'Tag not found.', 1;
+
+    IF @ActualOwnerId <> @UserID 
+        THROW 50003, 'Access denied. You do not own this tag.', 1;
+
+    UPDATE [Config].Tags
+    SET Name = @Name
+    WHERE TagID = @TagID AND UserID = @UserID;
+
+    SELECT @@ROWCOUNT;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Config\Tables\Categories.sql
+----------------------------------------
+﻿CREATE TABLE [Config].[Categories] (
+    [CategoryID] INT            IDENTITY (1, 1) NOT NULL,
+    [Name]       NVARCHAR (100) NOT NULL,
+    [Priority]   INT            NOT NULL,
+    PRIMARY KEY CLUSTERED ([CategoryID] ASC)
+);
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Config\Tables\Currencies.sql
+----------------------------------------
+﻿CREATE TABLE [Config].[Currencies] (
+    [CurrencyID]   INT           IDENTITY (1, 1) NOT NULL,
+    [CurrencyName] NVARCHAR (50) NOT NULL,
+    [CurrencyCode] CHAR (3)      NOT NULL,
+    PRIMARY KEY CLUSTERED ([CurrencyID] ASC),
+    CONSTRAINT [UQ_Currencies_Name] UNIQUE NONCLUSTERED ([CurrencyName] ASC)
+);
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Config\Tables\Tags.sql
+----------------------------------------
+﻿CREATE TABLE [Config].[Tags] (
+    [TagID]  INT            IDENTITY (1, 1) NOT NULL,
+    [UserID] INT            NOT NULL,
+    [Name]   NVARCHAR (100) NOT NULL,
+    PRIMARY KEY CLUSTERED ([TagID] ASC),
+    CONSTRAINT [FK_Tags_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID]),
+    CONSTRAINT [UQ_Tags_UserName] UNIQUE NONCLUSTERED ([UserID] ASC, [Name] ASC)
+);
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Identity\Stored Procedures\sp_AddUser.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 1. Add User (Optimized and Secured)
+-- ==========================================
+CREATE   PROCEDURE [Identity].[sp_AddUser]
+    @FirstName NVARCHAR(100),
+    @LastName NVARCHAR(100),
+    @Username NVARCHAR(100),
+    @Password NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        -- Explicit duplicate username check
+        IF EXISTS (SELECT 1 FROM [Identity].Users WHERE Username = @Username)
+        BEGIN
+            -- This maps to your DuplicateResourceException in C#
+            THROW 2627, 'This username is already taken.', 1; 
+        END
+
+        INSERT INTO [Identity].Users (FirstName, LastName, Username, Password)
+        VALUES (@FirstName, @LastName, @Username, @Password);
+        
+        -- Return the newly generated UserID directly
+        SELECT CAST(SCOPE_IDENTITY() AS INT);
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Identity\Stored Procedures\sp_CheckUsernameExists.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 4. Check if Username Exists (Optimized)
+-- ==========================================
+CREATE   PROCEDURE [Identity].[sp_CheckUsernameExists]
+    @Username NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Returns a simple boolean (1 or 0) for C# to read via ExecuteScalarAsync
+    IF EXISTS (SELECT 1 FROM [Identity].Users WHERE Username = @Username)
+        SELECT CAST(1 AS BIT);
+    ELSE
+        SELECT CAST(0 AS BIT);
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Identity\Stored Procedures\sp_GetUserById.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 3. Get User By ID (For Session Management)
+-- ==========================================
+CREATE   PROCEDURE [Identity].[sp_GetUserById]
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT UserID, FirstName, LastName, Username, Password
+    FROM [Identity].Users
+    WHERE UserID = @UserId;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Identity\Stored Procedures\sp_GetUserByUsername.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 2. Get User By Username (For Login)
+-- ==========================================
+CREATE   PROCEDURE [Identity].[sp_GetUserByUsername]
+    @Username NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT UserID, FirstName, LastName, Username, Password
+    FROM [Identity].Users
+    WHERE Username = @Username;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Identity\Tables\Users.sql
+----------------------------------------
+﻿CREATE TABLE [Identity].[Users] (
+    [UserID]    INT            IDENTITY (1, 1) NOT NULL,
+    [FirstName] NVARCHAR (100) NOT NULL,
+    [LastName]  NVARCHAR (100) NOT NULL,
+    [Username]  NVARCHAR (100) NOT NULL,
+    [Password]  NVARCHAR (255) NOT NULL,
+    PRIMARY KEY CLUSTERED ([UserID] ASC),
+    CONSTRAINT [UQ_Users_Username] UNIQUE NONCLUSTERED ([Username] ASC)
+);
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Stored Procedures\sp_AddExpenseWithTransaction.sql
+----------------------------------------
+﻿-- ==========================================
+-- 3. Add Expense, Transaction, and Deduct Balance
+-- ==========================================
+CREATE PROCEDURE [Ledger].[sp_AddExpenseWithTransaction]
+   -- Expense PARAMETERS
+   @ExpenseUserId INT,
+    @ExpenseWalletId INT,
+    @ExpenseCategoryId INT,
+    @Products NVARCHAR(MAX) = NULL, 
+    @ExpenseTagId INT = NULL,
+    @ExpenseAmount DECIMAL(18,2),
+    @ExpenseDate DATETIME,
+    
+    -- Transaction PARAMETERS
+    @TransTitle NVARCHAR(255),
+    @TransDescription NVARCHAR(MAX) = NULL,
+    @TransType INT,
+    @TransAmountInSp DECIMAL(18,2), 
+    @TransCategoryId INT,
+    @TransTagId INT = NULL,
+    @GoalId INT = NULL,
+    @FixedExpenseId INT = NULL,
+    @FixedIncomeId INT = NULL,
+    @DebtId INT = NULL,
+
+    -- OUTPUT PARAMETERS
+    @NewExpenseID INT OUTPUT,
+    @IsOverLimit BIT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET @IsOverLimit = 0; 
+
+    BEGIN TRY
+        -- ==========================================
+        -- PRE-FLIGHT SECURITY CHECKS
+        -- ==========================================
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId)
+        BEGIN
+            ;THROW 50001, 'Wallet not found.', 1;
+        END
+
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId)
+        BEGIN
+            ;THROW 50003, 'Access denied. You do not own this wallet.', 1;
+        END
+
+        BEGIN TRAN; 
+        
+        -- 1. Insert Expense
+        INSERT INTO [Ledger].Expenses (UserID, WalletID, TagID, CategoryID, Products, Amount, [Date])
+        VALUES (@ExpenseUserId, @ExpenseWalletId, @ExpenseTagId, @ExpenseCategoryId, @Products, @ExpenseAmount, @ExpenseDate);
+        
+        SET @NewExpenseID = SCOPE_IDENTITY();
+
+        -- 2. Insert Transaction
+        INSERT INTO [Ledger].Transactions (UserID, WalletID, CategoryID, TagID, GoalID, FixedExpenseID, FixedIncomeID, DebtID, ExpenseID, Title, Amount, AmountInSp, TransactionDate, TransactionType, Description)
+        VALUES (@ExpenseUserId, @ExpenseWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewExpenseID, @TransTitle, @ExpenseAmount, @TransAmountInSp, @ExpenseDate, @TransType, @TransDescription);
+
+        -- 3. UPDATE WALLET BALANCE (DEDUCT FOR EXPENSE)
+        UPDATE [Banking].Wallets
+        SET Balance = Balance - @ExpenseAmount
+        WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId;
+
+        -- 4. CALCULATE BUDGET STATUS USING CENTRALIZED FUNCTION
+        -- The function is called before COMMIT so it includes the transaction just inserted.
+        SET @IsOverLimit = [Planning].[fn_IsOverCategoryBudget](@ExpenseUserId, @ExpenseCategoryId, @ExpenseDate);
+
+        COMMIT TRAN; 
+
+        -- Return values for the application layer
+        SELECT @NewExpenseID AS NewExpenseID, @IsOverLimit AS IsOverLimit;
+
+    END TRY
+
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
+        THROW; 
+    END CATCH
+END
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Stored Procedures\sp_AddIncomeWithTransaction.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 3. Add Income, Transaction, and Update Balance
+-- ==========================================
+CREATE   PROCEDURE [Ledger].[sp_AddIncomeWithTransaction]
+    @IncomeUserId INT,
+    @IncomeWalletId INT,
+    @IncomeTagId INT = NULL,
+    @IncomeAmount DECIMAL(18,2),
+    @IncomeDate DATETIME,
+    
+    @TransTitle NVARCHAR(255),
+    @TransDescription NVARCHAR(MAX) = NULL,
+    @TransType INT,
+    @TransAmountInSp DECIMAL(18,2), 
+    @TransCategoryId INT = NULL,
+    @TransTagId INT = NULL,
+    @GoalId INT = NULL,
+    @FixedExpenseId INT = NULL,
+    @FixedIncomeId INT = NULL,
+    @DebtId INT = NULL
+AS
+BEGIN
+    BEGIN TRY
+        -- ==========================================
+        -- PRE-FLIGHT SECURITY CHECKS
+        -- ==========================================
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId)
+        BEGIN
+            THROW 50001, 'Wallet not found.', 1;
+        END
+
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId)
+        BEGIN
+            THROW 50003, 'Access denied. You do not own this wallet.', 1;
+        END
+
+        BEGIN TRAN; 
+        
+        DECLARE @NewIncomeID INT;
+
+        INSERT INTO [Ledger].Incomes (UserID, WalletID, TagID, Amount, Date)
+        VALUES (@IncomeUserId, @IncomeWalletId, @IncomeTagId, @IncomeAmount, @IncomeDate);
+        
+        SET @NewIncomeID = SCOPE_IDENTITY();
+
+        INSERT INTO [Ledger].Transactions 
+        (UserID, WalletID, CategoryID, TagID, GoalID, FixedExpenseID, FixedIncomeID, DebtID, IncomeID, Title, Amount, AmountInSp, TransactionDate, TransactionType, Description)
+        VALUES 
+        (@IncomeUserId, @IncomeWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewIncomeID, @TransTitle, @IncomeAmount, @TransAmountInSp, @IncomeDate, @TransType, @TransDescription);
+        
+        UPDATE [Banking].Wallets
+        SET Balance = Balance + @IncomeAmount
+        WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
+
+        COMMIT TRAN; 
+        SELECT @NewIncomeID;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
+        THROW; 
+    END CATCH
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Stored Procedures\sp_DeleteExpense.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 5. Delete Expense, Transaction, and Refund Balance
+-- ==========================================
+CREATE   PROCEDURE [Ledger].[sp_DeleteExpense]
+    @ExpenseId INT,
+    @UserId INT -- Added for IDOR Security
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        -- ==========================================
+        -- STRICT SECURITY CHECKS (IDOR)
+        -- ==========================================
+        DECLARE @ActualOwnerId INT;
+        DECLARE @AmountToRevert DECIMAL(18,2);
+        DECLARE @WalletId INT;
+        
+        SELECT @ActualOwnerId = UserID, @AmountToRevert = Amount, @WalletId = WalletID 
+        FROM [Ledger].Expenses 
+        WHERE ExpenseID = @ExpenseId;
+
+        IF @ActualOwnerId IS NULL 
+        BEGIN
+            THROW 50002, 'Expense record was not found.', 1;
+        END
+
+        IF @ActualOwnerId <> @UserId
+        BEGIN
+            THROW 50003, 'Access denied. You do not own this expense record.', 1;
+        END
+
+        BEGIN TRAN; 
+        
+        -- 1. Delete dependencies safely
+        DELETE FROM [Ledger].Transactions WHERE ExpenseID = @ExpenseId;
+        DELETE FROM [Ledger].Expenses WHERE ExpenseID = @ExpenseId;
+        
+        DECLARE @RowsAffected INT = @@ROWCOUNT;
+
+        -- 2. Refund the money to the wallet since the expense was deleted
+        IF @RowsAffected > 0
+        BEGIN
+            UPDATE [Banking].Wallets 
+            SET Balance = Balance + @AmountToRevert 
+            WHERE WalletID = @WalletId AND UserID = @UserId;
+        END
+
+        COMMIT TRAN; 
+        SELECT @RowsAffected;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
+        THROW;
+    END CATCH
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Stored Procedures\sp_DeleteIncome.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 5. Delete Income, Transaction, and Revert Balance (Secured)
+-- ==========================================
+CREATE   PROCEDURE [Ledger].[sp_DeleteIncome]
+    @IncomeId INT,
+    @UserId INT -- Enforcing IDOR Security
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRAN; 
+        
+        -- 1. Capture the amount and wallet to revert (Ensuring ownership)
+        DECLARE @AmountToRevert DECIMAL(18,2);
+        DECLARE @WalletId INT;
+        
+        SELECT @AmountToRevert = Amount, @WalletId = WalletID 
+        FROM [Ledger].Incomes 
+        WHERE IncomeID = @IncomeId AND UserID = @UserId; 
+
+        IF @AmountToRevert IS NULL 
+            THROW 50002, 'Income record was not found or access is denied.', 1;
+
+        -- 2. Delete dependencies safely
+        DELETE FROM [Ledger].Transactions WHERE IncomeID = @IncomeId AND UserID = @UserId;
+        DELETE FROM [Ledger].Incomes WHERE IncomeID = @IncomeId AND UserID = @UserId;
+        
+        DECLARE @RowsAffected INT = @@ROWCOUNT;
+
+        -- 3. Subtract the money from the wallet since the income was deleted
+        IF @RowsAffected > 0
+        BEGIN
+            UPDATE [Banking].Wallets 
+            SET Balance = Balance - @AmountToRevert 
+            WHERE WalletID = @WalletId AND UserID = @UserId;
+        END
+
+        COMMIT TRAN; 
+        SELECT @RowsAffected;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
+        THROW;
+    END CATCH
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Stored Procedures\sp_GetExpense.sql
+----------------------------------------
+﻿CREATE PROCEDURE [Ledger].[sp_GetExpense]
+    @ExpenseId INT,
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        ExpenseID, 
+        UserID,
+        Title,
+        Amount, 
+        Products, 
+        [Date], 
+        WalletID, 
+        CategoryID, 
+        TagID
+    FROM [Ledger].[Expenses]
+    WHERE ExpenseID = @ExpenseId AND UserID = @UserId;
+END
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Stored Procedures\sp_GetExpensesByUserPaged.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 2. Get Expenses By User Paged (Optimized: No Joins!)
+-- ==========================================
+CREATE   PROCEDURE [Ledger].[sp_GetExpensesByUserPaged]
+    @UserId INT,
+    @PageNumber INT,
+    @PageSize INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT COUNT(*) AS TotalCount
+    FROM [Ledger].Expenses
+    WHERE UserID = @UserId;
+
+    SELECT 
+        ExpenseID, 
+        UserID, 
+        Amount, 
+        Products, 
+        Date, 
+        WalletID, 
+        CategoryID, 
+        TagID
+    FROM [Ledger].[Expenses]
+    WHERE UserID = @UserId
+    ORDER BY Date DESC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Stored Procedures\sp_GetIncome.sql
+----------------------------------------
+﻿-- ==========================================
+-- 1. Get Income By ID (Optimized: No Joins Needed!)
+-- ==========================================
+CREATE   PROCEDURE [Ledger].[sp_GetIncome]
+    @IncomeId INT,
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Result Set 1: Income and Transaction Details
+    SELECT 
+        i.IncomeID, i.UserID AS IncomeUserID, i.Amount AS IncomeAmount, i.Date AS IncomeDate,
+        i.WalletID AS IncomeWalletID, 
+        i.TagID AS IncomeTagID, 
+        
+        tr.TransactionID, tr.UserID AS TransUserID, tr.Title, tr.Description, 
+        tr.Amount AS TransAmount, tr.TransactionDate, tr.TransactionType,
+        tr.GoalID, tr.FixedExpenseID, tr.FixedIncomeID, tr.DebtID,
+        tr.WalletID AS TransWalletID, 
+        tr.CategoryID, 
+        tr.TagID AS TransTagID
+    FROM [Ledger].Incomes i
+    LEFT JOIN [Ledger].Transactions tr ON tr.IncomeID = i.IncomeID
+    WHERE i.IncomeID = @IncomeId AND i.UserID = @UserId;
+
+    -- Result Set 2: Currency and Wallet Info
+    SELECT 
+        w.WalletID, 
+        w.Balance, 
+        w.CurrencyID,
+        c.CurrencyName, 
+        c.CurrencyCode
+    FROM [Banking].Wallets w
+    INNER JOIN [Config].Currencies c ON w.CurrencyID = c.CurrencyID
+    WHERE w.WalletID = (SELECT WalletID FROM [Ledger].Incomes WHERE IncomeID = @IncomeId)
+      AND w.UserID = @UserId;
+
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Stored Procedures\sp_GetIncomesByUserPaged.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 2. Get Incomes By User Paged 
+-- ==========================================
+CREATE   PROCEDURE [Ledger].[sp_GetIncomesByUserPaged]
+    @UserId INT,
+    @PageNumber INT,
+    @PageSize INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Result Set 1: Total Count 
+    SELECT COUNT(*) AS TotalCount
+    FROM [Ledger].Incomes
+    WHERE UserID = @UserId;
+
+    -- Result Set 2: Paged Incomes
+    -- We use a CTE or a temporary variable to capture which IDs we are looking at
+    -- so we can easily fetch their Wallet info in the next result set.
+    SELECT 
+        IncomeID, UserID, Amount, Date, WalletID, TagID
+    INTO #CurrentPageIncomes
+    FROM [Ledger].Incomes
+    WHERE UserID = @UserId
+    ORDER BY Date DESC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT * FROM #CurrentPageIncomes;
+
+    -- Result Set 3: Unique Wallets and Currencies for this page
+    -- This avoids sending "US Dollar" 50 times if all 50 incomes are from the same wallet.
+    SELECT DISTINCT
+        w.WalletID, 
+        w.Balance, 
+        w.CurrencyID,
+        c.CurrencyName, 
+        c.CurrencyCode
+    FROM [Banking].Wallets w
+    INNER JOIN [Config].Currencies c ON w.CurrencyID = c.CurrencyID
+    WHERE w.WalletID IN (SELECT WalletID FROM #CurrentPageIncomes)
+      AND w.UserID = @UserId;
+
+    DROP TABLE #CurrentPageIncomes;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Stored Procedures\sp_GetProducts.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 6. Get Products JSON String
+-- ==========================================
+CREATE   PROCEDURE [Ledger].[sp_GetProducts]
+    @ExpenseId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT Products 
+    FROM [Ledger].[Expenses] 
+    WHERE ExpenseID = @ExpenseId;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Stored Procedures\sp_UpdateExpenseWithTransaction.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 4. Update Expense, Transaction, and Adjust Balance
+-- ==========================================
+CREATE   PROCEDURE [Ledger].[sp_UpdateExpenseWithTransaction]
+    @ExpenseId INT,
+    @ExpenseUserId INT,
+    @ExpenseWalletId INT,
+    @ExpenseCategoryId INT,
+    @Products NVARCHAR(MAX) = NULL, 
+    @ExpenseTagId INT = NULL,
+    @ExpenseAmount DECIMAL(18,2),
+    @ExpenseDate DATETIME,
+    
+    @TransTitle NVARCHAR(255),
+    @TransDescription NVARCHAR(MAX) = NULL,
+    @TransType INT,
+    @TransAmountInSp DECIMAL(18,2),
+    @TransCategoryId INT = NULL,
+    @TransTagId INT = NULL,
+    @GoalId INT = NULL,
+    @FixedExpenseId INT = NULL,
+    @FixedIncomeId INT = NULL,
+    @DebtId INT = NULL,
+
+    @IsOverLimit BIT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        -- ==========================================
+        -- PRE-FLIGHT WALLET SECURITY CHECKS (IDOR)
+        -- ==========================================
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId)
+        BEGIN
+            ;THROW 50001, 'Wallet not found.', 1;
+        END
+
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId)
+        BEGIN
+            ;THROW 50003, 'Access denied. You do not own the target wallet.', 1;
+        END
+
+        -- ==========================================
+        -- STRICT EXPENSE SECURITY CHECKS (IDOR)
+        -- ==========================================
+        DECLARE @ActualOwnerId INT;
+        DECLARE @OldAmount DECIMAL(18,2);
+        DECLARE @OldWalletId INT;
+        
+        SELECT @ActualOwnerId = UserID, @OldAmount = Amount, @OldWalletId = WalletID 
+        FROM [Ledger].Expenses 
+        WHERE ExpenseID = @ExpenseId;
+
+        IF @ActualOwnerId IS NULL 
+        BEGIN
+            ;THROW 50002, 'Expense record was not found.', 1;
+        END
+        
+        IF @ActualOwnerId <> @ExpenseUserId
+        BEGIN
+            ;THROW 50003, 'Access denied. You do not own this expense record.', 1;
+        END
+
+        BEGIN TRAN; 
+
+        -- 1. Update Expense
+        UPDATE [Ledger].Expenses
+        SET WalletID = @ExpenseWalletId,
+            CategoryID = @ExpenseCategoryId,
+            TagID = @ExpenseTagId,
+            Products = @Products,
+            Amount = @ExpenseAmount,
+            Date = @ExpenseDate
+        WHERE ExpenseID = @ExpenseId AND UserID = @ExpenseUserId;
+        
+        DECLARE @RowsAffected INT = @@ROWCOUNT;
+
+        -- Update Transaction and Wallets (Only if expense exists)
+        IF @RowsAffected > 0
+        BEGIN
+            UPDATE [Ledger].Transactions
+            SET WalletID = @ExpenseWalletId,
+                CategoryID = @TransCategoryId,
+                TagID = @TransTagId,
+                Title = @TransTitle,
+                Amount = @ExpenseAmount,
+                AmountInSp = @TransAmountInSp, 
+                TransactionDate = @ExpenseDate,
+                TransactionType = @TransType,
+                Description = @TransDescription
+            WHERE ExpenseID = @ExpenseId AND UserID = @ExpenseUserId;
+
+            -- Balance Math logic 
+            IF @OldWalletId = @ExpenseWalletId
+            BEGIN
+                UPDATE [Banking].Wallets
+                SET Balance = Balance + @OldAmount - @ExpenseAmount
+                WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId;
+            END
+            ELSE
+            BEGIN
+                UPDATE [Banking].Wallets SET Balance = Balance + @OldAmount WHERE WalletID = @OldWalletId AND UserID = @ExpenseUserId;
+                UPDATE [Banking].Wallets SET Balance = Balance - @ExpenseAmount WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId;
+            END
+        END
+
+        -- Update the output variable using the function
+        SET @IsOverLimit = [Planning].[fn_IsOverCategoryBudget](@ExpenseUserId, @ExpenseCategoryId, @ExpenseDate);
+
+        COMMIT TRAN; 
+
+        -- Return as result set for the Reader
+        SELECT @RowsAffected AS RowsAffected, @IsOverLimit AS IsOverLimit;
+
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
+        THROW;
+    END CATCH
+END
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Stored Procedures\sp_UpdateIncomeWithTransaction.sql
+----------------------------------------
+﻿-- ==========================================
+-- 4. Update Income, Transaction, and Adjust Balance
+-- ==========================================
+CREATE   PROCEDURE [Ledger].[sp_UpdateIncomeWithTransaction]
+    @IncomeId INT,
+    @IncomeUserId INT,
+    @IncomeWalletId INT,
+    @IncomeTagId INT = NULL,
+    @IncomeAmount DECIMAL(18,2),
+    @IncomeDate DATETIME,
+    
+    @TransTitle NVARCHAR(255),
+    @TransDescription NVARCHAR(MAX) = NULL,
+    @TransType INT,
+    @TransAmountInSp DECIMAL(18,2), 
+    @TransCategoryId INT = NULL,
+    @TransTagId INT = NULL,
+    @GoalId INT = NULL,
+    @FixedExpenseId INT = NULL,
+    @FixedIncomeId INT = NULL,
+    @DebtId INT = NULL
+AS
+BEGIN
+    BEGIN TRY
+        -- ==========================================
+        -- PRE-FLIGHT SECURITY CHECKS
+        -- ==========================================
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId)
+        BEGIN
+            THROW 50001, 'Wallet not found.', 1;
+        END
+
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId)
+        BEGIN
+            THROW 50003, 'Access denied. You do not own this wallet.', 1;
+        END
+
+        BEGIN TRAN; 
+
+        DECLARE @OldAmount DECIMAL(18,2);
+        DECLARE @OldWalletId INT;
+        
+        SELECT @OldAmount = Amount, @OldWalletId = WalletID 
+        FROM [Ledger].Incomes 
+        WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
+
+        -- 3. Ensure the Income record actually exists and belongs to the user
+        IF @OldAmount IS NULL 
+            THROW 50002, 'Income record was not found.', 1;
+        
+        UPDATE [Ledger].Incomes
+        SET WalletID = @IncomeWalletId,
+            TagID = @IncomeTagId,
+            Amount = @IncomeAmount,
+            Date = @IncomeDate
+        WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
+        
+        DECLARE @RowsAffected INT = @@ROWCOUNT;
+
+        IF @RowsAffected > 0
+        BEGIN
+            UPDATE [Ledger].Transactions
+            SET WalletID = @IncomeWalletId,
+                CategoryID = @TransCategoryId,
+                TagID = @TransTagId,
+                GoalID = @GoalId,
+                FixedExpenseID = @FixedExpenseId,
+                FixedIncomeID = @FixedIncomeId,
+                DebtID = @DebtId,
+                Title = @TransTitle,
+                Amount = @IncomeAmount,
+                AmountInSp = @TransAmountInSp, 
+                TransactionDate = @IncomeDate,
+                TransactionType = @TransType,
+                Description = @TransDescription
+            WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
+
+            IF @OldWalletId = @IncomeWalletId
+            BEGIN
+                UPDATE [Banking].Wallets
+                SET Balance = Balance - @OldAmount + @IncomeAmount
+                WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
+            END
+            ELSE
+            BEGIN
+                UPDATE [Banking].Wallets SET Balance = Balance - @OldAmount WHERE WalletID = @OldWalletId AND UserID = @IncomeUserId;
+                UPDATE [Banking].Wallets SET Balance = Balance + @IncomeAmount WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
+            END
+        END
+
+        COMMIT TRAN; 
+        SELECT @RowsAffected;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
+        THROW;
+    END CATCH
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Tables\Expenses.sql
+----------------------------------------
+﻿CREATE TABLE [Ledger].[Expenses] (
+    [ExpenseID]  INT             IDENTITY (1, 1) NOT NULL,
+    [UserID]     INT             NOT NULL,
+    [Title]      NVARCHAR(20)    DEFAULT 'Expense',
+    [TagID]      INT             NULL,
+    [CategoryID] INT             NOT NULL,
+    [WalletID]   INT             NOT NULL,
+    [Products]   NVARCHAR (1000) NOT NULL,
+    [Amount]     DECIMAL (18, 2) NOT NULL,
+    [Date]       DATETIME        DEFAULT (getdate()) NOT NULL,
+    PRIMARY KEY CLUSTERED ([ExpenseID] ASC),
+    CONSTRAINT [CHK_Expenses_Amount] CHECK ([Amount]>(0)),
+    CONSTRAINT [FK_Expenses_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [Config].[Categories] ([CategoryID]),
+    CONSTRAINT [FK_Expenses_Tags] FOREIGN KEY ([TagID]) REFERENCES [Config].[Tags] ([TagID]),
+    CONSTRAINT [FK_Expenses_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID]),
+    CONSTRAINT [FK_Expenses_Wallets] FOREIGN KEY ([WalletID]) REFERENCES [Banking].[Wallets] ([WalletID])
+);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Expenses_User_Date]
+    ON [Ledger].[Expenses]([UserID] ASC, [Date] DESC)
+    INCLUDE([Amount], [CategoryID], [WalletID]);
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Tables\Incomes.sql
+----------------------------------------
+﻿CREATE TABLE [Ledger].[Incomes] (
+    [IncomeID] INT             IDENTITY (1, 1) NOT NULL,
+    [UserID]   INT             NOT NULL,
+    [TagID]    INT             NULL,
+    [WalletID] INT             NOT NULL,
+    [Amount]   DECIMAL (18, 2) NOT NULL,
+    [Date]     DATETIME        DEFAULT (getdate()) NOT NULL,
+    PRIMARY KEY CLUSTERED ([IncomeID] ASC),
+    CONSTRAINT [CHK_Incomes_Amount] CHECK ([Amount]>(0)),
+    CONSTRAINT [FK_Incomes_Tags] FOREIGN KEY ([TagID]) REFERENCES [Config].[Tags] ([TagID]),
+    CONSTRAINT [FK_Incomes_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID]),
+    CONSTRAINT [FK_Incomes_Wallets] FOREIGN KEY ([WalletID]) REFERENCES [Banking].[Wallets] ([WalletID])
+);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Incomes_User_Date]
+    ON [Ledger].[Incomes]([UserID] ASC, [Date] DESC)
+    INCLUDE([Amount], [WalletID]);
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger\Tables\Transactions.sql
+----------------------------------------
+﻿CREATE TABLE [Ledger].[Transactions] (
+    [TransactionID]   INT             IDENTITY (1, 1) NOT NULL,
+    [UserID]          INT             NOT NULL,
+    [WalletID]        INT             NOT NULL,
+    [CategoryID]      INT             NULL,
+    [TagID]           INT             NULL,
+    [GoalID]          INT             NULL,
+    [FixedExpenseID]  INT             NULL,
+    [DebtID]          INT             NULL,
+    [FixedIncomeID]   INT             NULL,
+    [ExpenseID]       INT             NULL,
+    [IncomeID]        INT             NULL,
+    [Title]           NVARCHAR (255)  NOT NULL,
+    [Amount]          DECIMAL (18, 2) NOT NULL,
+    [TransactionDate] DATETIME        DEFAULT (getdate()) NOT NULL,
+    [TransactionType] INT             NOT NULL,
+    [Description]     NVARCHAR (255)  NULL,
+    [AmountInSp]      DECIMAL (18, 2) DEFAULT ((0.00)) NOT NULL,
+    PRIMARY KEY CLUSTERED ([TransactionID] ASC),
+    CONSTRAINT [CHK_Transactions_Amount] CHECK ([Amount]>(0)),
+    CONSTRAINT [FK_Transactions_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [Config].[Categories] ([CategoryID]),
+    CONSTRAINT [FK_Transactions_Expenses] FOREIGN KEY ([ExpenseID]) REFERENCES [Ledger].[Expenses] ([ExpenseID]),
+    CONSTRAINT [FK_Transactions_FixedExpenses] FOREIGN KEY ([FixedExpenseID]) REFERENCES [Planning].[FixedExpenses] ([FixedExpenseID]),
+    CONSTRAINT [FK_Transactions_FixedIncomes] FOREIGN KEY ([FixedIncomeID]) REFERENCES [Planning].[FixedIncomes] ([FixedIncomeID]),
+    CONSTRAINT [FK_Transactions_Incomes] FOREIGN KEY ([IncomeID]) REFERENCES [Ledger].[Incomes] ([IncomeID]),
+    CONSTRAINT [FK_Transactions_SavingsGoals] FOREIGN KEY ([GoalID]) REFERENCES [Planning].[SavingsGoals] ([GoalID]),
+    CONSTRAINT [FK_Transactions_SharedDebts] FOREIGN KEY ([DebtID]) REFERENCES [Planning].[SharedDebts] ([DebtID]),
+    CONSTRAINT [FK_Transactions_Tags] FOREIGN KEY ([TagID]) REFERENCES [Config].[Tags] ([TagID]),
+    CONSTRAINT [FK_Transactions_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID]),
+    CONSTRAINT [FK_Transactions_Wallets] FOREIGN KEY ([WalletID]) REFERENCES [Banking].[Wallets] ([WalletID])
+);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Transactions_User_Date]
+    ON [Ledger].[Transactions]([UserID] ASC, [TransactionDate] DESC)
+    INCLUDE([Amount], [TransactionType], [CategoryID], [WalletID], [Title]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Transactions_Wallet]
+    ON [Ledger].[Transactions]([WalletID] ASC, [TransactionDate] DESC)
+    INCLUDE([Amount], [TransactionType]);
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Functions\fn_IsOverCategoryBudget.sql
+----------------------------------------
+﻿CREATE FUNCTION [Planning].[fn_IsOverCategoryBudget]
+(
+    @UserID INT,
+    @CategoryID INT,
+    @ReferenceDate DATETIME
+)
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @IsOver BIT = 0;
+    DECLARE @TotalIncome DECIMAL(18,2);
+    DECLARE @TotalSpent DECIMAL(18,2);
+    DECLARE @PercentLimit DECIMAL(18,2);
+
+    -- Get the budget details for this category and date
+    SELECT TOP 1 
+        @PercentLimit = PercentageLimit,
+        @TotalIncome = (
+            SELECT COALESCE(SUM(AmountInSp), 0) 
+            FROM [Ledger].[Transactions] 
+            WHERE UserID = b.UserID AND TransactionType = 0 
+            AND TransactionDate BETWEEN b.StartDate AND b.EndDate
+        ),
+        @TotalSpent = (
+            SELECT COALESCE(SUM(AmountInSp), 0) 
+            FROM [Ledger].[Transactions] 
+            WHERE UserID = b.UserID AND CategoryID = b.CategoryID AND TransactionType = 1 
+            AND TransactionDate BETWEEN b.StartDate AND b.EndDate
+        )
+    FROM [Planning].[Budgets] b
+    WHERE b.UserID = @UserID 
+      AND b.CategoryID = @CategoryID 
+      AND b.IsActive = 1
+      AND @ReferenceDate BETWEEN b.StartDate AND b.EndDate;
+
+    -- Calculation logic
+    IF @TotalIncome > 0 AND @PercentLimit > 0
+    BEGIN
+        IF @TotalSpent > (@TotalIncome * (@PercentLimit / 100.0))
+            SET @IsOver = 1;
+    END
+
+    RETURN @IsOver;
+END
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_AddCategoryBudget.sql
+----------------------------------------
+﻿-- ==========================================
+-- 1. Add Category Budget (Updated)
+-- ==========================================
+CREATE   PROCEDURE [Planning].[sp_AddCategoryBudget]
+    @UserID INT,
+    @CategoryID INT,
+    @PercentageLimit DECIMAL(18,2),
+    @StartDate DATE,
+    @EndDate DATE,
+    @IsActive BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM [Planning].[Budgets] WHERE UserID = @UserID AND CategoryID = @CategoryID)
+        THROW 50004, 'A budget for this category already exists for the user.', 1;
+   
+   IF (SELECT ISNULL(SUM(PercentageLimit), 0) + @PercentageLimit FROM [Planning].[Budgets] WHERE UserID = @UserID) > 100
+    THROW 50005, 'Wrong input, total categories budget percentage cannot exceed 100%.', 1;
+
+    INSERT INTO [Planning].[Budgets] (UserID, CategoryID, PercentageLimit, StartDate, EndDate, IsActive)
+    VALUES (@UserID, @CategoryID, @PercentageLimit, @StartDate, @EndDate, @IsActive);
+    
+    SELECT CAST(SCOPE_IDENTITY() AS INT);
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_DeleteCategoryBudget.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 5. Delete Single Budget 
+-- ==========================================
+CREATE   PROCEDURE [Planning].[sp_DeleteCategoryBudget]
+    @CategoryID INT,
+    @UserID INT
+AS
+BEGIN
+    DELETE FROM [Planning].Budgets 
+    WHERE CategoryID = @CategoryID AND UserID = @UserID;
+
+    -- Returns the number of rows affected to C# (ExecuteNonQueryAsync)
+    SELECT @@ROWCOUNT;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_GetAllUserBudgets.sql
+----------------------------------------
+﻿-- ==========================================
+-- 3. Get All Budgets (DYNAMIC CALCULATION)
+-- ==========================================
+CREATE   PROCEDURE [Planning].[sp_GetAllUserBudgets]
+    @UserID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- 1. Aggregate all relevant transactions once
+    ;WITH UserTotals AS (
+        SELECT 
+            CategoryID,
+            SUM(CASE WHEN TransactionType = 0 THEN AmountInSp ELSE 0 END) AS TotalIncome,
+            SUM(CASE WHEN TransactionType = 1 THEN AmountInSp ELSE 0 END) AS TotalSpent
+        FROM [Ledger].[Transactions]
+        WHERE UserID = @UserID
+        GROUP BY CategoryID
+    ),
+    -- 2. Get global income separately (since income isn't usually tied to a category)
+    GlobalIncome AS (
+        SELECT SUM(AmountInSp) as OverallIncome 
+        FROM [Ledger].[Transactions] 
+        WHERE UserID = @UserID AND TransactionType = 0
+    )
+    
+    SELECT
+        b.BudgetID,
+        b.UserID,
+        b.CategoryID,
+        b.PercentageLimit,
+        b.StartDate,
+        b.EndDate,
+        b.IsActive,
+
+        -- The "Allowance" in currency (e.g., $300)
+        CAST((gi.OverallIncome * (b.PercentageLimit / 100.0)) AS DECIMAL(18,2)) AS MoneyLimit,
+        -- The "Actual Spent" in currency (e.g., $30)
+        COALESCE(ut.TotalSpent, 0) AS SpendingProgress,
+        -- The Percentage of the Budget used (e.g., 10%)
+        CAST(
+            CASE 
+                WHEN gi.OverallIncome > 0 AND b.PercentageLimit > 0 
+                THEN (COALESCE(ut.TotalSpent, 0) / (gi.OverallIncome * (b.PercentageLimit / 100.0))) * 100.0
+                ELSE 0 
+            END AS DECIMAL(18,2)) AS PercentageProgress
+    FROM [Planning].[Budgets] b
+    CROSS JOIN GlobalIncome gi
+    LEFT JOIN UserTotals ut ON b.CategoryID = ut.CategoryID
+    WHERE b.UserID = @UserID;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_GetCategoryBudget.sql
+----------------------------------------
+﻿
+-- ==========================================
+-- 4. Get Single Budget (DYNAMIC CALCULATION)
+-- ==========================================
+CREATE   PROCEDURE [Planning].[sp_GetCategoryBudget]
+    @CategoryID INT,
+    @UserID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        b.BudgetID, b.UserID, b.CategoryID, b.PercentageLimit, b.StartDate, b.EndDate, b.IsActive,
+        CAST(
+            CASE
+                WHEN Totals.TotalIncome > 0 AND b.PercentageLimit > 0 THEN
+                    (Totals.TotalSpent / (Totals.TotalIncome * (b.PercentageLimit / 100.0))) * 100.0
+                ELSE 0.0
+            END 
+        AS DECIMAL(18,2)) AS PercentageProgress
+    FROM [Planning].[Budgets] b
+    CROSS APPLY (
+        SELECT
+            COALESCE((SELECT SUM(AmountInSp) FROM [Ledger].[Transactions] WHERE UserID = b.UserID AND TransactionType = 0 AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalIncome,
+            COALESCE((SELECT SUM(AmountInSp) FROM [Ledger].[Transactions] WHERE UserID = b.UserID AND CategoryID = b.CategoryID AND TransactionType = 1 AND TransactionDate BETWEEN b.StartDate AND b.EndDate), 0) AS TotalSpent
+    ) AS Totals
+    WHERE b.CategoryID = @CategoryID AND b.UserID = @UserID; 
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_UpdateCategoryBudget.sql
+----------------------------------------
+﻿-- ==========================================
+-- 2. Update Category Budget (Updated)
+-- ==========================================
+CREATE   PROCEDURE [Planning].[sp_UpdateCategoryBudget]
+    @BudgetID INT,
+    @UserID INT,
+    @CategoryID INT,
+    @PercentageLimit DECIMAL(18,2),
+    @StartDate DATE,
+    @EndDate DATE,
+    @IsActive BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT EXISTS (SELECT 1 FROM [Planning].[Budgets] WHERE CategoryID = @CategoryID AND UserID = @UserID)
+        THROW 50003, 'Access denied. You do not own this budget.', 1;
+
+    UPDATE [Planning].[Budgets]
+    SET PercentageLimit = @PercentageLimit,
+        StartDate = @StartDate,
+        EndDate = @EndDate,
+        IsActive = @IsActive
+    WHERE CategoryID = @CategoryID AND UserID = @UserID;
+
+    SELECT @@ROWCOUNT;
+END
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Tables\Budgets.sql
+----------------------------------------
+﻿CREATE TABLE [Planning].[Budgets] (
+    [BudgetID]        INT             IDENTITY (1, 1) NOT NULL,
+    [UserID]          INT             NOT NULL,
+    [CategoryID]      INT             NOT NULL,
+    [PercentageLimit] DECIMAL (18, 2) NOT NULL,
+    [StartDate]       DATE            NOT NULL,
+    [EndDate]         DATE            NOT NULL,
+    [IsActive]        BIT             DEFAULT ((1)) NOT NULL,
+    PRIMARY KEY CLUSTERED ([BudgetID] ASC),
+    CONSTRAINT [CHK_Budgets_Dates] CHECK ([StartDate]<[EndDate]),
+    CONSTRAINT [FK_Budgets_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [Config].[Categories] ([CategoryID]),
+    CONSTRAINT [FK_Budgets_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID])
+);
+
+
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_Budgets_ActiveCategory]
+    ON [Planning].[Budgets]([UserID] ASC, [CategoryID] ASC) WHERE ([IsActive]=(1));
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Budgets_User_Dates]
+    ON [Planning].[Budgets]([UserID] ASC, [StartDate] ASC, [EndDate] ASC)
+    INCLUDE([CategoryID], [PercentageLimit]);
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Tables\FixedExpenses.sql
+----------------------------------------
+﻿CREATE TABLE [Planning].[FixedExpenses] (
+    [FixedExpenseID] INT             IDENTITY (1, 1) NOT NULL,
+    [UserID]         INT             NOT NULL,
+    [CategoryID]     INT             NOT NULL,
+    [Title]          NVARCHAR (200)  NOT NULL,
+    [Amount]         DECIMAL (18, 2) NOT NULL,
+    [DueDate]        DATE            NOT NULL,
+    [IsActive]       BIT             DEFAULT ((1)) NOT NULL,
+    PRIMARY KEY CLUSTERED ([FixedExpenseID] ASC),
+    CONSTRAINT [CHK_FixedExpenses_Amount] CHECK ([Amount]>(0)),
+    CONSTRAINT [FK_FixedExpenses_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [Config].[Categories] ([CategoryID]),
+    CONSTRAINT [FK_FixedExpenses_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID]),
+    CONSTRAINT [UQ_FixedExpenses_UserTitle] UNIQUE NONCLUSTERED ([UserID] ASC, [Title] ASC)
+);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_FixedExpenses_User_DueDate]
+    ON [Planning].[FixedExpenses]([UserID] ASC, [DueDate] ASC)
+    INCLUDE([Amount], [Title], [CategoryID]) WHERE ([IsActive]=(1));
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Tables\FixedIncomes.sql
+----------------------------------------
+﻿CREATE TABLE [Planning].[FixedIncomes] (
+    [FixedIncomeID] INT             IDENTITY (1, 1) NOT NULL,
+    [UserID]        INT             NOT NULL,
+    [Title]         NVARCHAR (200)  NOT NULL,
+    [Amount]        DECIMAL (18, 2) NOT NULL,
+    [IsMonthly]     BIT             DEFAULT ((1)) NOT NULL,
+    [IsActive]      BIT             DEFAULT ((1)) NOT NULL,
+    [Days]          INT             NULL,
+    [LastTime]      DATETIME        NULL,
+    PRIMARY KEY CLUSTERED ([FixedIncomeID] ASC),
+    CONSTRAINT [CHK_FixedIncomes_Amount] CHECK ([Amount]>(0)),
+    CONSTRAINT [FK_FixedIncomes_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID]),
+    CONSTRAINT [UQ_FixedIncomes_UserTitle] UNIQUE NONCLUSTERED ([UserID] ASC, [Title] ASC)
+);
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Tables\SavingsGoals.sql
+----------------------------------------
+﻿CREATE TABLE [Planning].[SavingsGoals] (
+    [GoalID]        INT             IDENTITY (1, 1) NOT NULL,
+    [UserID]        INT             NOT NULL,
+    [Title]         NVARCHAR (200)  NOT NULL,
+    [TargetAmount]  DECIMAL (18, 2) NOT NULL,
+    [CurrentAmount] DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
+    [DeadlineDate]  DATE            NULL,
+    [IsAchieved]    BIT             DEFAULT ((0)) NOT NULL,
+    PRIMARY KEY CLUSTERED ([GoalID] ASC),
+    CONSTRAINT [CHK_SavingsGoals_CurrentAmount] CHECK ([CurrentAmount]>=(0)),
+    CONSTRAINT [CHK_SavingsGoals_TargetAmount] CHECK ([TargetAmount]>(0)),
+    CONSTRAINT [FK_SavingsGoals_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID])
+);
+
+
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_SavingsGoals_ActiveTitle]
+    ON [Planning].[SavingsGoals]([UserID] ASC, [Title] ASC) WHERE ([IsAchieved]=(0));
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Tables\SharedDebts.sql
+----------------------------------------
+﻿CREATE TABLE [Planning].[SharedDebts] (
+    [DebtID]     INT             IDENTITY (1, 1) NOT NULL,
+    [CreditorID] INT             NOT NULL,
+    [DebtorID]   INT             NOT NULL,
+    [Amount]     DECIMAL (18, 2) NOT NULL,
+    [Title]      NVARCHAR (200)  NOT NULL,
+    [Status]     NVARCHAR (50)   NOT NULL,
+    [CreatedAt]  DATETIME        DEFAULT (getdate()) NOT NULL,
+    [DueDate]    DATETIME        NULL,
+    PRIMARY KEY CLUSTERED ([DebtID] ASC),
+    CONSTRAINT [CHK_SharedDebts_Amount] CHECK ([Amount]>(0)),
+    CONSTRAINT [FK_SharedDebts_Creditor] FOREIGN KEY ([CreditorID]) REFERENCES [Identity].[Users] ([UserID]),
+    CONSTRAINT [FK_SharedDebts_Debtor] FOREIGN KEY ([DebtorID]) REFERENCES [Identity].[Users] ([UserID])
+);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_SharedDebts_Debtor]
+    ON [Planning].[SharedDebts]([DebtorID] ASC, [DueDate] ASC)
+    INCLUDE([Amount], [CreditorID], [Status]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_SharedDebts_Creditor]
+    ON [Planning].[SharedDebts]([CreditorID] ASC, [DueDate] ASC)
+    INCLUDE([Amount], [DebtorID], [Status]);
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Security\Banking.sql
+----------------------------------------
+﻿CREATE SCHEMA [Banking]
+    AUTHORIZATION [dbo];
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Security\Config.sql
+----------------------------------------
+﻿CREATE SCHEMA [Config]
+    AUTHORIZATION [dbo];
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Security\Identity.sql
+----------------------------------------
+﻿CREATE SCHEMA [Identity]
+    AUTHORIZATION [dbo];
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Security\Ledger.sql
+----------------------------------------
+﻿CREATE SCHEMA [Ledger]
+    AUTHORIZATION [dbo];
+
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Security\Planning.sql
+----------------------------------------
+﻿CREATE SCHEMA [Planning]
+    AUTHORIZATION [dbo];
+
+
+
+
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\SpendWise.Application.csproj
 ----------------------------------------
 ﻿<Project Sdk="Microsoft.NET.Sdk">
@@ -3679,6 +3088,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\DTO
 using System;
 using System.Collections.Generic;
 using System.Text;
+using SpendWise.Domain.Entities;
 
 namespace SpendWise.Application.DTOs.Category
 {
@@ -3689,20 +3099,25 @@ namespace SpendWise.Application.DTOs.Category
         public int CategoryId { get; set; } = -1;
         public decimal PercentageLimit { get; set; }
         public decimal PercentageProgress { get; set; }
+        public decimal MoneyLimit { get; set; }
+        public decimal SpendingProgress { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public bool IsActive { get; set; }
-        public CategoryBudgetResponse(Domain.Entities.CategoryBudget categoryBudget)
+        public CategoryBudgetResponse(CategoryBudget categoryBudget)
         {
             CategoryBudgetId = categoryBudget.CategoryBudgetId;
             UserId = categoryBudget.UserId;
             CategoryId = categoryBudget.CategoryId;
             PercentageLimit = categoryBudget.PercentageLimit;
             PercentageProgress = categoryBudget.PercentageProgress;
+            MoneyLimit = categoryBudget.MoneyLimit;
+            SpendingProgress = categoryBudget.SpendingProgress;
             StartDate = categoryBudget.StartDate;
             EndDate = categoryBudget.EndDate;
             IsActive = categoryBudget.IsActive;
         }
+
         public CategoryBudgetResponse() { }
 
     }
@@ -3849,7 +3264,8 @@ namespace SpendWise.Application.DTOs.Income
         [Required(ErrorMessage = "Please enter the date of the transaction")]
         public DateTime Date { get; set; }
 
-        public int ExpenseTagId { get; set; }
+        public int LinkedTransactionId { get; set; } = -1;
+        public int ExpenseTagId { get; set; } = -1;
         public string Description { get; set; } = string.Empty;
         public string Products {  get; set; } = string.Empty; // JSON 
     }
@@ -3859,10 +3275,7 @@ namespace SpendWise.Application.DTOs.Income
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\DTOs\Expense\ExpenseResponse.cs
 ----------------------------------------
-﻿using SpendWise.Application.DTOs.Category;
-using SpendWise.Application.DTOs.Tag;
-using SpendWise.Application.DTOs.Wallet;
-using SpendWise.Domain.Entities;
+﻿using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -3875,14 +3288,85 @@ namespace SpendWise.Application.DTOs.Expense
         public int UserId { get; set; }
         public string Title { get; set; } = string.Empty;
         public decimal Amount { get; set; }
-        public int WalletId { get; set; } 
+        public int WalletId { get; set; }
         public DateTime Date { get; set; }
         public int ExpenseTagId { get; set; }
         public string Products { get; set; } = string.Empty; // JSON as a string
-        public int CategoryId { get; set; } 
+        public int CategoryId { get; set; }
+        public bool IsOverLimit { get; set; }
+    public ExpenseResponse(SpendWise.Domain.Entities.Expense expense)
+        {
+            ExpenseId = expense.ExpenseId;
+            UserId = expense.UserId;
+            //Title = expense.Title,
+            Amount = expense.Amount;
+            WalletId = expense.WalletId;
+            Date = expense.Date;
+            ExpenseTagId = expense.ExpenseTagId;
+            Products = expense.Products;
+            CategoryId = expense.CategoryId;
+        }
+
+    public ExpenseResponse() { }
+
+    }
+
+}
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\DTOs\FixedObligations\FixedObligationDTO.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+
+namespace SpendWise.Application.DTOs.FixedObligations
+{
+    public class FixedObligationDTO
+    {
+        [Required(ErrorMessage = "Please enter the fixed obligation id")]
+        public int Id { get; set; } = -1;
+
+        [Required(ErrorMessage = "Please enter the fixed obligation owner id")]
+        public int OwnerId { get; set; } = -1;
+
+        [Required(ErrorMessage = "Please enter the fixed obligation title")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please enter the fixed obligation amount")]
+        [Range(1, Double.PositiveInfinity, ErrorMessage = "Amount must be greater than or equal to 1.")]
+        public decimal Amount { get; set; }
+
+        [Required(ErrorMessage = "Please enter the fixed obligation due date")]
+        public DateTime DueDate { get; set; }
+
+        [Required(ErrorMessage = "Please enter the fixed obligation state(boolean => Active:true, InActive:flase)")]
+        public bool IsActive { get; set; }
+
     }
 }
 
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\DTOs\FixedObligations\FixedObligationResponse.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.DTOs.FixedObligations
+{
+    public class FixedObligationResponse
+    {
+        public int Id { get; set; } = -1;
+        public int OwnerId { get; set; } = -1;
+        public string Title { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public DateTime DueDate { get; set; }
+        public bool IsActive { get; set; }
+    }
+}
 
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\DTOs\Income\IncomeDTO.cs
@@ -4330,6 +3814,60 @@ namespace SpendWise.Application.DTOs.Wallet
 
 
 
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\Interfaces\IFixedObligationRepository.cs
+----------------------------------------
+﻿using SpendWise.Application.DTOs;
+using SpendWise.Domain.Entities;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.Interfaces
+{
+    public interface IFixedObligationRepository
+    {
+        // Reading from DB methods
+        public Task<FixedObligation> GetFixedObligationAsync(int obligationId, int UserID);
+        public Task<IEnumerable<FixedObligation?>> GetFixedObligationsByUserIdAsync(int userId);
+
+        // Writing to DB methods
+        public Task<bool> CreateFixedObligationAsync(FixedObligation fixedObligation);
+        public Task<bool> UpdateFixedObligationAsync(FixedObligation fixedObligation);
+        public Task<bool> DeleteFixedObligationAsync(int obligationId, int UserID);
+    }
+}
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\Interfaces\IFixedObligationsService.cs
+----------------------------------------
+﻿using SpendWise.Application.DTOs.FixedObligations;
+using SpendWise.Domain.Entities;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.Interfaces
+{
+    public interface IFixedObligationsService
+    {
+        // Reading from DB methods
+        public Task<FixedObligationResponse> GetFixedObligationAsync(int obligationId, int UserID);
+        public Task<IEnumerable<FixedObligationResponse?>> GetFixedObligationsByUserIdAsync(int userId);
+
+        // Writing to DB methods
+        public Task CreateFixedObligationAsync(FixedObligationDTO fixedObligationDTO);
+        public Task UpdateFixedObligationAsync(FixedObligationDTO fixedObligationDTO);
+        public Task DeleteFixedObligationAsync(int obligationId, int UserID);
+
+        // Logic methods
+        //public Task<bool> ValidateAmount(decimal amount);
+
+    }
+}
+
+
+
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\Interfaces\Authentication\IAuthService.cs
 ----------------------------------------
 ﻿using System;
@@ -4387,7 +3925,7 @@ namespace SpendWise.Application.Interfaces.Categories
 
         public Task<CategoryBudgetResponse?> GetCategoryBudgetAsync(int userId, int categoryId);
 
-        public Task<int> SetCategoryBudgetAsync(CategoryBudgetDTO budgetDto);
+        public Task<CategoryBudgetResponse?> SetCategoryBudgetAsync(CategoryBudgetDTO budgetDto);
 
         public Task<bool> UpdateCategoryBudgetAsync(CategoryBudgetDTO budgetDto);
 
@@ -4426,8 +3964,8 @@ namespace SpendWise.Application.Interfaces.Expenses
     public interface IExpenseRepository
     {
         // Writing to database
-        public Task<int> AddExpenseAsync(Expense newExpense, Transaction newTransaction);
-        public Task<bool> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction);
+        public Task<(int ExpenseId, bool IsOverLimit)> AddExpenseAsync(Expense newExpense, Transaction newTransaction);
+        public Task<(bool Success, bool IsOverLimit)> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction);
         public Task<bool> DeleteExpenseAsync(int expenseId, int userId);
 
         // Reading from the database
@@ -4937,6 +4475,7 @@ using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
+using System.Net.Http.Headers;
 using System.Text;
 
 namespace SpendWise.Application.Services
@@ -4955,19 +4494,9 @@ namespace SpendWise.Application.Services
         {
             var budgets = await _budgetRepo.GetAllUserBudgetsAsync(userId);
 
-            if (budgets == null) return Enumerable.Empty<CategoryBudgetResponse>();
+            if (budgets == Enumerable.Empty<CategoryBudget>()) return Enumerable.Empty<CategoryBudgetResponse>();
 
-            return budgets.Select(budget => new CategoryBudgetResponse
-            {
-                CategoryBudgetId = budget.CategoryBudgetId,
-                CategoryId = budget.CategoryId,
-                UserId = budget.UserId,
-                PercentageLimit = budget.PercentageLimit,
-                PercentageProgress = budget.PercentageProgress,
-                IsActive = budget.IsActive,
-                StartDate = budget.StartDate,
-                EndDate = budget.EndDate,
-            });
+            return budgets.Select(budget => new CategoryBudgetResponse(budget));
           
         }
 
@@ -4976,25 +4505,24 @@ namespace SpendWise.Application.Services
         {
             var budget = await _budgetRepo.GetCategoryBudgetAsync(userId, categoryId);
 
-            return budget != null ? new CategoryBudgetResponse
-            {
-                CategoryBudgetId = budget.CategoryBudgetId,
-                CategoryId = budget.CategoryId,
-                UserId = budget.UserId,
-                PercentageLimit = budget.PercentageLimit,
-                PercentageProgress = budget.PercentageProgress,
-                IsActive = budget.IsActive,
-                StartDate = budget.StartDate,
-                EndDate = budget.EndDate,
-            }: null;
+            return budget != null ? new CategoryBudgetResponse(budget): null;
         }
 
-        public async Task<int> SetCategoryBudgetAsync(CategoryBudgetDTO budgetDto)
+        public async Task<CategoryBudgetResponse?> SetCategoryBudgetAsync(CategoryBudgetDTO budgetDto)
         {
             
             var budget = new CategoryBudget(-1, budgetDto.UserId, budgetDto.CategoryId, budgetDto.PercentageLimit, budgetDto.PercentageProgress, budgetDto.StartDate, budgetDto.EndDate, budgetDto.IsActive);
 
-            return await _budgetRepo.SetCategoryBudgetAsync(budgetDto.UserId, budget);
+            var budgetId = await _budgetRepo.SetCategoryBudgetAsync(budgetDto.UserId, budget);
+            
+            if (budgetId == -1)
+            {
+                return null;
+            }
+
+            budgetDto.CategoryBudgetId = budgetId;
+
+            return new CategoryBudgetResponse(budget);
         }
 
         public async Task<bool> UpdateCategoryBudgetAsync(CategoryBudgetDTO budgetDto)
@@ -5123,6 +4651,46 @@ namespace SpendWise.Application.Services
             _exchangeRateService = exchangeRateService;
         }
 
+        // Helpers methods --------------------------------------------------
+        private Expense MapExpenseDTOtoExpenseObject(ExpenseDTO expenseDTO)
+        {
+            return new Expense
+            (
+                expenseDTO.ExpenseId,
+                expenseDTO.UserId,
+                expenseDTO.Title,
+                expenseDTO.Amount,
+                expenseDTO.Products,
+                expenseDTO.ExpenseTagId,
+                expenseDTO.CategoryId,
+                expenseDTO.WalletId,
+                expenseDTO.LinkedTransactionId,
+                expenseDTO.Date
+            );
+        }
+
+        private Transaction MapExpenseDTOtoTransactionObject(ExpenseDTO expenseDTO)
+        {
+            var transaction =  new Transaction
+            (
+                expenseDTO.LinkedTransactionId,
+                expenseDTO.UserId,
+                expenseDTO.Title,
+                expenseDTO.Description,
+                expenseDTO.WalletId,
+                expenseDTO.Amount,
+                0, // Amount in Syrian pounds -> calculated later through out the process
+                expenseDTO.Date,
+                enTransactionType.Dedduction
+            );
+
+            // Custom attributes for expenses only:
+            transaction.TransactionCategoryId = expenseDTO.CategoryId;
+            transaction.TransactionTagId = expenseDTO.ExpenseTagId;
+
+            return transaction;
+        }
+
         // Reading methods --------------------------------------------------
         public async Task<ExpenseResponse?> GetExpenseAsync(int expenseId, int userId)
         {
@@ -5133,36 +4701,14 @@ namespace SpendWise.Application.Services
                 return null;
             }
 
-            return new ExpenseResponse
-            {
-                ExpenseId = expense.ExpenseId,
-                UserId = expense.UserId,
-                Title = expense.LinkedTransaction.Title,
-                Amount = expense.Amount,
-                Date = expense.Date,
-                Products = expense.Products,
-                CategoryId = expense.CategoryId,
-                WalletId = expense.WalletId,
-                ExpenseTagId = expense.ExpenseTagId == -1 ? -1 : expense.ExpenseTagId,
-            };
+            return new ExpenseResponse(expense);
         }
 
         public async Task<PagedResponse<ExpenseResponse>> GetExpenseByUserAsync(int userId, PageDTO pageDto)
         {
             var (expensesList, totalCount) = await _expenseRepo.GetExpensesByUserAsync(userId, pageDto.PageNumber, pageDto.PageSize);
 
-            var expenseResponse = expensesList.Select(item => new ExpenseResponse
-            {
-                ExpenseId = item.ExpenseId,
-                UserId = item.UserId,
-                Title = item.LinkedTransaction.Title,
-                Amount = item.Amount,
-                Date = item.Date,
-                Products = item.Products,
-                CategoryId = item.CategoryId,
-                WalletId = item.WalletId,
-                ExpenseTagId = item.ExpenseTagId == -1 ? -1 : item.ExpenseTagId,
-            }).ToList();
+            var expenseResponse = expensesList.Select(item => new ExpenseResponse(item)).ToList();
 
             return new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
         }
@@ -5172,16 +4718,7 @@ namespace SpendWise.Application.Services
         public async Task<ExpenseResponse?> AddExpenseAsync(ExpenseDTO expenseDto)
         {
             // 1 - map the expenseDTO into an expense object
-            var newExpense = new Expense
-            {
-                UserId = expenseDto.UserId,
-                Amount = expenseDto.Amount,
-                Products = expenseDto.Products,
-                Date = expenseDto.Date,
-                CategoryId = expenseDto.CategoryId,
-                ExpenseTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
-                WalletId = expenseDto.WalletId,
-            };
+            var newExpense = MapExpenseDTOtoExpenseObject(expenseDto);
 
             // 2 - Fethcing the wallet info from the DB and normalizing the amount to Syrian Pound
             var wallet = await _walletRepo.GetWalletByIdAsync(newExpense.WalletId, newExpense.UserId);
@@ -5206,52 +4743,28 @@ namespace SpendWise.Application.Services
             }
 
             // 3 - Create a Transaction object to store in the database
-            var newTransaction = new Transaction
-            {
-                UserId = expenseDto.UserId,
-                Expense = newExpense,
-                Description = expenseDto.Description,
-                Title = expenseDto.Title,
-                TransactionType = enTransactionType.Dedduction,
-                Amount = expenseDto.Amount,
-                AmountInSp = amountInSp,
-                TransactionCategoryId = expenseDto.CategoryId,
-                TransactionDate = expenseDto.Date,
-                WalletId = expenseDto.WalletId,
-                TransactionTagId = expenseDto.ExpenseTagId,
-            };
+            var newTransaction = MapExpenseDTOtoTransactionObject(expenseDto);
+            newTransaction.AmountInSp = amountInSp;
 
-            // 4 - store both the income and the transaction in the database
-            int newExpenseId = await _expenseRepo.AddExpenseAsync(newExpense, newTransaction);
+            // 4 - store both the expense and the transaction in the database
+            (int newExpenseId, bool IsOverLimit) = await _expenseRepo.AddExpenseAsync(newExpense, newTransaction);
+            
+            if(newExpenseId == -1) return null;
 
-            // 5 - Return the created item
-            return new ExpenseResponse
-            {
-                ExpenseId = newExpenseId,
-                UserId = newExpense.UserId,
-                Title = newExpense.LinkedTransaction.Title,
-                Amount = newExpense.Amount,
-                Products = newExpense.Products,
-                Date = newExpense.Date,
-                CategoryId = newExpense.CategoryId,
-                WalletId = newExpense.WalletId,
-                ExpenseTagId = newExpense.ExpenseTagId,
-            };
+            // 5 - map important data before return the response
+            newExpense.ExpenseId = newExpenseId;
+
+            // 6 - Return the created item
+            var expenseResponse = new ExpenseResponse(newExpense);
+            expenseResponse.IsOverLimit = IsOverLimit;
+
+            return expenseResponse;
         }
+
         public async Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto)
         {
             // 1 - map the expenseDTO into an expense object
-            var updatedExpens = new Expense
-            {
-                ExpenseId = expenseDto.ExpenseId,
-                UserId = expenseDto.UserId,
-                Amount = expenseDto.Amount,
-                Products = expenseDto.Products,
-                Date = expenseDto.Date,
-                CategoryId = expenseDto.CategoryId,
-                ExpenseTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
-                WalletId = expenseDto.WalletId,
-            };
+            var updatedExpens = MapExpenseDTOtoExpenseObject(expenseDto);
 
             // 2 - Fethcing the wallet info from the DB and normalizing the amount to Syrian Pound
             var wallet = await _walletRepo.GetWalletByIdAsync(updatedExpens.WalletId, updatedExpens.UserId);
@@ -5276,38 +4789,18 @@ namespace SpendWise.Application.Services
             }
 
             // 3 - Create a Transaction object to store in the database
-            var newTransaction = new Transaction
-            {
-                UserId = expenseDto.UserId,
-                Expense = updatedExpens,
-                Description = expenseDto.Description,
-                Title = expenseDto.Title,
-                TransactionType = enTransactionType.Dedduction,
-                Amount = expenseDto.Amount,
-                AmountInSp = amountInSp,
-                TransactionCategoryId = expenseDto.CategoryId,
-                TransactionDate = expenseDto.Date,
-                WalletId = expenseDto.WalletId,
-                TransactionTagId = expenseDto.ExpenseTagId,
-            };
+            var newTransaction = MapExpenseDTOtoTransactionObject(expenseDto);
 
-            // 4 - store both the income and the transaction in the database
-            if (!await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction))
-                return null;
+            // 4 - store both the expense and the transaction in the database
+            (bool Success, bool IsOverLimit) = await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction);
+                
+            if (!Success) return null;
 
-            // 5 - Return the created item
-            return new ExpenseResponse
-            {
-                ExpenseId = updatedExpens.ExpenseId,
-                UserId = updatedExpens.UserId,
-                Title = "Updated expense",
-                Amount = updatedExpens.Amount,
-                Date = updatedExpens.Date,
-                Products = updatedExpens.Products,
-                CategoryId = updatedExpens.CategoryId,
-                WalletId = updatedExpens.WalletId,
-                ExpenseTagId = updatedExpens.ExpenseTagId == -1 ? -1 : updatedExpens.ExpenseTagId,
-            };
+            // 5 - Return the updated item
+            var expenseResponse =  new ExpenseResponse(updatedExpens);
+            expenseResponse.IsOverLimit = IsOverLimit; 
+
+            return expenseResponse;
         }
 
         public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
@@ -5317,6 +4810,99 @@ namespace SpendWise.Application.Services
 
     }
 
+}
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\Services\FixedObligationsService.cs
+----------------------------------------
+﻿using SpendWise.Application.Interfaces;
+using SpendWise.Domain.Entities;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using SpendWise.Application.DTOs.FixedObligations;
+
+namespace SpendWise.Application.Services
+{
+    public class FixedObligationsService: IFixedObligationsService
+    {
+        private readonly IFixedObligationRepository _fixedObligationRepo;
+
+        public FixedObligationsService(IFixedObligationRepository fixedObligationRepo)
+        {
+            _fixedObligationRepo = fixedObligationRepo;
+        }
+
+        public async Task<FixedObligationResponse> GetFixedObligationAsync(int fixedObligationId, int UserID)
+        {
+            var fixedObligation = await _fixedObligationRepo.GetFixedObligationAsync(fixedObligationId, UserID);
+           
+            return new FixedObligationResponse
+            {
+                Id = fixedObligation.Id,
+                OwnerId = fixedObligation.OwnerId,
+                Title = fixedObligation.Title,
+                Amount = fixedObligation.Amount,
+                DueDate = fixedObligation.DueDate,
+                IsActive = fixedObligation.IsActive,
+            };
+        }
+        public async Task<IEnumerable<FixedObligationResponse?>> GetFixedObligationsByUserIdAsync(int userId)
+        {
+            var fixedObligationsList = await _fixedObligationRepo.GetFixedObligationsByUserIdAsync(userId);
+
+            // Use LINQ to map each item in the collection
+            return fixedObligationsList.Select(item => new FixedObligationResponse
+            {
+                Id = item.Id,
+                OwnerId = item.OwnerId,
+                Title = item.Title,
+                Amount = item.Amount,
+                DueDate = item.DueDate,
+                IsActive = item.IsActive,
+            });
+        }
+
+        public async Task CreateFixedObligationAsync(FixedObligationDTO fixedObligationDto)
+        {
+            var newObligation = new FixedObligation(
+                fixedObligationDto.Id,
+                fixedObligationDto.OwnerId,
+                fixedObligationDto.Title,
+                fixedObligationDto.Amount,
+                fixedObligationDto.DueDate,
+                fixedObligationDto.IsActive
+            );
+
+            await _fixedObligationRepo.CreateFixedObligationAsync(newObligation);
+        }
+
+        public async Task UpdateFixedObligationAsync(FixedObligationDTO fixedObligationDto)
+        {
+            var updatedObligation = new FixedObligation(
+                fixedObligationDto.Id,
+                fixedObligationDto.OwnerId,
+                fixedObligationDto.Title,
+                fixedObligationDto.Amount,
+                fixedObligationDto.DueDate,
+                fixedObligationDto.IsActive
+            );
+
+            await _fixedObligationRepo.UpdateFixedObligationAsync(updatedObligation);
+        }
+
+        public async Task DeleteFixedObligationAsync(int fixedObligationId, int UserID)
+        {
+            await _fixedObligationRepo.DeleteFixedObligationAsync(fixedObligationId, UserID);
+        }
+
+        //private async Task<bool> ValidateAmount(FixedObligationDTO fixedObligationDto)
+        //{
+        //    /// This method validates the amount of the fixed obligation before saving it to Database
+        //    if (fixedObligationDto.Amount)
+        //}
+    }
 }
 
 
@@ -5683,6 +5269,7 @@ namespace SpendWise.Application.Services
         public SharedDebtService(ISharedDebtRepository debtRepo)
         {
             _debtRepo = debtRepo;
+            
         }
 
         public async Task<IEnumerable<SharedDebtResponse>> GetDebtsOwedToUserAsync(int userId)
@@ -6189,9 +5776,24 @@ namespace SpendWise.Domain.Entities
         public int CategoryId { get; set; }
         public decimal PercentageLimit { get; set; }
         public decimal PercentageProgress { get; set; }
+        public decimal MoneyLimit { get; set; }
+        public decimal SpendingProgress {  get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public bool IsActive { get; set; }
+        public CategoryBudget(int categoryBudgetId, int userId, int categoryId, decimal percentageLimit, decimal percentageProgress, decimal moneyLimit, decimal spendingProgress, DateTime startDate, DateTime endDate, bool isActive)
+        {
+            CategoryBudgetId = categoryBudgetId;
+            UserId = userId;
+            CategoryId = categoryId;
+            PercentageLimit = percentageLimit;
+            PercentageProgress = percentageProgress;
+            MoneyLimit = moneyLimit;
+            SpendingProgress = spendingProgress;
+            StartDate = startDate;
+            EndDate = endDate;
+            IsActive = isActive;
+        }
         public CategoryBudget(int categoryBudgetId, int userId, int categoryId, decimal percentageLimit, decimal percentageProgress, DateTime startDate, DateTime endDate, bool isActive)
         {
             CategoryBudgetId = categoryBudgetId;
@@ -6243,26 +5845,59 @@ namespace SpendWise.Domain.Entities
     {
         public int ExpenseId { get; set; }
         public int UserId { get; set; }
+        public string Title { get; set; } = string.Empty;
         public decimal Amount { get; set; }
         public string Products { get; set; } = string.Empty;
         public int ExpenseTagId { get; set; }
         public int CategoryId { get; set; } 
         public int WalletId { get; set; } 
+        public int LinkedTransactionId { get; set; } = -1;
         public DateTime Date { get; set; }
-        public Transaction LinkedTransaction { get; set; } = new Transaction();
-        public Expense(int expenseId, int userId, decimal amount, string products, int expenseTagId, int categoryId, int walletId, DateTime date, Transaction linkedTransaction)
+        public Expense(int expenseId, int userId, string title, decimal amount, string products, int expenseTagId, int categoryId, int walletId, int linkedTransactionId, DateTime date)
         {
             ExpenseId = expenseId;
             UserId = userId;
+            Title = title;
             Amount = amount;
             Products = products;
             ExpenseTagId = expenseTagId;
             CategoryId = categoryId;
             WalletId = walletId;
+            LinkedTransactionId = linkedTransactionId;
             Date = date;
-            LinkedTransaction = linkedTransaction;
         }
         public Expense() { }
+    }
+}
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Domain\Entities\FixedObligation.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Domain.Entities
+{
+    public class FixedObligation
+    {
+        public int Id { get; set; } = -1;
+        public int OwnerId { get; set; } = -1;
+        public string Title { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public DateTime DueDate { get; set; }
+        public bool IsActive { get; set; }
+
+        public FixedObligation(int id, int ownerId, string title, decimal amount, DateTime dueDate, bool isActive) 
+        {
+            Id = id;
+            OwnerId = ownerId;
+            Title = title;
+            Amount = amount;
+            DueDate = dueDate;
+            IsActive = isActive;
+        }
     }
 }
 
@@ -6418,19 +6053,19 @@ namespace SpendWise.Domain.Entities
         public decimal AmountInSp { get; set; } = 0.0m;
         public DateTime TransactionDate { get; set; } = DateTime.Now;
 
-        public int TransactionCategoryId { get; set; }
-        public int TransactionTagId { get; set; }
-        public SavingGoal? SavingGoal { get; set; }
+        public int TransactionCategoryId { get; set; } = -1;
+        public int TransactionTagId { get; set; } = -1;
+        public int SavingGoal { get; set; } = -1;   
         //public FixedExpense? FixedExpense { get; set; }
         //public FixedIncome? FixedIncome { get; set; }
         //public Debt? Debt { get; set; }
-        public Income? Income { get; set; }
-        public Expense? Expense { get; set; }
+        public int Income { get; set; } = -1;
+        public int Expense { get; set; } = -1;
 
         // Transaction type is specified here:
         public enTransactionType TransactionType { get; set; } // Addition or Deduction from the balance
 
-        public Transaction(int transactionId, int userId, string title, string? description, int walletId, decimal amount, decimal amountInSp, DateTime transactionDate, int transactionCategoryId, int transactionTagId, SavingGoal? savingGoal, Income? income, Expense? expense, enTransactionType transactionType)
+        public Transaction(int transactionId, int userId, string title, string description, int walletId, decimal amount, decimal amountInSp, DateTime transactionDate, enTransactionType transactionType)
         {
             TransactionId = transactionId;
             UserId = userId;
@@ -6440,11 +6075,6 @@ namespace SpendWise.Domain.Entities
             Amount = amount;
             AmountInSp = amountInSp;
             TransactionDate = transactionDate;
-            TransactionCategoryId = transactionCategoryId;
-            TransactionTagId = transactionTagId;
-            SavingGoal = savingGoal;
-            Income = income;
-            Expense = expense;
             TransactionType = transactionType;
         }
         public Transaction() { }
@@ -6910,7 +6540,9 @@ namespace SpendWise.Infrastructure.Repositories
                         UserId = (int)reader["UserID"],
                         CategoryId = (int)reader["CategoryID"],
                         PercentageLimit = (decimal)reader["PercentageLimit"], 
-                        PercentageProgress = (decimal)reader["PercentageProgress"], 
+                        PercentageProgress = (decimal)reader["PercentageProgress"],
+                        MoneyLimit = (decimal)reader["MoneyLimit"], 
+                        SpendingProgress = (decimal)reader["SpendingProgress"],             
                         StartDate = (DateTime)reader["StartDate"],
                         EndDate = (DateTime)reader["EndDate"],
                         IsActive = (bool)reader["IsActive"]
@@ -6953,7 +6585,7 @@ namespace SpendWise.Infrastructure.Repositories
                                             ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
         }
 
-        public async Task<int> AddExpenseAsync(Expense newExpense, Transaction newTransaction)
+        public async Task<(int ExpenseId, bool IsOverLimit)> AddExpenseAsync(Expense newExpense, Transaction newTransaction)
         {
             try
             {
@@ -6963,27 +6595,41 @@ namespace SpendWise.Infrastructure.Repositories
                     CommandType = CommandType.StoredProcedure
                 };
 
+                // Expense Parameters
                 command.Parameters.AddWithValue("@ExpenseUserId", newExpense.UserId);
                 command.Parameters.AddWithValue("@ExpenseWalletId", newExpense.WalletId);
                 command.Parameters.AddWithValue("@ExpenseCategoryId", newExpense.CategoryId);
-                command.Parameters.AddWithValue("@Products", string.IsNullOrEmpty(newExpense.Products) ? DBNull.Value : newExpense.Products);
+                command.Parameters.AddWithValue("@Products", (object)newExpense.Products ?? DBNull.Value);
                 command.Parameters.AddWithValue("@ExpenseAmount", newExpense.Amount);
                 command.Parameters.AddWithValue("@ExpenseDate", newExpense.Date);
                 command.Parameters.AddWithValue("@ExpenseTagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
 
+                // Transaction Parameters
                 command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
-                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
+                command.Parameters.AddWithValue("@TransDescription", (object)newTransaction.Description ?? DBNull.Value);
                 command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
-
                 command.Parameters.AddWithValue("@TransAmountInSp", newTransaction.AmountInSp);
-
                 command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
                 command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategoryId > 0 ? newTransaction.TransactionCategoryId : DBNull.Value);
 
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
+                // Define Output Parameters 
+                command.Parameters.Add("@NewExpenseID", SqlDbType.Int).Direction = ParameterDirection.Output;
+                command.Parameters.Add("@IsOverLimit", SqlDbType.Bit).Direction = ParameterDirection.Output;
 
-                return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
+                await connection.OpenAsync();
+
+                // Use ExecuteReader to get the result set from the SELECT at the end of the SP
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return (
+                        ExpenseId: reader.GetInt32(0),
+                        IsOverLimit: reader.GetBoolean(1)
+                    );
+                }
+
+                return (-1, false);
             }
             catch (SqlException ex)
             {
@@ -6992,7 +6638,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction)
+        public async Task<(bool Success, bool IsOverLimit)> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction)
         {
             try
             {
@@ -7002,28 +6648,39 @@ namespace SpendWise.Infrastructure.Repositories
                     CommandType = CommandType.StoredProcedure
                 };
 
+                // Parameters 
                 command.Parameters.AddWithValue("@ExpenseId", newExpense.ExpenseId);
                 command.Parameters.AddWithValue("@ExpenseUserId", newExpense.UserId);
                 command.Parameters.AddWithValue("@ExpenseWalletId", newExpense.WalletId);
                 command.Parameters.AddWithValue("@ExpenseCategoryId", newExpense.CategoryId);
-                command.Parameters.AddWithValue("@Products", string.IsNullOrEmpty(newExpense.Products) ? DBNull.Value : newExpense.Products);
+                command.Parameters.AddWithValue("@Products", (object)newExpense.Products ?? DBNull.Value);
                 command.Parameters.AddWithValue("@ExpenseAmount", newExpense.Amount);
                 command.Parameters.AddWithValue("@ExpenseDate", newExpense.Date);
                 command.Parameters.AddWithValue("@ExpenseTagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
 
                 command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
-                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
+                command.Parameters.AddWithValue("@TransDescription", (object)newTransaction.Description ?? DBNull.Value);
                 command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
-
                 command.Parameters.AddWithValue("@TransAmountInSp", newTransaction.AmountInSp);
-
                 command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
                 command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategoryId > 0 ? newTransaction.TransactionCategoryId : DBNull.Value);
 
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
+                // Define the Output parameter to match the SP header
+                command.Parameters.Add("@IsOverLimit", SqlDbType.Bit).Direction = ParameterDirection.Output;
 
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+                await connection.OpenAsync();
+
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    int rowsAffected = reader.GetInt32(0);
+                    bool isOverLimit = reader.GetBoolean(1);
+
+                    return (Success: rowsAffected > 0, IsOverLimit: isOverLimit);
+                }
+
+                return (false, false);
             }
             catch (SqlException ex)
             {
@@ -7076,24 +6733,18 @@ namespace SpendWise.Infrastructure.Repositories
                 if (await reader.ReadAsync())
                 {
                     var expense = new Expense
-                    {
-                        ExpenseId = Convert.ToInt32(reader["ExpenseID"]),
-                        UserId = Convert.ToInt32(reader["UserID"]),
-                        Amount = Convert.ToDecimal(reader["Amount"]),
-                        Products = reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
-                        Date = Convert.ToDateTime(reader["Date"]),
-                        WalletId = Convert.ToInt32(reader["WalletID"]),
-                        CategoryId = Convert.ToInt32(reader["CategoryID"])
-                    };
-
-                    if (reader["TagID"] != DBNull.Value)
-                    {
-                        expense.ExpenseTagId = Convert.ToInt32(reader["TagID"]);
-                    }
-                    else
-                    {
-                        expense.ExpenseTagId = -1;
-                    }
+                    (
+                        Convert.ToInt32(reader["ExpenseID"]),
+                        Convert.ToInt32(reader["UserID"]),
+                        reader["Title"] != DBNull.Value ? Convert.ToString(reader["Title"])! : string.Empty,
+                        Convert.ToDecimal(reader["Amount"]),
+                        reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
+                        reader["TagID"] != DBNull.Value ? Convert.ToInt32(reader["TagID"]) : -1,
+                        Convert.ToInt32(reader["CategoryID"]),
+                        Convert.ToInt32(reader["WalletID"]),
+                        Convert.ToInt32(reader["LinkedTransactionID"]),
+                        Convert.ToDateTime(reader["Date"])
+                    );
 
                     return expense;
                 }
@@ -7137,24 +6788,18 @@ namespace SpendWise.Infrastructure.Repositories
                     while (await reader.ReadAsync())
                     {
                         var expense = new Expense
-                        {
-                            ExpenseId = Convert.ToInt32(reader["ExpenseID"]),
-                            UserId = Convert.ToInt32(reader["UserID"]),
-                            Amount = Convert.ToDecimal(reader["Amount"]),
-                            Products = reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
-                            Date = Convert.ToDateTime(reader["Date"]),
-                            WalletId = Convert.ToInt32(reader["WalletID"]),
-                            CategoryId = Convert.ToInt32(reader["CategoryID"])
-                        };
-
-                        if (reader["TagID"] != DBNull.Value)
-                        {
-                            expense.ExpenseTagId = Convert.ToInt32(reader["TagID"]);
-                        }
-                        else
-                        {
-                            expense.ExpenseTagId = -1;
-                        }
+                        (
+                            Convert.ToInt32(reader["ExpenseID"]),
+                            Convert.ToInt32(reader["UserID"]),
+                            reader["Title"] != DBNull.Value ? Convert.ToString(reader["Title"])! : string.Empty,
+                            Convert.ToDecimal(reader["Amount"]),
+                            reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
+                            reader["TagID"] != DBNull.Value ? Convert.ToInt32(reader["TagID"]) : -1,
+                            Convert.ToInt32(reader["CategoryID"]),
+                            Convert.ToInt32(reader["WalletID"]),
+                            Convert.ToInt32(reader["LinkedTransactionID"]),
+                            Convert.ToDateTime(reader["Date"])
+                        );
 
                         expenses.Add(expense);
                     }
@@ -7193,6 +6838,190 @@ namespace SpendWise.Infrastructure.Repositories
                 }
 
                 return products;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+    }
+}
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Infrastructure\Repositories\FixedObligationRepository.cs
+----------------------------------------
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using SpendWise.Application.Interfaces;
+using SpendWise.Domain.Entities;
+using SpendWise.Infrastructure.Global;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Threading.Tasks;
+
+namespace SpendWise.Infrastructure.Repositories
+{
+    public class FixedObligationRepository : IFixedObligationRepository
+    {
+        private readonly string _connectionString;
+
+        public FixedObligationRepository(IConfiguration configuration)
+        {
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                                ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+        }
+
+        public async Task<FixedObligation> GetFixedObligationAsync(int obligationId, int userId)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_GetFixedObligation]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@ObligationId", obligationId);
+                command.Parameters.AddWithValue("@UserId", userId);
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new FixedObligation(
+                        id: Convert.ToInt32(reader["Id"]),
+                        ownerId: Convert.ToInt32(reader["OwnerId"]),
+                        title: reader["Title"].ToString()!,
+                        amount: Convert.ToDecimal(reader["Amount"]),
+                        dueDate: Convert.ToDateTime(reader["DueDate"]),
+                        isActive: Convert.ToBoolean(reader["IsActive"])
+                    );
+                }
+
+                return null!;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<FixedObligation?>> GetFixedObligationsByUserIdAsync(int userId)
+        {
+            var obligations = new List<FixedObligation>();
+
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_GetFixedObligationsByUserId]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@UserId", userId);
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    obligations.Add(new FixedObligation(
+                        id: Convert.ToInt32(reader["Id"]),
+                        ownerId: Convert.ToInt32(reader["OwnerId"]),
+                        title: reader["Title"].ToString()!,
+                        amount: Convert.ToDecimal(reader["Amount"]),
+                        dueDate: Convert.ToDateTime(reader["DueDate"]),
+                        isActive: Convert.ToBoolean(reader["IsActive"])
+                    ));
+                }
+
+                return obligations;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> CreateFixedObligationAsync(FixedObligation fixedObligation)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_CreateFixedObligation]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@OwnerId", fixedObligation.OwnerId);
+                command.Parameters.AddWithValue("@Title", fixedObligation.Title);
+                command.Parameters.AddWithValue("@Amount", fixedObligation.Amount);
+                command.Parameters.AddWithValue("@DueDate", fixedObligation.DueDate);
+                command.Parameters.AddWithValue("@IsActive", fixedObligation.IsActive);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdateFixedObligationAsync(FixedObligation fixedObligation)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_UpdateFixedObligation]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@Id", fixedObligation.Id);
+                command.Parameters.AddWithValue("@OwnerId", fixedObligation.OwnerId);
+                command.Parameters.AddWithValue("@Title", fixedObligation.Title);
+                command.Parameters.AddWithValue("@Amount", fixedObligation.Amount);
+                command.Parameters.AddWithValue("@DueDate", fixedObligation.DueDate);
+                command.Parameters.AddWithValue("@IsActive", fixedObligation.IsActive);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteFixedObligationAsync(int obligationId, int UserID)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_DeleteFixedObligation]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@Id", obligationId);
+                command.Parameters.AddWithValue("@OwnerId", UserID);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {

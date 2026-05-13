@@ -1,6 +1,7 @@
 ﻿CREATE TABLE [Ledger].[Expenses] (
     [ExpenseID]  INT             IDENTITY (1, 1) NOT NULL,
     [UserID]     INT             NOT NULL,
+    [Title]      NVARCHAR(20)    DEFAULT 'Expense',
     [TagID]      INT             NULL,
     [CategoryID] INT             NOT NULL,
     [WalletID]   INT             NOT NULL,
