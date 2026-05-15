@@ -18,12 +18,12 @@ namespace SpendWise.Domain.Entities
 
         public int TransactionCategoryId { get; set; } = -1;
         public int TransactionTagId { get; set; } = -1;
-        public int SavingGoal { get; set; } = -1;   
+        public int SavingGoalId { get; set; } = -1;   
         //public FixedExpense? FixedExpense { get; set; }
         //public FixedIncome? FixedIncome { get; set; }
         //public Debt? Debt { get; set; }
-        public int Income { get; set; } = -1;
-        public int Expense { get; set; } = -1;
+        public int IncomeId { get; set; } = -1;
+        public int ExpenseId { get; set; } = -1;
 
         // Transaction type is specified here:
         public enTransactionType TransactionType { get; set; } // Addition or Deduction from the balance

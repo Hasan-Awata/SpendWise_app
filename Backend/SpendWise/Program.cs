@@ -18,6 +18,7 @@ using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Application.Interfaces.SavingGoals;
 using SpendWise.Application.Interfaces.SharedDebts;
 using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

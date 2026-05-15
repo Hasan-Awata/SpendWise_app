@@ -21,7 +21,35 @@ namespace SpendWise.Infrastructure.Repositories
                                             ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
         }
 
-        public async Task<int> AddIncomeAsync(Income newIncome, Transaction newTransaction)
+        private static Income MapToIncome(SqlDataReader reader)
+        {
+            var income = new Income
+            {
+                Id = Convert.ToInt32(reader["IncomeID"]),
+                UserId = Convert.ToInt32(reader["UserID"]),
+                Title = reader["Title"].ToString()!,
+                Amount = Convert.ToDecimal(reader["Amount"]),
+                Date = Convert.ToDateTime(reader["Date"]),
+                WalletId = Convert.ToInt32(reader["WalletID"]),
+                IncomeTagId = reader["TagID"] != DBNull.Value ? Convert.ToInt32(reader["TagID"]) : -1,
+            };
+
+            income.LinkedTransaction = new Transaction(
+                income.Id,
+                income.UserId,
+                income.Title,
+                reader["Description"] != DBNull.Value ? reader["Description"].ToString()! : string.Empty,
+                income.WalletId,
+                income.Amount,
+                Convert.ToDecimal(reader["AmountInSp"]),
+                income.Date,
+                enTransactionType.Addition
+            );
+
+            return income;
+        }
+
+        public async Task<int> AddIncomeAsync(Income newIncome)
         {
             try
             {
@@ -31,24 +59,32 @@ namespace SpendWise.Infrastructure.Repositories
                     CommandType = CommandType.StoredProcedure
                 };
 
-                command.Parameters.AddWithValue("@IncomeUserId", newIncome.UserId);
-                command.Parameters.AddWithValue("@IncomeWalletId", newIncome.WalletId);
-                command.Parameters.AddWithValue("@IncomeAmount", newIncome.Amount);
+                // shared parameters
+                command.Parameters.AddWithValue("@UserId", newIncome.UserId);
+                command.Parameters.AddWithValue("@WalletId", newIncome.WalletId);
+                command.Parameters.AddWithValue("@Amount", newIncome.Amount);
                 command.Parameters.AddWithValue("@IncomeDate", newIncome.Date);
-                command.Parameters.AddWithValue("@IncomeTagId", newIncome.IncomeTagId > 0 ? newIncome.IncomeTagId : DBNull.Value);
+                command.Parameters.AddWithValue("@Title", newIncome.Title);
 
-                command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
-                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
-                command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
+                // optional parameters
+                command.Parameters.AddWithValue("@Description", (object)newIncome.LinkedTransaction.Description ?? DBNull.Value);
+                command.Parameters.AddWithValue("@TagId", newIncome.IncomeTagId > 0 ? (object)newIncome.IncomeTagId : DBNull.Value);
 
-                command.Parameters.AddWithValue("@TransAmountInSp", newTransaction.AmountInSp);
+                // Transaction Details
+                command.Parameters.AddWithValue("@AmountInSp", newIncome.LinkedTransaction.AmountInSp);
+                command.Parameters.AddWithValue("@TransactionType", (int)newIncome.LinkedTransaction.TransactionType);
 
-                command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
+                // Output parameter setup
+                var outputId = new SqlParameter("@NewIncomeID", SqlDbType.Int) { Direction = ParameterDirection.Output };
+                command.Parameters.Add(outputId);
 
                 await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
 
-                return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
+                // Execute the procedure
+                await command.ExecuteNonQueryAsync();
+
+                // Retrieve the ID from the Output parameter
+                return (int)outputId.Value;
             }
             catch (SqlException ex)
             {
@@ -57,7 +93,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> UpdateIncomeAsync(Income newIncome, Transaction newTransaction)
+        public async Task<bool> UpdateIncomeAsync(Income newIncome)
         {
             try
             {
@@ -67,22 +103,25 @@ namespace SpendWise.Infrastructure.Repositories
                     CommandType = CommandType.StoredProcedure
                 };
 
+                // 1. Core ID and Identity
                 command.Parameters.AddWithValue("@IncomeId", newIncome.Id);
-                command.Parameters.AddWithValue("@IncomeUserId", newIncome.UserId);
-                command.Parameters.AddWithValue("@IncomeWalletId", newIncome.WalletId);
-                command.Parameters.AddWithValue("@IncomeAmount", newIncome.Amount);
+                command.Parameters.AddWithValue("@UserId", newIncome.UserId);
+
+                // 2. Income Table Data
+                command.Parameters.AddWithValue("@WalletId", newIncome.WalletId);
+                command.Parameters.AddWithValue("@TagId", newIncome.IncomeTagId > 0 ? (object)newIncome.IncomeTagId : DBNull.Value);
+                command.Parameters.AddWithValue("@Amount", newIncome.Amount);
                 command.Parameters.AddWithValue("@IncomeDate", newIncome.Date);
-                command.Parameters.AddWithValue("@IncomeTagId", newIncome.IncomeTagId > 0 ? newIncome.IncomeTagId : DBNull.Value);
 
-                command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
-                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
-                command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
-
-                command.Parameters.AddWithValue("@TransAmountInSp", newTransaction.AmountInSp);
-
-                command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
+                // 3. Transaction/Shared Data
+                command.Parameters.AddWithValue("@Title", newIncome.LinkedTransaction.Title);
+                command.Parameters.AddWithValue("@Description", (object)newIncome.LinkedTransaction.Description ?? DBNull.Value);
+                command.Parameters.AddWithValue("@TransactionType", (int)newIncome.LinkedTransaction.TransactionType);
+                command.Parameters.AddWithValue("@AmountInSp", newIncome.LinkedTransaction.AmountInSp);
 
                 await connection.OpenAsync();
+
+                // Using ExecuteScalar because the procedure ends with 'SELECT 1 AS RowsAffected'
                 var result = await command.ExecuteScalarAsync();
 
                 return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
@@ -129,47 +168,16 @@ namespace SpendWise.Infrastructure.Repositories
                     CommandType = CommandType.StoredProcedure
                 };
 
-                command.Parameters.AddWithValue("@IncomeId", incomeId);
-                command.Parameters.AddWithValue("@UserId", userId);
+                command.Parameters.AddWithValue("@IncomeID", incomeId);
+                command.Parameters.AddWithValue("@UserID", userId);
 
                 await connection.OpenAsync();
                 using var reader = await command.ExecuteReaderAsync();
 
                 if (await reader.ReadAsync())
                 {
-                    var income = new Income
-                    {
-                        Id = Convert.ToInt32(reader["IncomeID"]),
-                        UserId = Convert.ToInt32(reader["IncomeUserID"]),
-                        Amount = Convert.ToDecimal(reader["IncomeAmount"]),
-                        Date = Convert.ToDateTime(reader["IncomeDate"]),
-                        WalletId = Convert.ToInt32(reader["IncomeWalletID"])
-                    };
+                    var income = MapToIncome(reader);
 
-                    if (reader["IncomeTagID"] != DBNull.Value)
-                    {
-                        income.IncomeTagId = Convert.ToInt32(reader["IncomeTagID"]);
-                    }
-
-                    if (reader["TransactionID"] != DBNull.Value)
-                    {
-                        income.LinkedTransaction = new Transaction
-                        {
-                            TransactionId = Convert.ToInt32(reader["TransactionID"]),
-                            UserId = Convert.ToInt32(reader["TransUserID"]),
-                            Title = reader["Title"].ToString()!,
-                            Description = reader["Description"] != DBNull.Value ? reader["Description"].ToString()! : string.Empty,
-                            Amount = Convert.ToDecimal(reader["TransAmount"]),
-                            TransactionDate = Convert.ToDateTime(reader["TransactionDate"]),
-                            TransactionType = (enTransactionType)Convert.ToInt32(reader["TransactionType"]),
-                            WalletId = Convert.ToInt32(reader["TransWalletID"])
-                        };
-
-                        if (reader["TransTagID"] != DBNull.Value)
-                        {
-                            income.LinkedTransaction.TransactionTagId = Convert.ToInt32(reader["TransTagID"]);
-                        }
-                    }
                     return income;
                 }
 
@@ -182,7 +190,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<(IEnumerable<Income> projects, int totalCount)> GetIncomeByUserAsync(int userId, int pageNumber, int pageSize)
+        public async Task<(IEnumerable<Income> incomes, int totalCount)> GetIncomeByUserAsync(int userId, int pageNumber, int pageSize)
         {
             var incomes = new List<Income>();
             int totalCount = 0;
@@ -202,34 +210,18 @@ namespace SpendWise.Infrastructure.Repositories
                 await connection.OpenAsync();
                 using var reader = await command.ExecuteReaderAsync();
 
+                // Result Set 1: Total Count
                 if (await reader.ReadAsync())
                 {
                     totalCount = Convert.ToInt32(reader["TotalCount"]);
                 }
 
+                // Result Set 2: Paged Incomes
                 if (await reader.NextResultAsync())
                 {
                     while (await reader.ReadAsync())
                     {
-                        var income = new Income
-                        {
-                            Id = Convert.ToInt32(reader["IncomeID"]),
-                            UserId = Convert.ToInt32(reader["UserID"]),
-                            Amount = Convert.ToDecimal(reader["Amount"]),
-                            Date = Convert.ToDateTime(reader["Date"]),
-                            WalletId = Convert.ToInt32(reader["WalletID"])
-                        };
-
-                        if (reader["TagID"] != DBNull.Value)
-                        {
-                            income.IncomeTagId = Convert.ToInt32(reader["TagID"]);
-                        }
-                        else
-                        {
-                            income.IncomeTagId = -1;
-                        }
-
-                        incomes.Add(income);
+                        incomes.Add(MapToIncome(reader));
                     }
                 }
 

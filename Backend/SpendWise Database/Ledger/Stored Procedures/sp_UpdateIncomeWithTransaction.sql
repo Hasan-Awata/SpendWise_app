@@ -1,95 +1,105 @@
-﻿-- ==========================================
--- 4. Update Income, Transaction, and Adjust Balance
--- ==========================================
-CREATE   PROCEDURE [Ledger].[sp_UpdateIncomeWithTransaction]
-    @IncomeId INT,
-    @IncomeUserId INT,
-    @IncomeWalletId INT,
-    @IncomeTagId INT = NULL,
-    @IncomeAmount DECIMAL(18,2),
+﻿CREATE PROCEDURE [Ledger].[sp_UpdateIncomeWithTransaction]
+    @IncomeId INT, -- This is also the TransactionID
+    @UserId INT,
+    @WalletId INT, 
+    @TagId INT = NULL,
+    @Amount DECIMAL(18,2),
     @IncomeDate DATETIME,
     
-    @TransTitle NVARCHAR(255),
-    @TransDescription NVARCHAR(MAX) = NULL,
-    @TransType INT,
-    @TransAmountInSp DECIMAL(18,2), 
-    @TransCategoryId INT = NULL,
-    @TransTagId INT = NULL,
+    @Title NVARCHAR(255),
+    @Description NVARCHAR(MAX) = NULL,
+    @TransactionType INT = 0,
+    @AmountInSp DECIMAL(18,2), 
+    @CategoryId INT = NULL,
     @GoalId INT = NULL,
-    @FixedExpenseId INT = NULL,
     @FixedIncomeId INT = NULL,
     @DebtId INT = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
+
     BEGIN TRY
         -- ==========================================
-        -- PRE-FLIGHT SECURITY CHECKS
+        -- PRE-FLIGHT SECURITY CHECKS 
         -- ==========================================
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId)
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @WalletId)
         BEGIN
-            THROW 50001, 'Wallet not found.', 1;
+            ;THROW 50001, 'Wallet not found.', 1;
         END
 
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId)
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @WalletId AND UserID = @UserId)
         BEGIN
-            THROW 50003, 'Access denied. You do not own this wallet.', 1;
+            ;THROW 50003, 'Access denied. You do not own this wallet.', 1;
         END
+
 
         BEGIN TRAN; 
 
+        -- 2. FETCH OLD DATA FOR RE-BALANCING
         DECLARE @OldAmount DECIMAL(18,2);
         DECLARE @OldWalletId INT;
         
+        -- fetch the old values
         SELECT @OldAmount = Amount, @OldWalletId = WalletID 
         FROM [Ledger].Incomes 
-        WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
+        WHERE IncomeID = @IncomeId AND UserID = @UserId;
 
-        -- 3. Ensure the Income record actually exists and belongs to the user
         IF @OldAmount IS NULL 
             THROW 50002, 'Income record was not found.', 1;
-        
+
+        -- 3. UPDATE THE INCOME TABLE
         UPDATE [Ledger].Incomes
-        SET WalletID = @IncomeWalletId,
-            TagID = @IncomeTagId,
-            Amount = @IncomeAmount,
-            Date = @IncomeDate
-        WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
+        SET WalletID = @WalletId,
+            TagID = @TagId,
+            Amount = @Amount,
+            [Date] = @IncomeDate,
+            Title = @Title 
+        WHERE IncomeID = @IncomeId AND UserID = @UserId;
         
-        DECLARE @RowsAffected INT = @@ROWCOUNT;
+        -- 4. UPDATE THE TRANSACTION TABLE
+        -- Note: We use TransactionID = @IncomeId
+        UPDATE [Ledger].Transactions
+        SET WalletID = @WalletId,
+            CategoryID = @CategoryId,
+            TagID = @TagId,
+            GoalID = @GoalId,
+            FixedIncomeID = @FixedIncomeId,
+            DebtID = @DebtId,
+            Title = @Title,
+            Amount = @Amount,
+            AmountInSp = @AmountInSp, 
+            TransactionDate = @IncomeDate,
+            TransactionType = @TransactionType,
+            [Description] = @Description
+        WHERE TransactionID = @IncomeId AND UserID = @UserId;
 
-        IF @RowsAffected > 0
-        BEGIN
-            UPDATE [Ledger].Transactions
-            SET WalletID = @IncomeWalletId,
-                CategoryID = @TransCategoryId,
-                TagID = @TransTagId,
-                GoalID = @GoalId,
-                FixedExpenseID = @FixedExpenseId,
-                FixedIncomeID = @FixedIncomeId,
-                DebtID = @DebtId,
-                Title = @TransTitle,
-                Amount = @IncomeAmount,
-                AmountInSp = @TransAmountInSp, 
-                TransactionDate = @IncomeDate,
-                TransactionType = @TransType,
-                Description = @TransDescription
-            WHERE IncomeID = @IncomeId AND UserID = @IncomeUserId;
-
-            IF @OldWalletId = @IncomeWalletId
+        -- 5. UPDATE WALLET BALANCE (THE MATH)
+        -- Scenario A: Wallet stayed the same
+        IF @OldWalletId = @WalletId
             BEGIN
                 UPDATE [Banking].Wallets
-                SET Balance = Balance - @OldAmount + @IncomeAmount
-                WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
+                SET Balance = Balance - @OldAmount + @Amount -- Revert old, add new
+                WHERE WalletID = @WalletId AND UserID = @UserId;
             END
+            -- Scenario B: Wallet changed (Move money between wallets)
             ELSE
             BEGIN
-                UPDATE [Banking].Wallets SET Balance = Balance - @OldAmount WHERE WalletID = @OldWalletId AND UserID = @IncomeUserId;
-                UPDATE [Banking].Wallets SET Balance = Balance + @IncomeAmount WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
-            END
+                -- Remove old amount from the old wallet
+                UPDATE [Banking].Wallets 
+                SET Balance = Balance - @OldAmount 
+                WHERE WalletID = @OldWalletId AND UserID = @UserId;
+
+                -- Add new amount to the new wallet
+                UPDATE [Banking].Wallets 
+                SET Balance = Balance + @Amount 
+                WHERE WalletID = @WalletId AND UserID = @UserId;
         END
 
         COMMIT TRAN; 
-        SELECT @RowsAffected;
+
+        -- Return 1 to indicate success
+        SELECT 1 AS RowsAffected;
+
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
