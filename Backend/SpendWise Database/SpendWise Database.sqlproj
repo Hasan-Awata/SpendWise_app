@@ -127,11 +127,18 @@
     <Build Include="Security\Planning.sql" />
     <Build Include="Planning\Functions\fn_IsOverCategoryBudget.sql" />
     <None Include="Config\SeedCurrencies.sql" />
+    <Build Include="Planning\Stored Procedures\sp_AddSavingGoal.sql" />
+    <Build Include="Planning\Stored Procedures\sp_UpdateSavingGoal.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetAllUserGoal.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetAchievedGoals.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GoalExists.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Config\SeedCategories.sql" />
+    <None Include="Planning\Stored Procedures\sp_DeleteSavingGoal.sql" />
+    <None Include="Planning\Stored Procedures\sp_GetSavingGoal.sql" />
   </ItemGroup>
 </Project>
