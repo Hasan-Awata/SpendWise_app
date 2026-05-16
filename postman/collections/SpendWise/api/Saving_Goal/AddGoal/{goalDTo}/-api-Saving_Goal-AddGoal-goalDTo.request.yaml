@@ -11,11 +11,11 @@ body:
   type: json
   content: |-
     {
-      "currentAmount": 1.7453229607369887e+307,
-      "deadlineDate": "1955-04-01",
-      "targetAmount": 1.4922409000695493e+308,
+      "currentAmount": 7.206777727339053e+307,
+      "deadlineDate": "1970-02-15",
+      "targetAmount": 7.458220144147451e+307,
       "title": "string",
-      "userId": 1157
+      "userId": 2249
     }
 examples: ./.resources/-api-Saving_Goal-AddGoal-goalDTo.resources/examples
 order: 1000

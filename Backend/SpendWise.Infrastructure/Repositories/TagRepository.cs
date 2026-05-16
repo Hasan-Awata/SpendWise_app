@@ -111,7 +111,7 @@ namespace SpendWise.Infrastructure.Repositories
                 };
 
                 command.Parameters.AddWithValue("@TagID", TagID);
-                command.Parameters.AddWithValue("@UserID", userId); // Fixed missing parameter!
+                command.Parameters.AddWithValue("@UserID", userId); 
 
                 await connection.OpenAsync();
                 using SqlDataReader reader = await command.ExecuteReaderAsync();
@@ -141,7 +141,7 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Config].[sp_GetTags]", connection) // Fixed SP Name
+                using var command = new SqlCommand("[Config].[sp_GetTags]", connection) 
                 {
                     CommandType = CommandType.StoredProcedure
                 };

@@ -32,6 +32,7 @@ namespace SpendWise.Application.Services
                 UserId = userId,
                 Balance = wallet.Balance,
                 CurrencyId = wallet.CurrencyId,
+                IsSaved = wallet.IsSaved,
             };
         }
 
@@ -50,7 +51,8 @@ namespace SpendWise.Application.Services
                 UserId = item.UserId,
                 Balance = item.Balance,
                 CurrencyId = item.CurrencyId,
-            });
+                IsSaved= item.IsSaved,
+            }).ToList();
         }
 
         public async Task<WalletResponse?> AddWalletAsync(WalletDTO walletDTO)

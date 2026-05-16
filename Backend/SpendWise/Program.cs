@@ -1,22 +1,29 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using SpendWise.Application.DTOs.Income;
-using SpendWise.Application.Interfaces.Authentication;
-using SpendWise.Application.Interfaces.Expenses;
-using SpendWise.Application.Interfaces.Incomes;
-using SpendWise.Application.Interfaces.Tags;
-using SpendWise.Application.Interfaces.Users;
-using SpendWise.Application.Interfaces.Wallets;
-using SpendWise.Application.Services;
-using SpendWise.Infrastructure.Repositories;
+
 using System.Text;
 using System.Text.Json.Serialization;
+using SpendWise.Application.Services;
+using SpendWise.Infrastructure.Repositories;
+using SpendWise.Application.Interfaces.Tags;
+using SpendWise.Application.Interfaces.Users;
+using SpendWise.Application.Interfaces;
 
+using SpendWise.Application.Interfaces.Authentication;
+using SpendWise.Application.Interfaces.Categories;
+using SpendWise.Application.Interfaces.ExchangeRate;
+using SpendWise.Application.Interfaces.Expenses;
+using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Application.Interfaces.SavingGoals;
+using SpendWise.Application.Interfaces.SharedDebts;
+using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Controllers & JSON ───────────────────────────────────────────────────
+builder.Services.AddMemoryCache(); 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -59,6 +66,20 @@ builder.Services.AddScoped<ITagRepository, TagRepository>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 
+builder.Services.AddScoped<ISavingGoalService, SavingGoalsService>();
+builder.Services.AddScoped<ISavingGoalRepository, SavingGoalRepository>();
+
+builder.Services.AddScoped<ICategoryBudgetService, CategoryBudgetService>();
+builder.Services.AddScoped<ICategoryBudgetRepository, CategoryBudgetRepository>();
+
+builder.Services.AddScoped<ISharedDebtService, SharedDebtService>();
+builder.Services.AddScoped<ISharedDebtRepository, SharedDebtRepository>();
+
+builder.Services.AddScoped<IFixedObligationsService, FixedObligationsService>();
+builder.Services.AddScoped<IFixedObligationRepository, FixedObligationRepository>();
+
+builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
+
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"]!;
@@ -95,8 +116,8 @@ builder.Services.AddCors(options =>
 // ── Register Global Exception Handling ─────────────────────────────────────
 builder.Services.AddExceptionHandler<SpendWise.Middlewares.GlobalExceptionHandler>();
 builder.Services.AddProblemDetails(); // Required to standardize the JSON output
-// ─────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
 app.UseExceptionHandler();

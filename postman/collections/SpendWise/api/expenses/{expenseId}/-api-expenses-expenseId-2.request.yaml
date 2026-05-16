@@ -3,6 +3,6 @@ name: /api/expenses/:expenseId
 url: "{{baseUrl}}/api/expenses/:expenseId"
 method: DELETE
 pathVariables:
-  expenseId: "9299"
+  expenseId: "348"
 examples: ./.resources/-api-expenses-expenseId-2.resources/examples
 order: 3000

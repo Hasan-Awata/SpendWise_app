@@ -1,4 +1,8 @@
 <Solution>
+  <Project Path="SpendWise Database/SpendWise Database.sqlproj" Id="7ad1e20a-f4a9-4c77-8cb6-0b9e7f18adb0">
+    <Build />
+    <Deploy />
+  </Project>
   <Project Path="SpendWise.Application/SpendWise.Application.csproj" Id="2f2868d5-86c2-4187-b23b-9142a36ab14c" />
   <Project Path="SpendWise.Domain/SpendWise.Domain.csproj" Id="340f4c4c-a843-4257-af12-6754ed3e9fdd" />
   <Project Path="SpendWise.Infrastructure/SpendWise.Infrastructure.csproj" Id="c0e525ba-3ff0-4cec-861d-ead72418fb63" />

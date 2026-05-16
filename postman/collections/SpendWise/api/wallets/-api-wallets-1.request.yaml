@@ -8,15 +8,11 @@ body:
   type: json
   content: |-
     {
-      "currency": {
-        "currencyName": "Syrian Pound",
-        "currencyId": 1,
-        "liveValue": 13500
-      },
+      "currencyId": 1487674339,
       "isSaved": false,
-      "userId": 15,
-      "walletId": 0,
-      "balance": 100000
+      "userId": 8204,
+      "walletId": 523,
+      "balance": 7.159384727974483e+307
     }
 examples: ./.resources/-api-wallets-1.resources/examples
 order: 3000

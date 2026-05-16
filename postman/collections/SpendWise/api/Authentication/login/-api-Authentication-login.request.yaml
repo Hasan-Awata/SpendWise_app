@@ -8,14 +8,8 @@ body:
   type: json
   content: |-
     {
-      "password": "123456",
-      "userName": "Ahmad123"
+      "password": "string",
+      "userName": "string"
     }
-scripts:
-  - type: afterResponse
-    code: "var jsonData = pm.response.json();\r
-
-      pm.collectionVariables.set(\"bearerToken\", jsonData.token);"
-    language: text/javascript
 examples: ./.resources/-api-Authentication-login.resources/examples
 order: 1000

@@ -207,6 +207,7 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_AddIncomeWithTransaction]
     @TransTitle NVARCHAR(255),
     @TransDescription NVARCHAR(MAX) = NULL,
     @TransType INT,
+    @TransAmountInSp DECIMAL(18,2), 
     @TransCategoryId INT = NULL,
     @TransTagId INT = NULL,
     @GoalId INT = NULL,
@@ -239,10 +240,10 @@ BEGIN
         SET @NewIncomeID = SCOPE_IDENTITY();
 
         INSERT INTO [Ledger].Transactions 
-        (UserID, WalletID, CategoryID, TagID, GoalID, FixedExpenseID, FixedIncomeID, DebtID, IncomeID, Title, Amount, TransactionDate, TransactionType, Description)
+        (UserID, WalletID, CategoryID, TagID, GoalID, FixedExpenseID, FixedIncomeID, DebtID, IncomeID, Title, Amount, AmountInSp, TransactionDate, TransactionType, Description)
         VALUES 
-        (@IncomeUserId, @IncomeWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewIncomeID, @TransTitle, @IncomeAmount, @IncomeDate, @TransType, @TransDescription);
-
+        (@IncomeUserId, @IncomeWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewIncomeID, @TransTitle, @IncomeAmount, @TransAmountInSp, @IncomeDate, @TransType, @TransDescription);
+        
         UPDATE [Banking].Wallets
         SET Balance = Balance + @IncomeAmount
         WHERE WalletID = @IncomeWalletId AND UserID = @IncomeUserId;
@@ -270,6 +271,7 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_UpdateIncomeWithTransaction]
     @TransTitle NVARCHAR(255),
     @TransDescription NVARCHAR(MAX) = NULL,
     @TransType INT,
+    @TransAmountInSp DECIMAL(18,2), 
     @TransCategoryId INT = NULL,
     @TransTagId INT = NULL,
     @GoalId INT = NULL,
@@ -326,6 +328,7 @@ BEGIN
                 DebtID = @DebtId,
                 Title = @TransTitle,
                 Amount = @IncomeAmount,
+                AmountInSp = @TransAmountInSp, 
                 TransactionDate = @IncomeDate,
                 TransactionType = @TransType,
                 Description = @TransDescription

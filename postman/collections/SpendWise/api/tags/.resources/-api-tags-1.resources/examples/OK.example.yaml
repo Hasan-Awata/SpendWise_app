@@ -12,9 +12,9 @@ request:
     type: json
     content: |-
       {
-        "id": 6334,
+        "id": 9476,
         "label": "string",
-        "ownerId": 297
+        "ownerId": 5231
       }
 response:
   statusCode: 200

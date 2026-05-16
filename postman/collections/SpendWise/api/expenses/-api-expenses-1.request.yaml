@@ -8,14 +8,14 @@ body:
   type: json
   content: |-
     {
-      "amount": 3.325108129943923e+307,
-      "categoryId": 5406,
-      "date": "1995-05-12T11:06:10.273Z",
+      "amount": 1.6799730586231905e+308,
+      "categoryId": 8820,
+      "date": "2022-09-20T22:58:24.259Z",
       "title": "string",
-      "userId": 9551,
-      "walletId": 2275,
-      "expenseId": 1378,
-      "expenseTagId": 7793,
+      "userId": 7414,
+      "walletId": 247,
+      "expenseId": 4179,
+      "expenseTagId": 1766,
       "description": "string",
       "products": "string"
     }

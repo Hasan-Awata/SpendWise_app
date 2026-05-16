@@ -1,22 +1,85 @@
 ﻿using SpendWise.Application.DTOs.Income;
-using SpendWise.Application.DTOs.Wallet;
-using SpendWise.Application.DTOs.Currency;
 using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.DTOs.PagedResponse;
-using SpendWise.Application.DTOs.Tag;
+using SpendWise.Application.Interfaces.ExchangeRate;
 using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
 
 namespace SpendWise.Application.Services
 {
-    public class IncomeService: IIncomeService
+    public class IncomeService : IIncomeService
     {
         private readonly IIncomeRepository _incomeRepo;
-        
-        public IncomeService(IIncomeRepository incomeRepo)
+        private readonly IWalletRepository _walletRepo;
+        private readonly IExchangeRateService _exchangeRateService;
+
+        public IncomeService(
+            IIncomeRepository incomeRepo,
+            IWalletRepository walletRepo,
+            IExchangeRateService exchangeRateService)
         {
             _incomeRepo = incomeRepo;
+            _walletRepo = walletRepo;
+            _exchangeRateService = exchangeRateService;
+        }
+
+        // Helpers methods --------------------------------------------------
+        private Income MapIncomeDTOtoIncomeObject(IncomeDTO incomeDto)
+        {
+            return new Income
+            (
+                incomeDto.Id,
+                incomeDto.UserId,
+                incomeDto.Title,
+                incomeDto.Amount,
+                incomeDto.Date,
+                incomeDto.WalletId,
+                incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId,
+                MapIncomeDTOtoTransactionObject(incomeDto)
+            );
+        }
+
+        private Transaction MapIncomeDTOtoTransactionObject(IncomeDTO incomeDto)
+        {
+            var transaction = new Transaction
+            (
+                -1, 
+                incomeDto.UserId,
+                incomeDto.Title,
+                incomeDto.Description,
+                incomeDto.WalletId,
+                incomeDto.Amount,
+                0.0m, // AmountInSp -> calculated later
+                incomeDto.Date,
+                enTransactionType.Addition
+            );
+
+            transaction.TransactionTagId = incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId;
+
+            return transaction;
+        }
+
+        private async Task<decimal> CalcAmountInSp(Wallet wallet, decimal amount)
+        {
+
+            decimal amountInSp = 0.0m;
+
+            if (wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
+            {
+                amountInSp = amount;
+            }
+            else
+            {
+                Currency? walletCurrency = SupportedCurrencies.GetById(wallet.CurrencyId);
+                if (walletCurrency == null) return 0.0m;
+
+                amountInSp = await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", amount);
+            }
+
+            return amountInSp;
         }
 
         // Reading methods --------------------------------------------------
@@ -24,136 +87,59 @@ namespace SpendWise.Application.Services
         {
             var income = await _incomeRepo.GetIncomeAsync(incomeId, userId);
 
-            if (income == null)
-            {
-                return null;
-            }
+            if (income == null) return null;
 
-            return new IncomeResponse
-            {
-                Id = income.Id,
-                UserId = income.UserId,
-                Title = "Income",
-                Amount = income.Amount,
-                WalletId = income.WalletId,
-                Date = income.Date,
-                IncomeTagId = income.IncomeTagId == -1 ? -1 : income.IncomeTagId,
-            };
+            return new IncomeResponse(income);
         }
 
         public async Task<PagedResponse<IncomeResponse>> GetIncomeByUserAsync(int userId, PageDTO pageDto)
         {
             var (incomeList, totalCount) = await _incomeRepo.GetIncomeByUserAsync(userId, pageDto.PageNumber, pageDto.PageSize);
 
-            var incomesResponse = incomeList.Select(item => new IncomeResponse
-            {
-                Id = item.Id,
-                UserId = item.UserId,
-                Title = "Income",
-                Amount = item.Amount,
-                WalletId = item.WalletId,
-                Date = item.Date,
-                // If IncomeTag is null, the result is null. 
-                // Otherwise, it creates the new TagResponse.
-                IncomeTagId = item.IncomeTagId == -1 ? -1 : item.IncomeTagId,
-            });
+            var incomesResponse = incomeList.Select(item => new IncomeResponse(item)).ToList();
 
-            return new PagedResponse<IncomeResponse> (incomesResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
+            return new PagedResponse<IncomeResponse>(incomesResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
         }
 
         // Writing methods --------------------------------------------------
         public async Task<IncomeResponse?> AddIncomeAsync(IncomeDTO incomeDto)
         {
-            // 1 - Assign the essential data from incomeDTO into an income object
-            var newIncome = new Income
-            {
-                UserId = incomeDto.UserId,
-                Amount = incomeDto.Amount,
-                WalletId = incomeDto.WalletId,
-                Date = incomeDto.Date,
-                IncomeTagId = incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId,
-            };
+            var newIncome = MapIncomeDTOtoIncomeObject(incomeDto);
 
-            // 4 - Create a Transaction object to store in the database
-            var newTransaction = new Transaction
-            {
-              UserId = incomeDto.UserId,
-              Title = "Added Income",
-              Amount = incomeDto.Amount,
-              Description = incomeDto.Description,
-              Income = newIncome,
-              WalletId = newIncome.WalletId,
-              TransactionTagId = newIncome.IncomeTagId,
-              TransactionDate = incomeDto.Date,
-              TransactionType = enTransactionType.Addition,
-            };
+            var wallet = await _walletRepo.GetWalletByIdAsync(newIncome.WalletId, newIncome.UserId);
 
-            // 5 - store both the income and the transaction in the database
-            int newIncomeId = await _incomeRepo.AddIncomeAsync(newIncome, newTransaction);
+            if (wallet == null) return null;
 
-            // 6 - Check if the creation succeeded
-            if (newIncomeId == -1)
-            {
-                return null;
-            }
+            newIncome.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, newIncome.Amount);
 
-            // 7 - Return the created item
-            return new IncomeResponse 
-            { 
-                Id = newIncomeId,
-                UserId = incomeDto.UserId,
-                Title = newTransaction.Title,
-                Amount= newTransaction.Amount,
-                WalletId = incomeDto.WalletId,
-                IncomeTagId = newTransaction.TransactionTagId,
-                Date = incomeDto.Date,
-            };
+            int newIncomeId = await _incomeRepo.AddIncomeAsync(newIncome);
+
+            if (newIncomeId == -1) return null;
+
+            newIncome.Id = newIncomeId;
+            newIncome.LinkedTransaction.TransactionId = newIncomeId;
+
+            return new IncomeResponse(newIncome);
         }
+
         public async Task<IncomeResponse?> UpdateIncomeAsync(IncomeDTO incomeDto)
         {
-            // 1 - Assign the essential data from incomeDTO into an income object
-            var updatedIncome = new Income
-            {
-                UserId = incomeDto.UserId,
-                Amount = incomeDto.Amount,
-                WalletId = incomeDto.WalletId,
-                Date = incomeDto.Date,
-                IncomeTagId = incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId,
-            };
+            var updatedIncome = MapIncomeDTOtoIncomeObject(incomeDto);
 
-            // 4 - Create a Transaction object to store in the database
-            var updatedTransaction = new Transaction
-            {
-                UserId = incomeDto.UserId,
-                Title = "Added Income",
-                Amount = incomeDto.Amount,
-                Description = incomeDto.Description,
-                Income = updatedIncome,
-                WalletId = updatedIncome.WalletId,
-                TransactionTagId = updatedIncome.IncomeTagId,
-                TransactionDate = incomeDto.Date,
-                TransactionType = enTransactionType.Addition,
-            };
+            var wallet = await _walletRepo.GetWalletByIdAsync(updatedIncome.WalletId, updatedIncome.UserId);
 
-            // 5 - store both the income and the transaction in the database
+            if (wallet == null) return null;
 
-            // 6 - Check if the update succeeded
-            if(!await _incomeRepo.UpdateIncomeAsync(updatedIncome, updatedTransaction))
+
+            updatedIncome.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, updatedIncome.Amount);
+
+
+            if (!await _incomeRepo.UpdateIncomeAsync(updatedIncome))
             {
                 return null;
             }
 
-            // 7 - Return the created item
-            return new IncomeResponse
-            {
-                Id = incomeDto.Id,
-                UserId = incomeDto.UserId,
-                Title = updatedTransaction.Title,
-                Amount = updatedTransaction.Amount,
-                WalletId = updatedTransaction.WalletId,
-                IncomeTagId = updatedTransaction.TransactionTagId,
-                Date = updatedIncome.Date,
-            };
+            return new IncomeResponse(updatedIncome);
         }
 
         public async Task<bool> DeleteIncomeAsync(int incomeId, int userId)

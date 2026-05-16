@@ -3,6 +3,6 @@ name: /api/wallets/:walletId
 url: "{{baseUrl}}/api/wallets/:walletId"
 method: DELETE
 pathVariables:
-  walletId: "9299"
+  walletId: "348"
 examples: ./.resources/-api-wallets-walletId-2.resources/examples
 order: 3000

@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Name>SpendWise_Database</Name>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectVersion>4.1</ProjectVersion>
+    <ProjectGuid>{7ad1e20a-f4a9-4c77-8cb6-0b9e7f18adb0}</ProjectGuid>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql160DatabaseSchemaProvider</DSP>
+    <OutputType>Database</OutputType>
+    <RootPath>
+    </RootPath>
+    <RootNamespace>SpendWise_Database</RootNamespace>
+    <AssemblyName>SpendWise_Database</AssemblyName>
+    <ModelCollation>1033,CI</ModelCollation>
+    <DefaultFileStructure>BySchemaAndSchemaType</DefaultFileStructure>
+    <DeployToDatabase>True</DeployToDatabase>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetLanguage>CS</TargetLanguage>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <SqlServerVerification>False</SqlServerVerification>
+    <IncludeCompositeObjects>True</IncludeCompositeObjects>
+    <TargetDatabaseSet>True</TargetDatabaseSet>
+    <DefaultCollation>SQL_Latin1_General_CP1_CI_AS</DefaultCollation>
+    <DefaultFilegroup>PRIMARY</DefaultFilegroup>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">11.0</VisualStudioVersion>
+    <!-- Default to the v11.0 targets path if the targets file for the current VS version is not found -->
+    <SSDTExists Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')">True</SSDTExists>
+    <VisualStudioVersion Condition="'$(SSDTExists)' == ''">11.0</VisualStudioVersion>
+  </PropertyGroup>
+  <Import Condition="'$(SQLDBExtensionsRefPath)' != ''" Project="$(SQLDBExtensionsRefPath)\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <Import Condition="'$(SQLDBExtensionsRefPath)' == ''" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <ItemGroup>
+    <Folder Include="Properties" />
+    <Folder Include="Ledger\" />
+    <Folder Include="Ledger\Tables\" />
+    <Folder Include="Identity\" />
+    <Folder Include="Identity\Tables\" />
+    <Folder Include="Config\" />
+    <Folder Include="Config\Tables\" />
+    <Folder Include="Banking\" />
+    <Folder Include="Banking\Tables\" />
+    <Folder Include="Planning\" />
+    <Folder Include="Planning\Tables\" />
+    <Folder Include="Banking\Stored Procedures\" />
+    <Folder Include="Ledger\Stored Procedures\" />
+    <Folder Include="Identity\Stored Procedures\" />
+    <Folder Include="Config\Stored Procedures\" />
+    <Folder Include="Planning\Stored Procedures\" />
+    <Folder Include="Security\" />
+    <Folder Include="Planning\Functions" />
+  </ItemGroup>
+  <ItemGroup>
+    <Build Include="Ledger\Tables\Expenses.sql" />
+    <Build Include="Ledger\Tables\Incomes.sql" />
+    <Build Include="Ledger\Tables\Transactions.sql" />
+    <Build Include="Identity\Tables\Users.sql" />
+    <Build Include="Config\Tables\Currencies.sql" />
+    <Build Include="Config\Tables\Categories.sql" />
+    <Build Include="Config\Tables\Tags.sql" />
+    <Build Include="Banking\Tables\Wallets.sql" />
+    <Build Include="Planning\Tables\SavingsGoals.sql" />
+    <Build Include="Planning\Tables\Budgets.sql" />
+    <Build Include="Planning\Tables\SharedDebts.sql" />
+    <Build Include="Planning\Tables\FixedIncomes.sql" />
+    <Build Include="Planning\Tables\FixedExpenses.sql" />
+    <Build Include="Banking\Stored Procedures\sp_GetWalletById.sql" />
+    <Build Include="Banking\Stored Procedures\sp_GetUserWallets.sql" />
+    <Build Include="Banking\Stored Procedures\sp_AddWallet.sql" />
+    <Build Include="Banking\Stored Procedures\sp_UpdateWallet.sql" />
+    <Build Include="Banking\Stored Procedures\sp_DeleteWallet.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_GetIncome.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_GetIncomesByUserPaged.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_AddIncomeWithTransaction.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_UpdateIncomeWithTransaction.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_DeleteIncome.sql" />
+    <Build Include="Identity\Stored Procedures\sp_AddUser.sql" />
+    <Build Include="Identity\Stored Procedures\sp_GetUserByUsername.sql" />
+    <Build Include="Identity\Stored Procedures\sp_GetUserById.sql" />
+    <Build Include="Identity\Stored Procedures\sp_CheckUsernameExists.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_GetExpense.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_GetExpensesByUserPaged.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_AddExpenseWithTransaction.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_UpdateExpenseWithTransaction.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_DeleteExpense.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_GetProducts.sql" />
+    <Build Include="Config\Stored Procedures\sp_CreateTag.sql" />
+    <Build Include="Config\Stored Procedures\sp_UpdateTag.sql" />
+    <Build Include="Config\Stored Procedures\sp_DeleteTag.sql" />
+    <Build Include="Config\Stored Procedures\sp_GetTag.sql" />
+    <Build Include="Config\Stored Procedures\sp_GetTags.sql" />
+    <Build Include="Planning\Stored Procedures\sp_AddCategoryBudget.sql" />
+    <Build Include="Planning\Stored Procedures\sp_UpdateCategoryBudget.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetAllUserBudgets.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetCategoryBudget.sql" />
+    <Build Include="Planning\Stored Procedures\sp_DeleteCategoryBudget.sql" />
+    <Build Include="Security\Banking.sql" />
+    <Build Include="Security\Config.sql" />
+    <Build Include="Security\Identity.sql" />
+    <Build Include="Security\Ledger.sql" />
+    <Build Include="Security\Planning.sql" />
+    <Build Include="Planning\Functions\fn_IsOverCategoryBudget.sql" />
+    <None Include="Config\SeedCurrencies.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <PostDeploy Include="Script.PostDeployment1.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Config\SeedCategories.sql" />
+  </ItemGroup>
+</Project>
