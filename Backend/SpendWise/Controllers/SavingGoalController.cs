@@ -82,6 +82,7 @@ namespace SpendWise.Controllers
 
 
         }
+
         [HttpPatch("UpdateGoal/{goalID,ubdatedGoal}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -116,6 +117,57 @@ namespace SpendWise.Controllers
               var Goals =await _savingGoalService.GetAchievedGoalsAsync(userID);
             if (Goals == null) return NotFound();
             return Ok(Goals);
+        }
+        
+        [HttpPost("{savingGoalId:int}/wallets/{walletId:int}/add/{amount}amount")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> AddAmountToSavingGoal(int savingGoalId, int walletId, [FromQuery] double amount)
+        {
+            
+            int userId = CurrentUserId;
+
+            if (amount <= 0)
+            {
+                return BadRequest("The amount to add must be greater than zero.");
+            }
+
+           
+            bool isSuccess = await _savingGoalService.AddAmountToSavingGoal(savingGoalId, walletId, userId, amount);
+
+            if (!isSuccess)
+            {
+                return NotFound("The saving goal or wallet was not found, or the operation is unauthorized.");
+            }
+
+            return Ok(new { Message = "Amount successfully added to the saving goal." });
+        }
+
+       
+        [HttpPost("{savingGoalId:int}/wallets/{walletId:int}/withdraw/{amount}amount")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> WithdrawAmountFromSavingGoal(int savingGoalId, int walletId, [FromQuery] double amount)
+        {
+            
+            int userId = CurrentUserId;
+
+            if (amount <= 0)
+            {
+                return BadRequest("The withdrawal amount must be greater than zero.");
+            }
+
+            
+            bool isSuccess = await _savingGoalService.WithdrawAmountFromSavingGoal(savingGoalId, walletId, userId, amount);
+
+            if (!isSuccess)
+            {
+                return BadRequest("Withdrawal failed. Please verify your inputs or ensure the goal contains sufficient funds.");
+            }
+
+            return Ok(new { Message = "Amount successfully withdrawn and returned to the wallet." });
         }
 
     }
