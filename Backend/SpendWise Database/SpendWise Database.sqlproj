@@ -134,5 +134,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Config\SeedCategories.sql" />
+    <None Include="Planning\Stored Procedures\sp_DeleteSavingGoal.sql" />
+    <None Include="Planning\Stored Procedures\sp_GetSavingGoal.sql" />
   </ItemGroup>
 </Project>
