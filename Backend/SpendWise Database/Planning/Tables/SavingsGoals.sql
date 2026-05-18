@@ -10,6 +10,7 @@
     PRIMARY KEY CLUSTERED ([GoalID] ASC),
     CONSTRAINT [CHK_SavingsGoals_CurrentAmount] CHECK ([CurrentAmount]>=(0)),
     CONSTRAINT [CHK_SavingsGoals_TargetAmount] CHECK ([TargetAmount]>(0)),
+    CONSTRAINT [FK_SavingGoals_SeedCurrencies] FOREIGN KEY ([CurrencyID]) REFERENCES [Config].[Currencies] ([CurrencyID]),
     CONSTRAINT [FK_SavingsGoals_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID])
 );
 
