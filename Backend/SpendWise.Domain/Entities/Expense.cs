@@ -14,9 +14,9 @@ namespace SpendWise.Domain.Entities
         public int ExpenseTagId { get; set; }
         public int CategoryId { get; set; } 
         public int WalletId { get; set; } 
-        public int LinkedTransactionId { get; set; } = -1;
+        public Transaction LinkedTransaction { get; set; } = new Transaction();
         public DateTime Date { get; set; }
-        public Expense(int expenseId, int userId, string title, decimal amount, string products, int expenseTagId, int categoryId, int walletId, int linkedTransactionId, DateTime date)
+        public Expense(int expenseId, int userId, string title, decimal amount, string products, int expenseTagId, int categoryId, int walletId, Transaction linkedTransaction, DateTime date)
         {
             ExpenseId = expenseId;
             UserId = userId;
@@ -26,7 +26,7 @@ namespace SpendWise.Domain.Entities
             ExpenseTagId = expenseTagId;
             CategoryId = categoryId;
             WalletId = walletId;
-            LinkedTransactionId = linkedTransactionId;
+            LinkedTransaction = linkedTransaction;
             Date = date;
         }
         public Expense() { }

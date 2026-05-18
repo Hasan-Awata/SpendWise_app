@@ -1,9 +1,9 @@
-﻿using SpendWise.Application.Interfaces;
-using SpendWise.Domain.Entities;
+﻿using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using SpendWise.Application.DTOs.FixedObligations;
+using SpendWise.Application.Interfaces.FixedObligations;
 
 namespace SpendWise.Application.Services
 {

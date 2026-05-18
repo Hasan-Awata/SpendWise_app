@@ -15,16 +15,20 @@ BEGIN
     WHERE UserID = @UserId;
 
     SELECT 
-        ExpenseID, 
-        UserID, 
-        Amount, 
-        Products, 
-        Date, 
-        WalletID, 
-        CategoryID, 
-        TagID
-    FROM [Ledger].[Expenses]
-    WHERE UserID = @UserId
+        e.ExpenseID, 
+        e.UserID,
+        e.Title,
+        e.Amount, 
+        e.Products, 
+        e.[Date], 
+        e.WalletID, 
+        e.CategoryID, 
+        e.TagID,
+        t.[Description],
+        t.[AmountInSp]
+    FROM [Ledger].[Expenses] e
+    INNER JOIN [Ledger].[Transactions] t ON e.ExpenseID = t.TransactionID
+    WHERE e.UserID = @UserId
     ORDER BY Date DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;

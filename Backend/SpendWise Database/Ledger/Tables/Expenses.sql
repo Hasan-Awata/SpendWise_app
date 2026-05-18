@@ -1,5 +1,5 @@
 ﻿CREATE TABLE [Ledger].[Expenses] (
-    [ExpenseID]  INT             IDENTITY (1, 1) NOT NULL,
+    [ExpenseID]  INT             NOT NULL,
     [UserID]     INT             NOT NULL,
     [Title]      NVARCHAR(20)    DEFAULT 'Expense',
     [TagID]      INT             NULL,
@@ -8,7 +8,10 @@
     [Products]   NVARCHAR (1000) NOT NULL,
     [Amount]     DECIMAL (18, 2) NOT NULL,
     [Date]       DATETIME        DEFAULT (getdate()) NOT NULL,
+
     PRIMARY KEY CLUSTERED ([ExpenseID] ASC),
+    CONSTRAINT [FK_Expenses_Transactions] FOREIGN KEY ([ExpenseID]) 
+        REFERENCES [Ledger].[Transactions] ([TransactionID]) ON DELETE CASCADE,
     CONSTRAINT [CHK_Expenses_Amount] CHECK ([Amount]>(0)),
     CONSTRAINT [FK_Expenses_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [Config].[Categories] ([CategoryID]),
     CONSTRAINT [FK_Expenses_Tags] FOREIGN KEY ([TagID]) REFERENCES [Config].[Tags] ([TagID]),

@@ -22,19 +22,19 @@ BEGIN
 
         IF @ActualOwnerId IS NULL 
         BEGIN
-            THROW 50002, 'Expense record was not found.', 1;
+            ;THROW 50002, 'Expense record was not found.', 1;
         END
 
         IF @ActualOwnerId <> @UserId
         BEGIN
-            THROW 50003, 'Access denied. You do not own this expense record.', 1;
+            ;THROW 50003, 'Access denied. You do not own this expense record.', 1;
         END
 
         BEGIN TRAN; 
         
         -- 1. Delete dependencies safely
-        DELETE FROM [Ledger].Transactions WHERE ExpenseID = @ExpenseId;
-        DELETE FROM [Ledger].Expenses WHERE ExpenseID = @ExpenseId;
+        DELETE FROM [Ledger].Transactions WHERE TransactionID = @ExpenseId AND UserID = @UserId;
+        -- DELETE FROM [Ledger].Expenses WHERE ExpenseID = @ExpenseId AND UserID = @UserId;
         
         DECLARE @RowsAffected INT = @@ROWCOUNT;
 

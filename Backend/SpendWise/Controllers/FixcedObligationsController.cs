@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.FixedObligations;
-using SpendWise.Application.Interfaces;
+using SpendWise.Application.Interfaces.FixedObligations;
 using SpendWise.Application.Interfaces.Tags;
 using SpendWise.Application.Services;
 using SpendWise.Domain.Entities;

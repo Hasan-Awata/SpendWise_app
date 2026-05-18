@@ -1,11 +1,15 @@
 ﻿CREATE TABLE [Ledger].[Incomes] (
-    [IncomeID] INT             IDENTITY (1, 1) NOT NULL,
+    [IncomeID] INT             NOT NULL,
     [UserID]   INT             NOT NULL,
+    [Title]    NVARCHAR(25)    NOT NULL,
     [TagID]    INT             NULL,
     [WalletID] INT             NOT NULL,
     [Amount]   DECIMAL (18, 2) NOT NULL,
     [Date]     DATETIME        DEFAULT (getdate()) NOT NULL,
+
     PRIMARY KEY CLUSTERED ([IncomeID] ASC),
+    CONSTRAINT [FK_Incomes_Transactions] FOREIGN KEY ([IncomeID]) 
+        REFERENCES [Ledger].[Transactions] ([TransactionID]) ON DELETE CASCADE,
     CONSTRAINT [CHK_Incomes_Amount] CHECK ([Amount]>(0)),
     CONSTRAINT [FK_Incomes_Tags] FOREIGN KEY ([TagID]) REFERENCES [Config].[Tags] ([TagID]),
     CONSTRAINT [FK_Incomes_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID]),

@@ -7,7 +7,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectVersion>4.1</ProjectVersion>
     <ProjectGuid>{7ad1e20a-f4a9-4c77-8cb6-0b9e7f18adb0}</ProjectGuid>
-    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql170DatabaseSchemaProvider</DSP>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql160DatabaseSchemaProvider</DSP>
     <OutputType>Database</OutputType>
     <RootPath>
     </RootPath>
@@ -126,5 +126,13 @@
     <Build Include="Security\Ledger.sql" />
     <Build Include="Security\Planning.sql" />
     <Build Include="Planning\Functions\fn_IsOverCategoryBudget.sql" />
+    <None Include="Config\SeedCurrencies.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_GetTransactionsByUserPaged.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <PostDeploy Include="Script.PostDeployment1.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Config\SeedCategories.sql" />
   </ItemGroup>
 </Project>

@@ -4,20 +4,18 @@
 -- ==========================================
 CREATE   PROCEDURE [Ledger].[sp_UpdateExpenseWithTransaction]
     @ExpenseId INT,
-    @ExpenseUserId INT,
-    @ExpenseWalletId INT,
-    @ExpenseCategoryId INT,
+    @UserId INT,
+    @WalletId INT,
+    @CategoryId INT,
     @Products NVARCHAR(MAX) = NULL, 
-    @ExpenseTagId INT = NULL,
-    @ExpenseAmount DECIMAL(18,2),
-    @ExpenseDate DATETIME,
+    @TagId INT = NULL,
+    @Amount DECIMAL(18,2),
+    @Date DATETIME,
+    @Title NVARCHAR(255),
     
-    @TransTitle NVARCHAR(255),
-    @TransDescription NVARCHAR(MAX) = NULL,
-    @TransType INT,
-    @TransAmountInSp DECIMAL(18,2),
-    @TransCategoryId INT = NULL,
-    @TransTagId INT = NULL,
+    @Description NVARCHAR(MAX) = NULL,
+    @TransactionType INT = 1,
+    @AmountInSp DECIMAL(18,2),
     @GoalId INT = NULL,
     @FixedExpenseId INT = NULL,
     @FixedIncomeId INT = NULL,
@@ -31,18 +29,18 @@ BEGIN
         -- ==========================================
         -- PRE-FLIGHT WALLET SECURITY CHECKS (IDOR)
         -- ==========================================
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId)
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @WalletId)
         BEGIN
             ;THROW 50001, 'Wallet not found.', 1;
         END
 
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId)
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @WalletId AND UserID = @UserId)
         BEGIN
             ;THROW 50003, 'Access denied. You do not own the target wallet.', 1;
         END
 
         -- ==========================================
-        -- STRICT EXPENSE SECURITY CHECKS (IDOR)
+        -- EXPENSE SECURITY CHECKS (IDOR)
         -- ==========================================
         DECLARE @ActualOwnerId INT;
         DECLARE @OldAmount DECIMAL(18,2);
@@ -57,7 +55,7 @@ BEGIN
             ;THROW 50002, 'Expense record was not found.', 1;
         END
         
-        IF @ActualOwnerId <> @ExpenseUserId
+        IF @ActualOwnerId <> @UserId
         BEGIN
             ;THROW 50003, 'Access denied. You do not own this expense record.', 1;
         END
@@ -66,13 +64,13 @@ BEGIN
 
         -- 1. Update Expense
         UPDATE [Ledger].Expenses
-        SET WalletID = @ExpenseWalletId,
-            CategoryID = @ExpenseCategoryId,
-            TagID = @ExpenseTagId,
+        SET WalletID = @WalletId,
+            CategoryID = @CategoryId,
+            TagID = @TagId,
             Products = @Products,
-            Amount = @ExpenseAmount,
-            Date = @ExpenseDate
-        WHERE ExpenseID = @ExpenseId AND UserID = @ExpenseUserId;
+            Amount = @Amount,
+            Date = @Date
+        WHERE ExpenseID = @ExpenseId AND UserID = @UserId;
         
         DECLARE @RowsAffected INT = @@ROWCOUNT;
 
@@ -80,33 +78,33 @@ BEGIN
         IF @RowsAffected > 0
         BEGIN
             UPDATE [Ledger].Transactions
-            SET WalletID = @ExpenseWalletId,
-                CategoryID = @TransCategoryId,
-                TagID = @TransTagId,
-                Title = @TransTitle,
-                Amount = @ExpenseAmount,
-                AmountInSp = @TransAmountInSp, 
-                TransactionDate = @ExpenseDate,
-                TransactionType = @TransType,
-                Description = @TransDescription
-            WHERE ExpenseID = @ExpenseId AND UserID = @ExpenseUserId;
+            SET WalletID = @WalletId,
+                CategoryID = @CategoryId,
+                TagID = @TagId,
+                Title = @Title,
+                Amount = @Amount,
+                AmountInSp = @AmountInSp, 
+                TransactionDate = @Date,
+                TransactionType = @TransactionType,
+                Description = @Description
+            WHERE TransactionID = @ExpenseId AND UserID = @UserId;
 
             -- Balance Math logic 
-            IF @OldWalletId = @ExpenseWalletId
+            IF @OldWalletId = @WalletId
             BEGIN
                 UPDATE [Banking].Wallets
-                SET Balance = Balance + @OldAmount - @ExpenseAmount
-                WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId;
+                SET Balance = Balance + @OldAmount - @Amount
+                WHERE WalletID = @WalletId AND UserID = @UserId;
             END
             ELSE
             BEGIN
-                UPDATE [Banking].Wallets SET Balance = Balance + @OldAmount WHERE WalletID = @OldWalletId AND UserID = @ExpenseUserId;
-                UPDATE [Banking].Wallets SET Balance = Balance - @ExpenseAmount WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId;
+                UPDATE [Banking].Wallets SET Balance = Balance + @OldAmount WHERE WalletID = @OldWalletId AND UserID = @UserId;
+                UPDATE [Banking].Wallets SET Balance = Balance - @Amount WHERE WalletID = @WalletId AND UserID = @UserId;
             END
         END
 
         -- Update the output variable using the function
-        SET @IsOverLimit = [Planning].[fn_IsOverCategoryBudget](@ExpenseUserId, @ExpenseCategoryId, @ExpenseDate);
+        SET @IsOverLimit = [Planning].[fn_IsOverCategoryBudget](@UserId, @CategoryId, @Date);
 
         COMMIT TRAN; 
 
