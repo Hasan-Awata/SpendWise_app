@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
-using SpendWise.Application.Interfaces;
+using SpendWise.Application.Interfaces.FixedObligations;
 using SpendWise.Domain.Entities;
 using SpendWise.Infrastructure.Global;
 using System;

@@ -59,12 +59,17 @@ namespace SpendWise.Infrastructure.Services
                 expenseDto.Description,
                 expenseDto.WalletId,
                 expenseDto.Amount,
-                0.0m, // Calculated later through the process
+                0.0m, // amount in SP: Calculated later through the process
                 expenseDto.Date,
-                enTransactionType.Dedduction
+                enTransactionType.Dedduction,
+                -1,
+                -1,
+                -1,
+                -1
             );
 
             // Custom attributes for expenses
+            transaction.ExpenseId = expenseDto.ExpenseId;
             transaction.TransactionTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId;
             transaction.TransactionCategoryId = expenseDto.CategoryId;
 
@@ -107,10 +112,8 @@ namespace SpendWise.Infrastructure.Services
             var wallet = await _walletRepo.GetWalletByIdAsync(newExpense.WalletId, newExpense.UserId);
             if (wallet == null) return null;
 
-            // Follows Income logic: update the AmountInSp on the internal LinkedTransaction
             newExpense.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, newExpense.Amount);
 
-            // Repo now only needs the Expense object as it contains its Transaction
             (int newExpenseId, bool IsOverLimit) = await _expenseRepo.AddExpenseAsync(newExpense);
 
             if (newExpenseId == -1) return null;

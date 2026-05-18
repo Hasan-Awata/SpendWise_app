@@ -43,7 +43,11 @@ namespace SpendWise.Infrastructure.Repositories
                 income.Amount,
                 Convert.ToDecimal(reader["AmountInSp"]),
                 income.Date,
-                enTransactionType.Addition
+                enTransactionType.Addition,
+                -1,
+                -1,
+                -1,
+                -1
             );
 
             return income;

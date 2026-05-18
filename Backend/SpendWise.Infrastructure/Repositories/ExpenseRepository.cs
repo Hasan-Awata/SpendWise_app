@@ -45,7 +45,11 @@ namespace SpendWise.Infrastructure.Repositories
                 expense.Amount,
                 Convert.ToDecimal(reader["AmountInSp"]),
                 expense.Date,
-                enTransactionType.Dedduction
+                enTransactionType.Dedduction,
+                -1,
+                -1,
+                -1,
+                -1
             );
 
             return expense;

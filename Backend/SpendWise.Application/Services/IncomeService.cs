@@ -54,9 +54,14 @@ namespace SpendWise.Application.Services
                 incomeDto.Amount,
                 0.0m, // AmountInSp -> calculated later
                 incomeDto.Date,
-                enTransactionType.Addition
+                enTransactionType.Addition,
+                -1,
+                -1,
+                -1,
+                -1
             );
 
+            // Custom attributes
             transaction.TransactionTagId = incomeDto.IncomeTagId == -1 ? -1 : incomeDto.IncomeTagId;
 
             return transaction;

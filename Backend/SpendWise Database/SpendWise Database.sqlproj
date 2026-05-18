@@ -127,6 +127,7 @@
     <Build Include="Security\Planning.sql" />
     <Build Include="Planning\Functions\fn_IsOverCategoryBudget.sql" />
     <None Include="Config\SeedCurrencies.sql" />
+    <Build Include="Ledger\Stored Procedures\sp_GetTransactionsByUserPaged.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />
