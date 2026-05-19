@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SpendWise.Application.Services
 {
@@ -66,16 +67,35 @@ namespace SpendWise.Application.Services
             };
 
             var url = $"https://generativelanguage.googleapis.com/v1beta/models/{Model}:generateContent?key={_apiKey}";
-            var response = await _httpClient.PostAsJsonAsync(url, requestBody);
 
-            if (!response.IsSuccessStatusCode)
+            // Retrying logic in case the request failed the first time
+
+            int maxRetries = 3;
+            int delayMilliseconds = 2000; // Start with a 2-second delay
+
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                var error = await response.Content.ReadAsStringAsync();
-                return new OcrResult { IsSuccess = false, ErrorMessage = $"Gemini API error: {error}" };
+                var response = await _httpClient.PostAsJsonAsync(url, requestBody);
+
+                // If it's a 503, wait and try again
+                if (((int)response.StatusCode == 503 || (int)response.StatusCode == 504) && attempt < maxRetries)
+                {
+                    await Task.Delay(delayMilliseconds);
+                    delayMilliseconds *= 2; // Double the wait time (Exponential Backoff)
+                    continue;
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    return new OcrResult { IsSuccess = false, ErrorMessage = $"Gemini API error: {error}" };
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                return ParseGeminiResponse(json);
             }
 
-            var json = await response.Content.ReadAsStringAsync();
-            return ParseGeminiResponse(json);
+            return new OcrResult { IsSuccess = false, ErrorMessage = $"Gemini API error: Timeout: couldn't connect to model" };
         }
 
         private OcrResult ParseGeminiResponse(string json)
@@ -99,13 +119,24 @@ namespace SpendWise.Application.Services
                 var root = resultDoc.RootElement;
 
                 var lines = new List<string>();
+
+                // Extract the entire "items" array directly as a single entry
                 if (root.TryGetProperty("items", out var items))
-                    foreach (var item in items.EnumerateArray())
-                        lines.Add(item.GetRawText());
+                {
+                    // Re-serializing the entire block minifies it, stripping all literal \n, \r, and internal spaces.
+                    // Because it returns directly to the array as a base string, it won't contain escape slashes.
+                    var cleanWholeJsonArray = JsonSerializer.Serialize(items, new JsonSerializerOptions
+                    {
+                        WriteIndented = false
+                    });
+
+                    lines.Add(cleanWholeJsonArray);
+                }
 
                 return new OcrResult
                 {
                     IsSuccess = true,
+                    // Preserves the full verbatim receipt text layout
                     RawText = root.TryGetProperty("raw_text", out var raw)
                         ? raw.GetString() ?? text
                         : text,
