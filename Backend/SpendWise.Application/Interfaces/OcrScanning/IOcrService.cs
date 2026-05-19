@@ -7,6 +7,6 @@ namespace SpendWise.Application.Interfaces.OcrScanning
 {
     public interface IOcrService
     {
-        public OcrResult ProcessReceipt(byte[] rawImageFile);
+        public Task<OcrResult> ProcessReceipt(byte[] rawImageFile, string mimType);
     }
 }

@@ -10,37 +10,41 @@ namespace SpendWise.Infrastructure.ExternalServices
     {
         public byte[] PolishReceipt(byte[] imageBytes)
         {
-            // Decode the raw byte array into an OpenCV Mat object
             using var src = Mat.FromImageData(imageBytes, ImreadModes.Color);
-            using var gray = new Mat();
-            using var blurred = new Mat();
-            using var binarized = new Mat();
 
             if (src.Empty())
                 throw new ArgumentException("The uploaded file is not a valid image.");
 
-            // 1. Convert to Grayscale
+            using var gray = new Mat();
+            using var upscaled = new Mat();
+            using var denoised = new Mat();
+            using var sharpened = new Mat();
+
+            // 1. Grayscale
             Cv2.CvtColor(src, gray, ColorConversionCodes.BGR2GRAY);
 
-            // 2. Apply Gaussian Blur to reduce high-frequency noise
-            Cv2.GaussianBlur(gray, blurred, new Size(3, 3), 0);
+            // 2. Upscale 2x — Tesseract reads larger characters far more accurately
+            Cv2.Resize(gray, upscaled, new Size(gray.Width * 2, gray.Height * 2),
+                interpolation: InterpolationFlags.Cubic);
 
-            // 3. Apply Adaptive Thresholding for crisp black/white separation (ideal for text)
-            Cv2.AdaptiveThreshold(
-                blurred,
-                binarized,
-                255,
-                AdaptiveThresholdTypes.MeanC,
-                ThresholdTypes.Binary,
-                11,
-                2);
+            // 3. Light denoise — preserves edges better than GaussianBlur for clean images
+            Cv2.FastNlMeansDenoising(upscaled, denoised, h: 3, templateWindowSize: 7, searchWindowSize: 21);
 
-            // Add this inside OpenCvImageProcessor if Arabic text recognition is faint:
-            //using var structuringElement = Cv2.GetStructuringElement(StructuringElementShape.Rect, new Size(2, 2));
-            //Cv2.Dilate(binarized, binarized, structuringElement);
+            // 4. Sharpen to make character edges crisp
+            var kernel = Mat.FromArray(new float[,]
+            {
+                {  0, -1,  0 },
+                { -1,  5, -1 },
+                {  0, -1,  0 }
+            });
 
-            // Encode the processed image back into a byte array
-            return binarized.ToBytes(".png");
+            Cv2.Filter2D(denoised, sharpened, -1, kernel);
+
+            // 5. Simple Otsu threshold — much better than AdaptiveThreshold for clean/evenly lit receipts
+            using var binary = new Mat();
+            Cv2.Threshold(sharpened, binary, 0, 255, ThresholdTypes.Binary | ThresholdTypes.Otsu);
+
+            return binary.ToBytes(".png");
         }
     }
 }

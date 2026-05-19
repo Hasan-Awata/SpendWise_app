@@ -6,12 +6,12 @@ using System.Text;
 
 namespace SpendWise.Application.Services
 {
-    public class OcrService: IOcrService
+    public class TesseractOcrService
     {
         private readonly IImageProcessor _imageProcessor;
         private readonly IOcrEngine _ocrEngine;
 
-        public OcrService(IImageProcessor imageProcessor, IOcrEngine engine)
+        public TesseractOcrService(IImageProcessor imageProcessor, IOcrEngine engine)
         {
             _imageProcessor = imageProcessor;
             _ocrEngine = engine;

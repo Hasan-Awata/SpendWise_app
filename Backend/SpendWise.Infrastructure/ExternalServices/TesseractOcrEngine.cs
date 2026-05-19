@@ -1,53 +1,51 @@
-﻿// SpendWise.Infrastructure/ExternalServices/TesseractOcrService.cs
-using Microsoft.Extensions.Configuration;
-using SpendWise.Application.Interfaces;
+﻿using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.OcrScanning;
-using SpendWise.Domain.Entities;
 using SpendWise.Domain.ProcessingResults;
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading;
 using Tesseract;
 
 namespace SpendWise.Infrastructure.ExternalServices;
 
-public class TesseractOcrEngine : IOcrEngine
+public class TesseractOcrEngine : IOcrEngine, IDisposable
 {
-    private readonly string _tessDataPath;
-    private readonly string _language;
+    private readonly TesseractEngine _engine;
+    // Ensures only one thread uses the native engine at a time
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     public TesseractOcrEngine(IConfiguration configuration)
     {
-        _tessDataPath = configuration["OcrSettings:TessDataPath"] ?? "./tessdata";
-        _language = configuration["OcrSettings:Language"] ?? "eng+ara";
+        string tessDataPath = configuration["OcrSettings:TessDataPath"] ?? "./tessdata";
+        string language = configuration["OcrSettings:Language"] ?? "eng+ara";
 
-        // Clean up and resolve the path to a pure native absolute path
-        // e.g., converts "C:\YourApp\bin\Debug\net8.0\./tessdata" to "C:\YourApp\bin\Debug\net8.0\tessdata"
-        _tessDataPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _tessDataPath));
+        tessDataPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, tessDataPath));
 
-        // Safety verification: If this fails, it throws a safe C# exception instead of a native crash
-        if (!Directory.Exists(_tessDataPath))
+        if (!Directory.Exists(tessDataPath))
         {
-            throw new DirectoryNotFoundException(
-                $"Tessdata directory not found at resolved absolute path: '{_tessDataPath}'. " +
-                "Ensure the folder exists and contains your .traineddata files.");
+            throw new DirectoryNotFoundException($"Tessdata directory not found at: '{tessDataPath}'.");
         }
 
+        // Instantiate the heavy native engine exactly once
+        _engine = new TesseractEngine(tessDataPath, language, EngineMode.Default);
+
+        _engine.SetVariable("tessedit_char_whitelist", "");   // no whitelist — allow all chars
+        _engine.SetVariable("classify_bln_numeric_mode", "0");
+        _engine.SetVariable("textord_heavy_nr", "1");          // better number row detection
     }
 
     public OcrResult ExtractText(byte[] imageBytes)
     {
+        // Block other incoming API requests from using the engine until this one finishes
+        _semaphore.Wait();
         try
         {
-            // Initialize engine with multi-language capabilities
-            using var engine = new TesseractEngine(_tessDataPath, _language, EngineMode.Default);
-
-            //// Optional: Ensure digits are parsed correctly alongside Arabic script
-            //engine.SetVariable("textord_blocksrestr", "1");
-
             using var img = Pix.LoadFromMemory(imageBytes);
-            using var page = engine.Process(img, PageSegMode.SingleBlock);
+            using var page = _engine.Process(img, PageSegMode.Auto);
 
             var rawText = page.GetText();
 
-            // Clean up lines while preserving RTL characters
             var lines = rawText
                 .Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Trim())
@@ -66,9 +64,19 @@ public class TesseractOcrEngine : IOcrEngine
             return new OcrResult
             {
                 IsSuccess = false,
-                ErrorMessage = $"OCR Processing Failed (Multi-language): {ex.Message}"
+                ErrorMessage = $"OCR Processing Failed: {ex.Message}"
             };
         }
+        finally
+        {
+            // Always release the lock so the next request can process
+            _semaphore.Release();
+        }
+    }
+
+    public void Dispose()
+    {
+        _engine?.Dispose();
+        _semaphore?.Dispose();
     }
 }
-

@@ -16,20 +16,28 @@ public class ReceiptsController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult ProcessReceipt(IFormFile file)
+    public async Task<IActionResult> ScanReceipt(IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest("Please upload a valid receipt image.");
 
-        using var memoryStream = new MemoryStream();
-        file.CopyTo(memoryStream);
-        byte[] imageBytes = memoryStream.ToArray();
+        // Detect mime type from the actual file, not the extension
+        var mimeType = file.ContentType switch
+        {
+            "image/webp" => "image/webp",
+            "image/png" => "image/png",
+            "image/jpeg" => "image/jpeg",
+            _ => "image/jpeg"
+        };
 
-        var result = _ocrService.ProcessReceipt(imageBytes);
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+
+        var result = await _ocrService.ProcessReceipt(ms.ToArray(), mimeType);
 
         if (!result.IsSuccess)
             return StatusCode(500, result.ErrorMessage);
 
-        return Ok(new { text = result.RawText, lines = result.Lines });
+        return Ok(result);
     }
 }

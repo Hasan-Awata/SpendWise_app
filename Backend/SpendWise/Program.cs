@@ -84,9 +84,8 @@ builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 
 builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
 
-builder.Services.AddTransient<IImageProcessor, OpenCVImageProcessor>();
-builder.Services.AddTransient<IOcrEngine, TesseractOcrEngine>();
-builder.Services.AddScoped<IOcrService, OcrService>();
+builder.Services.AddSingleton<IOcrService, GeminiOcrService>();
+
 
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -141,18 +140,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-// Temporary Sanity Check
-try
-{
-    var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "tessdata"));
-    Console.WriteLine($"Testing Tesseract initialization with path: {path}");
-    using var engine = new Tesseract.TesseractEngine(path, "eng", Tesseract.EngineMode.Default);
-    Console.WriteLine("Tesseract successfully initialized natively!");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"Caught safe managed exception: {ex.Message}");
-}
 
 app.Run();
