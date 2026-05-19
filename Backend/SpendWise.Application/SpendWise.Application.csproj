@@ -16,5 +16,14 @@
   <ItemGroup>
     <ProjectReference Include="..\SpendWise.Domain\SpendWise.Domain.csproj" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <Content Update="tessdata\ara.traineddata">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="tessdata\eng.traineddata">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
 </Project>
