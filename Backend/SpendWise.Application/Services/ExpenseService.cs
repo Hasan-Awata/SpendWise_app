@@ -127,6 +127,11 @@ namespace SpendWise.Infrastructure.Services
             return expenseResponse;
         }
 
+        public async Task<ExpenseResponse?> AddExpenseViaOcrAsync(byte[] rawImageFile, string mimType, ExpenseDTO expenseDto)
+        {
+            return null;
+        }
+
         public async Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto)
         {
             var updatedExpense = MapExpenseDTOtoExpenseObject(expenseDto);

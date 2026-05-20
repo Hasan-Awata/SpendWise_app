@@ -55,7 +55,7 @@ public class TesseractOcrEngine : IOcrEngine, IDisposable
             return new OcrResult
             {
                 RawText = rawText,
-                Lines = lines,
+                //Products = lines,
                 IsSuccess = true
             };
         }
