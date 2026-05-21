@@ -32,10 +32,4 @@
 	</None>
   </ItemGroup>
 
-  <ItemGroup>
-	<Content Include="tessdata\**\*">
-		<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	</Content>
-  </ItemGroup>
-
 </Project>

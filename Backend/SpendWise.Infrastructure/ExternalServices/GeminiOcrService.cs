@@ -8,7 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Type = Google.GenAI.Types.Type;
 
-namespace SpendWise.Application.Services
+namespace SpendWise.Infrastructure.ExternalServices
 {
     /// <summary>
     /// Processes receipt images using the Gemini Vision API with structured JSON output.
@@ -46,8 +46,6 @@ namespace SpendWise.Application.Services
 
         // Incremented atomically via Interlocked — safe across concurrent requests.
         private int _currentKeyIndex = 0;
-
-        private bool _disposed = false;
 
         // ── DTOs ──────────────────────────────────────────────────────────────────────
 
@@ -250,8 +248,8 @@ namespace SpendWise.Application.Services
                 3. Numeric Isolation: Strip all currency designations, text tokens, or symbols (e.g., 'SR', 'SAR', '$'). Extract pure numeric components.
                 4. Default Safeguards: If an item's quantity is illegible, default to 1. If date parsing fails, return null.
                 5. Multi-Quantity Price Calculation: If an item has a quantity greater than 1, always populate the 'price' field with the FINAL computed line-item total (Quantity × Unit Price), not the single unit cost.
-                6. Subtotal Calculation: The subtotal amount MUST always equals (items number x price).
-                7. Total Calculation: The total amount MUST always equals (subtotal + tax).";
+                6. Subtotal Calculation: Always use the subtotal written in the receipt. If the subtotal amount wasn't visible, it MUST always equal all products prices combined.
+                7. Total Calculation: Always use the total written in the receipt. If the total amount wasn't visible, it MUST always equal (subtotal + tax).";
 
             return new GenerateContentConfig
             {

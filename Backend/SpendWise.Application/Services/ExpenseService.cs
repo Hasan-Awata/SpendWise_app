@@ -13,7 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SpendWise.Infrastructure.Services
+namespace SpendWise.Infrastructure.ExternalServices
 {
     public class ExpenseService : IExpenseService
     {

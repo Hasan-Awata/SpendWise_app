@@ -15,9 +15,8 @@ using SpendWise.Application.Interfaces.Transactions;
 using SpendWise.Application.Interfaces.Users;
 using SpendWise.Application.Interfaces.Wallets;
 using SpendWise.Application.Services;
-using SpendWise.Infrastructure.ExternalServices;
 using SpendWise.Infrastructure.Repositories;
-using SpendWise.Infrastructure.Services;
+using SpendWise.Infrastructure.ExternalServices;
 using System.Text;
 using System.Text.Json.Serialization;
 
