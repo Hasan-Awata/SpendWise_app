@@ -16,18 +16,30 @@ namespace SpendWise.Application.DTOs.Expense
         public int ExpenseTagId { get; set; }
         public string Products { get; set; } = string.Empty; // JSON as a string
         public int CategoryId { get; set; }
+
+        // Transaction Details
+        public int TransactionId { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public decimal AmountInSp { get; set; } = 0.0m;
+
+        // Additional data (often assigned after initialization)
         public bool IsOverLimit { get; set; }
-    public ExpenseResponse(SpendWise.Domain.Entities.Expense expense)
+
+        public ExpenseResponse(SpendWise.Domain.Entities.Expense expense)
         {
             ExpenseId = expense.ExpenseId;
             UserId = expense.UserId;
-            //Title = expense.Title,
+            Title = expense.Title;
             Amount = expense.Amount;
             WalletId = expense.WalletId;
             Date = expense.Date;
             ExpenseTagId = expense.ExpenseTagId;
             Products = expense.Products;
             CategoryId = expense.CategoryId;
+
+            TransactionId = expense.LinkedTransaction.TransactionId;
+            Description = expense.LinkedTransaction.Description;
+            AmountInSp = expense.LinkedTransaction.AmountInSp;
         }
 
     public ExpenseResponse() { }

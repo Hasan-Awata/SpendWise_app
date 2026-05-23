@@ -8,7 +8,6 @@ using SpendWise.Application.Services;
 using SpendWise.Infrastructure.Repositories;
 using SpendWise.Application.Interfaces.Tags;
 using SpendWise.Application.Interfaces.Users;
-using SpendWise.Application.Interfaces;
 
 using SpendWise.Application.Interfaces.Authentication;
 using SpendWise.Application.Interfaces.Categories;
@@ -18,6 +17,9 @@ using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Application.Interfaces.SavingGoals;
 using SpendWise.Application.Interfaces.SharedDebts;
 using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Application.Interfaces.FixedObligations;
+using SpendWise.Application.Interfaces.Transactions;
+using SpendWise.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,6 +78,9 @@ builder.Services.AddScoped<ISharedDebtRepository, SharedDebtRepository>();
 
 builder.Services.AddScoped<IFixedObligationsService, FixedObligationsService>();
 builder.Services.AddScoped<IFixedObligationRepository, FixedObligationRepository>();
+
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 
 builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
 

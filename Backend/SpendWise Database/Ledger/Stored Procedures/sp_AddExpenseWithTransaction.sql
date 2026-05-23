@@ -2,22 +2,20 @@
 -- 3. Add Expense, Transaction, and Deduct Balance
 -- ==========================================
 CREATE PROCEDURE [Ledger].[sp_AddExpenseWithTransaction]
-   -- Expense PARAMETERS
-   @ExpenseUserId INT,
-    @ExpenseWalletId INT,
-    @ExpenseCategoryId INT,
+   -- Shared PARAMETERS
+    @UserId INT,
+    @WalletId INT,
+    @CategoryId INT,
     @Products NVARCHAR(MAX) = NULL, 
-    @ExpenseTagId INT = NULL,
-    @ExpenseAmount DECIMAL(18,2),
-    @ExpenseDate DATETIME,
+    @TagId INT = NULL,
+    @Amount DECIMAL(18,2),
+    @Date DATETIME,
+    @Title NVARCHAR(255),
     
-    -- Transaction PARAMETERS
-    @TransTitle NVARCHAR(255),
-    @TransDescription NVARCHAR(MAX) = NULL,
-    @TransType INT,
-    @TransAmountInSp DECIMAL(18,2), 
-    @TransCategoryId INT,
-    @TransTagId INT = NULL,
+    -- Transaction Only PARAMETERS
+    @Description NVARCHAR(MAX) = NULL,
+    @TransactionType INT = 1, 
+    @AmountInSp DECIMAL(18,2), 
     @GoalId INT = NULL,
     @FixedExpenseId INT = NULL,
     @FixedIncomeId INT = NULL,
@@ -35,36 +33,38 @@ BEGIN
         -- ==========================================
         -- PRE-FLIGHT SECURITY CHECKS
         -- ==========================================
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId)
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @WalletId)
         BEGIN
             ;THROW 50001, 'Wallet not found.', 1;
         END
 
-        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId)
+        IF NOT EXISTS (SELECT 1 FROM [Banking].Wallets WHERE WalletID = @WalletId AND UserID = @UserId)
         BEGIN
             ;THROW 50003, 'Access denied. You do not own this wallet.', 1;
         END
 
         BEGIN TRAN; 
         
-        -- 1. Insert Expense
-        INSERT INTO [Ledger].Expenses (UserID, WalletID, TagID, CategoryID, Products, Amount, [Date])
-        VALUES (@ExpenseUserId, @ExpenseWalletId, @ExpenseTagId, @ExpenseCategoryId, @Products, @ExpenseAmount, @ExpenseDate);
-        
-        SET @NewExpenseID = SCOPE_IDENTITY();
+        -- 1. Insert Transaction
+        INSERT INTO [Ledger].Transactions (UserID, WalletID, CategoryID, TagID, GoalID, FixedExpenseID, FixedIncomeID, DebtID, Title, Amount, AmountInSp, TransactionDate, TransactionType, Description)
+        VALUES (@UserId, @WalletId, @CategoryId, @TagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @Title, @Amount, @AmountInSp, @Date, @TransactionType, @Description);
 
-        -- 2. Insert Transaction
-        INSERT INTO [Ledger].Transactions (UserID, WalletID, CategoryID, TagID, GoalID, FixedExpenseID, FixedIncomeID, DebtID, ExpenseID, Title, Amount, AmountInSp, TransactionDate, TransactionType, Description)
-        VALUES (@ExpenseUserId, @ExpenseWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewExpenseID, @TransTitle, @ExpenseAmount, @TransAmountInSp, @ExpenseDate, @TransType, @TransDescription);
+        SET @NewExpenseID = SCOPE_IDENTITY();
+        
+        -- 2. Insert Expense
+        INSERT INTO [Ledger].Expenses (ExpenseID ,UserID, Title, WalletID, TagID, CategoryID, Products, Amount, [Date])
+        VALUES (@NewExpenseID, @UserId, @Title, @WalletId, @TagId, @CategoryId, @Products, @Amount, @Date);
+        
+
 
         -- 3. UPDATE WALLET BALANCE (DEDUCT FOR EXPENSE)
         UPDATE [Banking].Wallets
-        SET Balance = Balance - @ExpenseAmount
-        WHERE WalletID = @ExpenseWalletId AND UserID = @ExpenseUserId;
+        SET Balance = Balance - @Amount
+        WHERE WalletID = @WalletId AND UserID = @UserId;
 
         -- 4. CALCULATE BUDGET STATUS USING CENTRALIZED FUNCTION
         -- The function is called before COMMIT so it includes the transaction just inserted.
-        SET @IsOverLimit = [Planning].[fn_IsOverCategoryBudget](@ExpenseUserId, @ExpenseCategoryId, @ExpenseDate);
+        SET @IsOverLimit = [Planning].[fn_IsOverCategoryBudget](@UserId, @CategoryId, @Date);
 
         COMMIT TRAN; 
 

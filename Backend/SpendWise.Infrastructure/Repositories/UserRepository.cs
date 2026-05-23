@@ -123,7 +123,6 @@ namespace SpendWise.Infrastructure.Repositories
                     CommandType = System.Data.CommandType.StoredProcedure
                 };
 
-                // Removed @NewUserID - SQL generates this automatically!
                 command.Parameters.AddWithValue("@Username", user.UserName);
                 command.Parameters.AddWithValue("@Password", user.HashedPassword);
                 command.Parameters.AddWithValue("@FirstName", user.FirstName);
@@ -142,7 +141,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
             catch (SqlException ex)
             {
-                SqlExceptionHandler.Handle(ex); // Automatically catches DuplicateResourceException
+                SqlExceptionHandler.Handle(ex); 
                 throw;
             }
         }

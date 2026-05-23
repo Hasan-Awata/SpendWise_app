@@ -1,10 +1,10 @@
 ﻿
 -- ==========================================
--- 5. Delete Income, Transaction, and Revert Balance (Secured)
+-- 5. Delete Income, Transaction, and Revert Balance 
 -- ==========================================
 CREATE   PROCEDURE [Ledger].[sp_DeleteIncome]
     @IncomeId INT,
-    @UserId INT -- Enforcing IDOR Security
+    @UserId INT 
 AS
 BEGIN
     BEGIN TRY
@@ -22,8 +22,9 @@ BEGIN
             THROW 50002, 'Income record was not found or access is denied.', 1;
 
         -- 2. Delete dependencies safely
-        DELETE FROM [Ledger].Transactions WHERE IncomeID = @IncomeId AND UserID = @UserId;
-        DELETE FROM [Ledger].Incomes WHERE IncomeID = @IncomeId AND UserID = @UserId;
+        -- REMINDER: TransactionID == IncomeID
+        DELETE FROM [Ledger].Transactions WHERE TransactionID = @IncomeId AND UserID = @UserId;
+       -- DELETE FROM [Ledger].Incomes WHERE IncomeID = @IncomeId AND UserID = @UserId;
         
         DECLARE @RowsAffected INT = @@ROWCOUNT;
 
