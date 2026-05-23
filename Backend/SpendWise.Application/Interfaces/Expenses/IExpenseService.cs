@@ -15,10 +15,7 @@ namespace SpendWise.Application.Interfaces.Expenses
         public Task<Result<ExpenseResponse>> AddExpenseAsync(ExpenseDTO expenseDto);
         public Task<Result<ExpenseResponse>> UpdateExpenseAsync(ExpenseDTO expenseDto);
         public Task<Result> DeleteExpenseAsync(int expenseId, int userId);
-        public Task<ExpenseResponse?> AddExpenseAsync(ExpenseDTO expenseDto);
-        public Task<ExpenseResponse?> AddExpenseViaOcrAsync(byte[] rawImageFile, string mimType, ExpenseDTO expenseDto);
-        public Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto);
-        public Task<bool> DeleteExpenseAsync(int expenseId, int userId);
+        public Task<Result<ExpenseResponse>> AddExpenseViaOcrAsync(byte[] rawImageFile, string mimType, ExpenseDTO expenseDto);
 
         // Reading from the database
         public Task<Result<ExpenseResponse>> GetExpenseAsync(int expenseId, int userId);
