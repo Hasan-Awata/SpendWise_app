@@ -4,6 +4,7 @@ using SpendWise.Application.DTOs.Expense;
 using SpendWise.Application.DTOs.Income;
 using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.Interfaces.Expenses;
+using SpendWise.Application.Interfaces.OcrScanning;
 using System.Security.Claims;
 
 namespace SpendWise.Controllers
@@ -15,6 +16,7 @@ namespace SpendWise.Controllers
     public class ExpenseController : Controller
     {
         private readonly IExpenseService _expenseService;
+        private readonly IOcrService _ocrService;
 
         // Helper property to securely extract the user ID from the auth token
         private int CurrentUserId
@@ -34,9 +36,10 @@ namespace SpendWise.Controllers
                 throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
             }
         }
-        public ExpenseController(IExpenseService expenseService)
+        public ExpenseController(IExpenseService expenseService, IOcrService ocrService)
         {
             _expenseService = expenseService;
+            _ocrService = ocrService;
         }
 
         [HttpGet("{expenseId}")]
