@@ -1,18 +1,20 @@
-﻿using Microsoft.Data.SqlClient;
-using SpendWise.Application.DTOs.Expense;
+﻿using SpendWise.Application.DTOs.Expense;
 using SpendWise.Application.DTOs.Income;
 using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.DTOs.PagedResponse;
 using SpendWise.Application.Interfaces.ExchangeRate;
 using SpendWise.Application.Interfaces.Expenses;
+using SpendWise.Application.Interfaces.OcrScanning;
 using SpendWise.Application.Interfaces.Wallets;
 using SpendWise.Domain.Common;
 using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
+using SpendWise.Domain.ProcessingResults;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace SpendWise.Application.Services
@@ -34,7 +36,7 @@ namespace SpendWise.Application.Services
         }
 
         // Helpers methods --------------------------------------------------
-        private Expense MapExpenseDTOtoExpenseObject(ExpenseDTO expenseDto)
+        private Expense MapExpenseDTOtoExpenseObject(ExpenseDTO expenseDto, string products)
         {
             return new Expense
             (
@@ -42,7 +44,7 @@ namespace SpendWise.Application.Services
                 expenseDto.UserId,
                 expenseDto.Title,
                 expenseDto.Amount,
-                expenseDto.Products,
+                products,
                 expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
                 expenseDto.CategoryId,
                 expenseDto.WalletId,
@@ -74,7 +76,6 @@ namespace SpendWise.Application.Services
 
             return transaction;
         }
-
         private async Task<decimal> CalcAmountInSp(Wallet wallet, decimal amount)
         {
             if (wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
@@ -88,15 +89,30 @@ namespace SpendWise.Application.Services
             return await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", amount);
         }
 
-        // Shared Local Validation Helper (No DB Operations)
-        private Result ValidateBaseExpenseInput(ExpenseDTO expenseDto)
+        private Result ValidateAndSerializeProducts(List<ProductDTO> products, out string serializedJson)
         {
-            if (expenseDto.Amount <= 0)
-                return Result.Failure("Expense amount must be greater than zero.");
+            serializedJson = string.Empty;
 
-            if (!SystemCategories.Map.ContainsKey(expenseDto.CategoryId))
-                return Result.Failure("The selected category is invalid.");
+            if (products == null || products.Count == 0)
+            {
+                return Result.Failure("The products list cannot be empty.", enErrorType.Validation);
+            }
 
+            // Business data logic checks
+            foreach (var item in products)
+            {
+                if (item.Quantity < 1)
+                    return Result.Failure("The quantity must at least be 1 for each product", enErrorType.Validation);
+
+                if (string.IsNullOrWhiteSpace(item.Name))
+                    return Result.Failure("Every product must include a valid item name.", enErrorType.Validation);
+
+                if (item.Price < 0)
+                    return Result.Failure($"Invalid price for product '{item.Name}'. Price cannot be negative.", enErrorType.Validation);
+            }
+
+            // Completely safe to serialize without try-catch because it's already a valid C# object list
+            serializedJson = JsonSerializer.Serialize(products);
             return Result.Success();
         }
 
@@ -106,7 +122,7 @@ namespace SpendWise.Application.Services
             var expense = await _expenseRepo.GetExpenseAsync(expenseId, userId);
 
             if (expense == null)
-                return Result<ExpenseResponse>.Failure("Expense was not found.");
+                return Result<ExpenseResponse>.Failure("Expense was not found.", enErrorType.NotFound);
 
             return Result<ExpenseResponse>.Success(new ExpenseResponse(expense));
         }
@@ -125,28 +141,42 @@ namespace SpendWise.Application.Services
         public async Task<Result<ExpenseResponse>> AddExpenseAsync(ExpenseDTO expenseDto)
         {
             // 1 - Input validations --------------------------------------------
-            var validationResult = ValidateBaseExpenseInput(expenseDto);
-            if (!validationResult.IsSuccess)
-                return Result<ExpenseResponse>.Failure(validationResult.ErrorMessage!);
+            if (expenseDto.Amount <= 0)
+                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.BalanceViolation);
+
+            if (!SystemCategories.Map.ContainsKey(expenseDto.CategoryId))
+                return Result<ExpenseResponse>.Failure("The selected category is invalid.", enErrorType.Validation);
+
+            var producstValidation = ValidateAndSerializeProducts(expenseDto.Products, out string productsJson);
+            if (!producstValidation.IsSuccess)
+                return Result<ExpenseResponse>.Failure(producstValidation.ErrorMessage!, enErrorType.Validation);
+
+            decimal productsTotalAmount = 0.0m;
+            foreach (var product in expenseDto.Products)
+            {
+                productsTotalAmount += product.Price;
+            }
+            if (productsTotalAmount != expenseDto.Amount)
+                return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
 
             var wallet = await _walletRepo.GetWalletByIdAsync(expenseDto.WalletId, expenseDto.UserId);
             if (wallet == null)
-                return Result<ExpenseResponse>.Failure("Wallet does not exist.");
+                return Result<ExpenseResponse>.Failure("Wallet was not found.", enErrorType.NotFound);
 
             if (wallet.Balance < expenseDto.Amount)
-                return Result<ExpenseResponse>.Failure("Not enough money to make this expense.");
+                return Result<ExpenseResponse>.Failure("Not enough money to make this expense.", enErrorType.BalanceViolation);
 
             expenseDto.ExpenseId = -1; // Make sure to send -1 to database (safe practice)
 
             // 2 - Map data ------------------------------------------------------
-            var newExpense = MapExpenseDTOtoExpenseObject(expenseDto);
+            var newExpense = MapExpenseDTOtoExpenseObject(expenseDto, productsJson);
 
             newExpense.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, newExpense.Amount);
 
             (int newExpenseId, bool IsOverLimit) = await _expenseRepo.AddExpenseAsync(newExpense);
 
             if (newExpenseId == -1)
-                return Result<ExpenseResponse>.Failure("Failed to add the expense to the database.");
+                return Result<ExpenseResponse>.Failure("Failed to add the expense to the database.", enErrorType.Failure);
 
             newExpense.ExpenseId = newExpenseId;
             newExpense.LinkedTransaction.TransactionId = newExpenseId;
@@ -162,29 +192,40 @@ namespace SpendWise.Application.Services
 
         public async Task<Result<ExpenseResponse>> UpdateExpenseAsync(ExpenseDTO expenseDto)
         {
-            // 1 - Local Input validations (Zero Database Hits) -------------------------
-            var validationResult = ValidateBaseExpenseInput(expenseDto);
-            if (!validationResult.IsSuccess)
-                return Result<ExpenseResponse>.Failure(validationResult.ErrorMessage!);
+            // 1 - Input validations --------------------------------------------
+            if (expenseDto.Amount <= 0)
+                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.BalanceViolation);
 
-            // 2 - Fetch Wallet solely for Currency mapping rules (Required by CalcAmountInSp)
+            if (!SystemCategories.Map.ContainsKey(expenseDto.CategoryId))
+                return Result<ExpenseResponse>.Failure("The selected category is invalid.", enErrorType.Validation);
+
+            var producstValidation = ValidateAndSerializeProducts(expenseDto.Products, out string productsJson);
+            if (!producstValidation.IsSuccess)
+                return Result<ExpenseResponse>.Failure(producstValidation.ErrorMessage!, enErrorType.Validation);
+
+            decimal productsTotalAmount = 0.0m;
+            foreach (var product in expenseDto.Products)
+            {
+                productsTotalAmount += product.Price;
+            }
+            if (productsTotalAmount != expenseDto.Amount)
+                return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
+
             var wallet = await _walletRepo.GetWalletByIdAsync(expenseDto.WalletId, expenseDto.UserId);
             if (wallet == null)
-                return Result<ExpenseResponse>.Failure("The target wallet does not exist.");
+                return Result<ExpenseResponse>.Failure("Wallet was not found.", enErrorType.NotFound);
 
-            // 3 - Map data directly ----------------------------------------------------
-            var updatedExpense = MapExpenseDTOtoExpenseObject(expenseDto);
+            // 2 - Map data ------------------------------------------------------
+            var updatedExpense = MapExpenseDTOtoExpenseObject(expenseDto, productsJson);
 
             updatedExpense.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, updatedExpense.Amount);
 
-            // 4 - Execute Blind Update (Database handles balance math and verification blocks)
-            // Any ownership or balance constraint issues will bubble up through your SqlExceptionHandler automatically!
             (bool success, bool isOverLimit) = await _expenseRepo.UpdateExpenseAsync(updatedExpense);
 
             if (!success)
-                return Result<ExpenseResponse>.Failure("Failed to update the expense in the database.");
+                return Result<ExpenseResponse>.Failure("Failed to update the expense in the database.", enErrorType.Failure);
 
-            // 5 - Form the response ----------------------------------------------------
+            // 3 - Form the response ----------------------------------------------
             var expenseResponse = new ExpenseResponse(updatedExpense)
             {
                 IsOverLimit = isOverLimit
@@ -198,7 +239,7 @@ namespace SpendWise.Application.Services
             if (await _expenseRepo.DeleteExpenseAsync(expenseId, userId))
                 return Result.Success();
 
-            return Result.Failure("Failed to delete the expense from the database.");
+            return Result.Failure("Failed to delete the expense from the database.", enErrorType.Failure);
         }
     }
 }

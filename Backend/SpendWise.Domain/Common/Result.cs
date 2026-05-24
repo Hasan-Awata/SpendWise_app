@@ -1,36 +1,40 @@
-﻿using System;
+﻿using SpendWise.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace SpendWise.Domain.Common;
-
-// For actions that just succeed or fail without returning data (like deleting an expense)
-public class Result
+namespace SpendWise.Domain.Common
 {
-    public bool IsSuccess { get; }
-    public string? ErrorMessage { get; }
-
-    protected Result(bool isSuccess, string? errorMessage)
+    public class Result
     {
-        IsSuccess = isSuccess;
-        ErrorMessage = errorMessage;
+        public bool IsSuccess { get; }
+        public string? ErrorMessage { get; }
+        public enErrorType ErrorType { get; }
+
+        protected Result(bool isSuccess, string? errorMessage, enErrorType errorType)
+        {
+            IsSuccess = isSuccess;
+            ErrorMessage = errorMessage;
+            ErrorType = errorType;
+        }
+
+        public static Result Success() => new(true, null, enErrorType.None);
+        public static Result Failure(string message, enErrorType errorType = enErrorType.Failure)
+            => new(false, message, errorType);
     }
 
-    public static Result Success() => new(true, null);
-    public static Result Failure(string errorMessage) => new(false, errorMessage);
-}
-
-// For actions that return data (like your AddExpenseAsync)
-public class Result<T> : Result
-{
-    public T? Value { get; }
-
-    private Result(bool isSuccess, T? value, string? errorMessage)
-        : base(isSuccess, errorMessage)
+    public class Result<T> : Result
     {
-        Value = value;
-    }
+        public T? Value { get; }
 
-    public static Result<T> Success(T value) => new(true, value, null);
-    public static new Result<T> Failure(string errorMessage) => new(false, default, errorMessage);
+        private Result(T? value, bool isSuccess, string? errorMessage, enErrorType errorType)
+            : base(isSuccess, errorMessage, errorType)
+        {
+            Value = value;
+        }
+
+        public static Result<T> Success(T value) => new(value, true, null, enErrorType.None);
+        public static new Result<T> Failure(string message, enErrorType errorType = enErrorType.Failure)
+            => new(default, false, message, errorType);
+    }
 }

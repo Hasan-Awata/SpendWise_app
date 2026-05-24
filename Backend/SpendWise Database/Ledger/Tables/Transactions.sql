@@ -12,7 +12,7 @@
     [Amount]          DECIMAL (18, 2) NOT NULL,
     [TransactionDate] DATETIME        DEFAULT (getdate()) NOT NULL,
     [TransactionType] INT             NOT NULL,
-    [Description]     NVARCHAR (255)  NULL,
+    [Description]     NVARCHAR (MAX)  NULL,
     [AmountInSp]      DECIMAL (18, 2) DEFAULT ((0.00)) NOT NULL,
     PRIMARY KEY CLUSTERED ([TransactionID] ASC),
     CONSTRAINT [CHK_Transactions_Amount] CHECK ([Amount]>(0)),

@@ -1,4 +1,5 @@
 ﻿using SpendWise.Application.DTOs.Category;
+using SpendWise.Application.DTOs.Expense;
 using SpendWise.Application.DTOs.Tag;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
@@ -35,6 +36,6 @@ namespace SpendWise.Application.DTOs.Income
 
         public int ExpenseTagId { get; set; } = -1;
         public string Description { get; set; } = string.Empty;
-        public string Products {  get; set; } = string.Empty; // JSON 
+        public List<ProductDTO> Products { get; set; } = new();
     }
 }
