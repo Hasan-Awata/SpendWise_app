@@ -1,16 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.Interfaces.OcrScanning;
 using SpendWise.Application.Services;
+using System.Security.Claims;
 
 namespace SpendWise.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/ocr")]
-public class ReceiptsController : ControllerBase
+public class OCRController : ControllerBase
 {
     private readonly IOcrService _ocrService;
 
-    public ReceiptsController(IOcrService ocrOrchestrator)
+    public OCRController(IOcrService ocrOrchestrator)
     {
         _ocrService = ocrOrchestrator;
     }

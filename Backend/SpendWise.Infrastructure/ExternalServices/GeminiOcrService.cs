@@ -2,6 +2,7 @@
 using Google.GenAI.Types;
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.OcrScanning;
+using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.ProcessingResults;
 using System.Text.Json;
@@ -68,6 +69,8 @@ namespace SpendWise.Infrastructure.ExternalServices
             [JsonPropertyName("tax")] public decimal Tax { get; set; }
             [JsonPropertyName("total")] public decimal Total { get; set; }
             [JsonPropertyName("raw_text")] public string RawText { get; set; } = string.Empty;
+            [JsonPropertyName("category")] public string Category { get; set; } = string.Empty;
+            [JsonPropertyName("tag")] public string Tag { get; set; } = string.Empty;
         }
 
         // ── Constructor ───────────────────────────────────────────────────────────────
@@ -222,6 +225,8 @@ namespace SpendWise.Infrastructure.ExternalServices
 
         private static GenerateContentConfig BuildGenerationConfig()
         {
+            var allowedCategories = SystemCategories.Map.Values.Select(c => c.Name).ToList();
+
             const string systemInstructions = @"
                 Task: Act as a rigid data extraction processor for receipts.
                 Language Scope: English, Arabic, or mixed bilingual formats.
@@ -240,6 +245,10 @@ namespace SpendWise.Infrastructure.ExternalServices
 
                 If 'is_valid' is FALSE: still populate 'raw_text' with whatever is visible,
                 but leave all numeric fields as 0 and 'items' as an empty array.
+                
+                Classification Task:
+                Based on the overall context of the receipt (merchant name, line items, total spent):
+                - Assign the most accurate 'category' from the provided schema enum options.
 
                 Edge-Case Behavior Rules:
                 1. For 'raw_text': Transcribe every character visible line-by-line. Never truncate text.
@@ -273,6 +282,7 @@ namespace SpendWise.Infrastructure.ExternalServices
                         { "tax",         new Schema { Type = Type.Number  } },
                         { "total",       new Schema { Type = Type.Number  } },
                         { "raw_text",    new Schema { Type = Type.String  } },
+                        { "category",    new Schema { Type = Type.String, Enum = allowedCategories } },
                         {
                             "items", new Schema
                             {
@@ -316,6 +326,9 @@ namespace SpendWise.Infrastructure.ExternalServices
                 ? parsedDate
                 : DateTime.Now;
 
+            var categoryId = SystemCategories.Map.Values.FirstOrDefault(c =>
+                c.Name.Equals(dto.Category, StringComparison.OrdinalIgnoreCase))?.CategoryId ?? 1;
+
             return new OcrResult
             {
                 IsSuccess = true,
@@ -325,6 +338,7 @@ namespace SpendWise.Infrastructure.ExternalServices
                 Tax = dto.Tax,
                 Total = dto.Total,
                 Date = finalDate,
+                CategoryId = categoryId,
                 Products = products
             };
         }
