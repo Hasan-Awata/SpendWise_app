@@ -4,16 +4,20 @@ using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.DTOs.PagedResponse;
 using SpendWise.Application.Interfaces.ExchangeRate;
 using SpendWise.Application.Interfaces.Expenses;
+using SpendWise.Application.Interfaces.OcrScanning;
 using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Domain.Common;
 using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
+using SpendWise.Domain.ProcessingResults;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace SpendWise.Infrastructure.ExternalServices
+namespace SpendWise.Application.Services
 {
     public class ExpenseService : IExpenseService
     {
@@ -32,7 +36,7 @@ namespace SpendWise.Infrastructure.ExternalServices
         }
 
         // Helpers methods --------------------------------------------------
-        private Expense MapExpenseDTOtoExpenseObject(ExpenseDTO expenseDto)
+        private Expense MapExpenseDTOtoExpenseObject(ExpenseDTO expenseDto, string products)
         {
             return new Expense
             (
@@ -40,7 +44,7 @@ namespace SpendWise.Infrastructure.ExternalServices
                 expenseDto.UserId,
                 expenseDto.Title,
                 expenseDto.Amount,
-                expenseDto.Products,
+                products,
                 expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
                 expenseDto.CategoryId,
                 expenseDto.WalletId,
@@ -62,10 +66,7 @@ namespace SpendWise.Infrastructure.ExternalServices
                 0.0m, // amount in SP: Calculated later through the process
                 expenseDto.Date,
                 enTransactionType.Dedduction,
-                -1,
-                -1,
-                -1,
-                -1
+                -1, -1, -1, -1
             );
 
             // Custom attributes for expenses
@@ -75,7 +76,6 @@ namespace SpendWise.Infrastructure.ExternalServices
 
             return transaction;
         }
-
         private async Task<decimal> CalcAmountInSp(Wallet wallet, decimal amount)
         {
             if (wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
@@ -89,71 +89,157 @@ namespace SpendWise.Infrastructure.ExternalServices
             return await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", amount);
         }
 
-        // Reading methods --------------------------------------------------
-        public async Task<ExpenseResponse?> GetExpenseAsync(int expenseId, int userId)
+        private Result ValidateAndSerializeProducts(List<ProductDTO> products, out string serializedJson)
         {
-            var expense = await _expenseRepo.GetExpenseAsync(expenseId, userId);
-            return expense == null ? null : new ExpenseResponse(expense);
+            serializedJson = string.Empty;
+
+            if (products == null || products.Count == 0)
+            {
+                return Result.Failure("The products list cannot be empty.", enErrorType.Validation);
+            }
+
+            // Business data logic checks
+            foreach (var item in products)
+            {
+                if (item.Quantity < 1)
+                    return Result.Failure("The quantity must at least be 1 for each product", enErrorType.Validation);
+
+                if (string.IsNullOrWhiteSpace(item.Name))
+                    return Result.Failure("Every product must include a valid item name.", enErrorType.Validation);
+
+                if (item.Price < 0)
+                    return Result.Failure($"Invalid price for product '{item.Name}'. Price cannot be negative.", enErrorType.Validation);
+            }
+
+            // Completely safe to serialize without try-catch because it's already a valid C# object list
+            serializedJson = JsonSerializer.Serialize(products);
+            return Result.Success();
         }
 
-        public async Task<PagedResponse<ExpenseResponse>> GetExpenseByUserAsync(int userId, PageDTO pageDto)
+        // Reading methods --------------------------------------------------
+        public async Task<Result<ExpenseResponse>> GetExpenseAsync(int expenseId, int userId)
+        {
+            var expense = await _expenseRepo.GetExpenseAsync(expenseId, userId);
+
+            if (expense == null)
+                return Result<ExpenseResponse>.Failure("Expense was not found.", enErrorType.NotFound);
+
+            return Result<ExpenseResponse>.Success(new ExpenseResponse(expense));
+        }
+
+        public async Task<Result<PagedResponse<ExpenseResponse>>> GetExpenseByUserAsync(int userId, PageDTO pageDto)
         {
             var (expensesList, totalCount) = await _expenseRepo.GetExpensesByUserAsync(userId, pageDto.PageNumber, pageDto.PageSize);
             var expenseResponse = expensesList.Select(item => new ExpenseResponse(item)).ToList();
 
-            return new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
+            var data = new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
+
+            return Result<PagedResponse<ExpenseResponse>>.Success(data);
         }
 
         // Writing methods --------------------------------------------------
-        public async Task<ExpenseResponse?> AddExpenseAsync(ExpenseDTO expenseDto)
+        public async Task<Result<ExpenseResponse>> AddExpenseAsync(ExpenseDTO expenseDto)
         {
-            var newExpense = MapExpenseDTOtoExpenseObject(expenseDto);
+            // 1 - Input validations --------------------------------------------
+            if (expenseDto.Amount <= 0)
+                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.BalanceViolation);
 
-            var wallet = await _walletRepo.GetWalletByIdAsync(newExpense.WalletId, newExpense.UserId);
-            if (wallet == null) return null;
+            if (!SystemCategories.Map.ContainsKey(expenseDto.CategoryId))
+                return Result<ExpenseResponse>.Failure("The selected category is invalid.", enErrorType.Validation);
+
+            var producstValidation = ValidateAndSerializeProducts(expenseDto.Products, out string productsJson);
+            if (!producstValidation.IsSuccess)
+                return Result<ExpenseResponse>.Failure(producstValidation.ErrorMessage!, enErrorType.Validation);
+
+            decimal productsTotalAmount = 0.0m;
+            foreach (var product in expenseDto.Products)
+            {
+                productsTotalAmount += product.Price;
+            }
+            if (productsTotalAmount != expenseDto.Amount)
+                return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
+
+            var wallet = await _walletRepo.GetWalletByIdAsync(expenseDto.WalletId, expenseDto.UserId);
+            if (wallet == null)
+                return Result<ExpenseResponse>.Failure("Wallet was not found.", enErrorType.NotFound);
+
+            if (wallet.Balance < expenseDto.Amount)
+                return Result<ExpenseResponse>.Failure("Not enough money to make this expense.", enErrorType.BalanceViolation);
+
+            expenseDto.ExpenseId = -1; // Make sure to send -1 to database (safe practice)
+
+            // 2 - Map data ------------------------------------------------------
+            var newExpense = MapExpenseDTOtoExpenseObject(expenseDto, productsJson);
 
             newExpense.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, newExpense.Amount);
 
             (int newExpenseId, bool IsOverLimit) = await _expenseRepo.AddExpenseAsync(newExpense);
 
-            if (newExpenseId == -1) return null;
+            if (newExpenseId == -1)
+                return Result<ExpenseResponse>.Failure("Failed to add the expense to the database.", enErrorType.Failure);
 
             newExpense.ExpenseId = newExpenseId;
             newExpense.LinkedTransaction.TransactionId = newExpenseId;
 
-            var expenseResponse = new ExpenseResponse(newExpense);
-            expenseResponse.IsOverLimit = IsOverLimit;
+            // 3 - Form the response ----------------------------------------------
+            var expenseResponse = new ExpenseResponse(newExpense)
+            {
+                IsOverLimit = IsOverLimit
+            };
 
-            return expenseResponse;
+            return Result<ExpenseResponse>.Success(expenseResponse);
         }
 
-        public async Task<ExpenseResponse?> AddExpenseViaOcrAsync(byte[] rawImageFile, string mimType, ExpenseDTO expenseDto)
+        public async Task<Result<ExpenseResponse>> UpdateExpenseAsync(ExpenseDTO expenseDto)
         {
-            return null;
-        }
+            // 1 - Input validations --------------------------------------------
+            if (expenseDto.Amount <= 0)
+                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.BalanceViolation);
 
-        public async Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto)
-        {
-            var updatedExpense = MapExpenseDTOtoExpenseObject(expenseDto);
+            if (!SystemCategories.Map.ContainsKey(expenseDto.CategoryId))
+                return Result<ExpenseResponse>.Failure("The selected category is invalid.", enErrorType.Validation);
 
-            var wallet = await _walletRepo.GetWalletByIdAsync(updatedExpense.WalletId, updatedExpense.UserId);
-            if (wallet == null) return null;
+            var producstValidation = ValidateAndSerializeProducts(expenseDto.Products, out string productsJson);
+            if (!producstValidation.IsSuccess)
+                return Result<ExpenseResponse>.Failure(producstValidation.ErrorMessage!, enErrorType.Validation);
+
+            decimal productsTotalAmount = 0.0m;
+            foreach (var product in expenseDto.Products)
+            {
+                productsTotalAmount += product.Price;
+            }
+            if (productsTotalAmount != expenseDto.Amount)
+                return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
+
+            var wallet = await _walletRepo.GetWalletByIdAsync(expenseDto.WalletId, expenseDto.UserId);
+            if (wallet == null)
+                return Result<ExpenseResponse>.Failure("Wallet was not found.", enErrorType.NotFound);
+
+            // 2 - Map data ------------------------------------------------------
+            var updatedExpense = MapExpenseDTOtoExpenseObject(expenseDto, productsJson);
 
             updatedExpense.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, updatedExpense.Amount);
 
-            (bool Success, bool IsOverLimit) = await _expenseRepo.UpdateExpenseAsync(updatedExpense);
+            (bool success, bool isOverLimit) = await _expenseRepo.UpdateExpenseAsync(updatedExpense);
 
-            if (!Success) return null;
+            if (!success)
+                return Result<ExpenseResponse>.Failure("Failed to update the expense in the database.", enErrorType.Failure);
 
-            var expenseResponse = new ExpenseResponse(updatedExpense);
-            expenseResponse.IsOverLimit = IsOverLimit;
+            // 3 - Form the response ----------------------------------------------
+            var expenseResponse = new ExpenseResponse(updatedExpense)
+            {
+                IsOverLimit = isOverLimit
+            };
 
-            return expenseResponse;
+            return Result<ExpenseResponse>.Success(expenseResponse);
         }
 
-        public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
+        public async Task<Result> DeleteExpenseAsync(int expenseId, int userId)
         {
-            return await _expenseRepo.DeleteExpenseAsync(expenseId, userId);
+            if (await _expenseRepo.DeleteExpenseAsync(expenseId, userId))
+                return Result.Success();
+
+            return Result.Failure("Failed to delete the expense from the database.", enErrorType.Failure);
         }
     }
 }
