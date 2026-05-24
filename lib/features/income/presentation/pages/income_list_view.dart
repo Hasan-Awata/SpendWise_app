@@ -72,7 +72,7 @@ class IncomeListView extends GetView<IncomesListController> {
             controller: controller.scrollController,
 
             physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
+              parent: AlwaysScrollableScrollPhysics(),
             ),
 
             itemCount:
@@ -198,27 +198,29 @@ class IncomeListView extends GetView<IncomesListController> {
   // SYNC STATUS
   // =========================
 
-  Widget _syncStatus(bool synced) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+  Widget _syncStatus(RxBool synced) {
+    return Obx(
+      () => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
 
-      decoration: BoxDecoration(
-        color: synced
-            ? Colors.green.withOpacity(0.12)
-            : Colors.orange.withOpacity(0.12),
+        decoration: BoxDecoration(
+          color: synced.value
+              ? Colors.green.withOpacity(0.12)
+              : Colors.orange.withOpacity(0.12),
 
-        borderRadius: BorderRadius.circular(20),
-      ),
+          borderRadius: BorderRadius.circular(20),
+        ),
 
-      child: Text(
-        synced ? "متزامن" : "غير متزامن",
+        child: Text(
+          synced.value ? "متزامن" : "غير متزامن",
 
-        style: TextStyle(
-          color: synced ? Colors.greenAccent : Colors.orangeAccent,
+          style: TextStyle(
+            color: synced.value ? Colors.greenAccent : Colors.orangeAccent,
 
-          fontSize: 11,
+            fontSize: 11,
 
-          fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

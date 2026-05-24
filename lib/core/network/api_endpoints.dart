@@ -34,8 +34,10 @@ class ApiEndpoints {
   static const String updateGoal = 'UpdateGoal';
 
   static const String deleteGoal = 'DeleteGoal';
+  static const String categories = 'categories';
 
   static const String getAchievedGoals = 'GetAchievedGoals';
+  static const String transactions = "transactions";
 
   Future<Map<String, String>?> getHeaders() async {
     try {

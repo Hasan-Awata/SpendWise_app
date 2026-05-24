@@ -12,35 +12,32 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
   ExpenseRemoteDataSourceImpl({required this.client});
 
   @override
-  Future<PagedResponse<ExpenseModel>> getMyExpenses(
+  Future<PagedResponse<ExpenseModel>?> getMyExpenses(
     int userId,
     PageRequest page,
   ) async {
-    // بناء الرابط مع الـ Query Parameters يدوياً في http
+    // Build URL with pagination and userId parameters
     final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.expense}")
         .replace(
           queryParameters: {
+            'UserId': userId.toString(), // ضمان إرسال معرف المستخدم للسيرفر
             'PageNumber': page.pageNumber.toString(),
             'PageSize': page.pageSize.toString(),
           },
         );
 
     final headers = await ApiEndpoints().getHeaders();
-    print("Fetching Expenses for user $userId from: $url");
 
     final response = await client.get(url, headers: headers);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      print("GetExpenses Success: تم جلب المصاريف");
       final decodedData = jsonDecode(response.body);
-
       return PagedResponse<ExpenseModel>.fromJson(
         decodedData,
         (json) => ExpenseModel.fromJson(json),
       );
     } else {
-      print("GetExpenses Error [${response.statusCode}]: ${response.body}");
-      throw Exception("فشل جلب المصاريف من السيرفر");
+      throw Exception("فشل جلب المصاريف من السيرفر: ${response.statusCode}");
     }
   }
 
@@ -50,39 +47,31 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     final headers = await ApiEndpoints().getHeaders();
     final body = jsonEncode(expense.toJson());
 
-    print("Sending Expense JSON: $body to $url");
-
     final response = await client.post(url, headers: headers, body: body);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      print("AddExpense Success: ${response.body}");
       return ExpenseModel.fromJson(jsonDecode(response.body));
     } else {
-      print("AddExpense Error [${response.statusCode}]: ${response.body}");
       throw Exception("فشل إضافة المصروف: ${response.body}");
     }
   }
 
   @override
   Future<ExpenseModel?> updateExpense(ExpenseModel expense) async {
+    // API endpoint usually expects the remote ID for updates
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.expense}/${expense.id}",
     );
     final headers = await ApiEndpoints().getHeaders();
     final body = jsonEncode(expense.toJson());
 
-    print("Updating Expense ${expense.id} at: $url");
-
     final response = await client.patch(url, headers: headers, body: body);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      print("UpdateExpense Success");
-      // ملاحظة: إذا كان السيرفر يعيد 204 No Content، قد تحتاج لإعادة الكائن نفسه
       if (response.body.isEmpty) return expense;
       return ExpenseModel.fromJson(jsonDecode(response.body));
     } else {
-      print("UpdateExpense Error [${response.statusCode}]: ${response.body}");
-      throw Exception("فشل تحديث المصروف");
+      throw Exception("فشل تحديث المصروف: ${response.statusCode}");
     }
   }
 
@@ -93,15 +82,12 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     );
     final headers = await ApiEndpoints().getHeaders();
 
-    print("Deleting Expense ID: ${expense.id} from: $url");
-
     final response = await client.delete(url, headers: headers);
 
-    if (response.statusCode == 200 || response.statusCode == 204) {
-      print("DeleteExpense Success");
+    // Standard success codes for deletion are 200 (OK) or 204 (No Content)
+    if (response.statusCode >= 200 && response.statusCode < 300) {
       return true;
     } else {
-      print("DeleteExpense Error [${response.statusCode}]: ${response.body}");
       return false;
     }
   }

@@ -1,3 +1,4 @@
+import 'package:get/get_rx/src/rx_types/rx_types.dart';
 import 'package:isar/isar.dart';
 import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 import 'package:uuid/uuid.dart';
@@ -48,7 +49,7 @@ class TagModel {
       id: entity.id,
       userId: entity.userId,
       name: entity.name,
-      isSynced: entity.isSynced,
+      isSynced: entity.isSynced.value,
       isDeleted: entity.isDeleted,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
@@ -61,7 +62,7 @@ class TagModel {
       id: id,
       userId: userId,
       name: name,
-      isSynced: isSynced,
+      isSynced: isSynced.obs,
       isDeleted: isDeleted,
 
       createdAt: createdAt,

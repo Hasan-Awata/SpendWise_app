@@ -1,32 +1,48 @@
+// lib/features/transaction/presentation/widgets/recent_transactions_list.dart
+// RecentTransactionsList: Refactored state stream triggers by scoping filter frames inside the reactive Obx builder
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/expense/data/models/expense_model.dart';
-import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
-import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
+import 'package:spendwise/features/transaction/domain/entities/transaction_entity.dart';
+import 'package:spendwise/features/transaction/presentation/manager/transaction_controller.dart';
 import 'package:spendwise/features/transaction/presentation/widgets/transaction_tile.dart';
 
 class RecentTransactionsList extends StatelessWidget {
   final bool showAll;
-  const RecentTransactionsList({super.key, this.showAll = false});
+
+  RecentTransactionsList({super.key, this.showAll = false});
+
+  // من الأفضل جعل الـ Controller نهائي (final) واستدعائه عند الإنشاء
+  final TransactionController transactionController =
+      Get.find<TransactionController>();
 
   @override
   Widget build(BuildContext context) {
-    final incomeController = Get.find<IncomesListController>();
-    final expenseController = Get.find<ExpensesListController>();
-
     return Obx(() {
-      final List<dynamic> combinedList = [
-        ...incomeController.incomesList,
-        ...expenseController.expensesList,
-      ];
+      final seenLocalIds = <String>{};
+      final transactions = transactionController.transactions;
+      final List<TransactionEntity> uniqueTransactions = [];
 
-      combinedList.sort((a, b) => b.date.compareTo(a.date));
+      for (var transaction in transactions) {
+        if (!seenLocalIds.contains(transaction.localId)) {
+          seenLocalIds.add(transaction.localId!);
+          uniqueTransactions.add(transaction);
+        }
+      }
 
-      final latestTransactions = combinedList
-          .take(showAll ? combinedList.length : 5)
+      uniqueTransactions.sort((a, b) => b.date.compareTo(a.date));
+
+      // 3. تحديد كمية العناصر المطلوب عرضها (5 عناصر للرئيسية أو كامل القائمة)
+      final latestTransactions = uniqueTransactions
+          .take(showAll ? uniqueTransactions.length : 5)
           .toList();
 
+      if (transactionController.isLoading.value) {
+        return Center(
+          child: CircularProgressIndicator(color: SpColor.incomeGreen),
+        );
+      }
       if (latestTransactions.isEmpty) {
         return const Center(
           child: Padding(
@@ -40,35 +56,10 @@ class RecentTransactionsList extends StatelessWidget {
       }
 
       return Column(
-        children: latestTransactions.map((item) {
-          final bool isExpense = item is ExpenseModel;
-
-          return TransactionTile(
-            title: item.title,
-            amount: item.amount,
-            date: item.date,
-            isExpense: isExpense,
-            tagName: _getTagName(item),
-            tagColor: isExpense ? SpColor.expenseRed : SpColor.incomeGreen,
-            icon: isExpense
-                ? Icons.shopping_bag_outlined
-                : Icons.account_balance_wallet_outlined,
-            currency: item.wallet?.currency.code,
-          );
+        children: latestTransactions.map((transaction) {
+          return TransactionTile(transaction: transaction);
         }).toList(),
       );
     });
-  }
-
-  String _getTagName(dynamic item) {
-    if (item.tag == null) return "بدون وسم";
-
-    if (item.tag is String) return item.tag;
-
-    try {
-      return item.tag.name ?? "عام";
-    } catch (_) {
-      return "عام";
-    }
   }
 }

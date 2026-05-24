@@ -106,6 +106,11 @@ const ExpenseModelSchema = CollectionSchema(
       id: 17,
       name: r'walletId',
       type: IsarType.long,
+    ),
+    r'walletLocalId': PropertySchema(
+      id: 18,
+      name: r'walletLocalId',
+      type: IsarType.string,
     )
   },
   estimateSize: _expenseModelEstimateSize,
@@ -174,6 +179,12 @@ int _expenseModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.walletLocalId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -201,6 +212,7 @@ void _expenseModelSerialize(
   writer.writeDateTime(offsets[15], object.updatedAt);
   writer.writeLong(offsets[16], object.userId);
   writer.writeLong(offsets[17], object.walletId);
+  writer.writeString(offsets[18], object.walletLocalId);
 }
 
 ExpenseModel _expenseModelDeserialize(
@@ -228,6 +240,7 @@ ExpenseModel _expenseModelDeserialize(
     updatedAt: reader.readDateTimeOrNull(offsets[15]),
     userId: reader.readLongOrNull(offsets[16]),
     walletId: reader.readLongOrNull(offsets[17]),
+    walletLocalId: reader.readStringOrNull(offsets[18]),
   );
   object.isarId = id;
   return object;
@@ -276,6 +289,8 @@ P _expenseModelDeserializeProp<P>(
       return (reader.readLongOrNull(offset)) as P;
     case 17:
       return (reader.readLongOrNull(offset)) as P;
+    case 18:
+      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -2054,6 +2069,160 @@ extension ExpenseModelQueryFilter
       ));
     });
   }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'walletLocalId',
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'walletLocalId',
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'walletLocalId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'walletLocalId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'walletLocalId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'walletLocalId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'walletLocalId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'walletLocalId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'walletLocalId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'walletLocalId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'walletLocalId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      walletLocalIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'walletLocalId',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension ExpenseModelQueryObject
@@ -2282,6 +2451,19 @@ extension ExpenseModelQuerySortBy
   QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> sortByWalletIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'walletId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> sortByWalletLocalId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletLocalId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      sortByWalletLocalIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletLocalId', Sort.desc);
     });
   }
 }
@@ -2520,6 +2702,19 @@ extension ExpenseModelQuerySortThenBy
       return query.addSortBy(r'walletId', Sort.desc);
     });
   }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> thenByWalletLocalId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletLocalId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      thenByWalletLocalIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletLocalId', Sort.desc);
+    });
+  }
 }
 
 extension ExpenseModelQueryWhereDistinct
@@ -2634,6 +2829,14 @@ extension ExpenseModelQueryWhereDistinct
   QueryBuilder<ExpenseModel, ExpenseModel, QDistinct> distinctByWalletId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'walletId');
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QDistinct> distinctByWalletLocalId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'walletLocalId',
+          caseSensitive: caseSensitive);
     });
   }
 }
@@ -2752,6 +2955,13 @@ extension ExpenseModelQueryProperty
   QueryBuilder<ExpenseModel, int?, QQueryOperations> walletIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'walletId');
+    });
+  }
+
+  QueryBuilder<ExpenseModel, String?, QQueryOperations>
+      walletLocalIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'walletLocalId');
     });
   }
 }

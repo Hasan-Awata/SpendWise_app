@@ -1,4 +1,5 @@
 import 'package:isar/isar.dart';
+import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_local_datasource.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
 
@@ -55,7 +56,7 @@ class TagLocalDatasourceImpl implements TagLocalDatasource {
         await isar.tagModels.put(tag);
       });
     } catch (e) {
-      rethrow;
+      HelperFunction.showSnackBar("error", e.toString(), isError: true);
     }
   }
 
@@ -78,6 +79,50 @@ class TagLocalDatasourceImpl implements TagLocalDatasource {
   }
 
   @override
+  Future<bool> checkIftagExists(String localId) async {
+    // استخدام query مباشر للبحث عن الـ localId فقط دون جلب كافة البيانات للذاكرة
+    final count = await isar.tagModels.filter().localIdEqualTo(localId).count();
+
+    return count > 0;
+  }
+
+  @override
+  Future<bool> checkIfTagExistsBytagId(int? id) async {
+    // استخدام query مباشر للبحث عن الـ localId فقط دون جلب كافة البيانات للذاكرة
+    final count = await isar.tagModels.filter().idEqualTo(id).count();
+
+    return count > 0;
+  }
+
+  @override
+  TagModel? getTagByServerId(int? tagId) {
+    if (tagId == null) return null;
+
+    return isar.tagModels.filter().idEqualTo(tagId).findFirstSync();
+  }
+
+  @override
+  Future<void> saveOrUpdateRemotetag(TagModel remotetag) async {
+    await isar.writeTxn(() async {
+      final existing = await isar.tagModels
+          .filter()
+          .idEqualTo(remotetag.id)
+          .findFirst();
+      if (existing != null) {
+        existing
+          ..isSynced = true
+          ..updatedAt = remotetag.updatedAt;
+        await isar.tagModels.put(existing);
+      } else {
+        remotetag
+          ..isSynced = true
+          ..isDeleted = false;
+        await isar.tagModels.put(remotetag);
+      }
+    });
+  }
+
+  @override
   Future<void> clear() async {
     try {
       await isar.writeTxn(() async {
@@ -86,5 +131,12 @@ class TagLocalDatasourceImpl implements TagLocalDatasource {
     } catch (e) {
       rethrow;
     }
+  }
+
+  @override
+  Future<TagModel?> getTagByIsarId(int? localId) async {
+    if (localId == null) return null;
+
+    return isar.tagModels.filter().isarIdEqualTo(localId).findFirstSync();
   }
 }

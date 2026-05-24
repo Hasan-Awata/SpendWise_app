@@ -4,7 +4,10 @@ import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 
 abstract class IncomeRemoteDatasource {
   Future<IncomeModel?> addIncome(IncomeModel income);
-  Future<PagedResponse<IncomeModel>> getMyIncomes(int userId, PageRequest page);
+  Future<PagedResponse<IncomeModel>?> getMyIncomes(
+    int userId,
+    PageRequest page,
+  );
   Future<IncomeModel?> updateIncome(IncomeModel income);
   Future<bool> deleteIncome(IncomeModel income);
 }

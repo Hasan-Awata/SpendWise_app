@@ -79,7 +79,7 @@ class _BalanceCardState extends State<BalanceCard> {
                           mainController
                               .selectWallet
                               .value
-                              ?.currency!
+                              ?.currency
                               .currencyName ??
                           "اختر محفظة";
                       return Container(
@@ -159,7 +159,7 @@ class _BalanceCardState extends State<BalanceCard> {
                     child: Text(
                       wallet == null
                           ? "0.00"
-                          : "${wallet.currency!.code} ${wallet.balance}",
+                          : "${wallet.currency.code} ${wallet.balance}",
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
@@ -191,7 +191,7 @@ class _BalanceCardState extends State<BalanceCard> {
               final income = incomesListController.monthlyAndWalletIncome.value;
               final expense = expensesController.monthlyAndWalletExpense.value;
               final wallet = mainController.selectWallet.value;
-              final currencyCode = wallet?.currency!.code ?? "";
+              final currencyCode = wallet?.currency.code ?? "";
 
               return Container(
                 padding: const EdgeInsets.all(15),
@@ -283,7 +283,7 @@ class _BalanceCardState extends State<BalanceCard> {
                       ),
                     ),
                     title: Text(
-                      "محفظة ${wallet.currency!.currencyName}",
+                      "محفظة ${wallet.currency.currencyName}",
                       style: TextStyle(
                         color: isSelected ? SpColor.accentBlue : Colors.white,
                         fontWeight: isSelected

@@ -11,57 +11,41 @@ class UpdateWalletController extends GetxController {
   });
 
   final UpdateWalletUseCase updateWalletUseCase;
-
   final WalletsListController walletsListController;
 
-  // =========================
-  // STATE
-  // =========================
-
-  final isLoadingUpdate = false.obs;
-
-  // =========================
-  // UPDATE
-  // =========================
+  final isLoading = false.obs;
 
   Future<void> updateWallet(WalletEntity wallet) async {
     try {
-      isLoadingUpdate.value = true;
+      isLoading.value = true;
 
-      // =====================
-      // OPTIMISTIC UI
-      // =====================
+      // حفظ النسخة القديمة للـ rollback
+      final old = walletsListController.wallets.firstWhereOrNull(
+        (e) => e.localId == wallet.localId,
+      );
 
+      // =========================
+      // OPTIMISTIC UPDATE
+      // =========================
       walletsListController.updateWalletLocally(wallet);
-
-      // =====================
-      // UPDATE DATABASE/API
-      // =====================
 
       final result = await updateWalletUseCase.call(wallet);
 
       result.fold(
         (failure) {
-          _handleError("فشل التحديث", failure.message);
+          // rollback
+          if (old != null) {
+            walletsListController.updateWalletLocally(old);
+          }
+
+          HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
         },
         (_) {
-          Get.back();
-
-          HelperFunction.showSnackBar("تم بنجاح", "تم تحديث المحفظة بنجاح");
+          HelperFunction.showSnackBar("نجاح", "تم التحديث");
         },
       );
-    } catch (e) {
-      _handleError("خطأ تقني", e.toString());
     } finally {
-      isLoadingUpdate.value = false;
+      isLoading.value = false;
     }
-  }
-
-  // =========================
-  // ERROR
-  // =========================
-
-  void _handleError(String title, String message) {
-    HelperFunction.showSnackBar(title, message, isError: true);
   }
 }

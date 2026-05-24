@@ -14,6 +14,7 @@ class WalletsView extends GetView<WalletsListController> {
     final deleteController = Get.find<DeleteWalletController>();
 
     final updateController = Get.find<UpdateWalletController>();
+    controller.refreshWallets();
 
     return Scaffold(
       backgroundColor: const Color(0xFF020817),
@@ -51,7 +52,7 @@ class WalletsView extends GetView<WalletsListController> {
         color: SpColor.mutedGrey,
         backgroundColor: const Color(0xFF1E293B),
 
-        onRefresh: () => controller.refreshWallets(),
+        onRefresh: () async => await controller.refreshWallets(),
 
         child: Obx(() {
           // =========================
@@ -112,12 +113,11 @@ class WalletsView extends GetView<WalletsListController> {
 
             itemBuilder: (context, index) {
               if (index < controller.wallets.length) {
-                final wallet = controller.wallets[index];
-
                 return _buildWalletCard(
-                  wallet,
                   deleteController,
                   updateController,
+
+                  index,
                 );
               }
 
@@ -138,9 +138,9 @@ class WalletsView extends GetView<WalletsListController> {
   // =========================
 
   Widget _buildWalletCard(
-    WalletEntity wallet,
     DeleteWalletController deleteCtrl,
     UpdateWalletController updateCtrl,
+    int index,
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -171,9 +171,9 @@ class WalletsView extends GetView<WalletsListController> {
 
           const SizedBox(width: 16),
 
-          Expanded(child: _buildWalletDetails(wallet)),
+          Expanded(child: _buildWalletDetails(index)),
 
-          _buildActions(wallet, deleteCtrl, updateCtrl),
+          _buildActions(index, deleteCtrl, updateCtrl),
         ],
       ),
     );
@@ -208,7 +208,8 @@ class WalletsView extends GetView<WalletsListController> {
   // DETAILS
   // =========================
 
-  Widget _buildWalletDetails(WalletEntity wallet) {
+  Widget _buildWalletDetails(int index) {
+    final wallet = controller.wallets[index];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
 
@@ -237,38 +238,33 @@ class WalletsView extends GetView<WalletsListController> {
 
         const SizedBox(height: 10),
 
-        _syncStatus(wallet.isSynced),
+        _syncStatus(index),
       ],
     );
   }
 
-  // =========================
-  // SYNC STATUS
-  // =========================
+  Widget _syncStatus(int index) {
+    return Obx(() {
+      final RxBool synced = controller.wallets[index].isSynced;
 
-  Widget _syncStatus(bool synced) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-
-      decoration: BoxDecoration(
-        color: synced
-            ? Colors.green.withOpacity(0.12)
-            : Colors.orange.withOpacity(0.12),
-
-        borderRadius: BorderRadius.circular(20),
-      ),
-
-      child: Text(
-        synced ? "متزامن" : "غير متزامن",
-
-        style: TextStyle(
-          color: synced ? Colors.greenAccent : Colors.orangeAccent,
-
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: synced.value
+              ? Colors.green.withOpacity(0.12)
+              : Colors.orange.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(20),
         ),
-      ),
-    );
+        child: Text(
+          synced.value ? "متزامن" : "غير متزامن",
+          style: TextStyle(
+            color: synced.value ? Colors.greenAccent : Colors.orangeAccent,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    });
   }
 
   // =========================
@@ -276,10 +272,11 @@ class WalletsView extends GetView<WalletsListController> {
   // =========================
 
   Widget _buildActions(
-    WalletEntity wallet,
+    int index,
     DeleteWalletController deleteCtrl,
     UpdateWalletController updateCtrl,
   ) {
+    final wallet = controller.wallets[index];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
 
@@ -497,6 +494,7 @@ class WalletsView extends GetView<WalletsListController> {
 
                       onPressed: () {
                         ctrl.deleteWallet(wallet);
+                        Get.back();
                       },
 
                       child: const Text("حذف"),

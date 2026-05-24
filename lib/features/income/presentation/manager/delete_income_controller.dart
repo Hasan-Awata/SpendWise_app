@@ -1,3 +1,5 @@
+// delete_income_controller.dart
+
 import 'package:get/get.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/income/domain/entities/income_entity.dart';
@@ -13,15 +15,7 @@ class DeleteIncomeController extends GetxController {
   final DeleteIncomeUseCase deleteIncomeUseCase;
   final IncomesListController incomesListController;
 
-  // ==========================
-  // States
-  // ==========================
-
   final RxBool isLoadingDelete = false.obs;
-
-  // ==========================
-  // Delete Income
-  // ==========================
 
   Future<void> deleteIncome(IncomeEntity income) async {
     if (isLoadingDelete.value) return;
@@ -36,19 +30,19 @@ class DeleteIncomeController extends GetxController {
           _handleError("فشل الحذف", failure.message);
         },
         (_) {
-          // حذف ذكي من الواجهة مباشرة بدون reload
-
+          // حذف ذكي وفوري من المصفوفة المحلية بناء على المعرف المحلي أو السيرفر
           incomesListController.incomesList.removeWhere(
             (e) =>
-                e.localId == income.localId ||
+                (e.localId == income.localId) ||
                 (e.id != null && e.id == income.id),
           );
 
+          // تم إزالة fetchAllIncomes() من هنا لأنها كانت تعيد جلب البيانات القديمة وتسبب تعارض في الـ UI
+          // إجبار واجهة مستخدم GetX على إعادة البناء الفوري بدون أي تأخير
           incomesListController.incomesList.refresh();
 
-          // تحديث الإحصائيات
-
-          incomesListController.calculateTotals();
+          // إعادة حساب إجماليات الكروت في الداشبورد فوراً
+          incomesListController.updateDashboardTotals();
 
           Get.back();
           HelperFunction.showSnackBar("تم الحذف", "تم حذف سجل الدخل بنجاح");
@@ -60,10 +54,6 @@ class DeleteIncomeController extends GetxController {
       isLoadingDelete.value = false;
     }
   }
-
-  // ==========================
-  // Error Handler
-  // ==========================
 
   void _handleError(String title, String message) {
     HelperFunction.showSnackBar(title, message, isError: true);

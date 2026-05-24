@@ -7,7 +7,7 @@ class DeleteWalletUseCase {
   final WalletRepository repository;
   DeleteWalletUseCase(this.repository);
 
-  Future<Either<Failure, Unit>> call(WalletEntity wallet) async {
+  Future<Either<Failure, String>> call(WalletEntity wallet) async {
     return await repository.deleteWallet(wallet);
   }
 }

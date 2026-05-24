@@ -3,50 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:isar/isar.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:spendwise/core/network/initial_binding.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
+import 'package:spendwise/core/services/init_isar.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
-import 'package:spendwise/features/auth/data/models/user_model.dart';
-import 'package:spendwise/features/expense/data/models/expense_model.dart';
-import 'package:spendwise/features/income/data/models/income_model.dart';
-import 'package:spendwise/features/savings_goals/data/models/saving_goal_model.dart';
-import 'package:spendwise/features/tags/data/models/tag_model.dart';
-import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
-import 'package:spendwise/features/wallet/domain/entities/currency_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ar', null);
 
-  final dir = await getApplicationDocumentsDirectory();
-  final isar = await Isar.open(
-    [
-      UserModelSchema,
-      TagModelSchema,
-      WalletModelSchema,
-      IncomeModelSchema,
-      ExpenseModelSchema,
-      SavingGoalModelSchema,
-      CurrencySchema,
-    ],
-    directory: dir.path,
-    inspector: true,
-  );
-  Get.put<Isar>(isar, permanent: true);
-  Get.put<AppUserLocalDatasource>(
-    AppUserLocalDatasourceImpl(Get.find<Isar>()),
-    permanent: true,
-  );
+  await InitIsar.init();
 
-  // await isar.writeTxn(() async {
-  //   await isar.clear();
-  // });
+  // await SyncQueueRepositoryImpl(InitIsar.isar!).clearQueue();
+  // InitIsar.clear();
+  // Get.put<AppUserLocalDatasource>(
+  //   AppUserLocalDatasourceImpl(Get.find<Isar>()),
+  //   permanent: true,
+  // );
 
-  runApp(DevicePreview(enabled: false, builder: (context) => const MyApp()));
+  runApp(DevicePreview(enabled: true, builder: (context) => const MyApp()));
 }
 
 class MyApp extends StatelessWidget {

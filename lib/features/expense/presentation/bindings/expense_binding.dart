@@ -2,19 +2,20 @@
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
-import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/expense/data/datasources/expense_local_datasource_impl.dart';
 import 'package:spendwise/features/expense/data/datasources/expense_remote_datasource.dart';
 import 'package:spendwise/features/expense/data/repositories/expense_repository.dart';
 import 'package:spendwise/features/expense/domain/repositories/expense_repository_impl.dart';
 import 'package:spendwise/features/expense/domain/usecases/delete_expense_usecase.dart';
-import 'package:spendwise/features/expense/domain/usecases/get_all_expenses_usecase.dart';
 import 'package:spendwise/features/expense/domain/usecases/update_expense_usecases.dart';
 import 'package:spendwise/features/expense/presentation/manager/add_expense_controller.dart';
 import 'package:spendwise/features/expense/presentation/manager/delete_expense_controller.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/expense/presentation/manager/update_expense_controller.dart';
+import 'package:spendwise/features/sync/queue/sync_queue_repository.dart';
+import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
+import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource.dart';
 
 import '../../data/datasources/expense_local_datasource.dart';
 import '../../data/datasources/expense_remote_datasource_impl.dart';
@@ -41,9 +42,11 @@ class ExpenseBinding extends Bindings {
     if (!Get.isRegistered<ExpenseRepository>()) {
       Get.put<ExpenseRepository>(
         ExpenseRepositoryImpl(
-          remoteDatasource: Get.find<ExpenseRemoteDataSource>(),
           localDataSource: Get.find<ExpenseLocalDataSource>(),
-          network: Get.find<NetworkService>(),
+          syncQueueRepository: Get.find<SyncQueueRepository>(),
+          walletLocalDatasource: Get.find<WalletLocalDatasource>(),
+          currencyLocal: Get.find<CurrencyLocal>(),
+          remote: Get.find<ExpenseRemoteDataSource>(),
         ),
       );
     }
@@ -55,9 +58,9 @@ class ExpenseBinding extends Bindings {
     if (!Get.isRegistered<GetExpensesUsecase>()) {
       Get.put(GetExpensesUsecase(Get.find<ExpenseRepository>()));
     }
-    if (!Get.isRegistered<GetAllLocalExpensesUsecase>()) {
-      Get.put(GetAllLocalExpensesUsecase(Get.find<ExpenseRepository>()));
-    }
+    // if (!Get.isRegistered<GetAllLocalExpensesUsecase>()) {
+    //   Get.put(GetAllLocalExpensesUsecase(Get.find<ExpenseRepository>()));
+    // }
     if (!Get.isRegistered<UpdateExpenseUsecase>()) {
       Get.put(UpdateExpenseUsecase(Get.find<ExpenseRepository>()));
     }
@@ -71,8 +74,8 @@ class ExpenseBinding extends Bindings {
       Get.put(
         ExpensesListController(
           getExpensesUseCase: Get.find<GetExpensesUsecase>(),
-          getAllLocalExpensesUsecase: Get.find<GetAllLocalExpensesUsecase>(),
 
+          // getAllLocalExpensesUsecase: Get.find<GetAllLocalExpensesUsecase>(),
           userIdUsecase: Get.find<GetUserIdUsecase>(),
         ),
       );

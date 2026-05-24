@@ -11,7 +11,6 @@ abstract class IncomeRepository {
     PageRequest page,
   );
 
-  Future<Either<Failure, List<IncomeEntity>>> getAllIncomesLocal();
   // Future<Either<Failure, List<IncomeEntity>>> getAllIncomesLocal();
   Future<Either<Failure, Unit>> deleteIncome(IncomeEntity income);
   Future<Either<Failure, Unit>> updateIncome(IncomeEntity income);

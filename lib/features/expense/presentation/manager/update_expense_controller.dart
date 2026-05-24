@@ -64,7 +64,7 @@ class UpdateExpenseController extends GetxController {
         expensesListController.expensesList.refresh();
       }
 
-      expensesListController.calculateTotals();
+      expensesListController.updateDashboardTotals();
 
       Get.back();
       HelperFunction.showSnackBar("تم بنجاح", "تم تحديث المصروف");

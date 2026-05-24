@@ -381,7 +381,11 @@ class AddExpenseView extends GetView<AddExpenseController> {
             .toList(),
         onChanged: (value) {
           final index = controller.walletsListController.wallets.indexWhere(
-            (w) => "${w.currency.currencyName} (${w.currency.code})" == value,
+            (w) =>
+                "${w.currency.currencyName} (${w.currency.code})"
+                    .toLowerCase()
+                    .trim() ==
+                value?.toLowerCase().trim(),
           );
 
           if (index != -1) {

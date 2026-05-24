@@ -10,8 +10,7 @@ class TagsView extends GetView<TagViewController> {
 
   @override
   Widget build(BuildContext context) {
-    final TagActionController tagActionController =
-        Get.find<TagActionController>();
+    final tagActionController = Get.find<TagActionController>();
 
     return Scaffold(
       backgroundColor: const Color(0xFF020817),
@@ -33,9 +32,9 @@ class TagsView extends GetView<TagViewController> {
       ),
 
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: SpColor.tagColor,
+        backgroundColor: SpColor.mutedGrey,
 
-        onPressed: () => Get.toNamed('/add-wallet'),
+        onPressed: () => Get.toNamed('/add-tag'),
 
         icon: const Icon(Icons.add_rounded, color: Colors.white),
 
@@ -46,10 +45,10 @@ class TagsView extends GetView<TagViewController> {
       ),
 
       body: RefreshIndicator(
-        color: SpColor.tagColor,
+        color: SpColor.mutedGrey,
         backgroundColor: const Color(0xFF1E293B),
 
-        onRefresh: () => controller.refreshTags(),
+        onRefresh: () async => await controller.refreshmyTags(),
 
         child: Obx(() {
           // =========================
@@ -58,7 +57,7 @@ class TagsView extends GetView<TagViewController> {
 
           if (controller.isLoading.value && controller.myTags.isEmpty) {
             return const Center(
-              child: CircularProgressIndicator(color: SpColor.tagColor),
+              child: CircularProgressIndicator(color: SpColor.mutedGrey),
             );
           }
 
@@ -73,11 +72,7 @@ class TagsView extends GetView<TagViewController> {
               children: const [
                 SizedBox(height: 220),
 
-                Icon(
-                  Icons.account_balance_wallet_outlined,
-                  color: Colors.white24,
-                  size: 80,
-                ),
+                Icon(Icons.list_alt_outlined, color: Colors.white24, size: 80),
 
                 SizedBox(height: 20),
 
@@ -99,7 +94,7 @@ class TagsView extends GetView<TagViewController> {
             controller: controller.scrollController,
 
             physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
+              parent: AlwaysScrollableScrollPhysics(),
             ),
 
             padding: const EdgeInsets.all(16),
@@ -110,9 +105,7 @@ class TagsView extends GetView<TagViewController> {
 
             itemBuilder: (context, index) {
               if (index < controller.myTags.length) {
-                final tag = controller.myTags[index];
-
-                return _buildTagCard(tag, tagActionController);
+                return _buildtagCard(tagActionController, index);
               }
 
               return const Padding(
@@ -128,10 +121,10 @@ class TagsView extends GetView<TagViewController> {
   }
 
   // =========================
-  // WALLET CARD
+  // tag CARD
   // =========================
 
-  Widget _buildTagCard(TagEntity tag, TagActionController deleteCtrl) {
+  Widget _buildtagCard(TagActionController tagActionController, int index) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
 
@@ -161,9 +154,9 @@ class TagsView extends GetView<TagViewController> {
 
           const SizedBox(width: 16),
 
-          Expanded(child: _buildTagDetails(tag)),
+          Expanded(child: _buildtagDetails(index)),
 
-          _buildActions(tag, deleteCtrl),
+          _buildActions(index, tagActionController),
         ],
       ),
     );
@@ -182,15 +175,11 @@ class TagsView extends GetView<TagViewController> {
         shape: BoxShape.circle,
 
         gradient: LinearGradient(
-          colors: [SpColor.tagColor, SpColor.tagColor.withOpacity(0.7)],
+          colors: [SpColor.mutedGrey, SpColor.mutedGrey.withOpacity(0.7)],
         ),
       ),
 
-      child: const Icon(
-        Icons.account_balance_wallet_rounded,
-        color: Colors.white,
-        size: 28,
-      ),
+      child: const Icon(Icons.tag, color: Colors.white, size: 28),
     );
   }
 
@@ -198,7 +187,8 @@ class TagsView extends GetView<TagViewController> {
   // DETAILS
   // =========================
 
-  Widget _buildTagDetails(TagEntity tag) {
+  Widget _buildtagDetails(int index) {
+    final tag = controller.myTags[index];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
 
@@ -227,7 +217,7 @@ class TagsView extends GetView<TagViewController> {
 
         const SizedBox(height: 10),
 
-        _syncStatus(tag.isSynced),
+        _syncStatus(index),
       ],
     );
   }
@@ -236,44 +226,47 @@ class TagsView extends GetView<TagViewController> {
   // SYNC STATUS
   // =========================
 
-  Widget _syncStatus(bool synced) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+  // spendwise/features/tag/presentation/widgets/sync_status.dart
 
-      decoration: BoxDecoration(
-        color: synced
-            ? Colors.green.withOpacity(0.12)
-            : Colors.orange.withOpacity(0.12),
+  Widget _syncStatus(int index) {
+    return Obx(() {
+      final RxBool synced = controller.myTags[index].isSynced;
 
-        borderRadius: BorderRadius.circular(20),
-      ),
-
-      child: Text(
-        synced ? "متزامن" : "غير متزامن",
-
-        style: TextStyle(
-          color: synced ? Colors.greenAccent : Colors.orangeAccent,
-
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: synced.value
+              ? Colors.green.withOpacity(0.12)
+              : Colors.orange.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(20),
         ),
-      ),
-    );
+        child: Text(
+          synced.value ? "متزامن" : "غير متزامن",
+          style: TextStyle(
+            color: synced.value ? Colors.greenAccent : Colors.orangeAccent,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    });
   }
 
   // =========================
   // ACTIONS
   // =========================
 
-  Widget _buildActions(TagEntity tag, TagActionController ctrl) {
+  Widget _buildActions(int index, TagActionController tagActionController) {
+    final tag = controller.myTags[index];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
 
       children: [
         Text(
           tag.name,
+
           style: const TextStyle(
-            color: SpColor.tagColor,
+            color: SpColor.mutedGrey,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -286,7 +279,7 @@ class TagsView extends GetView<TagViewController> {
             _iconBtn(
               Icons.edit,
               Colors.blueAccent,
-              () => _showUpdateDialog(tag, ctrl),
+              () => _showUpdateDialog(tag, tagActionController),
             ),
 
             const SizedBox(width: 6),
@@ -294,7 +287,7 @@ class TagsView extends GetView<TagViewController> {
             _iconBtn(
               Icons.delete,
               Colors.redAccent,
-              () => _showDeleteDialog(tag, ctrl),
+              () => _showDeleteDialog(tag, tagActionController),
             ),
           ],
         ),
@@ -328,7 +321,6 @@ class TagsView extends GetView<TagViewController> {
 
   void _showUpdateDialog(TagEntity tag, TagActionController ctrl) {
     final textController = TextEditingController(text: tag.name);
-
     Get.dialog(
       Dialog(
         backgroundColor: const Color(0xFF111827),
@@ -343,7 +335,7 @@ class TagsView extends GetView<TagViewController> {
 
             children: [
               const Text(
-                "تعديل العلامة",
+                "تعديل الوسم",
 
                 style: TextStyle(
                   color: Colors.white,
@@ -357,12 +349,10 @@ class TagsView extends GetView<TagViewController> {
               TextField(
                 controller: textController,
 
-                keyboardType: TextInputType.number,
-
                 style: const TextStyle(color: Colors.white),
 
                 decoration: InputDecoration(
-                  labelText: "الرصيد الجديد",
+                  labelText: "الاسم الجديد",
 
                   labelStyle: const TextStyle(color: Colors.white70),
 
@@ -384,15 +374,11 @@ class TagsView extends GetView<TagViewController> {
 
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: SpColor.tagColor,
+                    backgroundColor: SpColor.mutedGrey,
                   ),
 
-                  onPressed: () {
-                    final value = textController.text;
-
-                    ctrl.updateTag(tag, value);
-
-                    Get.back();
+                  onPressed: () async {
+                    await ctrl.updateTag(tag, textController.text);
                   },
 
                   child: const Text(
@@ -476,6 +462,7 @@ class TagsView extends GetView<TagViewController> {
 
                       onPressed: () {
                         ctrl.deleteTag(tag);
+                        Get.back();
                       },
 
                       child: const Text("حذف"),

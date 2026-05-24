@@ -14,17 +14,6 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
 
   @override
   Future<void> addWalletLocal(WalletModel model) async {
-    // البحث عن محفظة موجودة بنفس الـ localId
-    final existing = await isar.walletModels
-        .filter()
-        .localIdEqualTo(model.localId)
-        .findFirst();
-
-    if (existing != null) {
-      // إذا وجدت، نحدث المعرف لكي يقوم Isar بعمل Update بدل Insert
-      model.isarId = existing.isarId;
-    }
-
     await isar.writeTxn(() async {
       await isar.walletModels.put(model);
     });
@@ -69,9 +58,47 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
   }
 
   @override
+  Future<bool> checkIfWalletExistsByWalletId(int? id) async {
+    // استخدام query مباشر للبحث عن الـ localId فقط دون جلب كافة البيانات للذاكرة
+    final count = await isar.walletModels.filter().walletIdEqualTo(id).count();
+
+    return count > 0;
+  }
+
+  @override
   WalletModel? getWalletByServerId(int? walletId) {
     if (walletId == null) return null;
 
     return isar.walletModels.filter().walletIdEqualTo(walletId).findFirstSync();
+  }
+
+  @override
+  Future<void> saveOrUpdateRemoteWallet(WalletModel remoteWallet) async {
+    await isar.writeTxn(() async {
+      final existing = await isar.walletModels
+          .filter()
+          .walletIdEqualTo(remoteWallet.walletId)
+          .findFirst();
+      if (existing != null) {
+        existing
+          ..balance = remoteWallet.balance
+          ..currencyId = remoteWallet.currencyId
+          ..isSynced = true
+          ..updatedAt = remoteWallet.updatedAt;
+        await isar.walletModels.put(existing);
+      } else {
+        remoteWallet
+          ..isSynced = true
+          ..isDeleted = false;
+        await isar.walletModels.put(remoteWallet);
+      }
+    });
+  }
+
+  @override
+  WalletModel? getWalletByIsarId(int? isarId) {
+    if (isarId == null) return null;
+
+    return isar.walletModels.filter().isarIdEqualTo(isarId).findFirstSync();
   }
 }

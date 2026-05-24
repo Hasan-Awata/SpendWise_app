@@ -1,4 +1,5 @@
 // wallet_entity.dart
+import 'package:get/get.dart';
 import 'package:spendwise/features/wallet/domain/entities/currency_model.dart';
 import 'package:uuid/uuid.dart';
 
@@ -9,7 +10,7 @@ class WalletEntity {
   double balance;
   int currencyId;
 
-  bool isSynced;
+  RxBool isSynced;
   bool isDeleted;
   bool isSaved;
 
@@ -20,17 +21,19 @@ class WalletEntity {
 
   WalletEntity({
     String? localId,
+    RxBool? isSynced,
     this.walletId,
     required this.userId,
     required this.balance,
     required this.currencyId,
     this.isSaved = false,
-    this.isSynced = false,
+
     this.isDeleted = false,
     required this.currency,
     this.createdAt,
     this.updatedAt,
-  }) : localId = localId ?? const Uuid().v4();
+  }) : isSynced = isSynced ?? false.obs,
+       localId = localId ?? const Uuid().v4();
 
   @override
   String toString() {

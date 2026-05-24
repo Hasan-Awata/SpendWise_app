@@ -26,13 +26,7 @@ class CurrentUser {
 
   /// التحقق مما إذا كان المستخدم مسجل دخوله حالياً
   static bool get isUserLoggedIn {
-    try {
-      final userSource = Get.find<AppUserLocalDatasource>();
-
-      return (userSource as AppUserLocalDatasourceImpl).currentUserId != null;
-    } catch (e) {
-      return _currentUser != null;
-    }
+    return _currentUser != null;
   }
 
   /// تهيئة بيانات المستخدم عند بداية تشغيل التطبيق
@@ -62,4 +56,9 @@ class CurrentUser {
 
   /// الحصول على التوكن بشكل سريع لإضافته لطلبات الـ API
   static String get token => _currentUser?.token ?? "";
+
+  static void clear() {
+    _currentUser = null;
+    Get.find<AppUserLocalDatasource>().clear();
+  }
 }

@@ -12,6 +12,13 @@ abstract class TagLocalDatasource {
   Future<List<TagModel>> getUnsyncedTags();
 
   Future<TagModel?> getTag(String localId);
+  Future<TagModel?> getTagByIsarId(int localId);
+  Future<bool> checkIftagExists(String localId);
 
+  Future<bool> checkIfTagExistsBytagId(int? id);
+
+  TagModel? getTagByServerId(int? tagId);
+
+  Future<void> saveOrUpdateRemotetag(TagModel remotetag);
   Future<void> clear();
 }

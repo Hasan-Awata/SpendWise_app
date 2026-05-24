@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/expense/presentation/pages/add_expense_view.dart';
-import 'package:spendwise/features/savings_goals/presentation/pages/add_saving_goal_page.dart';
 
 // هذا الكود يمثل صفحة لوحة التحكم التي تتيح للمستخدم إضافة عناصر جديدة بسرعة
 class DashboardPage extends StatelessWidget {
@@ -68,6 +66,13 @@ class DashboardPage extends StatelessWidget {
             subtitle: 'تسجيل الأموال الخارجة', // Record money out
             color: SpColor.expenseRed,
             onTap: () => Get.toNamed('/add-expense'),
+          ),
+          _DashboardTile(
+            icon: Icons.pie_chart_outline,
+            title: 'ميزانية التصنيفات', // Category Budget
+            subtitle: 'تحديد حدود الصرف لكل تصنيف',
+            color: const Color(0xFF8B5CF6),
+            onTap: () => Get.toNamed('/add-category-budget'),
           ),
         ],
       ),

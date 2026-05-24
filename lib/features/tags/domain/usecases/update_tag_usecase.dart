@@ -8,7 +8,7 @@ class UpdateTagUsecase {
 
   UpdateTagUsecase(this.tagRepository);
 
-  Future<Either<Failure, Unit>> call(TagEntity tag) async {
+  Future<Either<Failure, String>> call(TagEntity tag) async {
     return await tagRepository.updateTag(tag);
   }
 }

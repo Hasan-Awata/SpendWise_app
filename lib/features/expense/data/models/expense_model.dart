@@ -1,5 +1,6 @@
+import 'package:get/get.dart';
 import 'package:isar/isar.dart';
-import 'package:spendwise/features/category/data/model/category_model.dart';
+import 'package:spendwise/features/category/data/models/category_model.dart';
 import 'package:spendwise/features/expense/domain/entities/expense_entity.dart';
 import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
@@ -27,6 +28,7 @@ class ExpenseModel {
   bool isDeleted;
 
   int? walletId;
+  String? walletLocalId;
   int? categoryId;
   int? expenseTagId;
 
@@ -44,6 +46,7 @@ class ExpenseModel {
 
   ExpenseModel({
     required this.localId,
+    this.walletLocalId,
     this.id,
     this.userId,
     required this.title,
@@ -79,18 +82,19 @@ class ExpenseModel {
       walletId: entity.walletId,
       categoryId: entity.categoryId,
       expenseTagId: entity.expenseTagId,
-      isSynced: entity.isSynced,
+      isSynced: entity.isSynced.value,
       isDeleted: entity.isDeleted,
       isFixed: entity.isFixed,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      walletLocalId: entity.walletLocalId,
     );
   }
 
   ExpenseEntity toEntity({
     CategoryModel? category,
     TagEntity? tag,
-    WalletEntity? wallet,
+    WalletEntity? wallet, // هذا هو الكائن الذي نرسله من الـ Repository
   }) {
     return ExpenseEntity(
       localId: localId,
@@ -104,15 +108,15 @@ class ExpenseModel {
       walletId: walletId,
       categoryId: categoryId,
       expenseTagId: expenseTagId,
-      isSynced: isSynced,
+      isSynced: isSynced.obs,
       isDeleted: isDeleted,
       isFixed: isFixed,
       category: category,
       tag: tag,
       wallet: wallet,
+      walletLocalId: walletLocalId,
     );
   }
-
   // ========================= JSON =========================
 
   factory ExpenseModel.fromJson(Map<String, dynamic> json, {String? localId}) {

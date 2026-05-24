@@ -5,10 +5,13 @@ abstract class ExpenseLocalDataSource {
   Future<void> saveExpenses(List<ExpenseModel> expenses);
   Future<void> addExpense(ExpenseModel expense);
   Future<List<ExpenseModel>> getExpenses();
-  ExpenseModel? getExpense(String localId);
+  Future<ExpenseModel?> getExpense(String localId);
+  Future<ExpenseModel?> getExpenseByIsarId(int isarId);
+  Future<void> saveOrUpdateExpense(ExpenseModel model);
   ExpenseModel? getExpenseByServerId(int? walletId);
   Future<bool> checkIfExpenseExists(String localId);
   Future<void> deleteExpense(ExpenseModel expense);
+  Future<bool> checkIfExpenseExistsById(int? id);
   Future<void> updateExpense(ExpenseModel expense);
   Future<void> clear();
 }

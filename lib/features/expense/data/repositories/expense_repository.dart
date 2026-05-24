@@ -11,7 +11,7 @@ abstract class ExpenseRepository {
     int? userId,
     PageRequest page,
   );
-  Future<Either<Failure, List<ExpenseEntity>>> getAllExpensesLocal();
+
   Future<Either<Failure, Unit>> deleteExpense(ExpenseEntity expense);
   Future<Either<Failure, Unit>> updateExpense(ExpenseEntity expense);
 }

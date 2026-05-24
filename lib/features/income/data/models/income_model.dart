@@ -1,5 +1,8 @@
+import 'package:get/get_rx/src/rx_types/rx_types.dart';
 import 'package:isar/isar.dart';
 import 'package:spendwise/features/income/domain/entities/income_entity.dart';
+import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:uuid/uuid.dart';
 
 part 'income_model.g.dart';
@@ -24,6 +27,7 @@ class IncomeModel {
 
   int syncAttempts;
   DateTime? lastSyncError;
+  String? walletLocalId;
 
   bool isSynced = false;
   bool isDeleted = false;
@@ -31,6 +35,7 @@ class IncomeModel {
   DateTime? createdAt;
   DateTime? updatedAt;
   IncomeModel({
+    this.walletLocalId,
     required this.localId,
     this.id,
     required this.userId,
@@ -52,7 +57,7 @@ class IncomeModel {
   // ========================= MAPPERS =========================
 
   /// Model → Entity
-  IncomeEntity toEntity() {
+  IncomeEntity toEntity({TagEntity? tag, WalletEntity? wallet}) {
     return IncomeEntity(
       localId: localId,
       id: id,
@@ -63,8 +68,11 @@ class IncomeModel {
       date: date,
       incomeTagId: incomeTagId,
       description: description ?? "",
-      isSynced: isSynced,
+      walletLocalId: walletLocalId,
+      isSynced: isSynced.obs,
       isDeleted: isDeleted,
+      tag: tag,
+      wallet: wallet,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -82,8 +90,11 @@ class IncomeModel {
       date: entity.date,
       incomeTagId: entity.incomeTagId,
       description: entity.description,
-      isSynced: entity.isSynced,
+      isSynced: entity.isSynced.value,
       isDeleted: entity.isDeleted,
+      walletLocalId: entity.walletLocalId,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
     );
   }
 
@@ -121,6 +132,26 @@ class IncomeModel {
 
   @override
   String toString() {
-    return 'IncomeModel(title: $title, amount: $amount, isSynced: $isSynced)';
+    return '''
+IncomeModel {
+  isarId: $isarId
+  localId: $localId
+  id: $id
+  userId: $userId
+  walletId: $walletId
+  incomeTagId: $incomeTagId
+  title: $title
+  amount: $amount
+  date: $date
+  description: $description
+  walletLocalId: $walletLocalId
+  isSynced: $isSynced
+  isDeleted: $isDeleted
+  syncAttempts: $syncAttempts
+  lastSyncError: $lastSyncError
+  createdAt: $createdAt
+  updatedAt: $updatedAt
+}
+''';
   }
 }

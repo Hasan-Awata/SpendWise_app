@@ -23,7 +23,6 @@ class LogoutController extends GetxController {
       ),
       (_) async {
         Get.find<AuthSessionController>().clearSession();
-        HelperFunction.showSnackBar("Success", "Logged out successfully");
       },
     );
 

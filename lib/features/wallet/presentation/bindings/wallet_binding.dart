@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
-import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
+import 'package:spendwise/features/sync/queue/sync_queue_repository.dart';
 import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
 import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource.dart';
 import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource_impl.dart';
@@ -14,7 +14,6 @@ import 'package:spendwise/features/wallet/domain/repositories/currency_repositor
 import 'package:spendwise/features/wallet/domain/repositories/wallet_repository_impl.dart';
 import 'package:spendwise/features/wallet/domain/usecases/add_wallet_usecase.dart';
 import 'package:spendwise/features/wallet/domain/usecases/delete_wallet_usecase.dart';
-import 'package:spendwise/features/wallet/domain/usecases/get_all_wallets_local_usecase.dart';
 import 'package:spendwise/features/wallet/domain/usecases/get_wallets_usecase.dart';
 import 'package:spendwise/features/wallet/domain/usecases/update_wallet_usecase.dart';
 import 'package:spendwise/features/wallet/presentation/manager/add_wallet_controller.dart';
@@ -25,12 +24,6 @@ import 'package:spendwise/features/wallet/presentation/manager/wallets_list_cont
 class WalletBinding implements Bindings {
   @override
   void dependencies() {
-    // =====================================================
-    // CORE
-    // =====================================================
-
-    Get.lazyPut<NetworkService>(() => NetworkService(), fenix: true);
-
     // =====================================================
     // LOCAL SERVICES
     // =====================================================
@@ -68,7 +61,7 @@ class WalletBinding implements Bindings {
         remote: Get.find(),
         local: Get.find(),
         currencyRepository: Get.find(),
-        network: Get.find(),
+        syncQueueRepository: Get.find<SyncQueueRepository>(),
       ),
       fenix: true,
     );
@@ -85,7 +78,7 @@ class WalletBinding implements Bindings {
 
     Get.lazyPut(() => DeleteWalletUseCase(Get.find()), fenix: true);
 
-    Get.lazyPut(() => GetAllWalletsLocalUseCase(Get.find()), fenix: true);
+    // Get.lazyPut(() => GetAllWalletsLocalUseCase(Get.find()), fenix: true);
 
     // =====================================================
     // CONTROLLERS
@@ -95,7 +88,7 @@ class WalletBinding implements Bindings {
       WalletsListController(
         getMyWalletsUseCase: Get.find(),
 
-        getAllLocalWalletsUseCase: Get.find(),
+        // getAllLocalWalletsUseCase: Get.find(),
       ),
     );
 

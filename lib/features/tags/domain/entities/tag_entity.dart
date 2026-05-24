@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 
 class TagEntity {
@@ -7,20 +8,21 @@ class TagEntity {
   String name;
 
   bool isDeleted;
-  bool isSynced;
+  RxBool isSynced;
 
   DateTime? createdAt;
   DateTime? updatedAt;
 
   TagEntity({
     String? localId,
-
+    RxBool? isSynced,
     this.id,
     required this.userId,
     required this.name,
-    this.isSynced = false,
+
     this.isDeleted = false,
     this.createdAt,
     this.updatedAt,
-  }) : localId = localId ?? const Uuid().v4();
+  }) : isSynced = isSynced ?? false.obs,
+       localId = localId ?? const Uuid().v4();
 }

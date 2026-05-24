@@ -6,10 +6,12 @@ abstract class IncomeLocalDataSource {
   Future<void> addIncome(IncomeModel income);
   Future<List<IncomeModel>> getIncomes();
   IncomeModel? getIncomeByServerId(int? walletId);
-  IncomeModel? getIncome(String localId);
+  Future<IncomeModel?> getIncome(String localId);
+  Future<IncomeModel?> getIncomeByIsarId(int isarId);
   Future<void> deleteIncome(IncomeModel income);
   Future<void> updateIncome(IncomeModel income);
-  // داخل abstract class IncomeLocalDataSource
+  Future<void> saveOrUpdateRemoteIncome(IncomeModel remoteIncome);
   Future<bool> checkIfIncomeExists(String localId);
+  Future<bool> checkIfIncomeExistsById(int id);
   Future<void> clear();
 }

@@ -1,4 +1,6 @@
+import 'package:get/get_rx/src/rx_types/rx_types.dart';
 import 'package:isar/isar.dart';
+import 'package:spendwise/features/sync/model/syncable_model.dart';
 import 'package:spendwise/features/wallet/domain/entities/currency_model.dart';
 import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:uuid/uuid.dart';
@@ -6,8 +8,14 @@ import 'package:uuid/uuid.dart';
 part 'wallet_model.g.dart';
 
 @collection
-class WalletModel {
+class WalletModel implements SyncableModel {
   Id isarId = Isar.autoIncrement;
+
+  @override
+  int? get serverId {
+    if (walletId == null || walletId! <= 0) return null;
+    return walletId;
+  }
 
   @Index(unique: true)
   String localId;
@@ -19,17 +27,23 @@ class WalletModel {
   double balance;
   int currencyId;
 
+  @override
   bool isSynced;
+  @override
   bool isDeleted;
   bool isSaved;
 
   @ignore
   Currency? currency;
 
+  @ignore
+  WalletModel? wallet;
+
   // =====================================================
   // SYNC RETRY SYSTEM
   // =====================================================
 
+  @override
   int syncAttempts;
   DateTime? lastSyncError;
 
@@ -96,7 +110,7 @@ class WalletModel {
       balance: entity.balance,
       currencyId: entity.currencyId,
       isSaved: entity.isSaved,
-      isSynced: entity.isSynced,
+      isSynced: entity.isSynced.value,
       isDeleted: entity.isDeleted,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
@@ -111,7 +125,7 @@ class WalletModel {
       balance: balance,
       currencyId: currencyId,
       isSaved: isSaved,
-      isSynced: isSynced,
+      isSynced: isSynced.obs,
       isDeleted: isDeleted,
       currency: currency ?? Currency(code: "", currencyName: ""),
       createdAt: createdAt,
@@ -204,5 +218,15 @@ WalletModel(
   updatedAt: $updatedAt
 )
 ''';
+  }
+
+  @override
+  void markSynced(int id) {
+    walletId = id;
+    isSynced = true;
+    isDeleted = false;
+    syncAttempts = 0;
+    lastSyncError = null;
+    updatedAt = DateTime.now();
   }
 }

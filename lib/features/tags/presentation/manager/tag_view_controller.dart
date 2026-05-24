@@ -1,112 +1,166 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 import 'package:spendwise/features/tags/domain/usecases/get_my_tags_usecase.dart';
 
-// tag_view_controller.dart
-
 class TagViewController extends GetxController {
-  final GetMyTagsUsecase getMyTagsUsecase;
+  final GetMyTagsUsecase getMyTagsUseCase;
 
-  TagViewController({required this.getMyTagsUsecase});
+  TagViewController({required this.getMyTagsUseCase});
 
+  // =========================
+  // STATE
+  // =========================
   final RxList<TagEntity> myTags = <TagEntity>[].obs;
+
   final isLoading = false.obs;
   final isRefreshing = false.obs;
   final isLoadingMore = false.obs;
-  final hasMoreData = true.obs;
+
+  // جعلناها false افتراضياً لأن الـ Repository حالياً يجلب كل البيانات دفعة واحدة
+  final hasMoreData = false.obs;
   final errorMessage = ''.obs;
 
-  int page = 1;
-  final int pageSize = 20;
-  bool _isRequestRunning = false;
   final ScrollController scrollController = ScrollController();
 
+  // متغير الحماية من الحلقة المفرغة
+  bool _isProcessing = false;
+
+  // =========================
+  // INIT
+  // =========================
   @override
   void onInit() {
     super.onInit();
-    scrollController.addListener(_onScroll);
-    loadTags(refresh: true);
+    scrollController.addListener(_scrollListener);
+    loadTags(isRefresh: true);
   }
 
-  void _onScroll() {
-    if (!scrollController.hasClients || _isRequestRunning) return;
+  // =========================
+  // SCROLL
+  // =========================
+  void _scrollListener() {
+    if (!scrollController.hasClients || _isProcessing) return;
 
-    // التحميل المبكر قبل الوصول للنهاية بـ 200 بكسل
-    if (scrollController.position.extentAfter < 200 && hasMoreData.value) {
-      loadTags(refresh: false);
+    // [نصيحة داخل الكود]: إذا كان لا يوجد بيانات إضافية (Pagination) توقف عن طلب المزيد لمنع التكرار.
+    if (!hasMoreData.value) return;
+
+    final position = scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 120) {
+      if (!isLoading.value && !isLoadingMore.value) {
+        loadTags();
+      }
     }
   }
 
-  Future<void> loadTags({required bool refresh}) async {
-    if (_isRequestRunning) return;
-    _isRequestRunning = true;
+  // =========================
+  // LOAD
+  // =========================
+  Future<void> loadTags({bool isRefresh = false}) async {
+    // 1. حماية صارمة لمنع تداخل الطلبات (سبب الـ Logs المتكررة)
+    if (_isProcessing) return;
+
+    _isProcessing = true;
 
     try {
       errorMessage.value = '';
 
-      if (refresh) {
+      if (isRefresh) {
         isRefreshing.value = true;
-        page = 1;
-        hasMoreData.value = true;
       } else {
         isLoadingMore.value = true;
       }
 
-      if (myTags.isEmpty && refresh) isLoading.value = true;
+      // إظهار حالة التحميل الكلية فقط في المرة الأولى
+      if (myTags.isEmpty) isLoading.value = true;
 
-      final result = await getMyTagsUsecase.call(
-        PageRequest(pageNumber: page, pageSize: pageSize),
-      );
+      // استدعاء البيانات (محلي + سيرفر كما عدلنا في الـ Repository)
+      final result = await getMyTagsUseCase.call();
 
-      result.fold((failure) => errorMessage.value = failure.message, (
-        response,
-      ) {
-        final newItems = response.data;
+      result.fold(
+        (failure) {
+          errorMessage.value = failure.message;
+          // HelperFunction.showSnackBar("خطأ", failure.message);
+        },
+        (data) {
+          // [نصيحة داخل الكود]: نقوم بتنظيف البيانات من التكرار بناءً على الـ ID الفريد.
+          final uniqueData = _sanitize(data);
 
-        if (refresh) {
-          myTags.assignAll(newItems);
-        } else {
-          // منع التكرار بكفاءة عالية
-          final existingIds = myTags.map((e) => e.localId).toSet();
-          final uniqueItems = newItems.where(
-            (tag) => !existingIds.contains(tag.localId),
+          // [نصيحة داخل الكود]: نستخدم assignAll لأن القائمة تأتي كاملة من الـ Local Database.
+          myTags.assignAll(uniqueData);
+
+          // ترتيب العناصر حسب تاريخ الإنشاء (الأحدث أولاً)
+          myTags.sort(
+            (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
+              a.createdAt ?? DateTime(0),
+            ),
           );
-          myTags.addAll(uniqueItems);
-        }
 
-        // ترتيب البيانات: الأحدث (الذي يملك ID أكبر أو تاريخ أحدث) في الأعلى
-        myTags.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
-
-        if (newItems.length < pageSize) {
+          // [نصيحة داخل الكود]: بما أن الـ API لا يدعم pagination (صفحات) حالياً، نغلق الميزة لمنع الـ Infinite Loop.
           hasMoreData.value = false;
-        } else {
-          page++;
-        }
-      });
+        },
+      );
     } finally {
+      // إنهاء كافة حالات التحميل
       isLoading.value = false;
       isRefreshing.value = false;
       isLoadingMore.value = false;
-      _isRequestRunning = false;
+      _isProcessing = false;
     }
   }
 
+  // =========================
+  // SANITIZE (إزالة التكرار)
+  // =========================
+  List<TagEntity> _sanitize(List<TagEntity> list) {
+    final Map<String, TagEntity> map = {};
+
+    for (final item in list) {
+      // [نصيحة داخل الكود]: نستخدم localId كمفتاح فريد لضمان عدم ظهور المحفظة مرتين في القائمة.
+      if (item.localId.isNotEmpty) {
+        map[item.localId] = item;
+      }
+    }
+
+    return map.values.toList();
+  }
+
+  // =========================
+  // OPTIMISTIC UI HELPERS
+  // =========================
+  // تستخدم لتحديث الواجهة فوراً قبل اكتمال عمليات المزامنة
+
   void addTagLocally(TagEntity tag) {
     myTags.insert(0, tag);
-    myTags.refresh();
+    myTags.refresh(); // لضمان تحديث واجهة GetX
+  }
+
+  void updateTagLocally(TagEntity tag) {
+    final index = myTags.indexWhere((e) => e.localId == tag.localId);
+    if (index != -1) {
+      myTags[index] = tag;
+      myTags.refresh();
+    }
   }
 
   void deleteTagLocally(String localId) {
     myTags.removeWhere((e) => e.localId == localId);
-    myTags.refresh();
   }
 
-  Future<void> refreshTags() async {
-    await loadTags(refresh: true);
+  // =========================
+  // REFRESH & RETRY
+  // =========================
+  Future<void> refreshmyTags() async {
+    await loadTags(isRefresh: true);
   }
 
+  Future<void> retry() async {
+    await loadTags(isRefresh: true);
+  }
+
+  // =========================
+  // DISPOSE
+  // =========================
   @override
   void onClose() {
     scrollController.dispose();

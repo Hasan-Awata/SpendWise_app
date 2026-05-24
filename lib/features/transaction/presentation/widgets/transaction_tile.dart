@@ -1,29 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/core/utils/constants.dart' show SpConstants;
+import 'package:spendwise/features/transaction/domain/entities/transaction_entity.dart';
 import 'package:spendwise/features/widget_feature/mixin/scalable_state.dart';
 
 class TransactionTile extends StatefulWidget {
-  final String title;
-  final String tagName;
-  final double amount;
-  final DateTime date;
-  final IconData icon;
-  final Color tagColor;
-  final bool isExpense;
-  final String? currency;
+  final TransactionEntity transaction;
 
-  const TransactionTile({
-    super.key,
-    required this.title,
-    required this.tagName,
-    required this.amount,
-    required this.date,
-    required this.icon,
-    required this.tagColor,
-    this.isExpense = true,
-    this.currency = "SYR",
-  });
+  const TransactionTile({super.key, required this.transaction});
 
   @override
   State<TransactionTile> createState() => _TransactionTileState();
@@ -32,24 +16,41 @@ class TransactionTile extends StatefulWidget {
 class _TransactionTileState extends State<TransactionTile> with ScalableState {
   @override
   Widget build(BuildContext context) {
+    final transaction = widget.transaction;
+
+    final String displayTitle = transaction.title.isEmpty
+        ? "No Title"
+        : transaction.title;
+    final double displayAmount = transaction.amount;
+    final DateTime displayDate = transaction.date;
+    final bool isExpense = transaction.isExpense;
+    final String currency = transaction.currency;
+
+    // اسم الفئة القادم من الـ Category أو قيمة افتراضية في حال كانت null
+    final String tagName = transaction.category?.name ?? "General";
+
+    // =================================================================
+    // تحديد الألوان والأيقونات ديناميكياً بناءً على نوع المعاملة (دخل أو مصروف)
+    // =================================================================
+    final Color tagColor = isExpense ? SpColor.expenseRed : SpColor.incomeGreen;
+    final IconData icon = isExpense
+        ? Icons
+              .arrow_outward_rounded // سهم خارج أحمر للمصاريف
+        : Icons.arrow_downward_rounded; // سهم داخل أخضر للإيرادات/الدخل
+
     return wrapWithScale(
       scaleFactor: 1.05,
       child: Container(
-        margin: const EdgeInsets.symmetric(
-          vertical: 6,
-          horizontal: 2,
-        ), // تقليل المسافات العمودية قليلاً
+        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
         decoration: BoxDecoration(
-          color: SpColor
-              .surfaceNavy, // جعل البطاقة أفتح قليلاً من الخلفية الأساسية
+          color: SpColor.surfaceNavy,
           borderRadius: BorderRadius.circular(20),
-
           boxShadow: [
             scale == 1.0
-                ? BoxShadow()
-                : widget.isExpense
-                ? BoxShadow(color: SpColor.expenseRed, blurRadius: 6)
-                : BoxShadow(color: SpColor.incomeGreen, blurRadius: 6),
+                ? const BoxShadow(color: Colors.transparent)
+                : isExpense
+                ? const BoxShadow(color: SpColor.expenseRed, blurRadius: 6)
+                : const BoxShadow(color: SpColor.incomeGreen, blurRadius: 6),
           ],
         ),
         child: ListTile(
@@ -57,37 +58,30 @@ class _TransactionTileState extends State<TransactionTile> with ScalableState {
             horizontal: 16,
             vertical: 4,
           ),
-
           leading: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              // استخدام لون الفئة بوضوح خلف الأيقونة
-              color: widget.tagColor.withOpacity(0.15),
+              color: tagColor.withOpacity(0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(widget.icon, color: widget.tagColor, size: 22),
+            child: Icon(icon, color: tagColor, size: 22),
           ),
-
           title: Text(
-            widget.title,
+            displayTitle,
             style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 15,
-              color: SpColor.offWhite, // استخدام الأبيض المريح
+              color: SpColor.offWhite,
             ),
           ),
           subtitle: Text(
-            "${widget.tagName} • ${widget.date.day}/${widget.date.month}/${widget.date.year}",
-            style: const TextStyle(
-              color: SpColor.mutedGrey, // استخدام الرمادي المطفأ الجديد
-              fontSize: 12,
-            ),
+            "$tagName • ${displayDate.day}/${displayDate.month}/${displayDate.year}",
+            style: const TextStyle(color: SpColor.mutedGrey, fontSize: 12),
           ),
-
           trailing: DefaultTextStyle(
-            style: SpConstants.numStyle(widget.isExpense),
+            style: SpConstants.numStyle(isExpense),
             child: Text(
-              "${widget.currency} ${widget.isExpense ? '-' : '+'} \$${widget.amount.toStringAsFixed(2)}",
+              "$currency ${isExpense ? '-' : '+'} \$${displayAmount.toStringAsFixed(2)}",
             ),
           ),
         ),
@@ -95,5 +89,3 @@ class _TransactionTileState extends State<TransactionTile> with ScalableState {
     );
   }
 }
-
-// TransactionTile now feels more integrated with the overall SpendWise aesthetic.

@@ -79,7 +79,7 @@ class ExpenseLocalDataSourceImpl implements ExpenseLocalDataSource {
   }
 
   @override
-  ExpenseModel? getExpense(String localId) {
+  Future<ExpenseModel?> getExpense(String localId) async {
     return isar.expenseModels.filter().localIdEqualTo(localId).findFirstSync();
   }
 
@@ -104,6 +104,25 @@ class ExpenseLocalDataSourceImpl implements ExpenseLocalDataSource {
     return count > 0;
   }
 
+  @override
+  Future<bool> checkIfExpenseExistsById(int? id) async {
+    // استخدام query مباشر للبحث عن الـ localId فقط دون جلب كافة البيانات للذاكرة
+    final count = await isar.expenseModels.filter().idEqualTo(id).count();
+
+    return count > 0;
+  }
+
+  @override
+  Future<void> saveOrUpdateExpense(ExpenseModel model) async {
+    final exists = await checkIfExpenseExists(model.localId);
+
+    if (exists) {
+      await updateExpense(model);
+    } else {
+      await addExpense(model);
+    }
+  }
+
   // ========================= المسح الشامل =========================
   @override
   Future<void> clear() async {
@@ -115,5 +134,10 @@ class ExpenseLocalDataSourceImpl implements ExpenseLocalDataSource {
     } catch (e) {
       print("❌ Error clearing expenses: $e");
     }
+  }
+
+  @override
+  Future<ExpenseModel?> getExpenseByIsarId(int isarId) async {
+    return isar.expenseModels.filter().isarIdEqualTo(isarId).findFirstSync();
   }
 }

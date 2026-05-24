@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:uuid/uuid.dart';
@@ -8,12 +9,12 @@ class IncomeEntity {
   int userId;
   String title;
   int? walletId;
+  String? walletLocalId;
   double amount;
   DateTime date;
   int? incomeTagId;
   String? description;
-
-  bool isSynced;
+  RxBool isSynced;
   bool isDeleted;
 
   TagEntity? tag;
@@ -23,7 +24,9 @@ class IncomeEntity {
   DateTime? updatedAt;
 
   IncomeEntity({
+    RxBool? isSynced,
     String? localId,
+    this.walletLocalId,
     this.id,
     required this.userId,
     required this.title,
@@ -32,11 +35,12 @@ class IncomeEntity {
     required this.date,
     this.incomeTagId,
     this.description,
-    this.isSynced = false,
+
     this.isDeleted = false,
     this.tag,
     this.wallet,
     this.createdAt,
     this.updatedAt,
-  }) : localId = localId ?? const Uuid().v4();
+  }) : isSynced = isSynced ?? false.obs,
+       localId = localId ?? const Uuid().v4();
 }

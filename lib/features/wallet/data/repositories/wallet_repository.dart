@@ -1,20 +1,18 @@
-// Abstract class for Wallet Repository following Clean Architecture patterns
 import 'package:dartz/dartz.dart';
 import 'package:spendwise/core/error/failure.dart';
-import 'package:spendwise/features/pages/data/model/page_response.dart';
-import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 
 abstract class WalletRepository {
-  Future<Either<Failure, String?>> addWallet(WalletEntity wallet);
+  /// إضافة محفظة
+  /// ترجع رسالة توضح الحالة (محلي / تم المزامنة / خطأ)
+  Future<Either<Failure, String>> addWallet(WalletEntity wallet);
 
-  Future<Either<Failure, PagedResponse<WalletEntity>>> getMyWallets(
-    PageRequest page,
-  );
+  /// جلب المحافظ
+  Future<Either<Failure, List<WalletEntity>>> getMyWallets();
 
-  Future<Either<Failure, Unit>> updateWallet(WalletEntity wallet);
+  /// تحديث محفظة
+  Future<Either<Failure, String>> updateWallet(WalletEntity wallet);
 
-  Future<Either<Failure, Unit>> deleteWallet(WalletEntity wallet);
-
-  Future<Either<Failure, List<WalletEntity>>> getAllWalletsLocal();
+  /// حذف محفظة
+  Future<Either<Failure, String>> deleteWallet(WalletEntity wallet);
 }

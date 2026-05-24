@@ -165,7 +165,7 @@ class AddWalletController extends GetxController {
 
         balance: double.tryParse(balanceController.text.trim()) ?? 0,
 
-        isSynced: false,
+        isSynced: false.obs,
       );
 
       // =====================
@@ -185,7 +185,6 @@ class AddWalletController extends GetxController {
           _handleError("فشل الحفظ", failure.message);
         },
         (_) {
-          walletsListController.loadWallets(isRefresh: true);
           HelperFunction.showSnackBar("تم بنجاح", "تم إنشاء المحفظة بنجاح");
 
           resetFields();

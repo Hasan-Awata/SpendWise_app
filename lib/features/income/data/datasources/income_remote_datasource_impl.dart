@@ -8,12 +8,13 @@ import 'package:spendwise/features/pages/data/model/page_response.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 
 class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
-  final http.Client client; // نستخدم Client بدلاً من Dio
+  final http.Client client;
+  final Duration timeoutDuration = const Duration(seconds: 10);
 
   IncomeRemoteDatasourceImpl({required this.client});
 
   @override
-  Future<PagedResponse<IncomeModel>> getMyIncomes(
+  Future<PagedResponse<IncomeModel>?> getMyIncomes(
     int userId,
     PageRequest page,
   ) async {
@@ -25,40 +26,40 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
           },
         );
 
-    final headers = await ApiEndpoints().getHeaders();
+    try {
+      final headers = await ApiEndpoints().getHeaders();
+      final response = await client
+          .get(url, headers: headers)
+          .timeout(timeoutDuration);
 
-    final response = await client.get(url, headers: headers);
-
-    print("GetIncomes Response [${response.statusCode}]: ${response.body}");
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      print("Getincomes Success: تم جلب المصاريف");
-      final decodedData = jsonDecode(response.body);
-
-      return PagedResponse<IncomeModel>.fromJson(
-        decodedData,
-        (json) => IncomeModel.fromJson(json),
-      );
-    } else {
-      print("Getincomes Error [${response.statusCode}]: ${response.body}");
-      throw Exception("فشل جلب المصاريف من السيرفر");
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return PagedResponse<IncomeModel>.fromJson(
+          jsonDecode(response.body),
+          (json) => IncomeModel.fromJson(json),
+        );
+      } else {
+        throw Exception("فشل جلب الدخل: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("خطأ في الاتصال بالسيرفر: $e");
     }
   }
 
-  // // تعليق: إرسال بيانات الدخل الجديد للسيرفر والتحقق من حالة الاستجابة وتصريح الدخول
   @override
   Future<IncomeModel> addIncome(IncomeModel income) async {
-    print("income is -----> ${income.toString()}}");
     final uri = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.income}");
     final header = await ApiEndpoints().getHeaders();
 
     final response = await client
         .post(uri, headers: header, body: jsonEncode(income.toJson()))
-        .timeout(Duration(seconds: 15));
-    print("ressssssssssssssssssssssssspo ${response.body}");
+        .timeout(const Duration(seconds: 10));
+    print(
+      "income is: ${income.toString()}  \nincome response is --------->>>>  ${response.body}  status code: ${response.statusCode}",
+    );
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return IncomeModel.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('فشل الإرسال للسيرفر: ${response.statusCode}');
+      throw Exception('فشل الإضافة: ${response.statusCode}');
     }
   }
 
@@ -67,31 +68,34 @@ class IncomeRemoteDatasourceImpl implements IncomeRemoteDatasource {
     final uri = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.income}/${income.id}",
     );
-
     final header = await ApiEndpoints().getHeaders();
+
     final response = await client
         .patch(uri, headers: header, body: jsonEncode(income.toJson()))
-        .timeout(Duration(seconds: 10));
+        .timeout(timeoutDuration);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return IncomeModel.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception(response.body);
+      throw Exception("فشل التحديث: ${response.body}");
     }
   }
 
   @override
   Future<bool> deleteIncome(IncomeModel income) async {
     if (income.id == null) return true;
-
     final uri = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.income}/${income.id}",
     );
     final header = await ApiEndpoints().getHeaders();
+
     final response = await client
         .delete(uri, headers: header)
-        .timeout(Duration(seconds: 10));
-    print("Delete Income Response [${response.statusCode}]: ${response.body}");
-    return response.statusCode == 200 || response.statusCode == 204;
+        .timeout(timeoutDuration);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }

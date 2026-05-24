@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
+import 'package:spendwise/core/services/init_isar.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/splash/introduction.dart';
@@ -16,67 +17,83 @@ class InitialPage extends StatefulWidget {
 }
 
 class _InitialPageState extends State<InitialPage> {
-  bool isWaiting = true;
+  bool isLoading = true;
+
   @override
   void initState() {
     super.initState();
-
-    _checkLoginAndNavigate();
+    _initializeApplication();
   }
 
-  Future<void> _checkLoginAndNavigate() async {
-    // Get.put<NetworkService>(NetworkService(), permanent: true);
+  Future<void> _initializeApplication() async {
+    try {
+      final isar = InitIsar.isar;
 
-    Get.put(Isar, permanent: true);
-    await CurrentUser.initializeUser();
-    await CurrencyLocal(Get.find<Isar>()).initializaCurrencies();
+      if (isar == null) {
+        throw Exception("Isar initialization failed");
+      }
 
-    final isLogged = CurrentUser.isUserLoggedIn;
+      // تسجيل Isar داخل GetX
+      if (!Get.isRegistered<Isar>()) {
+        Get.put<Isar>(isar, permanent: true);
+      }
 
-    if (isLogged) {
-      setState(() {
-        isWaiting = true;
-      });
+      // تهيئة المستخدم الحالي
+      await CurrentUser.initializeUser();
 
-      await Future.delayed(const Duration(milliseconds: 3500));
+      // تهيئة العملات
+      await CurrencyLocal(isar).initializaCurrencies();
+
+      // التحقق من تسجيل الدخول
+      final isLogged = CurrentUser.isUserLoggedIn;
+
+      print("✅ User Logged In => $isLogged");
+
+      // تأخير بسيط للسلاش
+      await Future.delayed(const Duration(milliseconds: 2000));
+
       if (!mounted) return;
 
-      Get.offAllNamed(Routes.MAIN_SCREEN);
-    } else {
-      await _initializeDataSources();
+      if (isLogged) {
+        Get.offAllNamed(Routes.MAIN_SCREEN);
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("❌ InitialPage Error => $e");
 
       if (!mounted) return;
 
       setState(() {
-        isWaiting = false;
+        isLoading = false;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return (!isWaiting)
-        ? Introduction()
-        : Container(
-            color: SpColor.primaryDark,
-            child: Center(
-              child: Shimmer.fromColors(
-                baseColor: SpColor.surfaceNavy,
-                highlightColor: SpColor.accentBlue,
-                period: const Duration(milliseconds: 1500),
-                child: SizedBox(
-                  width: 360,
-                  child: Image.asset(
-                    'assets/images/logo3.png',
-                    color: SpColor.accentBlue,
-                  ),
-                ),
-              ),
-            ),
-          );
-  }
+    if (!isLoading) {
+      return Introduction();
+    }
 
-  Future<void> _initializeDataSources() async {
-    await CurrencyLocal(Get.find<Isar>()).initializaCurrencies();
+    return Container(
+      color: SpColor.primaryDark,
+      child: Center(
+        child: Shimmer.fromColors(
+          baseColor: SpColor.surfaceNavy,
+          highlightColor: SpColor.accentBlue,
+          period: const Duration(milliseconds: 1500),
+          child: SizedBox(
+            width: 360,
+            child: Image.asset(
+              'assets/images/logo3.png',
+              color: SpColor.accentBlue,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

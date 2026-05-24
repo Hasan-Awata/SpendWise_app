@@ -64,7 +64,7 @@ class UpdateIncomeController extends GetxController {
         incomesListController.incomesList.refresh();
       }
 
-      incomesListController.calculateTotals();
+      incomesListController.updateDashboardTotals();
 
       Get.back();
       HelperFunction.showSnackBar("تم بنجاح", "تم تحديث الدخل");

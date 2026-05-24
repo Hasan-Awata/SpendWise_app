@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/helper_function.dart';
-import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
 import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 import 'package:spendwise/features/tags/domain/usecases/add_tag_usecase.dart';
 import 'package:spendwise/features/tags/domain/usecases/delete_tag_usecase.dart';
@@ -43,8 +42,13 @@ class TagActionController extends GetxController {
       HelperFunction.showSnackBar("تنبيه", "أدخل اسم الوسم", isError: true);
       return;
     }
+    if (name[0].isNum) {
+      HelperFunction.showSnackBar("تنبيه", "يجب ان يبدأ بحرف", isError: true);
+      return;
+    }
 
     try {
+      await tagViewController.refreshmyTags();
       isLoading.value = true;
 
       // =====================
@@ -68,7 +72,7 @@ class TagActionController extends GetxController {
       final tag = TagEntity(
         userId: userId!,
         name: name,
-        isSynced: false,
+        isSynced: false.obs,
         isDeleted: false,
       );
 
@@ -91,8 +95,6 @@ class TagActionController extends GetxController {
         (_) {
           nameController.clear();
 
-          tagViewController.refreshTags();
-
           HelperFunction.showSnackBar("نجاح", "تم إضافة الوسم");
         },
       );
@@ -109,6 +111,14 @@ class TagActionController extends GetxController {
 
   Future<void> updateTag(TagEntity tag, String newName) async {
     try {
+      if (newName.trim().isEmpty) {
+        HelperFunction.showSnackBar("تنبيه", "أدخل اسم الوسم", isError: true);
+        return;
+      }
+      if (newName[0].isNum) {
+        HelperFunction.showSnackBar("تنبيه", "يجب ان يبدأ بحرف", isError: true);
+        return;
+      }
       isLoading.value = true;
 
       final updated = TagEntity(
@@ -116,7 +126,7 @@ class TagActionController extends GetxController {
         id: tag.id,
         userId: tag.userId,
         name: newName,
-        isSynced: false,
+        isSynced: false.obs,
         isDeleted: false,
       );
 
@@ -127,13 +137,12 @@ class TagActionController extends GetxController {
           _handleError("خطأ", failure.message);
         },
         (_) {
-          tagViewController.refreshTags();
-
-          HelperFunction.showSnackBar("نجاح", "تم تحديث الوسم");
+          tagViewController.refreshmyTags();
 
           if (Get.isOverlaysOpen) {
             Get.back();
           }
+          HelperFunction.showSnackBar("نجاح", "تم تحديث الوسم");
         },
       );
     } catch (e) {
@@ -149,57 +158,26 @@ class TagActionController extends GetxController {
 
   Future<void> deleteTag(TagEntity tag) async {
     try {
-      final incomes = Get.find<IncomesListController>();
+      isLoading.value = true;
 
-      // =====================
-      // RELATION CHECK
-      // =====================
+      // حفظ النسخة للـ rollback
+      final backup = tag;
 
-      final isRelated = incomes.incomesList.any(
-        (income) =>
-            income.incomeTagId == tag.id || income.tag?.localId == tag.localId,
-      );
-
-      if (isRelated) {
-        Get.back();
-
-        HelperFunction.showSnackBar(
-          "خطأ",
-          "لا يمكن حذف الوسم لأنه مرتبط بدخل أو مصروف",
-          isError: true,
-        );
-
-        return;
-      }
-
-      // =====================
-      // CLOSE UI
-      // =====================
-
-      Get.back();
-
-      // =====================
+      // =========================
       // OPTIMISTIC DELETE
-      // =====================
-
+      // =========================
       tagViewController.deleteTagLocally(tag.localId);
-
-      // =====================
-      // DELETE
-      // =====================
 
       final result = await deleteTagUsecase.call(tag);
 
-      result.fold(
-        (failure) {
-          _handleError("فشل الحذف", failure.message);
-        },
-        (_) {
-          HelperFunction.showSnackBar("نجاح", "تم حذف الوسم");
-        },
-      );
-    } catch (e) {
-      _handleError("خطأ تقني", e.toString());
+      result.fold((failure) {
+        // rollback
+        tagViewController.addTagLocally(backup);
+
+        HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
+      }, (message) {});
+    } finally {
+      isLoading.value = false;
     }
   }
 

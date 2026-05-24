@@ -3,8 +3,6 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
-import 'package:spendwise/features/pages/data/model/page_response.dart';
-import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/tags/data/datasources/tag_remote_datasource.dart';
 import 'package:spendwise/features/tags/data/models/tag_model.dart';
 
@@ -38,6 +36,8 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
 
   @override
   Future<TagModel?> updateTag(TagModel tag) async {
+    print("tag id is --->>> ${tag.id}");
+    print("tag name is --->>> ${tag.name}");
     final url = Uri.parse(
       "${ApiEndpoints.baseUrl}${ApiEndpoints.tag}/${tag.id}",
     );
@@ -51,8 +51,9 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         if (response.body.isEmpty) {
-          print("UpdateTag Success: تم تحديث التاج بنجاح (بدون محتوى)");
-          return null;
+          print("UpdateTag Success: تم تحديث التاج بنجاح (بدون محتوى) $tag");
+
+          return tag;
         }
         print("UpdateTag Success: ${response.body}");
         return TagModel.fromJson(jsonDecode(response.body));
@@ -65,7 +66,7 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
   }
 
   @override
-  Future<void> deleteTag(int id) async {
+  Future<bool> deleteTag(int id) async {
     final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.tag}/$id");
     final headers = await ApiEndpoints().getHeaders();
 
@@ -73,16 +74,15 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
 
     final response = await client.delete(url, headers: headers);
     print("tag remoteeeeeeeeeeee ${response.body} ");
-    if (response.statusCode == 200 || response.statusCode == 204) {
-      print("DeleteTag Success");
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return true;
     } else {
-      print("DeleteTag Error [${response.statusCode}]: ${response.body}");
-      throw Exception("فشل حذف التاج");
+      return false;
     }
   }
 
   @override
-  Future<PagedResponse<TagModel>> getMyTags(PageRequest page) async {
+  Future<List<TagModel>?> getMyTags() async {
     final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.tag}");
     final headers = await ApiEndpoints().getHeaders();
 
@@ -105,13 +105,7 @@ class TagRemoteDatasourceImpl implements TagRemoteDatasource {
 
       final tags = list.map((json) => TagModel.fromJson(json)).toList();
 
-      return PagedResponse<TagModel>(
-        data: tags,
-        totalRecords: tags.length,
-        pageNumber: page.pageNumber,
-        pageSize: page.pageSize,
-        totalPages: 1,
-      );
+      return tags;
     } else {
       print("GetTags Error [${response.statusCode}]: ${response.body}");
       throw Exception("فشل جلب التاجات من السيرفر");

@@ -37,7 +37,7 @@ class ExpenseListView extends GetView<ExpensesListController> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: SpColor.expenseRed,
 
-        onPressed: () => Get.toNamed('/add-Expense'),
+        onPressed: () => Get.toNamed('/add-expense'),
 
         icon: const Icon(Icons.add_rounded, color: Colors.white),
 
@@ -100,7 +100,7 @@ class ExpenseListView extends GetView<ExpensesListController> {
   // ITEM
   // =========================
 
-  Widget _buildExpenseItem(ExpenseEntity Expense) {
+  Widget _buildExpenseItem(ExpenseEntity expense) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
 
@@ -122,9 +122,9 @@ class ExpenseListView extends GetView<ExpensesListController> {
 
           const SizedBox(width: 16),
 
-          Expanded(child: _buildDetails(Expense)),
+          Expanded(child: _buildDetails(expense)),
 
-          _buildActions(Expense),
+          _buildActions(expense),
         ],
       ),
     );
@@ -160,13 +160,13 @@ class ExpenseListView extends GetView<ExpensesListController> {
   // DETAILS
   // =========================
 
-  Widget _buildDetails(ExpenseEntity Expense) {
+  Widget _buildDetails(ExpenseEntity expense) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
 
       children: [
         Text(
-          Expense.title,
+          expense.title,
 
           maxLines: 1,
 
@@ -182,14 +182,14 @@ class ExpenseListView extends GetView<ExpensesListController> {
         const SizedBox(height: 6),
 
         Text(
-          DateFormat('yyyy-MM-dd').format(Expense.date),
+          DateFormat('yyyy-MM-dd').format(expense.date),
 
           style: const TextStyle(color: Colors.white54, fontSize: 12),
         ),
 
         const SizedBox(height: 10),
 
-        _syncStatus(Expense.isSynced),
+        _syncStatus(expense.isSynced),
       ],
     );
   }
@@ -198,27 +198,29 @@ class ExpenseListView extends GetView<ExpensesListController> {
   // SYNC STATUS
   // =========================
 
-  Widget _syncStatus(bool synced) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+  Widget _syncStatus(RxBool synced) {
+    return Obx(
+      () => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
 
-      decoration: BoxDecoration(
-        color: synced
-            ? Colors.green.withOpacity(0.12)
-            : Colors.orange.withOpacity(0.12),
+        decoration: BoxDecoration(
+          color: synced.value
+              ? Colors.green.withOpacity(0.12)
+              : Colors.orange.withOpacity(0.12),
 
-        borderRadius: BorderRadius.circular(20),
-      ),
+          borderRadius: BorderRadius.circular(20),
+        ),
 
-      child: Text(
-        synced ? "متزامن" : "غير متزامن",
+        child: Text(
+          synced.value ? "متزامن" : "غير متزامن",
 
-        style: TextStyle(
-          color: synced ? Colors.greenAccent : Colors.orangeAccent,
+          style: TextStyle(
+            color: synced.value ? Colors.greenAccent : Colors.orangeAccent,
 
-          fontSize: 11,
+            fontSize: 11,
 
-          fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

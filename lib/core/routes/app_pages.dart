@@ -1,9 +1,14 @@
 import 'package:get/get.dart';
+import 'package:spendwise/core/network/initial_binding.dart';
+import 'package:spendwise/core/utils/current_user.dart';
 // استيراد الـ Bindings
 import 'package:spendwise/features/auth/presentation/bindings/auth_binding.dart';
 // استيراد الصفحات (Pages)
 import 'package:spendwise/features/auth/presentation/pages/login_page.dart';
 import 'package:spendwise/features/auth/presentation/pages/sign_up_page.dart';
+import 'package:spendwise/features/budget/presentation/bindings/category_budget_binding.dart';
+import 'package:spendwise/features/budget/presentation/pages/add_category_budget_page.dart';
+import 'package:spendwise/features/budget/presentation/pages/category_budget_list_page.dart';
 import 'package:spendwise/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:spendwise/features/expense/presentation/bindings/expense_binding.dart';
 import 'package:spendwise/features/expense/presentation/pages/add_expense_view.dart';
@@ -15,9 +20,11 @@ import 'package:spendwise/features/savings_goals/presentation/bindings/saving_go
 import 'package:spendwise/features/savings_goals/presentation/pages/add_saving_goal_page.dart';
 import 'package:spendwise/features/savings_goals/presentation/pages/saving_goals_list_page.dart';
 import 'package:spendwise/features/splash/initial_page.dart';
+import 'package:spendwise/features/sync/manager/sync_binding.dart';
 import 'package:spendwise/features/tags/presentation/bindings/tag_binding.dart';
 import 'package:spendwise/features/tags/presentation/pages/add_tag_page.dart';
 import 'package:spendwise/features/tags/presentation/pages/tags_view.dart';
+import 'package:spendwise/features/transaction/presentation/binding/transaction_binding.dart';
 import 'package:spendwise/features/wallet/presentation/bindings/wallet_binding.dart';
 import 'package:spendwise/features/wallet/presentation/pages/add_wallet_view.dart';
 import 'package:spendwise/features/wallet/presentation/pages/wallet_view.dart';
@@ -50,6 +57,9 @@ abstract class Routes {
   static const ADD_INCOME = '/add-income';
   static const ADD_GOAL = "/add-goal";
   static const GOAL_LIST = "/goal-list";
+
+  static const ADD_CATEGORY_BUDGET = '/add-category-budget';
+  static const CATEGORY_BUDGET = '/category-budget';
 }
 
 // AppPages manages the mapping between route names and their corresponding pages and bindings
@@ -61,7 +71,13 @@ class AppPages {
     GetPage(
       name: Routes.INITIAL,
       page: () => InitialPage(),
-      binding: AuthBinding(),
+      bindings: [
+        AuthBinding(),
+        InitialBinding(),
+        SyncBinding(),
+        MainBinding(),
+        SavingGoalBinding(),
+      ],
     ),
     GetPage(
       name: Routes.SIGNUP,
@@ -82,14 +98,7 @@ class AppPages {
     GetPage(
       name: Routes.MAIN_SCREEN,
       page: () => const MainScreen(),
-      bindings: [
-        MainBinding(),
-        WalletBinding(),
-        TagBinding(),
-        IncomeBinding(),
-        ExpenseBinding(),
-        SavingGoalBinding(),
-      ],
+      bindings: [MainBinding(), TransactionBinding(), IncomeBinding()],
 
       // The MainScreen often acts as a hub, so we inject essential bindings here
     ),
@@ -135,7 +144,7 @@ class AppPages {
     GetPage(
       name: Routes.ADD_EXPENSE,
       page: () => AddExpenseView(),
-      bindings: [ExpenseBinding(), WalletBinding(), TagBinding()],
+      bindings: [TagBinding(), WalletBinding(), ExpenseBinding()],
     ),
 
     // --- Income Module ---
@@ -148,6 +157,18 @@ class AppPages {
       name: Routes.ADD_INCOME,
       page: () => AddIncomeView(),
       bindings: [IncomeBinding(), WalletBinding(), TagBinding()],
+    ),
+
+    GetPage(
+      name: Routes.CATEGORY_BUDGET,
+      page: () => const CategoryBudgetListPage(),
+      binding: CategoryBudgetBinding(),
+    ),
+
+    GetPage(
+      name: Routes.ADD_CATEGORY_BUDGET,
+      page: () => ManageCategoryBudgetScreen(userId: CurrentUser.userId!),
+      binding: CategoryBudgetBinding(),
     ),
   ];
 }

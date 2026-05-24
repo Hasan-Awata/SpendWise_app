@@ -57,23 +57,28 @@ const WalletModelSchema = CollectionSchema(
       name: r'localId',
       type: IsarType.string,
     ),
-    r'syncAttempts': PropertySchema(
+    r'serverId': PropertySchema(
       id: 8,
+      name: r'serverId',
+      type: IsarType.long,
+    ),
+    r'syncAttempts': PropertySchema(
+      id: 9,
       name: r'syncAttempts',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'userId': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'userId',
       type: IsarType.long,
     ),
     r'walletId': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'walletId',
       type: IsarType.long,
     )
@@ -143,10 +148,11 @@ void _walletModelSerialize(
   writer.writeBool(offsets[5], object.isSynced);
   writer.writeDateTime(offsets[6], object.lastSyncError);
   writer.writeString(offsets[7], object.localId);
-  writer.writeLong(offsets[8], object.syncAttempts);
-  writer.writeDateTime(offsets[9], object.updatedAt);
-  writer.writeLong(offsets[10], object.userId);
-  writer.writeLong(offsets[11], object.walletId);
+  writer.writeLong(offsets[8], object.serverId);
+  writer.writeLong(offsets[9], object.syncAttempts);
+  writer.writeDateTime(offsets[10], object.updatedAt);
+  writer.writeLong(offsets[11], object.userId);
+  writer.writeLong(offsets[12], object.walletId);
 }
 
 WalletModel _walletModelDeserialize(
@@ -164,10 +170,10 @@ WalletModel _walletModelDeserialize(
     isSynced: reader.readBoolOrNull(offsets[5]) ?? false,
     lastSyncError: reader.readDateTimeOrNull(offsets[6]),
     localId: reader.readString(offsets[7]),
-    syncAttempts: reader.readLongOrNull(offsets[8]) ?? 0,
-    updatedAt: reader.readDateTimeOrNull(offsets[9]),
-    userId: reader.readLong(offsets[10]),
-    walletId: reader.readLongOrNull(offsets[11]),
+    syncAttempts: reader.readLongOrNull(offsets[9]) ?? 0,
+    updatedAt: reader.readDateTimeOrNull(offsets[10]),
+    userId: reader.readLong(offsets[11]),
+    walletId: reader.readLongOrNull(offsets[12]),
   );
   object.isarId = id;
   return object;
@@ -197,12 +203,14 @@ P _walletModelDeserializeProp<P>(
     case 7:
       return (reader.readString(offset)) as P;
     case 8:
-      return (reader.readLongOrNull(offset) ?? 0) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 9:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset) ?? 0) as P;
     case 10:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 11:
+      return (reader.readLong(offset)) as P;
+    case 12:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1010,6 +1018,79 @@ extension WalletModelQueryFilter
   }
 
   QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition>
+      serverIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'serverId',
+      ));
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition>
+      serverIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'serverId',
+      ));
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition> serverIdEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition>
+      serverIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition>
+      serverIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition> serverIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'serverId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition>
       syncAttemptsEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1372,6 +1453,18 @@ extension WalletModelQuerySortBy
     });
   }
 
+  QueryBuilder<WalletModel, WalletModel, QAfterSortBy> sortByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterSortBy> sortByServerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.desc);
+    });
+  }
+
   QueryBuilder<WalletModel, WalletModel, QAfterSortBy> sortBySyncAttempts() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncAttempts', Sort.asc);
@@ -1533,6 +1626,18 @@ extension WalletModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<WalletModel, WalletModel, QAfterSortBy> thenByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterSortBy> thenByServerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.desc);
+    });
+  }
+
   QueryBuilder<WalletModel, WalletModel, QAfterSortBy> thenBySyncAttempts() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncAttempts', Sort.asc);
@@ -1634,6 +1739,12 @@ extension WalletModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<WalletModel, WalletModel, QDistinct> distinctByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'serverId');
+    });
+  }
+
   QueryBuilder<WalletModel, WalletModel, QDistinct> distinctBySyncAttempts() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'syncAttempts');
@@ -1713,6 +1824,12 @@ extension WalletModelQueryProperty
   QueryBuilder<WalletModel, String, QQueryOperations> localIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'localId');
+    });
+  }
+
+  QueryBuilder<WalletModel, int?, QQueryOperations> serverIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'serverId');
     });
   }
 

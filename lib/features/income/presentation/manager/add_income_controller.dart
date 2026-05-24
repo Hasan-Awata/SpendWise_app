@@ -1,3 +1,5 @@
+// add_income_controller.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
@@ -30,9 +32,6 @@ class AddIncomeController extends GetxController {
   final TagActionController tagActionController;
   final IncomesListController incomesListController;
   final UpdateWalletController updateWalletController;
-  // =========================
-  // Controllers
-  // =========================
 
   final amountController = TextEditingController();
   final sourceController = TextEditingController();
@@ -41,36 +40,28 @@ class AddIncomeController extends GetxController {
   final tagTextController = TextEditingController();
   final repeatController = TextEditingController();
 
-  // =========================
-  // State
-  // =========================
-
   final selectedWallet = Rxn<WalletEntity>();
   final selectedTag = Rxn<TagEntity>();
   final selectedDate = DateTime.now().obs;
   final isLoadingSave = false.obs;
 
-  // =========================
-  // Init
-  // =========================
-
   @override
   void onInit() {
     super.onInit();
     walletsListController.loadWallets();
-    tagController.loadTags(refresh: true);
+    tagController.loadTags(isRefresh: true);
   }
-
-  // =========================
-  // Save Income
-  // =========================
 
   Future<void> saveIncome() async {
     if (!_validateInputs()) return;
 
     try {
       isLoadingSave.value = true;
-
+      await walletsListController.loadWallets(isRefresh: true);
+      final walletRefresh = walletsListController.wallets.firstWhereOrNull(
+        (w) => w.currencyId == selectedWallet.value!.currencyId,
+      );
+      selectedWallet.value = walletRefresh;
       final userResult = await userIdUsecase.getUserId();
 
       int? userId;
@@ -101,7 +92,8 @@ class AddIncomeController extends GetxController {
 
       result.fold(
         (failure) => _handleError("فشل الحفظ", failure.message),
-        (saved) => _onSaveSuccess(saved),
+        // قمنا بتمرير كائن البيانات المحفوظ لتحديث الواجهة فوراً
+        (savedMessage) => _onSaveSuccess(savedMessage, incomeData),
       );
     } catch (e) {
       _handleError("خطأ غير متوقع", e.toString());
@@ -109,10 +101,6 @@ class AddIncomeController extends GetxController {
       isLoadingSave.value = false;
     }
   }
-
-  // =========================
-  // Tag Handling
-  // =========================
 
   Future<TagEntity?> _handleTagSelection() async {
     final tagName = tagTextController.text.trim();
@@ -126,16 +114,12 @@ class AddIncomeController extends GetxController {
 
     tagActionController.nameController.text = tagName;
     await tagActionController.addTag();
-    await tagController.loadTags(refresh: true);
+    await tagController.loadTags(isRefresh: true);
 
     return tagController.myTags.firstWhereOrNull(
       (t) => t.name.toLowerCase() == tagName.toLowerCase(),
     );
   }
-
-  // =========================
-  // Validation
-  // =========================
 
   bool _validateInputs() {
     if (_getSafeAmount() <= 0) {
@@ -160,22 +144,20 @@ class AddIncomeController extends GetxController {
     return text.isEmpty ? "Untitled Income" : text;
   }
 
-  // =========================
-  // Success
-  // =========================
+  // تم تعديل الدالة لتستقبل كائن الدخل الجديد وتقوم بحقنه فوراً في مصفوفة الواجهة وتحديث الإجماليات
+  void _onSaveSuccess(String message, IncomeEntity newIncome) {
+    // إضافة العنصر الجديد محلياً فوراً في بداية القائمة أو ترتيبه
+    incomesListController.incomesList.add(newIncome);
+    incomesListController.incomesList.sort((a, b) => b.date.compareTo(a.date));
 
-  void _onSaveSuccess(String message) {
-    incomesListController.fetchAllIncomes(isRefresh: true);
-    incomesListController.calculateTotals();
+    // إجبار GetX على تحديث المستمعين والـ UI فوراً
+    incomesListController.incomesList.refresh();
+    incomesListController.updateDashboardTotals();
 
     HelperFunction.showSnackBar("تم بنجاح", message);
-
-    resetFields();
+    // resetFields();
+    // Get.back();
   }
-
-  // =========================
-  // Reset
-  // =========================
 
   void resetFields() {
     amountController.clear();
@@ -190,26 +172,14 @@ class AddIncomeController extends GetxController {
     selectedDate.value = DateTime.now();
   }
 
-  // =========================
-  // Date Picker
-  // =========================
-
   Future<void> fetchDate(BuildContext context) async {
     final picked = await HelperFunction.chooseDate(context);
     if (picked != null) selectedDate.value = picked;
   }
 
-  // =========================
-  // Error
-  // =========================
-
   void _handleError(String title, String message) {
     HelperFunction.showSnackBar(title, message, isError: true);
   }
-
-  // =========================
-  // Dispose
-  // =========================
 
   @override
   void onClose() {

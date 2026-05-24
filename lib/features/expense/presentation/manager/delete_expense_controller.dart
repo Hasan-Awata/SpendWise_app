@@ -47,7 +47,7 @@ class DeleteExpenseController extends GetxController {
           _handleError("فشل الحذف", failure.message);
         },
         (_) {
-          expensesListController.calculateTotals();
+          expensesListController.updateDashboardTotals();
 
           Get.back();
           HelperFunction.showSnackBar("تم الحذف", "تم حذف المصروف بنجاح");

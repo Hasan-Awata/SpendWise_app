@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
+import 'package:spendwise/core/services/init_isar.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource.dart';
@@ -18,46 +19,79 @@ import 'package:spendwise/features/auth/presentation/manager/logout_controller.d
 import 'package:spendwise/features/auth/presentation/manager/sign_up_controller.dart';
 
 class AuthBinding extends Bindings {
-  AuthBinding({this.permanentAuthController = false});
-
   final bool permanentAuthController;
+
+  AuthBinding({this.permanentAuthController = false});
 
   @override
   void dependencies() {
-    Get.put(Isar, permanent: true);
+    final Isar isar = InitIsar.isar!;
+
+    // =========================
+    // Datasources
+    // =========================
+
     if (!Get.isRegistered<AppUserLocalDatasource>()) {
       Get.lazyPut<AppUserLocalDatasource>(
-        () => AppUserLocalDatasourceImpl(Get.find<Isar>()),
+        () => AppUserLocalDatasourceImpl(isar),
+        fenix: true,
       );
     }
+
     if (!Get.isRegistered<AppUserRemoteDatasource>()) {
       Get.lazyPut<AppUserRemoteDatasource>(
         () => AppUserRemoteDatasourceImpl(client: http.Client()),
+        fenix: true,
       );
     }
+
+    // =========================
+    // Repository
+    // =========================
+
     if (!Get.isRegistered<UserRepository>()) {
       Get.lazyPut<UserRepository>(
         () => UserRepositoryImpl(
           appUserLocalDatasource: Get.find(),
           appUserRemoteDatasource: Get.find(),
         ),
+        fenix: true,
       );
     }
+
+    // =========================
+    // UseCases
+    // =========================
+
     if (!Get.isRegistered<SignupUsecase>()) {
-      Get.lazyPut(() => SignupUsecase(Get.find<UserRepository>()));
+      Get.lazyPut(() => SignupUsecase(Get.find<UserRepository>()), fenix: true);
     }
+
     if (!Get.isRegistered<LoginUsecase>()) {
-      Get.lazyPut(() => LoginUsecase(Get.find<UserRepository>()));
+      Get.lazyPut(() => LoginUsecase(Get.find<UserRepository>()), fenix: true);
     }
+
     if (!Get.isRegistered<LogoutUsecase>()) {
-      Get.lazyPut(() => LogoutUsecase(Get.find<UserRepository>()));
+      Get.lazyPut(() => LogoutUsecase(Get.find<UserRepository>()), fenix: true);
     }
+
     if (!Get.isRegistered<GetUserUsecase>()) {
-      Get.put(GetUserUsecase(Get.find<UserRepository>()), permanent: true);
+      Get.lazyPut(
+        () => GetUserUsecase(Get.find<UserRepository>()),
+        fenix: true,
+      );
     }
+
     if (!Get.isRegistered<GetUserIdUsecase>()) {
-      Get.put(GetUserIdUsecase(Get.find<UserRepository>()), permanent: true);
+      Get.lazyPut(
+        () => GetUserIdUsecase(Get.find<UserRepository>()),
+        fenix: true,
+      );
     }
+
+    // =========================
+    // Auth Session Controller
+    // =========================
 
     if (!Get.isRegistered<AuthSessionController>()) {
       if (permanentAuthController) {
@@ -79,14 +113,29 @@ class AuthBinding extends Bindings {
       }
     }
 
+    // =========================
+    // UI Controllers
+    // =========================
+
     if (!Get.isRegistered<LoginController>()) {
-      Get.put(LoginController(loginUsecase: Get.find()));
+      Get.lazyPut<LoginController>(
+        () => LoginController(loginUsecase: Get.find()),
+        fenix: true,
+      );
     }
+
     if (!Get.isRegistered<SignUpController>()) {
-      Get.put(SignUpController(signupUsecase: Get.find()));
+      Get.lazyPut<SignUpController>(
+        () => SignUpController(signupUsecase: Get.find()),
+        fenix: true,
+      );
     }
+
     if (!Get.isRegistered<LogoutController>()) {
-      Get.put(LogoutController(logoutUsecase: Get.find()));
+      Get.lazyPut<LogoutController>(
+        () => LogoutController(logoutUsecase: Get.find()),
+        fenix: true,
+      );
     }
   }
 }

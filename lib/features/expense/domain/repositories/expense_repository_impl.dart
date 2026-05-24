@@ -1,3 +1,7 @@
+// =========================================================================
+// تطبيق مستودع المصاريف المعدل ليعتمد بالكامل على طابور المزامنة الموحد
+// =========================================================================
+
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -10,28 +14,41 @@ import 'package:spendwise/features/expense/data/repositories/expense_repository.
 import 'package:spendwise/features/expense/domain/entities/expense_entity.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
+import 'package:spendwise/features/sync/queue/sync_queue_model.dart';
+import 'package:spendwise/features/sync/queue/sync_queue_repository.dart';
+import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
+import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
+import 'package:uuid/uuid.dart';
 
 class ExpenseRepositoryImpl implements ExpenseRepository {
-  final ExpenseRemoteDataSource remoteDatasource;
   final ExpenseLocalDataSource localDataSource;
-  final NetworkService network;
+  final WalletLocalDatasource walletLocalDatasource;
+  final CurrencyLocal currencyLocal;
+  final SyncQueueRepository syncQueueRepository;
+  final ExpenseRemoteDataSource remote;
 
   ExpenseRepositoryImpl({
     required this.localDataSource,
-    required this.remoteDatasource,
-    required this.network,
+    required this.walletLocalDatasource,
+    required this.currencyLocal,
+    required this.syncQueueRepository,
+    required this.remote,
   });
 
-  // =========================
-  // ADD
-  // =========================
+  // =====================================================
+  // ADD EXPENSE (LOCAL ONLY + QUEUE)
+  // =====================================================
   @override
   Future<Either<Failure, String>> addExpense(ExpenseEntity expense) async {
     try {
       final exists = await localDataSource.checkIfExpenseExists(
         expense.localId,
       );
-      if (exists) return Left(CacheFailure("Already exists"));
+
+      if (exists) {
+        return Left(CacheFailure("Expense already exists"));
+      }
 
       final model = ExpenseModel.fromEntity(expense)
         ..isSynced = false
@@ -39,25 +56,38 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         ..createdAt = DateTime.now()
         ..updatedAt = DateTime.now();
 
+      // 1. حفظ في قاعدة البيانات المحلية فوراً لتحديث الشاشة للمستخدم
       await localDataSource.addExpense(model);
 
-      // sync best effort
-      _trySyncCreate(model);
+      // 2. إدراج العملية في طابور المزامنة
+      await syncQueueRepository.addToQueue(
+        SyncQueueModel(
+          id: const Uuid().v4(),
+          localId: model.localId,
+          action: SyncAction.create,
+          table: "expense",
+          createdAt: DateTime.now(),
+          isarId: model.isarId,
+        ),
+      );
 
-      return const Right("Saved locally");
+      return const Right("Saved locally and waiting for sync");
     } catch (e) {
-      return Left(CacheFailure("Add failed"));
+      return Left(CacheFailure("Add expense locally failed: ${e.toString()}"));
     }
   }
 
-  // =========================
-  // UPDATE
-  // =========================
+  // =====================================================
+  // UPDATE EXPENSE (LOCAL ONLY + QUEUE)
+  // =====================================================
   @override
   Future<Either<Failure, Unit>> updateExpense(ExpenseEntity entity) async {
     try {
-      final local = localDataSource.getExpense(entity.localId);
-      if (local == null) return Left(CacheFailure("Not found"));
+      final local = await localDataSource.getExpense(entity.localId);
+
+      if (local == null) {
+        return Left(CacheFailure("Expense not found for update"));
+      }
 
       local
         ..amount = entity.amount
@@ -70,42 +100,71 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         ..updatedAt = DateTime.now()
         ..isSynced = false;
 
+      // 1. تحديث البيانات محلياً
       await localDataSource.updateExpense(local);
 
-      _trySyncUpdate(local);
+      // 2. تسجيل عملية التعديل في الطابور
+      await syncQueueRepository.addToQueue(
+        SyncQueueModel(
+          id: const Uuid().v4(),
+          localId: local.localId,
+          action: SyncAction.update,
+          table: "expense",
+          createdAt: DateTime.now(),
+          isarId: local.isarId,
+        ),
+      );
 
       return const Right(unit);
-    } catch (_) {
-      return Left(CacheFailure("Update failed"));
+    } catch (e) {
+      return Left(
+        CacheFailure("Update expense locally failed: ${e.toString()}"),
+      );
     }
   }
 
-  // =========================
-  // DELETE
-  // =========================
+  // =====================================================
+  // DELETE EXPENSE (LOCAL ONLY + QUEUE)
+  // =====================================================
   @override
   Future<Either<Failure, Unit>> deleteExpense(ExpenseEntity entity) async {
     try {
-      final local = localDataSource.getExpense(entity.localId);
-      if (local == null) return Left(CacheFailure("Not found"));
+      final local = await localDataSource.getExpense(entity.localId);
+
+      if (local == null) {
+        return Left(CacheFailure("Expense not found for delete"));
+      }
 
       local
         ..isDeleted = true
         ..isSynced = false
         ..updatedAt = DateTime.now();
 
+      // 1. وسم المصروف كمحذوف محلياً (Soft Delete) حتى يختفي من الواجهات فوراً
       await localDataSource.updateExpense(local);
 
-      _trySyncDelete(local);
+      // 2. إضافة أمر الحذف إلى طابور المزامنة لمسحه من السيرفر لاحقاً
+      await syncQueueRepository.addToQueue(
+        SyncQueueModel(
+          id: const Uuid().v4(),
+          localId: local.localId,
+          action: SyncAction.delete,
+          table: "expense",
+          createdAt: DateTime.now(),
+          isarId: local.isarId,
+        ),
+      );
 
       return const Right(unit);
-    } catch (_) {
-      return Left(CacheFailure("Delete failed"));
+    } catch (e) {
+      return Left(
+        CacheFailure("Delete expense locally failed: ${e.toString()}"),
+      );
     }
   }
 
   // =====================================================
-  // 🔥 أهم جزء: FETCH + SYNC داخل نفس الدالة
+  // GET EXPENSES (OFFLINE-FIRST ONLY)
   // =====================================================
   @override
   Future<Either<Failure, PagedResponse<ExpenseEntity>>> getExpenses(
@@ -113,29 +172,40 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     PageRequest page,
   ) async {
     try {
-      // 1. جلب البيانات المحلية فوراً (استجابة سريعة للواجهة)
-      final localexpenses = await localDataSource.getExpenses();
+      final networkService = Get.find<NetworkService>();
+      final isOnline = networkService.isOnline.value;
 
-      // 2. تشغيل المزامنة في الخلفية بدون انتظار (Background Sync)
-      // هذا يمنع الدالة من الانتظار ويحل مشكلة الـ Loop
-      if (await network.isConnected && userId != null) {
-        _performBackgroundSync(userId, page, localexpenses);
+      if (isOnline) {
+        try {
+          final remoteResponse = await remote.getMyExpenses(userId!, page);
+
+          if (remoteResponse != null) {
+            await localDataSource.clear();
+
+            for (var remoteExpense in remoteResponse.data) {
+              remoteExpense.isSynced = true;
+              remoteExpense.isDeleted = false;
+              await localDataSource.addExpense(remoteExpense);
+            }
+          }
+        } catch (remoteError) {
+          if (kDebugMode) {
+            print("⚠️ Failed to fetch expenses from remote: $remoteError");
+          }
+        }
       }
 
-      // 3. معالجة البيانات المحلية الحالية للعرض (Filter & Sort)
-      final filtered = localexpenses.where((e) => !e.isDeleted).toList()
+      final localExpenses = await localDataSource.getExpenses();
+
+      final filtered = localExpenses.where((e) => !e.isDeleted).toList()
         ..sort((a, b) => b.date.compareTo(a.date));
 
-      // 4. تطبيق الـ Pagination محلياً
-      final start = (page.pageNumber - 1) * page.pageSize;
-      final end = (start + page.pageSize).clamp(0, filtered.length);
-      final slice = start >= filtered.length
-          ? <ExpenseModel>[]
-          : filtered.sublist(start, end);
+      final slice = _paginate(filtered, page);
+      final entities = _mapToEntities(slice);
 
       return Right(
         PagedResponse(
-          data: slice.map((e) => e.toEntity()).toList(),
+          data: entities,
           totalRecords: filtered.length,
           pageNumber: page.pageNumber,
           pageSize: page.pageSize,
@@ -143,88 +213,40 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         ),
       );
     } catch (e) {
-      return Left(CacheFailure("Fetch failed"));
+      debugPrint("GetExpenses Error: $e");
+      return Left(CacheFailure("Failed to fetch expenses: ${e.toString()}"));
     }
   }
 
-  // دالة المزامنة المنفصلة
-  void _performBackgroundSync(
-    int userId,
-    PageRequest page,
-    List<ExpenseModel> localData,
-  ) async {
-    try {
-      final remote = await remoteDatasource.getMyExpenses(userId, page);
-      for (final item in remote.data) {
-        final existing = localData.firstWhereOrNull(
-          (e) => e.id != null && e.id == item.id,
+  // =====================================================
+  // HELPERS
+  // =====================================================
+  List<ExpenseModel> _paginate(List<ExpenseModel> list, PageRequest page) {
+    final start = (page.pageNumber - 1) * page.pageSize;
+    final end = (start + page.pageSize).clamp(0, list.length);
+
+    return start >= list.length ? [] : list.sublist(start, end);
+  }
+
+  List<ExpenseEntity> _mapToEntities(List<ExpenseModel> slice) {
+    return slice.map((model) {
+      WalletEntity? wallet;
+
+      if (model.walletLocalId != null) {
+        final walletModel = walletLocalDatasource.getWallet(
+          model.walletLocalId!,
         );
 
-        if (existing != null) {
-          item
-            ..localId = existing.localId
-            ..isarId = existing.isarId;
-          await localDataSource.updateExpense(item..isSynced = true);
-        } else {
-          await localDataSource.addExpense(item..isSynced = true);
+        if (walletModel != null) {
+          walletModel.currency = currencyLocal.tryCurrencyById(
+            walletModel.currencyId,
+          );
+
+          wallet = walletModel.toEntity();
         }
       }
-    } catch (e) {
-      debugPrint("Background Sync Error: $e");
-    }
-  }
-  // =========================
-  // SAFE SYNC HELPERS (NO CRASH)
-  // =========================
 
-  void _trySyncCreate(ExpenseModel item) async {
-    if (!await network.isConnected) return;
-
-    try {
-      final res = await remoteDatasource.addExpense(item);
-      if (res != null) {
-        item
-          ..id = res.id
-          ..isSynced = true;
-
-        await localDataSource.updateExpense(item);
-      }
-    } catch (_) {
-      item.isSynced = false;
-      await localDataSource.updateExpense(item);
-    }
-  }
-
-  void _trySyncUpdate(ExpenseModel item) async {
-    if (!await network.isConnected) return;
-
-    try {
-      await remoteDatasource.updateExpense(item);
-      item.isSynced = true;
-      await localDataSource.updateExpense(item);
-    } catch (_) {}
-  }
-
-  void _trySyncDelete(ExpenseModel item) async {
-    if (!await network.isConnected) return;
-
-    try {
-      if (item.id != null) {
-        await remoteDatasource.deleteExpense(item);
-      }
-      await localDataSource.deleteExpense(item);
-    } catch (_) {}
-  }
-
-  @override
-  Future<Either<Failure, List<ExpenseEntity>>> getAllExpensesLocal() async {
-    try {
-      final data = await localDataSource.getExpenses();
-      return Right(
-        data.where((e) => !e.isDeleted).map((e) => e.toEntity()).toList(),
-      );
-    } catch (_) {
-      return Left(CacheFailure("Local fetch failed"));
-    }
+      return model.toEntity(wallet: wallet);
+    }).toList();
   }
 }

@@ -80,7 +80,7 @@ class IncomeLocalDataSourceImpl implements IncomeLocalDataSource {
   }
 
   @override
-  IncomeModel? getIncome(String localId) {
+  Future<IncomeModel?> getIncome(String localId) async {
     return isar.incomeModels.filter().localIdEqualTo(localId).findFirstSync();
   }
 
@@ -102,6 +102,41 @@ class IncomeLocalDataSourceImpl implements IncomeLocalDataSource {
     return count > 0;
   }
 
+  @override
+  Future<bool> checkIfIncomeExistsById(int? id) async {
+    // استخدام query مباشر للبحث عن الـ localId فقط دون جلب كافة البيانات للذاكرة
+    final count = await isar.incomeModels.filter().idEqualTo(id).count();
+
+    return count > 0;
+  }
+
+  @override
+  Future<void> saveOrUpdateRemoteIncome(IncomeModel remoteIncome) async {
+    await isar.writeTxn(() async {
+      // 1. البحث عن سجل محلي يمتلك نفس المعرف الخاص بالسيرفر
+      final existing = await isar.incomeModels
+          .filter()
+          .idEqualTo(remoteIncome.id)
+          .findFirst();
+
+      if (existing != null) {
+        // 2. إذا وجد، نقوم بتحديث البيانات مع الحفاظ على الهوية المحلية (isarId & localId)
+        remoteIncome.isarId = existing.isarId;
+        remoteIncome.localId = existing.localId;
+
+        // نضع علامة المزامنة لأن البيانات قادمة من السيرفر أصلاً
+        remoteIncome.isSynced = true;
+
+        await isar.incomeModels.put(remoteIncome);
+      } else {
+        // 3. إذا لم يوجد، نتحقق أولاً أنه ليس "محذوفاً محلياً" قبل إضافته
+        // (اختياري: لمنع السيرفر من إعادة بيانات حذفها المستخدم وهو Offline)
+        remoteIncome.isSynced = true;
+        await isar.incomeModels.put(remoteIncome);
+      }
+    });
+  }
+
   // ========================= CLEAR =========================
   @override
   Future<void> clear() async {
@@ -113,5 +148,12 @@ class IncomeLocalDataSourceImpl implements IncomeLocalDataSource {
     } catch (e) {
       print("❌ Error clearing income storage: $e");
     }
+  }
+
+  @override
+  Future<IncomeModel?> getIncomeByIsarId(int? isarId) async {
+    if (isarId == null) return null;
+
+    return isar.incomeModels.filter().isarIdEqualTo(isarId).findFirstSync();
   }
 }

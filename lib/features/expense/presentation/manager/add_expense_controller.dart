@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
-import 'package:spendwise/features/category/data/model/category_model.dart';
+import 'package:spendwise/features/category/data/models/category_model.dart';
 import 'package:spendwise/features/expense/domain/entities/expense_entity.dart';
 import 'package:spendwise/features/expense/domain/usecases/add_expense_usecase.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
@@ -103,7 +103,7 @@ class AddExpenseController extends GetxController {
   void _loadInitialData() {
     walletsListController.loadWallets();
 
-    tagController.loadTags(refresh: true);
+    tagController.loadTags(isRefresh: true);
   }
 
   // =========================
@@ -184,7 +184,9 @@ class AddExpenseController extends GetxController {
 
         walletId: selectedWallet.value?.walletId,
 
-        wallet: selectedWallet.value,
+        wallet: selectedWallet.value!,
+
+        walletLocalId: selectedWallet.value?.localId,
 
         expenseTagId: tag?.id,
 
@@ -194,7 +196,7 @@ class AddExpenseController extends GetxController {
 
         categoryId: selectedCategory.value?.categoryId,
 
-        isSynced: false,
+        isSynced: false.obs,
       );
 
       // =====================
@@ -214,7 +216,7 @@ class AddExpenseController extends GetxController {
           _handleError("فشل الحفظ", failure.message);
         },
         (_) {
-          expensesListController.calculateTotals();
+          expensesListController.updateDashboardTotals();
 
           HelperFunction.showSnackBar("تم بنجاح", "تم حفظ المصروف بنجاح");
 
@@ -225,7 +227,6 @@ class AddExpenseController extends GetxController {
       _handleError("خطأ تقني", e.toString());
     } finally {
       isLoadingSave.value = false;
-      Get.find<ExpensesListController>().fetchExpenses(isRefresh: true);
     }
   }
 
@@ -252,7 +253,7 @@ class AddExpenseController extends GetxController {
 
     await tagActionController.addTag();
 
-    await tagController.loadTags(refresh: true);
+    await tagController.loadTags(isRefresh: true);
 
     return tagController.myTags.firstWhereOrNull(
       (t) => t.name.toLowerCase() == tagName.toLowerCase(),
