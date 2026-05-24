@@ -1,0 +1,32 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/expenses"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  body:
+    type: json
+    content: |-
+      {
+        "amount": 1.6799730586231905e+308,
+        "categoryId": 8820,
+        "date": "2022-09-20T22:58:24.259Z",
+        "title": "string",
+        "userId": 7414,
+        "walletId": 247,
+        "expenseId": 4179,
+        "expenseTagId": 1766,
+        "description": "string",
+        "products": "string"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000

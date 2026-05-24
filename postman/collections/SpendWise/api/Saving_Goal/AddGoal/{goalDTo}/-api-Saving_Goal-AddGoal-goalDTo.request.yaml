@@ -1,0 +1,21 @@
+$kind: http-request
+name: /api/Saving_Goal/AddGoal/:goalDTo
+url: "{{baseUrl}}/api/Saving_Goal/AddGoal/:goalDTo"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: text/plain
+pathVariables:
+  goalDTo: string
+body:
+  type: json
+  content: |-
+    {
+      "currentAmount": 7.206777727339053e+307,
+      "deadlineDate": "1970-02-15",
+      "targetAmount": 7.458220144147451e+307,
+      "title": "string",
+      "userId": 2249
+    }
+examples: ./.resources/-api-Saving_Goal-AddGoal-goalDTo.resources/examples
+order: 1000

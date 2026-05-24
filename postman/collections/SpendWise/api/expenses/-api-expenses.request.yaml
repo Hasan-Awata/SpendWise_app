@@ -1,0 +1,9 @@
+$kind: http-request
+name: /api/expenses
+url: "{{baseUrl}}/api/expenses?PageSize=55&PageNumber=1470167443"
+method: GET
+queryParams:
+  PageSize: "55"
+  PageNumber: "1470167443"
+examples: ./.resources/-api-expenses.resources/examples
+order: 2000
