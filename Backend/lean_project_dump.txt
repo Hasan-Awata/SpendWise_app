@@ -21,10 +21,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise\appsettings.Dev
     "SecretKey": "This-is-a-development-only-key-do-not-use-on-deployment",
     "ExpiryInMinutes": "120"
   },
-  "OcrSettings": {
-    "TessDataPath": "./tessdata",
-    "Language": "eng"
-  },
+
   "Gemini": {
     "ApiKeys": []
   }
@@ -51,10 +48,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise\appsettings.jso
     "SecretKey": "",
     "ExpiryInMinutes": "60"
   },
-  "OcrSettings": {
-    "TessDataPath": "./tessdata",
-    "Language": "eng"
-  },
+
   "Gemini": {
     "ApiKeys": []
   }
@@ -413,6 +407,8 @@ using SpendWise.Application.DTOs.Income;
 using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.Interfaces.Expenses;
 using SpendWise.Application.Interfaces.OcrScanning;
+using SpendWise.Domain.Common;
+using SpendWise.Domain.Enums;
 using System.Security.Claims;
 
 namespace SpendWise.Controllers
@@ -424,7 +420,6 @@ namespace SpendWise.Controllers
     public class ExpenseController : Controller
     {
         private readonly IExpenseService _expenseService;
-        private readonly IOcrService _ocrService;
 
         // Helper property to securely extract the user ID from the auth token
         private int CurrentUserId
@@ -444,29 +439,56 @@ namespace SpendWise.Controllers
                 throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
             }
         }
-        public ExpenseController(IExpenseService expenseService, IOcrService ocrService)
+        public ExpenseController(IExpenseService expenseService)
         {
             _expenseService = expenseService;
-            _ocrService = ocrService;
+        }
+
+        protected ActionResult HandleResult<T>(Result<T> result)
+        {
+            var errorResponse = new { message = result.ErrorMessage };
+
+            return result.ErrorType switch
+            {
+                enErrorType.Validation => BadRequest(errorResponse),
+                enErrorType.NotFound => NotFound(errorResponse),
+                enErrorType.BalanceViolation => UnprocessableEntity(errorResponse),
+                _ => StatusCode(500, new { message = errorResponse })
+            };
+        }
+        protected ActionResult HandleResult(Result result)
+        {
+            var errorResponse = new { message = result.ErrorMessage };
+
+            return result.ErrorType switch
+            {
+                enErrorType.Validation => BadRequest(errorResponse),
+                enErrorType.NotFound => NotFound(errorResponse),
+                enErrorType.BalanceViolation => UnprocessableEntity(errorResponse),
+                _ => StatusCode(500, new { message = errorResponse })
+            };
         }
 
         [HttpGet("{expenseId}")]
         public async Task<IActionResult> GetExpense([FromRoute] int expenseId)
         {
-            var expenseResponse = await _expenseService.GetExpenseAsync(expenseId, CurrentUserId);
+            var result = await _expenseService.GetExpenseAsync(expenseId, CurrentUserId);
 
-            if (expenseResponse == null)
+            if (!result.IsSuccess)
             {
-                return NotFound();
+                return HandleResult(result);
             }
-
+            var expenseResponse = result.Value;
+            
             return Ok(expenseResponse);
         }
 
         [HttpGet]
         public async Task<IActionResult> GetExpenseByUser([FromQuery] PageDTO pageDTO)
         {
-            var pagedExpensesList = await _expenseService.GetExpenseByUserAsync(CurrentUserId, pageDTO);
+            var result = await _expenseService.GetExpenseByUserAsync(CurrentUserId, pageDTO);
+
+            var pagedExpensesList = result.Value;
 
             return Ok(pagedExpensesList);
         }
@@ -481,14 +503,15 @@ namespace SpendWise.Controllers
 
             expenseDTO.UserId = CurrentUserId;
 
-            var createdExpense = await _expenseService.AddExpenseAsync(expenseDTO);
+            var result = await _expenseService.AddExpenseAsync(expenseDTO);
 
-            if (createdExpense == null)
+            if (!result.IsSuccess)
             {
-                return BadRequest();
+                return HandleResult(result);
             }
-
-            return CreatedAtAction(nameof(GetExpense), new { expenseId = createdExpense.ExpenseId }, createdExpense);
+            var createdExpense = result.Value;
+            
+            return CreatedAtAction(nameof(GetExpense), new { expenseId = createdExpense!.ExpenseId }, createdExpense);
         }
 
         [HttpPatch("{expenseId}")]
@@ -498,9 +521,13 @@ namespace SpendWise.Controllers
 
             expenseDTO.ExpenseId = expenseId; 
 
-            var updatedExpense = await _expenseService.UpdateExpenseAsync(expenseDTO);
+            var result = await _expenseService.UpdateExpenseAsync(expenseDTO);
 
-            if (updatedExpense == null) return BadRequest();
+            if (!result.IsSuccess)
+            {
+                return HandleResult(result);
+            }
+            var updatedExpense = result.Value;
 
             return Ok(updatedExpense);
         }
@@ -508,10 +535,12 @@ namespace SpendWise.Controllers
         [HttpDelete("{expenseId}")]
         public async Task<IActionResult> DeleteExpense([FromRoute] int expenseId)
         {
-            if (await _expenseService.DeleteExpenseAsync(expenseId, CurrentUserId))
-                return NoContent();
-            else
-                return BadRequest();
+            var result = await _expenseService.DeleteExpenseAsync(expenseId, CurrentUserId);
+
+            if(!result.IsSuccess)
+                return HandleResult(result);
+
+            return NoContent();
         }
     }
 }
@@ -765,21 +794,24 @@ namespace SpendWise.Controllers
 
 
 
-FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise\Controllers\ReceiptsController.cs
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise\Controllers\OCRController.cs
 ----------------------------------------
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.Interfaces.OcrScanning;
 using SpendWise.Application.Services;
+using System.Security.Claims;
 
 namespace SpendWise.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/ocr")]
-public class ReceiptsController : ControllerBase
+public class OCRController : ControllerBase
 {
     private readonly IOcrService _ocrService;
 
-    public ReceiptsController(IOcrService ocrOrchestrator)
+    public OCRController(IOcrService ocrOrchestrator)
     {
         _ocrService = ocrOrchestrator;
     }
@@ -898,6 +930,7 @@ namespace SpendWise.Controllers
 
 
         }
+
         [HttpPatch("UpdateGoal/{goalID,ubdatedGoal}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -932,6 +965,57 @@ namespace SpendWise.Controllers
               var Goals =await _savingGoalService.GetAchievedGoalsAsync(userID);
             if (Goals == null) return NotFound();
             return Ok(Goals);
+        }
+        
+        [HttpPost("{savingGoalId:int}/wallets/{walletId:int}/add/{amount}amount")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> AddAmountToSavingGoal(int savingGoalId, int walletId, [FromQuery] double amount)
+        {
+            
+            int userId = CurrentUserId;
+
+            if (amount <= 0)
+            {
+                return BadRequest("The amount to add must be greater than zero.");
+            }
+
+           
+            bool isSuccess = await _savingGoalService.AddAmountToSavingGoal(savingGoalId, walletId, userId, amount);
+
+            if (!isSuccess)
+            {
+                return NotFound("The saving goal or wallet was not found, or the operation is unauthorized.");
+            }
+
+            return Ok(new { Message = "Amount successfully added to the saving goal." });
+        }
+
+       
+        [HttpPost("{savingGoalId:int}/wallets/{walletId:int}/withdraw/{amount}amount")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> WithdrawAmountFromSavingGoal(int savingGoalId, int walletId, [FromQuery] double amount)
+        {
+            
+            int userId = CurrentUserId;
+
+            if (amount <= 0)
+            {
+                return BadRequest("The withdrawal amount must be greater than zero.");
+            }
+
+            
+            bool isSuccess = await _savingGoalService.WithdrawAmountFromSavingGoal(savingGoalId, walletId, userId, amount);
+
+            if (!isSuccess)
+            {
+                return BadRequest("Withdrawal failed. Please verify your inputs or ensure the goal contains sufficient funds.");
+            }
+
+            return Ok(new { Message = "Amount successfully withdrawn and returned to the wallet." });
         }
 
     }
@@ -2772,11 +2856,11 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger
 ﻿CREATE TABLE [Ledger].[Expenses] (
     [ExpenseID]  INT             NOT NULL,
     [UserID]     INT             NOT NULL,
-    [Title]      NVARCHAR(20)    DEFAULT 'Expense',
+    [Title]      NVARCHAR(255)    DEFAULT 'Expense',
     [TagID]      INT             NULL,
     [CategoryID] INT             NOT NULL,
     [WalletID]   INT             NOT NULL,
-    [Products]   NVARCHAR (1000) NOT NULL,
+    [Products]   NVARCHAR (MAX)  NOT NULL,
     [Amount]     DECIMAL (18, 2) NOT NULL,
     [Date]       DATETIME        DEFAULT (getdate()) NOT NULL,
 
@@ -2784,6 +2868,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger
     CONSTRAINT [FK_Expenses_Transactions] FOREIGN KEY ([ExpenseID]) 
         REFERENCES [Ledger].[Transactions] ([TransactionID]) ON DELETE CASCADE,
     CONSTRAINT [CHK_Expenses_Amount] CHECK ([Amount]>(0)),
+    CONSTRAINT [CHK_Products_IsJSON] CHECK (Products IS NULL OR ISJSON(Products) = 1),
     CONSTRAINT [FK_Expenses_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [Config].[Categories] ([CategoryID]),
     CONSTRAINT [FK_Expenses_Tags] FOREIGN KEY ([TagID]) REFERENCES [Config].[Tags] ([TagID]),
     CONSTRAINT [FK_Expenses_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID]),
@@ -2844,7 +2929,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Ledger
     [Amount]          DECIMAL (18, 2) NOT NULL,
     [TransactionDate] DATETIME        DEFAULT (getdate()) NOT NULL,
     [TransactionType] INT             NOT NULL,
-    [Description]     NVARCHAR (255)  NULL,
+    [Description]     NVARCHAR (MAX)  NULL,
     [AmountInSp]      DECIMAL (18, 2) DEFAULT ((0.00)) NOT NULL,
     PRIMARY KEY CLUSTERED ([TransactionID] ASC),
     CONSTRAINT [CHK_Transactions_Amount] CHECK ([Amount]>(0)),
@@ -2950,6 +3035,116 @@ END
 
 
 
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_AddSavingGoal.sql
+----------------------------------------
+﻿-- ==========================================
+-- Add Saving Goal, Create Tracking Transaction, and Deduct Wallet Balance
+-- ==========================================
+CREATE PROCEDURE [Planning].[sp_AddSavingGoalWithTransaction]
+    -- Saving Goal Parameters
+    @UserId INT,
+    @Title NVARCHAR(100),
+    @TargetAmount DECIMAL(18,2),
+    @CurrentAmount DECIMAL(18,2),
+    @DeadlineDate DATE,
+
+    -- Transaction & Wallet Parameters
+    @WalletId INT,
+    @CategoryId INT, -- e.g., A system category ID assigned for Savings/Investments
+    @AmountInSp DECIMAL(18,2),
+    @Description NVARCHAR(MAX) = NULL,
+    @TransactionType INT = 1, -- Defaulting to Expense type layout
+
+    -- Output Parameter
+    @NewGoalID INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        -- ==========================================
+        -- PRE-FLIGHT SECURITY & VALIDATION CHECKS
+        -- ==========================================
+        
+        -- 1. Core Target Validations
+        IF @TargetAmount <= 0
+        BEGIN
+            ;THROW 50007, 'The target amount must be greater than zero.', 1;
+        END
+
+        IF @CurrentAmount < 0
+        BEGIN
+            ;THROW 50008, 'The current amount cannot be negative.', 1;
+        END
+
+        -- 2. Prevent duplicate goal titles for the same user
+        IF EXISTS (SELECT 1 FROM [Planning].[SavingsGoals] WHERE UserID = @UserId AND Title = @Title)
+        BEGIN
+            ;THROW 50006, 'A saving goal with this title already exists for the user.', 1;
+        END
+
+        -- 3. Only run Wallet validations if money is actually being allocated right now
+        IF @CurrentAmount > 0
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM [Banking].[Wallets] WHERE WalletID = @WalletId)
+            BEGIN
+                ;THROW 50001, 'Wallet not found.', 1;
+            END
+
+            IF NOT EXISTS (SELECT 1 FROM [Banking].[Wallets] WHERE WalletID = @WalletId AND UserID = @UserId)
+            BEGIN
+                ;THROW 50003, 'Access denied. You do not own this wallet.', 1;
+            END
+            
+            -- Optional: Check if wallet has sufficient balance before proceeding
+            IF (SELECT Balance FROM [Banking].[Wallets] WHERE WalletID = @WalletId) < @CurrentAmount
+            BEGIN
+                ;THROW 50009, 'Insufficient wallet balance for this initial savings allocation.', 1;
+            END
+        END
+
+        -- ==========================================
+        -- TRANSACTION PROCESSING
+        -- ==========================================
+        BEGIN TRAN;
+
+        -- Step 1: Insert into SavingsGoals to get the primary key ID
+        INSERT INTO [Planning].[SavingsGoals] 
+            (UserID, Title, TargetAmount, CurrentAmount, DeadlineDate)
+        VALUES 
+            (@UserId, @Title, @TargetAmount, @CurrentAmount, @DeadlineDate);
+        
+        SET @NewGoalID = CAST(SCOPE_IDENTITY() AS INT);
+
+        -- Step 2: If there is an initial amount allocated, run ledger tracking changes
+        IF @CurrentAmount > 0
+        BEGIN
+            -- Insert Audit Transaction record referencing the newly created GoalID
+            INSERT INTO [Ledger].[Transactions] 
+                (UserID, WalletID, CategoryID, GoalID, Title, Amount, AmountInSp, TransactionDate, TransactionType, Description)
+            VALUES 
+                (@UserId, @WalletId, @CategoryId, @NewGoalID, @Title, @CurrentAmount, @AmountInSp, GETDATE(), @TransactionType, @Description);
+
+            -- Deduct the initial savings allocation from the originating wallet balance
+            UPDATE [Banking].[Wallets]
+            SET Balance = Balance - @CurrentAmount
+            WHERE WalletID = @WalletId AND UserID = @UserId;
+        END
+
+        COMMIT TRAN;
+
+        -- Return values for the application layer execution satisfaction
+        SELECT @NewGoalID AS NewGoalID;
+
+    END TRY
+    BEGIN CATCH
+        -- Rollback if any unexpected exception or constraint error breaks execution context
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN;
+        THROW;
+    END CATCH
+END
+
+
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_DeleteCategoryBudget.sql
 ----------------------------------------
 ﻿
@@ -2968,6 +3163,114 @@ BEGIN
     SELECT @@ROWCOUNT;
 END
 
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_DeleteSavingGoal.sql
+----------------------------------------
+﻿-- ==========================================
+-- 4. Delete Saving Goal, Remove Transactions, and Refund Wallet Balance
+-- ==========================================
+CREATE PROCEDURE [Planning].[sp_DeleteSavingGoal]
+    @GoalId INT,
+    @UserId INT -- Added for strict IDOR Security verification
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        -- ==========================================
+        -- STRICT SECURITY & AUDIT CHECKS (IDOR)
+        -- ==========================================
+        DECLARE @ActualOwnerId INT;
+        DECLARE @AmountToRefund DECIMAL(18,2);
+        DECLARE @WalletId INT;
+        
+        -- Retrieve goal details and locate the last linked wallet from transactions to issue a refund
+        SELECT 
+            @ActualOwnerId = UserID, 
+            @AmountToRefund = CurrentAmount
+        FROM [Planning].[SavingsGoals] 
+        WHERE GoalID = @GoalId;
+
+        -- 1. Verify existence of the goal record
+        IF @ActualOwnerId IS NULL 
+        BEGIN
+            ;THROW 50002, 'The specified saving goal was not found.', 1;
+        END
+
+        -- 2. Verify ownership context
+        IF @ActualOwnerId <> @UserId
+        BEGIN
+            ;THROW 50003, 'Access denied. You do not own this saving goal.', 1;
+        END
+
+        -- Fetch the target wallet used for this saving goal from the transactions ledger
+        SELECT TOP 1 @WalletId = WalletID 
+        FROM [Ledger].[Transactions]
+        WHERE GoalID = @GoalId AND UserID = @UserId
+        ORDER BY TransactionDate DESC;
+
+        -- ==========================================
+        -- TRANSACTION PROCESSING
+        -- ==========================================
+        BEGIN TRAN; 
+
+        -- 1. Clean up audit dependency trail from Ledger records safely
+        DELETE FROM [Ledger].[Transactions] 
+        WHERE GoalID = @GoalId AND UserID = @UserId;
+
+        -- 2. Delete the core saving goal record
+        DELETE FROM [Planning].[SavingsGoals] 
+        WHERE GoalID = @GoalId AND UserID = @UserId;
+        
+        DECLARE @RowsAffected INT = @@ROWCOUNT;
+
+        -- 3. Refund saved capital back to the wallet if the goal held funds
+        IF @RowsAffected > 0 AND @AmountToRefund > 0 AND @WalletId IS NOT NULL
+        BEGIN
+            UPDATE [Banking].[Wallets] 
+            SET Balance = Balance + @AmountToRefund 
+            WHERE WalletID = @WalletId AND UserID = @UserId;
+        END
+
+        COMMIT TRAN; 
+
+        -- Return the number of affected rows to satisfy ExecuteScalarAsync in C#
+        SELECT @RowsAffected AS RowsAffected;
+
+    END TRY
+    BEGIN CATCH
+        -- Rollback if any structural rule or runtime error threatens data isolation
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
+        THROW;
+    END CATCH
+END
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_GetAchievedGoals.sql
+----------------------------------------
+﻿-- ==========================================
+-- 7. Get Achieved Saving Goals
+-- ==========================================
+CREATE PROCEDURE [Planning].[sp_GetAchievedGoals]
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        GoalID, 
+        UserID, 
+        Title, 
+        TargetAmount, 
+        CurrentAmount, 
+        DeadlineDate, 
+        CurrencyID
+    FROM [Planning].[SavingsGoals]
+    WHERE UserID = @UserId 
+      AND CurrentAmount >= TargetAmount
+    ORDER BY DeadlineDate DESC;
+END
 
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_GetAllUserBudgets.sql
@@ -3026,6 +3329,41 @@ END
 
 
 
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_GetAllUserGoal.sql
+----------------------------------------
+﻿-- ==========================================
+-- 6. Get All User Saving Goals (Paged)
+-- ==========================================
+CREATE PROCEDURE [Planning].[sp_GetAllUserGoalsPaged]
+    @UserId INT,
+    @PageNumber INT,
+    @PageSize INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- First Result Set: Total Count of goals for this user
+    SELECT COUNT(*) AS TotalCount
+    FROM [Planning].[SavingsGoals]
+    WHERE UserID = @UserId;
+
+    -- Second Result Set: The actual paged goals data
+    SELECT 
+        GoalID, 
+        UserID, 
+        Title, 
+        TargetAmount, 
+        CurrentAmount, 
+        DeadlineDate, 
+        CurrencyID
+    FROM [Planning].[SavingsGoals]
+    WHERE UserID = @UserId
+    ORDER BY GoalID DESC  -- Displays the newest goals first
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
+END
+
+
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_GetCategoryBudget.sql
 ----------------------------------------
 ﻿
@@ -3059,6 +3397,49 @@ END
 
 
 
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_GetSavingGoal.sql
+----------------------------------------
+﻿-- ==========================================
+-- 5. Get Single Saving Goal By ID
+-- ==========================================
+CREATE PROCEDURE [Planning].[sp_GetSavingGoalById]
+    @GoalId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        GoalID, 
+        UserID, 
+        Title, 
+        TargetAmount, 
+        CurrentAmount, 
+        DeadlineDate, 
+        CurrencyID
+    FROM [Planning].[SavingsGoals]
+    WHERE GoalID = @GoalId;
+END
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_GoalExists.sql
+----------------------------------------
+﻿-- ==========================================
+-- 8. Check Saving Goal Exists
+-- ==========================================
+CREATE PROCEDURE [Planning].[sp_CheckSavingGoalExists]
+    @GoalId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM [Planning].[SavingsGoals] WHERE GoalID = @GoalId)
+        SELECT 1;
+    ELSE
+        SELECT 0;
+END
+
+
+
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_UpdateCategoryBudget.sql
 ----------------------------------------
 ﻿-- ==========================================
@@ -3088,6 +3469,173 @@ BEGIN
     SELECT @@ROWCOUNT;
 END
 
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Stored Procedures\sp_UpdateSavingGoal.sql
+----------------------------------------
+﻿-- ==========================================
+-- 3. Update Saving Goal, Sync Transactions, and Adjust Wallet Balances
+-- ==========================================
+CREATE PROCEDURE [Planning].[sp_UpdateSavingGoal]
+    -- Saving Goal Parameters
+    @GoalId INT,
+    @UserId INT, -- Kept for strict IDOR Security verification
+    @Title NVARCHAR(100),
+    @TargetAmount DECIMAL(18,2),
+    @CurrentAmount DECIMAL(18,2),
+    @DeadlineDate DATE,
+
+    -- Transaction & Wallet Sync Parameters
+    @WalletId INT,
+    @CategoryId INT,
+    @AmountInSp DECIMAL(18,2),
+    @Description NVARCHAR(MAX) = NULL,
+    @TransactionType INT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        -- ==========================================
+        -- PRE-FLIGHT WALLET SECURITY CHECKS (IDOR)
+        -- ==========================================
+        IF NOT EXISTS (SELECT 1 FROM [Banking].[Wallets] WHERE WalletID = @WalletId)
+        BEGIN
+            ;THROW 50001, 'Target wallet not found.', 1;
+        END
+
+        IF NOT EXISTS (SELECT 1 FROM [Banking].[Wallets] WHERE WalletID = @WalletId AND UserID = @UserId)
+        BEGIN
+            ;THROW 50003, 'Access denied. You do not own the target wallet.', 1;
+        END
+
+        -- ==========================================
+        -- SAVING GOAL SECURITY CHECKS (IDOR)
+        -- ==========================================
+        DECLARE @ActualOwnerId INT;
+        DECLARE @OldCurrentAmount DECIMAL(18,2);
+        DECLARE @OldWalletId INT;
+        
+        -- Retrieve the existing state of the saving goal
+        SELECT 
+            @ActualOwnerId = UserID, 
+            @OldCurrentAmount = CurrentAmount
+        FROM [Planning].[SavingsGoals] 
+        WHERE GoalID = @GoalId;
+
+        -- 1. Verify existence
+        IF @ActualOwnerId IS NULL 
+        BEGIN
+            ;THROW 50002, 'The specified saving goal was not found.', 1;
+        END
+        
+        -- 2. Verify authorization
+        IF @ActualOwnerId <> @UserId
+        BEGIN
+            ;THROW 50003, 'Access denied. You do not own this saving goal.', 1;
+        END
+
+        -- Fetch the old wallet ID historically linked to this savings progress transaction
+        SELECT TOP 1 @OldWalletId = WalletID
+        FROM [Ledger].[Transactions]
+        WHERE GoalID = @GoalId AND UserID = @UserId
+        ORDER BY TransactionDate DESC;
+
+        -- Fallback if an initial transaction was never logged for this goal
+        IF @OldWalletId IS NULL SET @OldWalletId = @WalletId;
+
+        -- ==========================================
+        -- CORE BUSINESS VALUE VALIDATIONS
+        -- ==========================================
+        IF @TargetAmount <= 0
+        BEGIN
+            ;THROW 50007, 'The target amount must be greater than zero.', 1;
+        END
+
+        IF @CurrentAmount < 0
+        BEGIN
+            ;THROW 50008, 'The current amount cannot be negative.', 1;
+        END
+
+        -- Prevent duplicate titles across different goals for the same user
+        IF EXISTS (SELECT 1 FROM [Planning].[SavingsGoals] WHERE UserID = @UserId AND Title = @Title AND GoalID <> @GoalId)
+        BEGIN
+            ;THROW 50006, 'A saving goal with this title already exists for the user.', 1;
+        END
+
+        -- ==========================================
+        -- TRANSACTION PROCESSING
+        -- ==========================================
+        BEGIN TRAN; 
+
+        -- Step 1. Update core Saving Goal values
+        UPDATE [Planning].[SavingsGoals]
+        SET Title = @Title,
+            TargetAmount = @TargetAmount,
+            CurrentAmount = @CurrentAmount,
+            DeadlineDate = @DeadlineDate
+        WHERE GoalID = @GoalId AND UserID = @UserId;
+        
+        DECLARE @RowsAffected INT = @@ROWCOUNT;
+
+        -- Step 2. Sync underlying Ledger logs and swap wallet balances if goal exists
+        IF @RowsAffected > 0
+        BEGIN
+            -- If a ledger entry exists, update it. If not, generate an entry for the fresh deposit funds.
+            IF EXISTS (SELECT 1 FROM [Ledger].[Transactions] WHERE GoalID = @GoalId AND UserID = @UserId)
+            BEGIN
+                UPDATE [Ledger].[Transactions]
+                SET WalletID = @WalletId,
+                    CategoryID = @CategoryId,
+                    Title = @Title,
+                    Amount = @CurrentAmount,
+                    AmountInSp = @AmountInSp, 
+                    TransactionDate = GETDATE(),
+                    TransactionType = @TransactionType,
+                    Description = @Description
+                WHERE GoalID = @GoalId AND UserID = @UserId;
+            END
+            ELSE IF @CurrentAmount > 0
+            BEGIN
+                INSERT INTO [Ledger].[Transactions]
+                    (UserID, WalletID, CategoryID, GoalID, Title, Amount, AmountInSp, TransactionDate, TransactionType, Description)
+                VALUES
+                    (@UserId, @WalletId, @CategoryId, @GoalId, @Title, @CurrentAmount, @AmountInSp, GETDATE(), @TransactionType, @Description);
+            END
+
+            -- Step 3. Balance Reversion Math Logic (Deducting/refunding capital differences)
+            IF @OldWalletId = @WalletId
+            BEGIN
+                -- Money allocated to savings acts like an expense. 
+                -- If new savings amount is larger, deduct more from wallet. If lower, refund back to wallet.
+                UPDATE [Banking].[Wallets]
+                SET Balance = Balance + @OldCurrentAmount - @CurrentAmount
+                WHERE WalletID = @WalletId AND UserID = @UserId;
+            END
+            ELSE
+            BEGIN
+                -- Wallet has swapped. Refund old wallet completely, then charge the new wallet.
+                UPDATE [Banking].[Wallets] 
+                SET Balance = Balance + @OldCurrentAmount 
+                WHERE WalletID = @OldWalletId AND UserID = @UserId;
+
+                UPDATE [Banking].[Wallets] 
+                SET Balance = Balance - @CurrentAmount 
+                WHERE WalletID = @WalletId AND UserID = @UserId;
+            END
+        END
+
+        COMMIT TRAN; 
+
+        -- Return execution details to satisfy ExecuteScalarAsync / Reader context
+        SELECT @RowsAffected AS RowsAffected;
+
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN; 
+        THROW;
+    END CATCH
+END
 
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planning\Tables\Budgets.sql
@@ -3176,9 +3724,11 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise Database\Planni
     [CurrentAmount] DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
     [DeadlineDate]  DATE            NULL,
     [IsAchieved]    BIT             DEFAULT ((0)) NOT NULL,
+    [CurrencyID]    INT             NOT NULL,
     PRIMARY KEY CLUSTERED ([GoalID] ASC),
     CONSTRAINT [CHK_SavingsGoals_CurrentAmount] CHECK ([CurrentAmount]>=(0)),
     CONSTRAINT [CHK_SavingsGoals_TargetAmount] CHECK ([TargetAmount]>(0)),
+    CONSTRAINT [FK_SavingGoals_SeedCurrencies] FOREIGN KEY ([CurrencyID]) REFERENCES [Config].[Currencies] ([CurrencyID]),
     CONSTRAINT [FK_SavingsGoals_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID])
 );
 
@@ -3283,15 +3833,6 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\Spe
     <ProjectReference Include="..\SpendWise.Domain\SpendWise.Domain.csproj" />
   </ItemGroup>
   
-  <ItemGroup>
-    <Content Update="tessdata\ara.traineddata">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Update="tessdata\eng.traineddata">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
 </Project>
 
 
@@ -3541,6 +4082,7 @@ namespace SpendWise.Application.DTOs.Currency
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\DTOs\Expense\ExpenseDTO.cs
 ----------------------------------------
 ﻿using SpendWise.Application.DTOs.Category;
+using SpendWise.Application.DTOs.Expense;
 using SpendWise.Application.DTOs.Tag;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
@@ -3577,7 +4119,7 @@ namespace SpendWise.Application.DTOs.Income
 
         public int ExpenseTagId { get; set; } = -1;
         public string Description { get; set; } = string.Empty;
-        public string Products {  get; set; } = string.Empty; // JSON 
+        public List<ProductDTO> Products { get; set; } = new();
     }
 }
 
@@ -3633,6 +4175,24 @@ namespace SpendWise.Application.DTOs.Expense
 
     }
 
+}
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\DTOs\Expense\ProductDTO.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Application.DTOs.Expense
+{
+    public class ProductDTO
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public decimal Price { get; set; }
+    }
 }
 
 
@@ -4313,6 +4873,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Application\Int
 using SpendWise.Application.DTOs.Income;
 using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.DTOs.PagedResponse;
+using SpendWise.Domain.Common;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -4322,14 +4883,13 @@ namespace SpendWise.Application.Interfaces.Expenses
     public interface IExpenseService
     {
         // Writing on the database
-        public Task<ExpenseResponse?> AddExpenseAsync(ExpenseDTO expenseDto);
-        public Task<ExpenseResponse?> AddExpenseViaOcrAsync(byte[] rawImageFile, string mimType, ExpenseDTO expenseDto);
-        public Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto);
-        public Task<bool> DeleteExpenseAsync(int expenseId, int userId);
+        public Task<Result<ExpenseResponse>> AddExpenseAsync(ExpenseDTO expenseDto);
+        public Task<Result<ExpenseResponse>> UpdateExpenseAsync(ExpenseDTO expenseDto);
+        public Task<Result> DeleteExpenseAsync(int expenseId, int userId);
 
         // Reading from the database
-        public Task<ExpenseResponse?> GetExpenseAsync(int expenseId, int userId);
-        public Task<PagedResponse<ExpenseResponse>> GetExpenseByUserAsync(int userId, PageDTO pageDto);
+        public Task<Result<ExpenseResponse>> GetExpenseAsync(int expenseId, int userId);
+        public Task<Result<PagedResponse<ExpenseResponse>>> GetExpenseByUserAsync(int userId, PageDTO pageDto);
 
     }
 }
@@ -5051,16 +5611,20 @@ using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.DTOs.PagedResponse;
 using SpendWise.Application.Interfaces.ExchangeRate;
 using SpendWise.Application.Interfaces.Expenses;
+using SpendWise.Application.Interfaces.OcrScanning;
 using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Domain.Common;
 using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
+using SpendWise.Domain.ProcessingResults;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace SpendWise.Infrastructure.ExternalServices
+namespace SpendWise.Application.Services
 {
     public class ExpenseService : IExpenseService
     {
@@ -5079,7 +5643,7 @@ namespace SpendWise.Infrastructure.ExternalServices
         }
 
         // Helpers methods --------------------------------------------------
-        private Expense MapExpenseDTOtoExpenseObject(ExpenseDTO expenseDto)
+        private Expense MapExpenseDTOtoExpenseObject(ExpenseDTO expenseDto, string products)
         {
             return new Expense
             (
@@ -5087,7 +5651,7 @@ namespace SpendWise.Infrastructure.ExternalServices
                 expenseDto.UserId,
                 expenseDto.Title,
                 expenseDto.Amount,
-                expenseDto.Products,
+                products,
                 expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
                 expenseDto.CategoryId,
                 expenseDto.WalletId,
@@ -5109,10 +5673,7 @@ namespace SpendWise.Infrastructure.ExternalServices
                 0.0m, // amount in SP: Calculated later through the process
                 expenseDto.Date,
                 enTransactionType.Dedduction,
-                -1,
-                -1,
-                -1,
-                -1
+                -1, -1, -1, -1
             );
 
             // Custom attributes for expenses
@@ -5122,7 +5683,6 @@ namespace SpendWise.Infrastructure.ExternalServices
 
             return transaction;
         }
-
         private async Task<decimal> CalcAmountInSp(Wallet wallet, decimal amount)
         {
             if (wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
@@ -5136,71 +5696,157 @@ namespace SpendWise.Infrastructure.ExternalServices
             return await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", amount);
         }
 
-        // Reading methods --------------------------------------------------
-        public async Task<ExpenseResponse?> GetExpenseAsync(int expenseId, int userId)
+        private Result ValidateAndSerializeProducts(List<ProductDTO> products, out string serializedJson)
         {
-            var expense = await _expenseRepo.GetExpenseAsync(expenseId, userId);
-            return expense == null ? null : new ExpenseResponse(expense);
+            serializedJson = string.Empty;
+
+            if (products == null || products.Count == 0)
+            {
+                return Result.Failure("The products list cannot be empty.", enErrorType.Validation);
+            }
+
+            // Business data logic checks
+            foreach (var item in products)
+            {
+                if (item.Quantity < 1)
+                    return Result.Failure("The quantity must at least be 1 for each product", enErrorType.Validation);
+
+                if (string.IsNullOrWhiteSpace(item.Name))
+                    return Result.Failure("Every product must include a valid item name.", enErrorType.Validation);
+
+                if (item.Price < 0)
+                    return Result.Failure($"Invalid price for product '{item.Name}'. Price cannot be negative.", enErrorType.Validation);
+            }
+
+            // Completely safe to serialize without try-catch because it's already a valid C# object list
+            serializedJson = JsonSerializer.Serialize(products);
+            return Result.Success();
         }
 
-        public async Task<PagedResponse<ExpenseResponse>> GetExpenseByUserAsync(int userId, PageDTO pageDto)
+        // Reading methods --------------------------------------------------
+        public async Task<Result<ExpenseResponse>> GetExpenseAsync(int expenseId, int userId)
+        {
+            var expense = await _expenseRepo.GetExpenseAsync(expenseId, userId);
+
+            if (expense == null)
+                return Result<ExpenseResponse>.Failure("Expense was not found.", enErrorType.NotFound);
+
+            return Result<ExpenseResponse>.Success(new ExpenseResponse(expense));
+        }
+
+        public async Task<Result<PagedResponse<ExpenseResponse>>> GetExpenseByUserAsync(int userId, PageDTO pageDto)
         {
             var (expensesList, totalCount) = await _expenseRepo.GetExpensesByUserAsync(userId, pageDto.PageNumber, pageDto.PageSize);
             var expenseResponse = expensesList.Select(item => new ExpenseResponse(item)).ToList();
 
-            return new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
+            var data = new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
+
+            return Result<PagedResponse<ExpenseResponse>>.Success(data);
         }
 
         // Writing methods --------------------------------------------------
-        public async Task<ExpenseResponse?> AddExpenseAsync(ExpenseDTO expenseDto)
+        public async Task<Result<ExpenseResponse>> AddExpenseAsync(ExpenseDTO expenseDto)
         {
-            var newExpense = MapExpenseDTOtoExpenseObject(expenseDto);
+            // 1 - Input validations --------------------------------------------
+            if (expenseDto.Amount <= 0)
+                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.BalanceViolation);
 
-            var wallet = await _walletRepo.GetWalletByIdAsync(newExpense.WalletId, newExpense.UserId);
-            if (wallet == null) return null;
+            if (!SystemCategories.Map.ContainsKey(expenseDto.CategoryId))
+                return Result<ExpenseResponse>.Failure("The selected category is invalid.", enErrorType.Validation);
+
+            var producstValidation = ValidateAndSerializeProducts(expenseDto.Products, out string productsJson);
+            if (!producstValidation.IsSuccess)
+                return Result<ExpenseResponse>.Failure(producstValidation.ErrorMessage!, enErrorType.Validation);
+
+            decimal productsTotalAmount = 0.0m;
+            foreach (var product in expenseDto.Products)
+            {
+                productsTotalAmount += product.Price;
+            }
+            if (productsTotalAmount != expenseDto.Amount)
+                return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
+
+            var wallet = await _walletRepo.GetWalletByIdAsync(expenseDto.WalletId, expenseDto.UserId);
+            if (wallet == null)
+                return Result<ExpenseResponse>.Failure("Wallet was not found.", enErrorType.NotFound);
+
+            if (wallet.Balance < expenseDto.Amount)
+                return Result<ExpenseResponse>.Failure("Not enough money to make this expense.", enErrorType.BalanceViolation);
+
+            expenseDto.ExpenseId = -1; // Make sure to send -1 to database (safe practice)
+
+            // 2 - Map data ------------------------------------------------------
+            var newExpense = MapExpenseDTOtoExpenseObject(expenseDto, productsJson);
 
             newExpense.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, newExpense.Amount);
 
             (int newExpenseId, bool IsOverLimit) = await _expenseRepo.AddExpenseAsync(newExpense);
 
-            if (newExpenseId == -1) return null;
+            if (newExpenseId == -1)
+                return Result<ExpenseResponse>.Failure("Failed to add the expense to the database.", enErrorType.Failure);
 
             newExpense.ExpenseId = newExpenseId;
             newExpense.LinkedTransaction.TransactionId = newExpenseId;
 
-            var expenseResponse = new ExpenseResponse(newExpense);
-            expenseResponse.IsOverLimit = IsOverLimit;
+            // 3 - Form the response ----------------------------------------------
+            var expenseResponse = new ExpenseResponse(newExpense)
+            {
+                IsOverLimit = IsOverLimit
+            };
 
-            return expenseResponse;
+            return Result<ExpenseResponse>.Success(expenseResponse);
         }
 
-        public async Task<ExpenseResponse?> AddExpenseViaOcrAsync(byte[] rawImageFile, string mimType, ExpenseDTO expenseDto)
+        public async Task<Result<ExpenseResponse>> UpdateExpenseAsync(ExpenseDTO expenseDto)
         {
-            return null;
-        }
+            // 1 - Input validations --------------------------------------------
+            if (expenseDto.Amount <= 0)
+                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.BalanceViolation);
 
-        public async Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto)
-        {
-            var updatedExpense = MapExpenseDTOtoExpenseObject(expenseDto);
+            if (!SystemCategories.Map.ContainsKey(expenseDto.CategoryId))
+                return Result<ExpenseResponse>.Failure("The selected category is invalid.", enErrorType.Validation);
 
-            var wallet = await _walletRepo.GetWalletByIdAsync(updatedExpense.WalletId, updatedExpense.UserId);
-            if (wallet == null) return null;
+            var producstValidation = ValidateAndSerializeProducts(expenseDto.Products, out string productsJson);
+            if (!producstValidation.IsSuccess)
+                return Result<ExpenseResponse>.Failure(producstValidation.ErrorMessage!, enErrorType.Validation);
+
+            decimal productsTotalAmount = 0.0m;
+            foreach (var product in expenseDto.Products)
+            {
+                productsTotalAmount += product.Price;
+            }
+            if (productsTotalAmount != expenseDto.Amount)
+                return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
+
+            var wallet = await _walletRepo.GetWalletByIdAsync(expenseDto.WalletId, expenseDto.UserId);
+            if (wallet == null)
+                return Result<ExpenseResponse>.Failure("Wallet was not found.", enErrorType.NotFound);
+
+            // 2 - Map data ------------------------------------------------------
+            var updatedExpense = MapExpenseDTOtoExpenseObject(expenseDto, productsJson);
 
             updatedExpense.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, updatedExpense.Amount);
 
-            (bool Success, bool IsOverLimit) = await _expenseRepo.UpdateExpenseAsync(updatedExpense);
+            (bool success, bool isOverLimit) = await _expenseRepo.UpdateExpenseAsync(updatedExpense);
 
-            if (!Success) return null;
+            if (!success)
+                return Result<ExpenseResponse>.Failure("Failed to update the expense in the database.", enErrorType.Failure);
 
-            var expenseResponse = new ExpenseResponse(updatedExpense);
-            expenseResponse.IsOverLimit = IsOverLimit;
+            // 3 - Form the response ----------------------------------------------
+            var expenseResponse = new ExpenseResponse(updatedExpense)
+            {
+                IsOverLimit = isOverLimit
+            };
 
-            return expenseResponse;
+            return Result<ExpenseResponse>.Success(expenseResponse);
         }
 
-        public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
+        public async Task<Result> DeleteExpenseAsync(int expenseId, int userId)
         {
-            return await _expenseRepo.DeleteExpenseAsync(expenseId, userId);
+            if (await _expenseRepo.DeleteExpenseAsync(expenseId, userId))
+                return Result.Success();
+
+            return Result.Failure("Failed to delete the expense from the database.", enErrorType.Failure);
         }
     }
 }
@@ -5566,6 +6212,7 @@ namespace SpendWise.Application.Services
         }
         public async Task<bool>WithdrawAmountFromSavingGoal (int savingGoalId ,int walletId ,int userId ,double amount)
         {
+
             
             if (userId <= 0)
                 return false;
@@ -6112,6 +6759,50 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Domain\SpendWis
 
 </Project>
 
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Domain\Common\Result.cs
+----------------------------------------
+﻿using SpendWise.Domain.Enums;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Domain.Common
+{
+    public class Result
+    {
+        public bool IsSuccess { get; }
+        public string? ErrorMessage { get; }
+        public enErrorType ErrorType { get; }
+
+        protected Result(bool isSuccess, string? errorMessage, enErrorType errorType)
+        {
+            IsSuccess = isSuccess;
+            ErrorMessage = errorMessage;
+            ErrorType = errorType;
+        }
+
+        public static Result Success() => new(true, null, enErrorType.None);
+        public static Result Failure(string message, enErrorType errorType = enErrorType.Failure)
+            => new(false, message, errorType);
+    }
+
+    public class Result<T> : Result
+    {
+        public T? Value { get; }
+
+        private Result(T? value, bool isSuccess, string? errorMessage, enErrorType errorType)
+            : base(isSuccess, errorMessage, errorType)
+        {
+            Value = value;
+        }
+
+        public static Result<T> Success(T value) => new(value, true, null, enErrorType.None);
+        public static new Result<T> Failure(string message, enErrorType errorType = enErrorType.Failure)
+            => new(default, false, message, errorType);
+    }
+}
 
 
 FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Domain\Constants\SupportedCurrencies.cs
@@ -6720,8 +7411,28 @@ namespace SpendWise.Domain.Enums
     public 
         enum enCategoryType
     {
-        Basics =1 ,Secondaries =2,Expenses =3 ,Savings =4 
+        Essentials =1 ,Secondaries =2,luxuries =3 ,Savings =4 
 
+    }
+}
+
+
+
+FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Domain\Enums\enErrorType.cs
+----------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SpendWise.Domain.Enums
+{
+    public enum enErrorType
+    {
+        None = 0,
+        Validation = 400,
+        NotFound = 404,
+        BalanceViolation = 422,
+        Failure = 500
     }
 }
 
@@ -6778,6 +7489,7 @@ namespace SpendWise.Domain.ProcessingResults
         public decimal Subtotal { get; set; } = decimal.Zero;
         public decimal Tax {  get; set; } = decimal.Zero;
         public decimal Total { get; set; } = decimal.Zero;
+        public int CategoryId { get; set; }
         public DateTime Date { get; set; } = DateTime.Now;
         public bool IsSuccess { get; set; }
         public string? ErrorMessage { get; set; }
@@ -6817,6 +7529,7 @@ FILE: C:\Users\ASUS\source\repos\SpendWise_app\Backend\SpendWise.Infrastructure\
 using Google.GenAI.Types;
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.OcrScanning;
+using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.ProcessingResults;
 using System.Text.Json;
@@ -6883,6 +7596,8 @@ namespace SpendWise.Infrastructure.ExternalServices
             [JsonPropertyName("tax")] public decimal Tax { get; set; }
             [JsonPropertyName("total")] public decimal Total { get; set; }
             [JsonPropertyName("raw_text")] public string RawText { get; set; } = string.Empty;
+            [JsonPropertyName("category")] public string Category { get; set; } = string.Empty;
+            [JsonPropertyName("tag")] public string Tag { get; set; } = string.Empty;
         }
 
         // ── Constructor ───────────────────────────────────────────────────────────────
@@ -7037,6 +7752,8 @@ namespace SpendWise.Infrastructure.ExternalServices
 
         private static GenerateContentConfig BuildGenerationConfig()
         {
+            var allowedCategories = SystemCategories.Map.Values.Select(c => c.Name).ToList();
+
             const string systemInstructions = @"
                 Task: Act as a rigid data extraction processor for receipts.
                 Language Scope: English, Arabic, or mixed bilingual formats.
@@ -7055,6 +7772,10 @@ namespace SpendWise.Infrastructure.ExternalServices
 
                 If 'is_valid' is FALSE: still populate 'raw_text' with whatever is visible,
                 but leave all numeric fields as 0 and 'items' as an empty array.
+                
+                Classification Task:
+                Based on the overall context of the receipt (merchant name, line items, total spent):
+                - Assign the most accurate 'category' from the provided schema enum options.
 
                 Edge-Case Behavior Rules:
                 1. For 'raw_text': Transcribe every character visible line-by-line. Never truncate text.
@@ -7088,6 +7809,7 @@ namespace SpendWise.Infrastructure.ExternalServices
                         { "tax",         new Schema { Type = Type.Number  } },
                         { "total",       new Schema { Type = Type.Number  } },
                         { "raw_text",    new Schema { Type = Type.String  } },
+                        { "category",    new Schema { Type = Type.String, Enum = allowedCategories } },
                         {
                             "items", new Schema
                             {
@@ -7131,6 +7853,9 @@ namespace SpendWise.Infrastructure.ExternalServices
                 ? parsedDate
                 : DateTime.Now;
 
+            var categoryId = SystemCategories.Map.Values.FirstOrDefault(c =>
+                c.Name.Equals(dto.Category, StringComparison.OrdinalIgnoreCase))?.CategoryId ?? 1;
+
             return new OcrResult
             {
                 IsSuccess = true,
@@ -7140,6 +7865,7 @@ namespace SpendWise.Infrastructure.ExternalServices
                 Tax = dto.Tax,
                 Total = dto.Total,
                 Date = finalDate,
+                CategoryId = categoryId,
                 Products = products
             };
         }
@@ -8185,7 +8911,7 @@ namespace SpendWise.Infrastructure.Repositories
         public SavingGoalRepository(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")
-                                ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+                                ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings.");
         }
 
         public async Task<int> AddGoalAsync(SavingGoal goal)
@@ -8193,7 +8919,8 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_AddSavingGoal]", connection)
+                // Updated schema from [Ledger] to [Planning]
+                using var command = new SqlCommand("[Planning].[sp_AddSavingGoal]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -8216,22 +8943,23 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> UpdateGoalAsync(SavingGoal ubdatedGoal)
+        public async Task<bool> UpdateGoalAsync(SavingGoal updatedGoal)
         {
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_UpdateSavingGoal]", connection)
+                // Updated schema from [Ledger] to [Planning]
+                using var command = new SqlCommand("[Planning].[sp_UpdateSavingGoal]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
 
-                command.Parameters.AddWithValue("@GoalId", ubdatedGoal.GoalID);
-                command.Parameters.AddWithValue("@UserId", ubdatedGoal.UserID);
-                command.Parameters.AddWithValue("@Title", ubdatedGoal.Title);
-                command.Parameters.AddWithValue("@TargetAmount", ubdatedGoal.TargetAmount);
-                command.Parameters.AddWithValue("@CurrentAmount", ubdatedGoal.CurrentAmount);
-                command.Parameters.AddWithValue("@DeadlineDate", ubdatedGoal.DeadlineDate);
+                command.Parameters.AddWithValue("@GoalId", updatedGoal.GoalID);
+                command.Parameters.AddWithValue("@UserId", updatedGoal.UserID);
+                command.Parameters.AddWithValue("@Title", updatedGoal.Title);
+                command.Parameters.AddWithValue("@TargetAmount", updatedGoal.TargetAmount);
+                command.Parameters.AddWithValue("@CurrentAmount", updatedGoal.CurrentAmount);
+                command.Parameters.AddWithValue("@DeadlineDate", updatedGoal.DeadlineDate);
 
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
@@ -8250,7 +8978,8 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_DeleteSavingGoal]", connection)
+                // Updated schema from [Ledger] to [Planning]
+                using var command = new SqlCommand("[Planning].[sp_DeleteSavingGoal]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -8274,7 +9003,8 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetSavingGoalById]", connection)
+                // Updated schema from [Ledger] to [Planning]
+                using var command = new SqlCommand("[Planning].[sp_GetSavingGoalById]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -8314,7 +9044,8 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetAllUserGoalsPaged]", connection)
+                // Updated schema from [Ledger] to [Planning]
+                using var command = new SqlCommand("[Planning].[sp_GetAllUserGoalsPaged]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -8344,7 +9075,7 @@ namespace SpendWise.Infrastructure.Repositories
                             Convert.ToDecimal(reader["TargetAmount"]),
                             Convert.ToDecimal(reader["CurrentAmount"]),
                             Convert.ToDateTime(reader["DeadlineDate"]),
-                        Convert.ToInt32(reader["CurrencyID"])
+                            Convert.ToInt32(reader["CurrencyID"])
                         ));
                     }
                 }
@@ -8365,7 +9096,8 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetAchievedGoals]", connection)
+                // Updated schema from [Ledger] to [Planning]
+                using var command = new SqlCommand("[Planning].[sp_GetAchievedGoals]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -8384,7 +9116,7 @@ namespace SpendWise.Infrastructure.Repositories
                         Convert.ToDecimal(reader["TargetAmount"]),
                         Convert.ToDecimal(reader["CurrentAmount"]),
                         Convert.ToDateTime(reader["DeadlineDate"]),
-                        Convert.ToInt32(reader["CurrencyID"] )
+                        Convert.ToInt32(reader["CurrencyID"])
                     ));
                 }
 
@@ -8402,7 +9134,8 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_CheckSavingGoalExists]", connection)
+                // Updated schema from [Ledger] to [Planning]
+                using var command = new SqlCommand("[Planning].[sp_CheckSavingGoalExists]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };

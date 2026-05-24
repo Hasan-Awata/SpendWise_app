@@ -40,7 +40,9 @@ namespace SpendWise.Infrastructure.Repositories
                         userName: (string)reader["Username"],
                         HashedPassword: (string)reader["Password"],
                         FirstName: (string)reader["FirstName"],
-                        LastName: (string)reader["LastName"]
+                        LastName: (string)reader["LastName"],
+                        RefreshToken: (string)reader["RefreshToken"],
+                        RefreshTokenExpiryTime: (DateTime)reader["RefreshTokenExpiryTime"]
                     );
                 }
 
@@ -75,7 +77,9 @@ namespace SpendWise.Infrastructure.Repositories
                         userName: (string)reader["Username"],
                         HashedPassword: (string)reader["Password"],
                         FirstName: (string)reader["FirstName"],
-                        LastName: (string)reader["LastName"]
+                        LastName: (string)reader["LastName"],
+                        RefreshToken: (string)reader["RefreshToken"],
+                        RefreshTokenExpiryTime: (DateTime)reader["RefreshTokenExpiryTime"]
                     );
                 }
 
@@ -142,6 +146,32 @@ namespace SpendWise.Infrastructure.Repositories
             catch (SqlException ex)
             {
                 SqlExceptionHandler.Handle(ex); 
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdateRefreshTokenAsync(int userId, string refreshToken, DateTime expiryTime)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Identity].[sp_UpdateUserRefreshToken]", connection)
+                {
+                    CommandType = System.Data.CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@UserId", userId);
+                command.Parameters.AddWithValue("@RefreshToken", (object?)refreshToken ?? DBNull.Value);
+                command.Parameters.AddWithValue("@RefreshTokenExpiryTime", (object?)expiryTime ?? DBNull.Value);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteNonQueryAsync();
+
+                return result > 0;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
                 throw;
             }
         }

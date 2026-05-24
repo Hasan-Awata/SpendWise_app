@@ -40,7 +40,20 @@ namespace SpendWise.Controllers
             return Ok(response);
         }
 
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto tokenDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
+            var response = await _authService.RefreshTokenAsync(tokenDto);
+
+            // If the service returns null, the refresh token was expired, invalid, or didn't match the DB
+            if (response == null)
+                return Unauthorized("Invalid access token or refresh token.");
+
+            return Ok(response);
+        }
     }
 
 }

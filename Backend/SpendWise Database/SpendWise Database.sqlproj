@@ -128,6 +128,7 @@
     <Build Include="Planning\Functions\fn_IsOverCategoryBudget.sql" />
     <None Include="Config\SeedCurrencies.sql" />
     <Build Include="Ledger\Stored Procedures\sp_GetTransactionsByUserPaged.sql" />
+    <Build Include="Identity\Stored Procedures\sp_UpdateUserRefreshToken.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />

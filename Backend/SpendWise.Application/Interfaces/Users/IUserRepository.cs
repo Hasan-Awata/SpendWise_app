@@ -12,6 +12,7 @@ namespace SpendWise.Application.Interfaces.Users
         public Task<User?> GetByUsernameAsync(string userName);
         public Task<User?> GetByIdAsync(int id);
         public Task<bool> IsUsernameExistAsync(string username);
+        public Task<bool> UpdateRefreshTokenAsync(int userId, string refreshToken, DateTime refreshTokenExpiryTime); 
 
     }
 }
