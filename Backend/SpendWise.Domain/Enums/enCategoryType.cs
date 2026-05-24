@@ -7,7 +7,7 @@ namespace SpendWise.Domain.Enums
     public 
         enum enCategoryType
     {
-        Basics =1 ,Secondaries =2,Expenses =3 ,Savings =4 
+        Essentials =1 ,Secondaries =2,luxuries =3 ,Savings =4 
 
     }
 }

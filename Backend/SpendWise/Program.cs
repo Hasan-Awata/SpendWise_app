@@ -1,25 +1,24 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-
-using System.Text;
-using System.Text.Json.Serialization;
-using SpendWise.Application.Services;
-using SpendWise.Infrastructure.Repositories;
-using SpendWise.Application.Interfaces.Tags;
-using SpendWise.Application.Interfaces.Users;
-
 using SpendWise.Application.Interfaces.Authentication;
 using SpendWise.Application.Interfaces.Categories;
 using SpendWise.Application.Interfaces.ExchangeRate;
 using SpendWise.Application.Interfaces.Expenses;
+using SpendWise.Application.Interfaces.FixedObligations;
 using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Application.Interfaces.OcrScanning;
 using SpendWise.Application.Interfaces.SavingGoals;
 using SpendWise.Application.Interfaces.SharedDebts;
-using SpendWise.Application.Interfaces.Wallets;
-using SpendWise.Application.Interfaces.FixedObligations;
+using SpendWise.Application.Interfaces.Tags;
 using SpendWise.Application.Interfaces.Transactions;
-using SpendWise.Infrastructure.Services;
+using SpendWise.Application.Interfaces.Users;
+using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Application.Services;
+using SpendWise.Infrastructure.Repositories;
+using SpendWise.Infrastructure.ExternalServices;
+using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,6 +83,9 @@ builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 
 builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
 
+builder.Services.AddSingleton<IOcrService, GeminiOcrService>();
+
+
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"]!;
@@ -137,4 +139,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 app.Run();

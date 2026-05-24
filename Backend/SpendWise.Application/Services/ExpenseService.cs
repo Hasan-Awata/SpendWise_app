@@ -13,7 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SpendWise.Infrastructure.Services
+namespace SpendWise.Infrastructure.ExternalServices
 {
     public class ExpenseService : IExpenseService
     {
@@ -125,6 +125,11 @@ namespace SpendWise.Infrastructure.Services
             expenseResponse.IsOverLimit = IsOverLimit;
 
             return expenseResponse;
+        }
+
+        public async Task<ExpenseResponse?> AddExpenseViaOcrAsync(byte[] rawImageFile, string mimType, ExpenseDTO expenseDto)
+        {
+            return null;
         }
 
         public async Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto)
