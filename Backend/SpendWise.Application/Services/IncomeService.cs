@@ -4,9 +4,13 @@ using SpendWise.Application.DTOs.PagedResponse;
 using SpendWise.Application.Interfaces.ExchangeRate;
 using SpendWise.Application.Interfaces.Incomes;
 using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Domain.Common;
 using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
+using SpendWise.Domain.ProcessingResults;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SpendWise.Application.Services
 {
@@ -46,7 +50,7 @@ namespace SpendWise.Application.Services
         {
             var transaction = new Transaction
             (
-                -1, 
+                -1,
                 incomeDto.UserId,
                 incomeDto.Title,
                 incomeDto.Description,
@@ -69,7 +73,6 @@ namespace SpendWise.Application.Services
 
         private async Task<decimal> CalcAmountInSp(Wallet wallet, decimal amount)
         {
-
             decimal amountInSp = 0.0m;
 
             if (wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
@@ -88,68 +91,82 @@ namespace SpendWise.Application.Services
         }
 
         // Reading methods --------------------------------------------------
-        public async Task<IncomeResponse?> GetIncomeAsync(int incomeId, int userId)
+        public async Task<Result<IncomeResponse>> GetIncomeAsync(int incomeId, int userId)
         {
             var income = await _incomeRepo.GetIncomeAsync(incomeId, userId);
 
-            if (income == null) return null;
+            if (income == null)
+                return Result<IncomeResponse>.Failure("Income was not found.", enErrorType.NotFound);
 
-            return new IncomeResponse(income);
+            return Result<IncomeResponse>.Success(new IncomeResponse(income));
         }
 
-        public async Task<PagedResponse<IncomeResponse>> GetIncomeByUserAsync(int userId, PageDTO pageDto)
+        public async Task<Result<PagedResponse<IncomeResponse>>> GetIncomeByUserAsync(int userId, PageDTO pageDto)
         {
             var (incomeList, totalCount) = await _incomeRepo.GetIncomeByUserAsync(userId, pageDto.PageNumber, pageDto.PageSize);
-
             var incomesResponse = incomeList.Select(item => new IncomeResponse(item)).ToList();
 
-            return new PagedResponse<IncomeResponse>(incomesResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
+            var data = new PagedResponse<IncomeResponse>(incomesResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
+
+            return Result<PagedResponse<IncomeResponse>>.Success(data);
         }
 
         // Writing methods --------------------------------------------------
-        public async Task<IncomeResponse?> AddIncomeAsync(IncomeDTO incomeDto)
+        public async Task<Result<IncomeResponse>> AddIncomeAsync(IncomeDTO incomeDto)
         {
+            // 1 - Input validations --------------------------------------------
+            if (incomeDto.Amount <= 0)
+                return Result<IncomeResponse>.Failure("Income amount must be greater than zero.", enErrorType.Validation);
+
+            var wallet = await _walletRepo.GetWalletByIdAsync(incomeDto.WalletId, incomeDto.UserId);
+            if (wallet == null)
+                return Result<IncomeResponse>.Failure("Wallet was not found.", enErrorType.NotFound);
+
+            incomeDto.Id = -1; // Make sure to send -1 to database (safe practice)
+
+            // 2 - Map data ------------------------------------------------------
             var newIncome = MapIncomeDTOtoIncomeObject(incomeDto);
-
-            var wallet = await _walletRepo.GetWalletByIdAsync(newIncome.WalletId, newIncome.UserId);
-
-            if (wallet == null) return null;
-
             newIncome.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, newIncome.Amount);
 
             int newIncomeId = await _incomeRepo.AddIncomeAsync(newIncome);
 
-            if (newIncomeId == -1) return null;
+            if (newIncomeId == -1)
+                return Result<IncomeResponse>.Failure("Failed to add the income to the database.", enErrorType.Failure);
 
             newIncome.Id = newIncomeId;
             newIncome.LinkedTransaction.TransactionId = newIncomeId;
 
-            return new IncomeResponse(newIncome);
+            // 3 - Form the response ----------------------------------------------
+            return Result<IncomeResponse>.Success(new IncomeResponse(newIncome));
         }
 
-        public async Task<IncomeResponse?> UpdateIncomeAsync(IncomeDTO incomeDto)
+        public async Task<Result<IncomeResponse>> UpdateIncomeAsync(IncomeDTO incomeDto)
         {
+            // 1 - Input validations --------------------------------------------
+            if (incomeDto.Amount <= 0)
+                return Result<IncomeResponse>.Failure("Income amount must be greater than zero.", enErrorType.Validation);
+
+            var wallet = await _walletRepo.GetWalletByIdAsync(incomeDto.WalletId, incomeDto.UserId);
+            if (wallet == null)
+                return Result<IncomeResponse>.Failure("Wallet was not found.", enErrorType.NotFound);
+
+            // 2 - Map data ------------------------------------------------------
             var updatedIncome = MapIncomeDTOtoIncomeObject(incomeDto);
-
-            var wallet = await _walletRepo.GetWalletByIdAsync(updatedIncome.WalletId, updatedIncome.UserId);
-
-            if (wallet == null) return null;
-
-
             updatedIncome.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, updatedIncome.Amount);
 
-
             if (!await _incomeRepo.UpdateIncomeAsync(updatedIncome))
-            {
-                return null;
-            }
+                return Result<IncomeResponse>.Failure("Failed to update the income in the database.", enErrorType.Failure);
 
-            return new IncomeResponse(updatedIncome);
+            // 3 - Form the response ----------------------------------------------
+            return Result<IncomeResponse>.Success(new IncomeResponse(updatedIncome));
         }
 
-        public async Task<bool> DeleteIncomeAsync(int incomeId, int userId)
+        public async Task<Result> DeleteIncomeAsync(int incomeId, int userId)
         {
-            return await _incomeRepo.DeleteIncomeAsync(incomeId, userId);
+            if (await _incomeRepo.DeleteIncomeAsync(incomeId, userId))
+                return Result.Success();
+
+            return Result.Failure("Failed to delete the income from the database.", enErrorType.Failure);
         }
     }
 }

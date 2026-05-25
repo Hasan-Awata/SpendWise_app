@@ -142,7 +142,7 @@ namespace SpendWise.Application.Services
         {
             // 1 - Input validations --------------------------------------------
             if (expenseDto.Amount <= 0)
-                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.BalanceViolation);
+                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.Validation);
 
             if (!SystemCategories.Map.ContainsKey(expenseDto.CategoryId))
                 return Result<ExpenseResponse>.Failure("The selected category is invalid.", enErrorType.Validation);
@@ -194,7 +194,7 @@ namespace SpendWise.Application.Services
         {
             // 1 - Input validations --------------------------------------------
             if (expenseDto.Amount <= 0)
-                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.BalanceViolation);
+                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.Validation);
 
             if (!SystemCategories.Map.ContainsKey(expenseDto.CategoryId))
                 return Result<ExpenseResponse>.Failure("The selected category is invalid.", enErrorType.Validation);
