@@ -1,82 +1,77 @@
 ﻿using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
+using System.Reflection;
+using SpendWise.Domain.Common;
 
 namespace SpendWise.Infrastructure.Global
 {
     public static class SqlExceptionHandler
     {
+        // 1. Target your custom exceptions assembly
+        private static readonly Assembly CustomExceptionAssembly = typeof(ResourceNotFoundException).Assembly;
+        private static readonly string CustomNamespace = typeof(ResourceNotFoundException).Namespace;
+
+        // 2. Target the native system exceptions assembly as a backup
+        private static readonly Assembly SystemAssembly = typeof(ArgumentException).Assembly;
+        private static readonly string SystemNamespace = typeof(ArgumentException).Namespace; 
+
         public static void Handle(SqlException ex)
         {
-            // 1. Extract exact SQL location for ultra-clean debugging
             string procName = string.IsNullOrEmpty(ex.Errors[0].Procedure) ? "Inline SQL" : ex.Errors[0].Procedure;
             string debugInfo = $"[Proc: {procName} | Line: {ex.Errors[0].LineNumber}] ";
 
-            // 2. Custom User-Defined Errors (Thrown manually via THROW in Stored Procedures)
-            if (ex.Number >= 50000)
+            if (ex.Number == 50000)
             {
-                // Inject the debug location directly into the error message
-                string fullMessage = $"{debugInfo}{ex.Message}";
+                string errorCode = ex.Message; // e.g., "ERR_UnauthorizedAccess_Wallet"
+                string userFriendlyText = DomainErrorMessages.GetMessage(errorCode);
+                string fullMessage = $"{debugInfo}{userFriendlyText}";
 
-                switch (ex.Number)
+                var tokens = errorCode.Split('_');
+                if (tokens.Length >= 2 && tokens[0] == "ERR")
                 {
-                    case 50001:
-                        throw new InvalidReferenceException(fullMessage); // 400 Bad Request
-                    case 50002:
-                        throw new ResourceNotFoundException(fullMessage); // 404 Not Found
-                    case 50003:
-                        throw new UnauthorizedAccessException(fullMessage); // 401 Unauthorized
-                    case 50004:
-                        throw new DuplicateResourceException(fullMessage); // 409 Conflict
-                    case 50005:
-                        throw new WrongOperation(fullMessage); // 404 Bad Request
-                    default:
-                        throw new Exception(fullMessage); // Fallback for future custom errors
+                    string exceptionClassName = $"{tokens[1]}Exception"; // e.g., "UnauthorizedAccessException"
+
+                    // Look in your custom Domain Exceptions first
+                    Type exceptionType = CustomExceptionAssembly.GetType($"{CustomNamespace}.{exceptionClassName}");
+
+                    // If not found in your custom project, look in native System exceptions
+                    if (exceptionType == null)
+                    {
+                        exceptionType = SystemAssembly.GetType($"{SystemNamespace}.{exceptionClassName}");
+                    }
+
+                    // If a valid exception class type was found in either assembly, instantiate it
+                    if (exceptionType != null)
+                    {
+                        var dynamicException = Activator.CreateInstance(exceptionType, fullMessage) as Exception;
+                        if (dynamicException != null)
+                        {
+                            throw dynamicException;
+                        }
+                    }
                 }
+
+                // Global fallback if string parsing completely fails to match a class
+                throw new Exception($"{debugInfo} Unhandled Domain Error: {errorCode} ({userFriendlyText})");
             }
 
-            // 3. Standard SQL Server Engine Errors
+            // 3. Standard SQL Server Engine Errors remain low-maintenance and fixed
             switch (ex.Number)
             {
-                // -- DATA INTEGRITY & CONSTRAINTS --
-                case 2601: // Duplicated key row error
-                case 2627: // Unique constraint error
-                    throw new DuplicateResourceException($"{debugInfo}This resource already exists or violates a unique constraint.");
-
-                case 547: // Foreign Key or Check Constraint violation
-                    throw new InvalidReferenceException($"{debugInfo}A related record is missing, or a constraint was violated (e.g., Dates, Invalid IDs).");
-
-                case 515: // Cannot insert NULL
-                    throw new ArgumentException($"{debugInfo}A required field was left empty (NULL violation).");
-
-                case 8152: // String or binary data would be truncated (SQL Server 2017-)
-                case 2628: // String or binary data would be truncated (SQL Server 2019+)
+                case 2601:
+                case 2627:
+                    throw new DuplicateResourceException($"{debugInfo}This resource already exists.");
+                case 547:
+                    throw new InvalidReferenceException($"{debugInfo}A related record is missing or a constraint was violated.");
+                case 515:
+                    throw new ArgumentException($"{debugInfo}A required field was left empty.");
+                case 8152:
+                case 2628:
                     throw new ArgumentException($"{debugInfo}The provided data is too long for one or more fields.");
+                case -2:
+                    throw new TimeoutException($"{debugInfo}The database took too long to respond.");
 
-                case 245: // Conversion failed
-                    throw new ArgumentException($"{debugInfo}Data type conversion failed. Please ensure the data format is correct.");
-
-                // -- CONCURRENCY --
-                case 1205: // Deadlock victim
-                    throw new DataException($"{debugInfo}The database is currently busy processing conflicting requests. Please retry.");
-
-                // -- TIMEOUTS & CONNECTIONS --
-                case -2: // Timeout
-                    throw new TimeoutException($"{debugInfo}The database took too long to respond. Please try again.");
-
-                case 2:     // Connection failed
-                case 53:    // Named Pipes Provider error / Server not found
-                case 4060:  // Cannot open database
-                case 18456: // Login failed
-                    throw new InvalidOperationException($"{debugInfo}Failed to connect to the database. Check server status.");
-
-                // -- SCHEMA & MISSING OBJECTS --
-                case 207:  // Invalid column name
-                case 208:  // Invalid object name (Table missing)
-                case 2812: // Could not find stored procedure
-                    throw new InvalidOperationException($"{debugInfo}Database schema mismatch. Code {ex.Number}: {ex.Message}");
-
-                // -- FALLBACK --
                 default:
                     throw new Exception($"Database Error: SQL Error [{ex.Number}]: {ex.Message} {debugInfo}");
             }
