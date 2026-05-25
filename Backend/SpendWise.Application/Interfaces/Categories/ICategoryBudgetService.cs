@@ -1,21 +1,18 @@
 ﻿using SpendWise.Application.DTOs.Category;
-using SpendWise.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using SpendWise.Domain.Common;
 
 namespace SpendWise.Application.Interfaces.Categories
 {
     public interface ICategoryBudgetService
     {
-        public Task<IEnumerable<CategoryBudgetResponse>> GetAllUserBudgetsAsync(int userId);
+        public Task<Result<IEnumerable<CategoryBudgetResponse>>> GetAllUserBudgetsAsync(int userId);
 
-        public Task<CategoryBudgetResponse?> GetCategoryBudgetAsync(int userId, int categoryId);
+        public Task<Result<CategoryBudgetResponse>> GetCategoryBudgetAsync(int userId, int categoryId);
 
-        public Task<CategoryBudgetResponse?> SetCategoryBudgetAsync(CategoryBudgetDTO budgetDto);
+        public Task<Result<CategoryBudgetResponse>> SetCategoryBudgetAsync(CategoryBudgetDTO budgetDto);
 
-        public Task<bool> UpdateCategoryBudgetAsync(CategoryBudgetDTO budgetDto);
+        public Task<Result<CategoryBudgetResponse>> UpdateCategoryBudgetAsync(CategoryBudgetDTO budgetDto);
 
-        public Task<bool> DeleteCategoryBudgetAsync(int userId, int categoryId);
+        public Task<Result> DeleteCategoryBudgetAsync(int userId, int categoryId);
     }
 }
