@@ -29,9 +29,9 @@ namespace SpendWise.Application.Services
             return new Wallet
             (
                 walletDto.WalletId,
-                walletDto.UserId,
-                walletDto.Balance,
                 walletDto.CurrencyId,
+                walletDto.Balance,
+                walletDto.UserId,
                 walletDto.IsSaved
             );
         }
@@ -41,9 +41,9 @@ namespace SpendWise.Application.Services
             return new WalletResponse
             (
                 wallet.WalletId,
-                wallet.UserId,
-                wallet.Balance,
                 wallet.CurrencyId,
+                wallet.Balance,
+                wallet.UserId,
                 wallet.IsSaved
             );
         }
