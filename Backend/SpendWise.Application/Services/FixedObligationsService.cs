@@ -1,13 +1,15 @@
 ﻿using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using SpendWise.Application.DTOs.FixedObligations;
 using SpendWise.Application.Interfaces.FixedObligations;
 
 namespace SpendWise.Application.Services
 {
-    public class FixedObligationsService: IFixedObligationsService
+    public class FixedObligationsService : IFixedObligationsService
     {
         private readonly IFixedObligationRepository _fixedObligationRepo;
 
@@ -16,10 +18,19 @@ namespace SpendWise.Application.Services
             _fixedObligationRepo = fixedObligationRepo;
         }
 
-        public async Task<FixedObligationResponse> GetFixedObligationAsync(int fixedObligationId, int UserID)
+        public async Task<FixedObligationResponse?> GetFixedObligationAsync(int fixedObligationId, int userId)
         {
-            var fixedObligation = await _fixedObligationRepo.GetFixedObligationAsync(fixedObligationId, UserID);
-           
+            if (fixedObligationId <= 0)
+                return null;
+
+            if (userId <= 0)
+                return null;
+
+            var fixedObligation = await _fixedObligationRepo.GetFixedObligationAsync(fixedObligationId, userId);
+
+            if (fixedObligation == null)
+                return null;
+
             return new FixedObligationResponse
             {
                 Id = fixedObligation.Id,
@@ -30,11 +41,14 @@ namespace SpendWise.Application.Services
                 IsActive = fixedObligation.IsActive,
             };
         }
-        public async Task<IEnumerable<FixedObligationResponse?>> GetFixedObligationsByUserIdAsync(int userId)
+
+        public async Task<IEnumerable<FixedObligationResponse>> GetFixedObligationsByUserIdAsync(int userId)
         {
+            if (userId <= 0)
+                return Enumerable.Empty<FixedObligationResponse>().ToList();
+
             var fixedObligationsList = await _fixedObligationRepo.GetFixedObligationsByUserIdAsync(userId);
 
-            // Use LINQ to map each item in the collection
             return fixedObligationsList.Select(item => new FixedObligationResponse
             {
                 Id = item.Id,
@@ -43,10 +57,10 @@ namespace SpendWise.Application.Services
                 Amount = item.Amount,
                 DueDate = item.DueDate,
                 IsActive = item.IsActive,
-            });
+            }).ToList();
         }
 
-        public async Task CreateFixedObligationAsync(FixedObligationDTO fixedObligationDto)
+        public async Task<int> CreateFixedObligationAsync(FixedObligationDTO fixedObligationDto)
         {
             var newObligation = new FixedObligation(
                 fixedObligationDto.Id,
@@ -57,10 +71,10 @@ namespace SpendWise.Application.Services
                 fixedObligationDto.IsActive
             );
 
-            await _fixedObligationRepo.CreateFixedObligationAsync(newObligation);
+            return await _fixedObligationRepo.CreateFixedObligationAsync(newObligation);
         }
 
-        public async Task UpdateFixedObligationAsync(FixedObligationDTO fixedObligationDto)
+        public async Task<bool> UpdateFixedObligationAsync(FixedObligationDTO fixedObligationDto)
         {
             var updatedObligation = new FixedObligation(
                 fixedObligationDto.Id,
@@ -71,18 +85,29 @@ namespace SpendWise.Application.Services
                 fixedObligationDto.IsActive
             );
 
-            await _fixedObligationRepo.UpdateFixedObligationAsync(updatedObligation);
+            return await _fixedObligationRepo.UpdateFixedObligationAsync(updatedObligation);
         }
 
-        public async Task DeleteFixedObligationAsync(int fixedObligationId, int UserID)
+        public async Task<bool> DeleteFixedObligationAsync(int fixedObligationId, int userId)
         {
-            await _fixedObligationRepo.DeleteFixedObligationAsync(fixedObligationId, UserID);
+            if (fixedObligationId <= 0)
+                return false;
+
+            if (userId <= 0)
+                return false;
+
+            return await _fixedObligationRepo.DeleteFixedObligationAsync(fixedObligationId, userId);
         }
 
-        //private async Task<bool> ValidateAmount(FixedObligationDTO fixedObligationDto)
-        //{
-        //    /// This method validates the amount of the fixed obligation before saving it to Database
-        //    if (fixedObligationDto.Amount)
-        //}
+        public async Task<bool> IsFixedObligationActive(int fixedObligationId, int userId)
+        {
+            if (fixedObligationId <= 0)
+                return false;
+
+            if (userId <= 0)
+                return false;
+
+            return await _fixedObligationRepo.IsObligationActive(fixedObligationId, userId);
+        }
     }
 }

@@ -25,7 +25,7 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetFixedObligation]", connection)
+                using var command = new SqlCommand("[Planning].[sp_GetFixedObligation]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -39,8 +39,8 @@ namespace SpendWise.Infrastructure.Repositories
                 if (await reader.ReadAsync())
                 {
                     return new FixedObligation(
-                        id: Convert.ToInt32(reader["Id"]),
-                        ownerId: Convert.ToInt32(reader["OwnerId"]),
+                        id: Convert.ToInt32(reader["FixedExpenseID"]),
+                        ownerId: Convert.ToInt32(reader["UserID"]),
                         title: reader["Title"].ToString()!,
                         amount: Convert.ToDecimal(reader["Amount"]),
                         dueDate: Convert.ToDateTime(reader["DueDate"]),
@@ -64,7 +64,7 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetFixedObligationsByUserId]", connection)
+                using var command = new SqlCommand("[Planning].[sp_GetFixedObligationsByUserId]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -77,8 +77,8 @@ namespace SpendWise.Infrastructure.Repositories
                 while (await reader.ReadAsync())
                 {
                     obligations.Add(new FixedObligation(
-                        id: Convert.ToInt32(reader["Id"]),
-                        ownerId: Convert.ToInt32(reader["OwnerId"]),
+                        id: Convert.ToInt32(reader["FixedExpenseID"]),
+                        ownerId: Convert.ToInt32(reader["UserID"]),
                         title: reader["Title"].ToString()!,
                         amount: Convert.ToDecimal(reader["Amount"]),
                         dueDate: Convert.ToDateTime(reader["DueDate"]),
@@ -95,12 +95,12 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> CreateFixedObligationAsync(FixedObligation fixedObligation)
+        public async Task<int> CreateFixedObligationAsync(FixedObligation fixedObligation)
         {
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_CreateFixedObligation]", connection)
+                using var command = new SqlCommand("[Planning].[sp_CreateFixedObligation]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -114,7 +114,7 @@ namespace SpendWise.Infrastructure.Repositories
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
 
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+                return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
             }
             catch (SqlException ex)
             {
@@ -128,7 +128,7 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_UpdateFixedObligation]", connection)
+                using var command = new SqlCommand("[Planning].[sp_UpdateFixedObligation]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -152,23 +152,48 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> DeleteFixedObligationAsync(int obligationId, int UserID)
+        public async Task<bool> DeleteFixedObligationAsync(int obligationId, int userId)
         {
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_DeleteFixedObligation]", connection)
+                using var command = new SqlCommand("[Planning].[sp_DeleteFixedObligation]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
 
                 command.Parameters.AddWithValue("@Id", obligationId);
-                command.Parameters.AddWithValue("@OwnerId", UserID);
+                command.Parameters.AddWithValue("@UserId", userId);
 
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
 
                 return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> IsObligationActive(int obligationId, int userId)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Planning].[sp_CheckFixedObligationActive]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@ObligationId", obligationId);
+                command.Parameters.AddWithValue("@UserId", userId);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && Convert.ToBoolean(result);
             }
             catch (SqlException ex)
             {
