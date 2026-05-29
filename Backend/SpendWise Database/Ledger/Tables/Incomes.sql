@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [Ledger].[Incomes] (
     [IncomeID] INT             NOT NULL,
     [UserID]   INT             NOT NULL,
-    [Title]    NVARCHAR(25)    NOT NULL,
+    [Title]    NVARCHAR(255)    NOT NULL,
     [TagID]    INT             NULL,
     [WalletID] INT             NOT NULL,
     [Amount]   DECIMAL (18, 2) NOT NULL,

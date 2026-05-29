@@ -16,7 +16,7 @@ namespace SpendWise.Application.DTOs.Income
         public int UserId { get; set; }
 
         [Required(ErrorMessage = "Please enter a title for this income!")]
-        [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters!")]
+        [StringLength(255, ErrorMessage = "Title cannot exceed 255 characters!")]
         public string Title { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Please enter the id of the wallet that you want to deduct from")]
