@@ -92,7 +92,8 @@ namespace SpendWise.Controllers
         [HttpGet("{fixedIncomeId}/status")]
         public async Task<IActionResult> IsFixedIncomeActive([FromRoute] int fixedIncomeId)
         {
-            var isActive = await _fixedIncomeService.IsFixedIncomeActive(fixedIncomeId);
+
+            var isActive = await _fixedIncomeService.IsFixedIncomeActive(fixedIncomeId,CurrentUserId);
             return Ok(new { FixedIncomeId = fixedIncomeId, IsActive = isActive });
         }
     }

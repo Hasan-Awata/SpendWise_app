@@ -17,6 +17,6 @@ namespace SpendWise.Application.Interfaces
        public Task<bool> DeleteFixedIncomeAsync(int fixedIncomeId, int userId);
 
      
-       public  Task<bool> IsFixedIncomeActive(int fixedIncomeId);
+       public  Task<bool> IsFixedIncomeActive(int fixedIncomeId,int userId);
     }
 }

@@ -95,7 +95,7 @@ builder.Services.AddScoped<ISavingGoalRepository, SavingGoalRepository>();
 builder.Services.AddScoped<ICategoryBudgetService, CategoryBudgetService>();
 builder.Services.AddScoped<ICategoryBudgetRepository, CategoryBudgetRepository>();
 
-<<<<<<<<< Temporary merge branch 1
+
 builder.Services.AddScoped<ISharedDebtRepository, SharedDebtRepository>();
 
 builder.Services.AddScoped<IFixedObligationsService, FixedObligationsService>();

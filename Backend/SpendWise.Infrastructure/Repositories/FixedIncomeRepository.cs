@@ -25,7 +25,7 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetFixedIncome]", connection)
+                using var command = new SqlCommand("[Planning].[sp_GetFixedIncome]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -39,17 +39,16 @@ namespace SpendWise.Infrastructure.Repositories
                 if (await reader.ReadAsync())
                 {
                     return new FixedIncome
-
-                        (Convert.ToInt32(reader["FixedIncomeId"]),
-                         Convert.ToInt32(reader["UserId"]),
-                          Convert.ToInt32(reader["TagId"]),
-                          reader["Title"].ToString()!,
-                         Convert.ToDecimal(reader["Amount"]),
+                    (
+                        Convert.ToInt32(reader["FixedIncomeId"]),
+                        Convert.ToInt32(reader["UserId"]),
+                        reader["Title"].ToString()!,
+                        Convert.ToDecimal(reader["Amount"]),
                         Convert.ToBoolean(reader["IsMonthly"]),
                         Convert.ToBoolean(reader["IsActive"]),
-                        Convert.ToInt32(reader["Days"]),
-                         Convert.ToDateTime(reader["LastTime"]));
-                   
+                        reader["Days"] != DBNull.Value ? Convert.ToInt32(reader["Days"]) : 0,
+                        reader["LastTime"] != DBNull.Value ? Convert.ToDateTime(reader["LastTime"]) : DateTime.MinValue
+                    );
                 }
                 return null!;
             }
@@ -66,7 +65,7 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetFixedIncomesByUser]", connection)
+                using var command = new SqlCommand("[Planning].[sp_GetFixedIncomesByUser]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -78,16 +77,16 @@ namespace SpendWise.Infrastructure.Repositories
 
                 while (await reader.ReadAsync())
                 {
-                    incomes.Add(new FixedIncome(
-                         Convert.ToInt32(reader["FixedIncomeId"]),
-                         Convert.ToInt32(reader["UserId"]),
-                         Convert.ToInt32(reader["TagId"]),
-                         reader["Title"].ToString(),
-                         Convert.ToDecimal(reader["Amount"]),
-                         Convert.ToBoolean(reader["IsMonthly"]),
-                         Convert.ToBoolean(reader["IsActive"]),
-                         Convert.ToInt32(reader["Days"]),
-                         Convert.ToDateTime(reader["LastTime"])
+                    incomes.Add(new FixedIncome
+                    (
+                        Convert.ToInt32(reader["FixedIncomeId"]),
+                        Convert.ToInt32(reader["UserId"]),
+                        reader["Title"].ToString()!,
+                        Convert.ToDecimal(reader["Amount"]),
+                        Convert.ToBoolean(reader["IsMonthly"]),
+                        Convert.ToBoolean(reader["IsActive"]),
+                        reader["Days"] != DBNull.Value ? Convert.ToInt32(reader["Days"]) : 0,
+                        reader["LastTime"] != DBNull.Value ? Convert.ToDateTime(reader["LastTime"]) : DateTime.MinValue
                     ));
                 }
                 return incomes;
@@ -104,27 +103,22 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_CreateFixedIncome]", connection)
+                using var command = new SqlCommand("[Planning].[sp_CreateFixedIncome]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
 
-                // Parameters from the FixedIncome entity
                 command.Parameters.AddWithValue("@UserId", fixedIncome.UserId);
-                command.Parameters.AddWithValue("@TagId", fixedIncome.TagId);
                 command.Parameters.AddWithValue("@Title", fixedIncome.Title);
                 command.Parameters.AddWithValue("@Amount", fixedIncome.Amount);
                 command.Parameters.AddWithValue("@IsMonthly", fixedIncome.IsMonthly);
                 command.Parameters.AddWithValue("@IsActive", fixedIncome.IsActive);
-                command.Parameters.AddWithValue("@Days", fixedIncome.Days);
-                command.Parameters.AddWithValue("@LastTime", fixedIncome.LastTime);
+                command.Parameters.AddWithValue("@Days", (object)fixedIncome.Days ?? DBNull.Value);
+                command.Parameters.AddWithValue("@LastTime", (object)fixedIncome.LastTime ?? DBNull.Value);
 
                 await connection.OpenAsync();
-
-                // Using ExecuteScalar to get the new ID (SCOPE_IDENTITY) from the stored procedure
                 var result = await command.ExecuteScalarAsync();
 
-                // If the result is valid, return the ID; otherwise return -1
                 return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
             }
             catch (SqlException ex)
@@ -139,24 +133,24 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_UpdateFixedIncome]", connection)
+                using var command = new SqlCommand("[Planning].[sp_UpdateFixedIncome]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
 
                 command.Parameters.AddWithValue("@FixedIncomeId", fixedIncome.FixedIncomeId);
                 command.Parameters.AddWithValue("@UserId", fixedIncome.UserId);
-                command.Parameters.AddWithValue("@TagId", fixedIncome.TagId);
                 command.Parameters.AddWithValue("@Title", fixedIncome.Title);
                 command.Parameters.AddWithValue("@Amount", fixedIncome.Amount);
                 command.Parameters.AddWithValue("@IsMonthly", fixedIncome.IsMonthly);
                 command.Parameters.AddWithValue("@IsActive", fixedIncome.IsActive);
-                command.Parameters.AddWithValue("@Days", fixedIncome.Days);
-                command.Parameters.AddWithValue("@LastTime", fixedIncome.LastTime);
+                command.Parameters.AddWithValue("@Days", (object)fixedIncome.Days ?? DBNull.Value);
+                command.Parameters.AddWithValue("@LastTime", (object)fixedIncome.LastTime ?? DBNull.Value);
 
                 await connection.OpenAsync();
-                int rowsAffected = await command.ExecuteNonQueryAsync();
-                return rowsAffected > 0;
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
@@ -170,7 +164,7 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_DeleteFixedIncome]", connection)
+                using var command = new SqlCommand("[Planning].[sp_DeleteFixedIncome]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -179,8 +173,9 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@UserId", userId);
 
                 await connection.OpenAsync();
-                int rowsAffected = await command.ExecuteNonQueryAsync();
-                return rowsAffected > 0;
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
@@ -189,16 +184,22 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> IsIncomeActive(int fixedIncomeId)
+        public async Task<bool> IsIncomeActive(int fixedIncomeId, int userId)
         {
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("SELECT IsActive FROM [Ledger].[FixedIncomes] WHERE FixedIncomeId = @Id", connection);
-                command.Parameters.AddWithValue("@Id", fixedIncomeId);
+                using var command = new SqlCommand("[Planning].[sp_CheckFixedIncomeActive]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@FixedIncomeId", fixedIncomeId);
+                command.Parameters.AddWithValue("@UserId", userId);
 
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
+
                 return result != null && Convert.ToBoolean(result);
             }
             catch (SqlException ex)

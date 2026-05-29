@@ -129,6 +129,12 @@
     <None Include="Config\SeedCurrencies.sql" />
     <Build Include="Ledger\Stored Procedures\sp_GetTransactionsByUserPaged.sql" />
     <Build Include="Identity\Stored Procedures\sp_UpdateUserRefreshToken.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetFixedIncomesByUser.sql" />
+    <Build Include="Planning\Stored Procedures\sp_CreateFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_UpdateFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_DeleteFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_CheckFixedIncomeActive.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />

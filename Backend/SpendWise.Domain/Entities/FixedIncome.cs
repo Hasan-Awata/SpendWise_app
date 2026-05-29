@@ -7,7 +7,7 @@ namespace SpendWise.Domain.Entities
         
         public int FixedIncomeId { get; set; }
         public int UserId { get; set; }
-        public int TagId { get; set; }
+      
 
         public string Title { get; set; }
         public decimal Amount { get; set; }
@@ -21,7 +21,7 @@ namespace SpendWise.Domain.Entities
         public FixedIncome(
             int fixedIncomeId,
             int userId,
-            int tagId,
+           
             string title,
             decimal amount,
             bool isMonthly,
@@ -33,7 +33,7 @@ namespace SpendWise.Domain.Entities
 
             FixedIncomeId = fixedIncomeId;
             UserId = userId;
-            TagId = tagId;
+          
             Title = title;
             Amount = amount;
             IsMonthly = isMonthly;

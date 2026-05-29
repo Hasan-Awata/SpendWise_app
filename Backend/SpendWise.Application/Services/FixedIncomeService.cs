@@ -17,8 +17,13 @@ namespace SpendWise.Application.Services
             _fixedIncomeRepo = fixedIncomeRepo;
         }
 
-        public async Task<FixedIncomeResponse> GetFixedIncomeAsync(int fixedIncomeId, int userId)
+        public async Task<FixedIncomeResponse?> GetFixedIncomeAsync(int fixedIncomeId, int userId)
         {
+            if (fixedIncomeId <= 0)
+                return null;
+
+            if (userId <= 0)
+                return null;
             var fixedIncome = await _fixedIncomeRepo.GetFixedIncomeAsync(fixedIncomeId, userId);
 
             if (fixedIncome == null) return null!;
@@ -27,7 +32,6 @@ namespace SpendWise.Application.Services
             {
                 FixedIncomeId = fixedIncome.FixedIncomeId,
                 UserId = fixedIncome.UserId,
-                TagId = fixedIncome.TagId,
                 Title = fixedIncome.Title,
                 Amount = fixedIncome.Amount,
                 IsMonthly = fixedIncome.IsMonthly,
@@ -39,6 +43,8 @@ namespace SpendWise.Application.Services
 
         public async Task<IEnumerable<FixedIncomeResponse>> GetFixedIncomesByUserIdAsync(int userId)
         {
+            if (userId <= 0)
+                return Enumerable.Empty<FixedIncomeResponse>().ToList();
             var fixedIncomesList = await _fixedIncomeRepo.GetFixedIncomesByUserIdAsync(userId);
 
             // Mapping the entity collection to the response DTO collection
@@ -46,7 +52,6 @@ namespace SpendWise.Application.Services
             {
                 FixedIncomeId = item.FixedIncomeId,
                 UserId = item.UserId,
-                TagId = item.TagId,
                 Title = item.Title,
                 Amount = item.Amount,
                 IsMonthly = item.IsMonthly,
@@ -58,10 +63,10 @@ namespace SpendWise.Application.Services
 
         public async Task<int> CreateFixedIncomeAsync(FixedIncomeDTO fixedIncomeDTO)
         {
+
             var newIncome = new FixedIncome(
                 fixedIncomeDTO.FixedIncomeId,
                 fixedIncomeDTO.UserId,
-                fixedIncomeDTO.TagId,
                 fixedIncomeDTO.Title,
                 fixedIncomeDTO.Amount,
                 fixedIncomeDTO.IsMonthly,
@@ -70,7 +75,7 @@ namespace SpendWise.Application.Services
                 fixedIncomeDTO.LastTime
             );
 
-          return   await _fixedIncomeRepo.CreateFixedIncomeAsync(newIncome);
+            return await _fixedIncomeRepo.CreateFixedIncomeAsync(newIncome);
         }
 
         public async Task<bool> UpdateFixedIncomeAsync(FixedIncomeDTO fixedIncomeDTO)
@@ -78,7 +83,7 @@ namespace SpendWise.Application.Services
             var updatedIncome = new FixedIncome(
                 fixedIncomeDTO.FixedIncomeId,
                 fixedIncomeDTO.UserId,
-                fixedIncomeDTO.TagId,
+              
                 fixedIncomeDTO.Title,
                 fixedIncomeDTO.Amount,
                 fixedIncomeDTO.IsMonthly,
@@ -87,16 +92,29 @@ namespace SpendWise.Application.Services
                 fixedIncomeDTO.LastTime
             );
 
-           return await _fixedIncomeRepo.UpdateFixedIncomeAsync(updatedIncome);
+            return await _fixedIncomeRepo.UpdateFixedIncomeAsync(updatedIncome);
         }
 
-        public async Task <bool>DeleteFixedIncomeAsync(int fixedIncomeId, int userId)
+        public async Task<bool> DeleteFixedIncomeAsync(int fixedIncomeId, int userId)
         {
-            return     await _fixedIncomeRepo.DeleteFixedIncomeAsync(fixedIncomeId, userId);
+            if (fixedIncomeId <= 0)
+                return false;
+
+            if (userId <= 0)
+                return false;
+
+            return await _fixedIncomeRepo.DeleteFixedIncomeAsync(fixedIncomeId, userId);
         }
-        public async Task<bool> IsFixedIncomeActive(int fixedIncomeId) { 
-          return await _fixedIncomeRepo.IsIncomeActive(fixedIncomeId);
-        
+        public async Task<bool> IsFixedIncomeActive(int fixedIncomeId, int userId)
+        {
+
+            if (fixedIncomeId <= 0)
+                return false;
+
+            if (userId <= 0)
+                return false;
+            return await _fixedIncomeRepo.IsIncomeActive(fixedIncomeId,userId);
+
         }
 
     }
