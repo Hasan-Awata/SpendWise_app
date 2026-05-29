@@ -129,7 +129,11 @@
     <None Include="Config\SeedCurrencies.sql" />
     <Build Include="Ledger\Stored Procedures\sp_GetTransactionsByUserPaged.sql" />
     <Build Include="Identity\Stored Procedures\sp_UpdateUserRefreshToken.sql" />
-    <Build Include="Planning\Stored Procedures\sp_UpdateSavingGoal_1.sql" />
+    <Build Include="Planning\Stored Procedures\sp_UpdateSavingGoal.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GoalExists.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetAllUserGoal.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetAchievedGoals.sql" />
+    <Build Include="Planning\Stored Procedures\sp_AddSavingGoal.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />
