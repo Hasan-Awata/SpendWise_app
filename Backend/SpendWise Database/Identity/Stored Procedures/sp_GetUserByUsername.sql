@@ -8,7 +8,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    SELECT UserID, FirstName, LastName, Username, Password
+    SELECT UserID, FirstName, LastName, Username, Password, RefreshToken, RefreshTokenExpiryTime
     FROM [Identity].Users
     WHERE Username = @Username;
 END

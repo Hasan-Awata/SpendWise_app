@@ -9,5 +9,6 @@ namespace SpendWise.Application.Interfaces.Authentication
     {
         public Task<ResponseAuthDto> RegisterAsync(RegisterDto registerDto);
         public Task<ResponseAuthDto?> LoginAsync(LoginDto loginDto);
+        Task<ResponseAuthDto?> RefreshTokenAsync(RefreshTokenDto tokenDto);
     }
 }

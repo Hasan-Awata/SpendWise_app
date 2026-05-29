@@ -65,5 +65,10 @@ namespace SpendWise.Application.Services
 
             return Math.Round(amountInSP / 5, MidpointRounding.AwayFromZero) * 5;
         }
+        //implementation this fun *_*
+        public async Task<decimal> NormalizeFromSyrianPund(string CurrencySymploy,string rateType ,decimal amount) {
+            return Convert.ToDecimal(-1);
+        
+        }
     }
 }

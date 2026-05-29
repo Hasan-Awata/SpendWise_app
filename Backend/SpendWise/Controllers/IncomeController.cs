@@ -3,60 +3,51 @@ using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.Income;
 using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.Interfaces.Incomes;
+using SpendWise.Domain.Common;
+using SpendWise.Domain.Enums;
+using System;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace SpendWise.Controllers
 {
     [Authorize]
     [ApiController]
     [Route("api/incomes")]
-
-    public class IncomeController : Controller
+    public class IncomeController : BaseApiController
     {
         private readonly IIncomeService _incomeService;
-            
-        // Helper property to securely extract the user ID from the auth token
-        private int CurrentUserId
-        {
-            get
-            {
-                // 1. Get the string value from the claim
-                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-                // 2. Safely attempt to parse it into an integer
-                if (int.TryParse(userIdString, out int userId))
-                {
-                    return userId;
-                }
-
-                // 3. Fallback/Safety Net: If the claim is missing or somehow isn't a valid number
-                throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
-            }
-        }
         public IncomeController(IIncomeService incomeService)
         {
             _incomeService = incomeService;
         }
 
+        // Endpoints --------------------------------------------------------
         [HttpGet("{incomeId}")]
         public async Task<IActionResult> GetIncome([FromRoute] int incomeId)
         {
-            var incomeResponse = await _incomeService.GetIncomeAsync(incomeId, CurrentUserId);
+            var result = await _incomeService.GetIncomeAsync(incomeId, CurrentUserId);
 
-            if (incomeResponse == null)
+            if (!result.IsSuccess)
             {
-                return NotFound();
+                return HandleResultOnError(result);
             }
 
-            return Ok(incomeResponse);
+            return Ok(result.Value);
         }
 
         [HttpGet]
         public async Task<IActionResult> GetIncomeByUser([FromQuery] PageDTO pageDTO)
         {
-            var pagedIncomeList = await _incomeService.GetIncomeByUserAsync(CurrentUserId, pageDTO);
+            var result = await _incomeService.GetIncomeByUserAsync(CurrentUserId, pageDTO);
 
-            return Ok(pagedIncomeList);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(result.Value);
         }
 
         [HttpPost]
@@ -69,47 +60,51 @@ namespace SpendWise.Controllers
 
             incomeDTO.UserId = CurrentUserId;
 
-            var createdIncome = await _incomeService.AddIncomeAsync(incomeDTO);
+            var result = await _incomeService.AddIncomeAsync(incomeDTO);
 
-            if (createdIncome == null)
+            if (!result.IsSuccess)
             {
-                return BadRequest();
+                return HandleResultOnError(result);
             }
 
-            return CreatedAtAction(nameof(GetIncome), new { incomeId = createdIncome.Id }, createdIncome);
+            var createdIncome = result.Value;
+
+            return CreatedAtAction(nameof(GetIncome), new { incomeId = createdIncome!.Id }, createdIncome);
         }
 
         [HttpPatch("{incomeId}")]
         public async Task<IActionResult> UpdateIncome([FromRoute] int incomeId, [FromBody] IncomeDTO incomeDTO)
         {
-            if(CurrentUserId != incomeDTO.UserId)
+            if (CurrentUserId != incomeDTO.UserId)
             {
                 return Unauthorized();
             }
 
+            // Ensures route ID safely overrides any malicious/incorrect body ID
+            incomeDTO.Id = incomeId;
             incomeDTO.UserId = CurrentUserId;
 
-            var updatedIncome = await _incomeService.UpdateIncomeAsync(incomeDTO);
+            var result = await _incomeService.UpdateIncomeAsync(incomeDTO);
 
-            if (updatedIncome == null)
+            if (!result.IsSuccess)
             {
-                return BadRequest();
+                return HandleResultOnError(result);
             }
 
-            return Ok(updatedIncome);
+            return Ok(result.Value);
         }
 
         [HttpDelete("{incomeId}")]
         public async Task<IActionResult> DeleteIncome([FromRoute] int incomeId)
         {
-            if(await _incomeService.DeleteIncomeAsync(incomeId, CurrentUserId))
+            var result = await _incomeService.DeleteIncomeAsync(incomeId, CurrentUserId);
+
+            if (!result.IsSuccess)
             {
-                return NoContent();
+                return HandleResultOnError(result);
             }
-            else
-            {
-                return BadRequest();
-            }
+
+            return NoContent();
         }
     }
 }

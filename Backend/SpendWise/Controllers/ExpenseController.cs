@@ -4,6 +4,9 @@ using SpendWise.Application.DTOs.Expense;
 using SpendWise.Application.DTOs.Income;
 using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.Interfaces.Expenses;
+using SpendWise.Application.Interfaces.OcrScanning;
+using SpendWise.Domain.Common;
+using SpendWise.Domain.Enums;
 using System.Security.Claims;
 
 namespace SpendWise.Controllers
@@ -12,28 +15,10 @@ namespace SpendWise.Controllers
     [ApiController]
     [Route("api/expenses")]
 
-    public class ExpenseController : Controller
+    public class ExpenseController : BaseApiController
     {
         private readonly IExpenseService _expenseService;
 
-        // Helper property to securely extract the user ID from the auth token
-        private int CurrentUserId
-        {
-            get
-            {
-                // 1. Get the string value from the claim
-                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                // 2. Safely attempt to parse it into an integer
-                if (int.TryParse(userIdString, out int userId))
-                {
-                    return userId;
-                }
-
-                // 3. Fallback/Safety Net: If the claim is missing or somehow isn't a valid number
-                throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
-            }
-        }
         public ExpenseController(IExpenseService expenseService)
         {
             _expenseService = expenseService;
@@ -42,22 +27,28 @@ namespace SpendWise.Controllers
         [HttpGet("{expenseId}")]
         public async Task<IActionResult> GetExpense([FromRoute] int expenseId)
         {
-            var expenseResponse = await _expenseService.GetExpenseAsync(expenseId, CurrentUserId);
+            var result = await _expenseService.GetExpenseAsync(expenseId, CurrentUserId);
 
-            if (expenseResponse == null)
+            if (!result.IsSuccess)
             {
-                return NotFound();
+                return HandleResultOnError(result);
             }
-
+            var expenseResponse = result.Value;
+            
             return Ok(expenseResponse);
         }
 
         [HttpGet]
         public async Task<IActionResult> GetExpenseByUser([FromQuery] PageDTO pageDTO)
         {
-            var pagedExpensesList = await _expenseService.GetExpenseByUserAsync(CurrentUserId, pageDTO);
+            var result = await _expenseService.GetExpenseByUserAsync(CurrentUserId, pageDTO);
 
-            return Ok(pagedExpensesList);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(result.Value);
         }
 
         [HttpPost]
@@ -70,14 +61,15 @@ namespace SpendWise.Controllers
 
             expenseDTO.UserId = CurrentUserId;
 
-            var createdExpense = await _expenseService.AddExpenseAsync(expenseDTO);
+            var result = await _expenseService.AddExpenseAsync(expenseDTO);
 
-            if (createdExpense == null)
+            if (!result.IsSuccess)
             {
-                return BadRequest();
+                return HandleResultOnError(result);
             }
-
-            return CreatedAtAction(nameof(GetExpense), new { expenseId = createdExpense.ExpenseId }, createdExpense);
+            var createdExpense = result.Value;
+            
+            return CreatedAtAction(nameof(GetExpense), new { expenseId = createdExpense!.ExpenseId }, createdExpense);
         }
 
         [HttpPatch("{expenseId}")]
@@ -87,20 +79,25 @@ namespace SpendWise.Controllers
 
             expenseDTO.ExpenseId = expenseId; 
 
-            var updatedExpense = await _expenseService.UpdateExpenseAsync(expenseDTO);
+            var result = await _expenseService.UpdateExpenseAsync(expenseDTO);
 
-            if (updatedExpense == null) return BadRequest();
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
 
-            return Ok(updatedExpense);
+            return Ok(result.Value);
         }
 
         [HttpDelete("{expenseId}")]
         public async Task<IActionResult> DeleteExpense([FromRoute] int expenseId)
         {
-            if (await _expenseService.DeleteExpenseAsync(expenseId, CurrentUserId))
-                return NoContent();
-            else
-                return BadRequest();
+            var result = await _expenseService.DeleteExpenseAsync(expenseId, CurrentUserId);
+
+            if(!result.IsSuccess)
+                return HandleResultOnError(result);
+
+            return NoContent();
         }
     }
 }

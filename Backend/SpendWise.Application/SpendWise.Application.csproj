@@ -16,5 +16,5 @@
   <ItemGroup>
     <ProjectReference Include="..\SpendWise.Domain\SpendWise.Domain.csproj" />
   </ItemGroup>
-
+  
 </Project>

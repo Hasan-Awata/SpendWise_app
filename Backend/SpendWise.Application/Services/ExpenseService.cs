@@ -1,20 +1,21 @@
 ﻿using SpendWise.Application.DTOs.Expense;
 using SpendWise.Application.DTOs.Income;
-using SpendWise.Application.DTOs.Tag;
-using SpendWise.Application.DTOs.Category;
-using SpendWise.Application.DTOs.Currency;
-using SpendWise.Application.DTOs.Wallet;
 using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.DTOs.PagedResponse;
+using SpendWise.Application.Interfaces.ExchangeRate;
 using SpendWise.Application.Interfaces.Expenses;
+using SpendWise.Application.Interfaces.OcrScanning;
+using SpendWise.Application.Interfaces.Wallets;
+using SpendWise.Domain.Common;
+using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
+using SpendWise.Domain.ProcessingResults;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using SpendWise.Application.Interfaces.Wallets;
-using SpendWise.Application.Interfaces.ExchangeRate;
-using SpendWise.Domain.Constants;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace SpendWise.Application.Services
 {
@@ -24,205 +25,221 @@ namespace SpendWise.Application.Services
         private readonly IWalletRepository _walletRepo;
         private readonly IExchangeRateService _exchangeRateService;
 
-        public ExpenseService(IExpenseRepository expenseRepo, IWalletRepository walletRepo, IExchangeRateService exchangeRateService)
+        public ExpenseService(
+            IExpenseRepository expenseRepo,
+            IWalletRepository walletRepo,
+            IExchangeRateService exchangeRateService)
         {
             _expenseRepo = expenseRepo;
             _walletRepo = walletRepo;
             _exchangeRateService = exchangeRateService;
         }
 
+        // Helpers methods --------------------------------------------------
+        private Expense MapExpenseDTOtoExpenseObject(ExpenseDTO expenseDto, string products)
+        {
+            return new Expense
+            (
+                expenseDto.ExpenseId,
+                expenseDto.UserId,
+                expenseDto.Title,
+                expenseDto.Amount,
+                products,
+                expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
+                expenseDto.CategoryId,
+                expenseDto.WalletId,
+                MapExpenseDTOtoTransactionObject(expenseDto),
+                expenseDto.Date
+            );
+        }
+
+        private Transaction MapExpenseDTOtoTransactionObject(ExpenseDTO expenseDto)
+        {
+            var transaction = new Transaction
+            (
+                -1,
+                expenseDto.UserId,
+                expenseDto.Title,
+                expenseDto.Description,
+                expenseDto.WalletId,
+                expenseDto.Amount,
+                0.0m, // amount in SP: Calculated later through the process
+                expenseDto.Date,
+                enTransactionType.Dedduction,
+                -1, -1, -1, -1
+            );
+
+            // Custom attributes for expenses
+            transaction.ExpenseId = expenseDto.ExpenseId;
+            transaction.TransactionTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId;
+            transaction.TransactionCategoryId = expenseDto.CategoryId;
+
+            return transaction;
+        }
+        private async Task<decimal> CalcAmountInSp(Wallet wallet, decimal amount)
+        {
+            if (wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
+            {
+                return amount;
+            }
+
+            Currency? walletCurrency = SupportedCurrencies.GetById(wallet.CurrencyId);
+            if (walletCurrency == null) return 0.0m;
+
+            return await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", amount);
+        }
+
+        private Result ValidateAndSerializeProducts(List<ProductDTO> products, out string serializedJson)
+        {
+            serializedJson = string.Empty;
+
+            if (products == null || products.Count == 0)
+            {
+                return Result.Failure("The products list cannot be empty.", enErrorType.Validation);
+            }
+
+            // Business data logic checks
+            foreach (var item in products)
+            {
+                if (item.Quantity < 1)
+                    return Result.Failure("The quantity must at least be 1 for each product", enErrorType.Validation);
+
+                if (string.IsNullOrWhiteSpace(item.Name))
+                    return Result.Failure("Every product must include a valid item name.", enErrorType.Validation);
+
+                if (item.Price < 0)
+                    return Result.Failure($"Invalid price for product '{item.Name}'. Price cannot be negative.", enErrorType.Validation);
+            }
+
+            // Completely safe to serialize without try-catch because it's already a valid C# object list
+            serializedJson = JsonSerializer.Serialize(products);
+            return Result.Success();
+        }
+
         // Reading methods --------------------------------------------------
-        public async Task<ExpenseResponse?> GetExpenseAsync(int expenseId, int userId)
+        public async Task<Result<ExpenseResponse>> GetExpenseAsync(int expenseId, int userId)
         {
             var expense = await _expenseRepo.GetExpenseAsync(expenseId, userId);
 
             if (expense == null)
-            {
-                return null;
-            }
+                return Result<ExpenseResponse>.Failure("Expense was not found.", enErrorType.NotFound);
 
-            return new ExpenseResponse
-            {
-                ExpenseId = expense.ExpenseId,
-                UserId = expense.UserId,
-                Title = expense.LinkedTransaction.Title,
-                Amount = expense.Amount,
-                Date = expense.Date,
-                Products = expense.Products,
-                CategoryId = expense.CategoryId,
-                WalletId = expense.WalletId,
-                ExpenseTagId = expense.ExpenseTagId == -1 ? -1 : expense.ExpenseTagId,
-            };
+            return Result<ExpenseResponse>.Success(new ExpenseResponse(expense));
         }
 
-        public async Task<PagedResponse<ExpenseResponse>> GetExpenseByUserAsync(int userId, PageDTO pageDto)
+        public async Task<Result<PagedResponse<ExpenseResponse>>> GetExpenseByUserAsync(int userId, PageDTO pageDto)
         {
             var (expensesList, totalCount) = await _expenseRepo.GetExpensesByUserAsync(userId, pageDto.PageNumber, pageDto.PageSize);
+            var expenseResponse = expensesList.Select(item => new ExpenseResponse(item)).ToList();
 
-            var expenseResponse = expensesList.Select(item => new ExpenseResponse
-            {
-                ExpenseId = item.ExpenseId,
-                UserId = item.UserId,
-                Title = item.LinkedTransaction.Title,
-                Amount = item.Amount,
-                Date = item.Date,
-                Products = item.Products,
-                CategoryId = item.CategoryId,
-                WalletId = item.WalletId,
-                ExpenseTagId = item.ExpenseTagId == -1 ? -1 : item.ExpenseTagId,
-            }).ToList();
+            var data = new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
 
-            return new PagedResponse<ExpenseResponse>(expenseResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
+            return Result<PagedResponse<ExpenseResponse>>.Success(data);
         }
-
 
         // Writing methods --------------------------------------------------
-        public async Task<ExpenseResponse?> AddExpenseAsync(ExpenseDTO expenseDto)
+        public async Task<Result<ExpenseResponse>> AddExpenseAsync(ExpenseDTO expenseDto)
         {
-            // 1 - map the expenseDTO into an expense object
-            var newExpense = new Expense
-            {
-                UserId = expenseDto.UserId,
-                Amount = expenseDto.Amount,
-                Products = expenseDto.Products,
-                Date = expenseDto.Date,
-                CategoryId = expenseDto.CategoryId,
-                ExpenseTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
-                WalletId = expenseDto.WalletId,
-            };
+            // 1 - Input validations --------------------------------------------
+            if (expenseDto.Amount <= 0)
+                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.Validation);
 
-            // 2 - Fethcing the wallet info from the DB and normalizing the amount to Syrian Pound
-            var wallet = await _walletRepo.GetWalletByIdAsync(newExpense.WalletId, newExpense.UserId);
-            decimal amountInSp = 0.0m;
-            
+            if (!SystemCategories.Map.ContainsKey(expenseDto.CategoryId))
+                return Result<ExpenseResponse>.Failure("The selected category is invalid.", enErrorType.Validation);
+
+            var producstValidation = ValidateAndSerializeProducts(expenseDto.Products, out string productsJson);
+            if (!producstValidation.IsSuccess)
+                return Result<ExpenseResponse>.Failure(producstValidation.ErrorMessage!, enErrorType.Validation);
+
+            decimal productsTotalAmount = 0.0m;
+            foreach (var product in expenseDto.Products)
+            {
+                productsTotalAmount += product.Price;
+            }
+            if (productsTotalAmount != expenseDto.Amount)
+                return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
+
+            var wallet = await _walletRepo.GetWalletByIdAsync(expenseDto.WalletId, expenseDto.UserId);
             if (wallet == null)
-            {
-                return null;
-            }
+                return Result<ExpenseResponse>.Failure("Wallet was not found.", enErrorType.NotFound);
 
-            if(wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
-            {
-                amountInSp = newExpense.Amount;
-            }
-            else
-            {
-                Currency? walletCurrency = SupportedCurrencies.GetById(wallet.CurrencyId);
-                
-                if (walletCurrency == null) return null;
+            if (wallet.Balance < expenseDto.Amount)
+                return Result<ExpenseResponse>.Failure("Not enough money to make this expense.", enErrorType.BalanceViolation);
 
-                amountInSp = await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", newExpense.Amount);
-            }
+            expenseDto.ExpenseId = -1; // Make sure to send -1 to database (safe practice)
 
-            // 3 - Create a Transaction object to store in the database
-            var newTransaction = new Transaction
+            // 2 - Map data ------------------------------------------------------
+            var newExpense = MapExpenseDTOtoExpenseObject(expenseDto, productsJson);
+
+            newExpense.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, newExpense.Amount);
+
+            (int newExpenseId, bool IsOverLimit) = await _expenseRepo.AddExpenseAsync(newExpense);
+
+            if (newExpenseId == -1)
+                return Result<ExpenseResponse>.Failure("Failed to add the expense to the database.", enErrorType.Failure);
+
+            newExpense.ExpenseId = newExpenseId;
+            newExpense.LinkedTransaction.TransactionId = newExpenseId;
+
+            // 3 - Form the response ----------------------------------------------
+            var expenseResponse = new ExpenseResponse(newExpense)
             {
-                UserId = expenseDto.UserId,
-                Expense = newExpense,
-                Description = expenseDto.Description,
-                Title = expenseDto.Title,
-                TransactionType = enTransactionType.Dedduction,
-                Amount = expenseDto.Amount,
-                AmountInSp = amountInSp,
-                TransactionCategoryId = expenseDto.CategoryId,
-                TransactionDate = expenseDto.Date,
-                WalletId = expenseDto.WalletId,
-                TransactionTagId = expenseDto.ExpenseTagId,
+                IsOverLimit = IsOverLimit
             };
 
-            // 4 - store both the income and the transaction in the database
-            int newExpenseId = await _expenseRepo.AddExpenseAsync(newExpense, newTransaction);
-
-            // 5 - Return the created item
-            return new ExpenseResponse
-            {
-                ExpenseId = newExpenseId,
-                UserId = newExpense.UserId,
-                Title = newExpense.LinkedTransaction.Title,
-                Amount = newExpense.Amount,
-                Products = newExpense.Products,
-                Date = newExpense.Date,
-                CategoryId = newExpense.CategoryId,
-                WalletId = newExpense.WalletId,
-                ExpenseTagId = newExpense.ExpenseTagId,
-            };
+            return Result<ExpenseResponse>.Success(expenseResponse);
         }
-        public async Task<ExpenseResponse?> UpdateExpenseAsync(ExpenseDTO expenseDto)
+
+        public async Task<Result<ExpenseResponse>> UpdateExpenseAsync(ExpenseDTO expenseDto)
         {
-            // 1 - map the expenseDTO into an expense object
-            var updatedExpens = new Expense
+            // 1 - Input validations --------------------------------------------
+            if (expenseDto.Amount <= 0)
+                return Result<ExpenseResponse>.Failure("Expense amount must be greater than zero.", enErrorType.Validation);
+
+            if (!SystemCategories.Map.ContainsKey(expenseDto.CategoryId))
+                return Result<ExpenseResponse>.Failure("The selected category is invalid.", enErrorType.Validation);
+
+            var producstValidation = ValidateAndSerializeProducts(expenseDto.Products, out string productsJson);
+            if (!producstValidation.IsSuccess)
+                return Result<ExpenseResponse>.Failure(producstValidation.ErrorMessage!, enErrorType.Validation);
+
+            decimal productsTotalAmount = 0.0m;
+            foreach (var product in expenseDto.Products)
             {
-                ExpenseId = expenseDto.ExpenseId,
-                UserId = expenseDto.UserId,
-                Amount = expenseDto.Amount,
-                Products = expenseDto.Products,
-                Date = expenseDto.Date,
-                CategoryId = expenseDto.CategoryId,
-                ExpenseTagId = expenseDto.ExpenseTagId == -1 ? -1 : expenseDto.ExpenseTagId,
-                WalletId = expenseDto.WalletId,
-            };
+                productsTotalAmount += product.Price;
+            }
+            if (productsTotalAmount != expenseDto.Amount)
+                return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
 
-            // 2 - Fethcing the wallet info from the DB and normalizing the amount to Syrian Pound
-            var wallet = await _walletRepo.GetWalletByIdAsync(updatedExpens.WalletId, updatedExpens.UserId);
-            decimal amountInSp = 0.0m;
-
+            var wallet = await _walletRepo.GetWalletByIdAsync(expenseDto.WalletId, expenseDto.UserId);
             if (wallet == null)
-            {
-                return null;
-            }
+                return Result<ExpenseResponse>.Failure("Wallet was not found.", enErrorType.NotFound);
 
-            if (wallet.CurrencyId == SupportedCurrencies.SyrianPoundId)
-            {
-                amountInSp = updatedExpens.Amount;
-            }
-            else
-            {
-                Currency? walletCurrency = SupportedCurrencies.GetById(wallet.CurrencyId);
+            // 2 - Map data ------------------------------------------------------
+            var updatedExpense = MapExpenseDTOtoExpenseObject(expenseDto, productsJson);
 
-                if (walletCurrency == null) return null;
+            updatedExpense.LinkedTransaction.AmountInSp = await CalcAmountInSp(wallet, updatedExpense.Amount);
 
-                amountInSp = await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", updatedExpens.Amount);
-            }
+            (bool success, bool isOverLimit) = await _expenseRepo.UpdateExpenseAsync(updatedExpense);
 
-            // 3 - Create a Transaction object to store in the database
-            var newTransaction = new Transaction
+            if (!success)
+                return Result<ExpenseResponse>.Failure("Failed to update the expense in the database.", enErrorType.Failure);
+
+            // 3 - Form the response ----------------------------------------------
+            var expenseResponse = new ExpenseResponse(updatedExpense)
             {
-                UserId = expenseDto.UserId,
-                Expense = updatedExpens,
-                Description = expenseDto.Description,
-                Title = expenseDto.Title,
-                TransactionType = enTransactionType.Dedduction,
-                Amount = expenseDto.Amount,
-                AmountInSp = amountInSp,
-                TransactionCategoryId = expenseDto.CategoryId,
-                TransactionDate = expenseDto.Date,
-                WalletId = expenseDto.WalletId,
-                TransactionTagId = expenseDto.ExpenseTagId,
+                IsOverLimit = isOverLimit
             };
 
-            // 4 - store both the income and the transaction in the database
-            if (!await _expenseRepo.UpdateExpenseAsync(updatedExpens, newTransaction))
-                return null;
-
-            // 5 - Return the created item
-            return new ExpenseResponse
-            {
-                ExpenseId = updatedExpens.ExpenseId,
-                UserId = updatedExpens.UserId,
-                Title = "Updated expense",
-                Amount = updatedExpens.Amount,
-                Date = updatedExpens.Date,
-                Products = updatedExpens.Products,
-                CategoryId = updatedExpens.CategoryId,
-                WalletId = updatedExpens.WalletId,
-                ExpenseTagId = updatedExpens.ExpenseTagId == -1 ? -1 : updatedExpens.ExpenseTagId,
-            };
+            return Result<ExpenseResponse>.Success(expenseResponse);
         }
 
-        public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
+        public async Task<Result> DeleteExpenseAsync(int expenseId, int userId)
         {
-            return await _expenseRepo.DeleteExpenseAsync(expenseId, userId);
-        }
+            if (await _expenseRepo.DeleteExpenseAsync(expenseId, userId))
+                return Result.Success();
 
+            return Result.Failure("Failed to delete the expense from the database.", enErrorType.Failure);
+        }
     }
-
 }

@@ -2,82 +2,107 @@
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.Category;
 using SpendWise.Application.Interfaces.Categories;
-using System.Diagnostics;
+using SpendWise.Domain.Common;
+using SpendWise.Domain.Enums;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace SpendWise.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/categories/")] 
-    public class CategoryBudgetController : ControllerBase
+    [Route("api/categories/budgets")]
+    public class CategoryBudgetController : BaseApiController
     {
         private readonly ICategoryBudgetService _budgetService;
-        private int CurrentUserId
+
+        public CategoryBudgetController(ICategoryBudgetService budgetService)
         {
-            get
-            {
-                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (int.TryParse(userIdString, out int userId))
-                {
-                    return userId;
-                }
-                throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
-            }
+            _budgetService = budgetService;
         }
 
-        public CategoryBudgetController(ICategoryBudgetService budgetService) => _budgetService = budgetService;
-
-        [HttpGet] 
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        // Endpoints --------------------------------------------------------
+        [HttpGet]
         public async Task<IActionResult> GetAllBudgets()
         {
-            return Ok(await _budgetService.GetAllUserBudgetsAsync(CurrentUserId));
+            var result = await _budgetService.GetAllUserBudgetsAsync(CurrentUserId);
+
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(result.Value);
         }
 
-        [HttpGet("{categoryId}")] 
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpGet("{categoryId}")]
         public async Task<IActionResult> GetBudgetById([FromRoute] int categoryId)
         {
-            var budget = await _budgetService.GetCategoryBudgetAsync(CurrentUserId, categoryId);
-            return (budget == null || budget.UserId != CurrentUserId) ? NotFound() : Ok(budget);
+            var result = await _budgetService.GetCategoryBudgetAsync(CurrentUserId, categoryId);
+
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(result.Value);
         }
 
-        [HttpPost] 
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [HttpPost]
         public async Task<IActionResult> AddBudget([FromBody] CategoryBudgetDTO budgetDto)
         {
-            if (budgetDto.UserId != CurrentUserId) return Unauthorized();
+            if (CurrentUserId != budgetDto.UserId)
+            {
+                return Unauthorized();
+            }
 
-            var createdBudget = await _budgetService.SetCategoryBudgetAsync(budgetDto);
+            budgetDto.UserId = CurrentUserId;
 
-            return createdBudget == null ? BadRequest() : CreatedAtAction(nameof(GetBudgetById), new { categoryId = budgetDto.CategoryId}, createdBudget);
+            var result = await _budgetService.SetCategoryBudgetAsync(budgetDto);
+
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            var createdBudget = result.Value;
+
+            return CreatedAtAction(nameof(GetBudgetById), new { categoryId = createdBudget!.CategoryId }, createdBudget);
         }
 
-        [HttpPatch("{categoryId}")] 
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> UpdateBudget([FromRoute] int categoryId, [FromBody] CategoryBudgetDTO budgetDto) 
+        [HttpPatch("{categoryId}")]
+        public async Task<IActionResult> UpdateBudget([FromRoute] int categoryId, [FromBody] CategoryBudgetDTO budgetDto)
         {
-            if (budgetDto.UserId != CurrentUserId) return Unauthorized();
+            if (CurrentUserId != budgetDto.UserId)
+            {
+                return Unauthorized();
+            }
 
+            // Route parameters securely override body payload properties
             budgetDto.CategoryId = categoryId;
+            budgetDto.UserId = CurrentUserId;
 
-            return await _budgetService.UpdateCategoryBudgetAsync(budgetDto) ? NoContent() : BadRequest();
+            var result = await _budgetService.UpdateCategoryBudgetAsync(budgetDto);
+
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(result.Value);
         }
 
-        [HttpDelete("{categoryId}")] 
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> DeleteBudget([FromRoute] int categoryId) 
+        [HttpDelete("{categoryId}")]
+        public async Task<IActionResult> DeleteBudget([FromRoute] int categoryId)
         {
-            return await _budgetService.DeleteCategoryBudgetAsync(CurrentUserId, categoryId) ? NoContent() : BadRequest();
+            var result = await _budgetService.DeleteCategoryBudgetAsync(CurrentUserId, categoryId);
+
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return NoContent();
         }
     }
 }
