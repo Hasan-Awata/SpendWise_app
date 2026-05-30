@@ -134,6 +134,7 @@
     <Build Include="Planning\Stored Procedures\sp_GetAllUserGoal.sql" />
     <Build Include="Planning\Stored Procedures\sp_GoalExists.sql" />
     <Build Include="Planning\Stored Procedures\sp_UpdateSavingGoal.sql" />
+    <Build Include="Banking\Stored Procedures\sp_GetWalletsByCurrencyId.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />

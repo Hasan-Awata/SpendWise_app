@@ -32,8 +32,21 @@ namespace SpendWise.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetUserWallets()
+        public async Task<IActionResult> GetUserWallets([FromQuery] int? currencyId)
         {
+            if (currencyId.HasValue)
+            {
+                var filteredResult = await _walletService.GetWalletsByCurrencyIdAsync(CurrentUserId, currencyId.Value);
+
+                if (!filteredResult.IsSuccess)
+                {
+                    return HandleResultOnError(filteredResult);
+                }
+
+                return Ok(filteredResult.Value); 
+            }
+
+            // Default: return ALL wallets for the user if no currency filter is provided
             var result = await _walletService.GetUserWalletsAsync(CurrentUserId);
 
             if (!result.IsSuccess)

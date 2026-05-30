@@ -79,6 +79,38 @@ public class WalletRepository : IWalletRepository
         }
     }
 
+    public async Task<IEnumerable<Wallet>> GetWalletsByCurrencyIdAsync(int userId, int currencyId)
+    {
+        var wallets = new List<Wallet>();
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand("[Banking].[sp_GetWalletsByCurrencyId]", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.AddWithValue("@UserId", userId);
+            command.Parameters.AddWithValue("@CurrencyId", currencyId);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                wallets.Add(MapWalletFromReader(reader));
+            }
+
+            return wallets;
+        }
+        catch (SqlException ex)
+        {
+            SqlExceptionHandler.Handle(ex);
+            throw;
+        }
+    }
+
     public async Task<int> AddWalletAsync(Wallet wallet)
     {
         try

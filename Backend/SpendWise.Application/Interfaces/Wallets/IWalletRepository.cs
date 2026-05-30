@@ -1,4 +1,6 @@
-﻿using SpendWise.Domain.Entities;
+﻿using SpendWise.Application.DTOs.Wallet;
+using SpendWise.Domain.Common;
+using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -10,6 +12,7 @@ namespace SpendWise.Application.Interfaces.Wallets
         public Task<Wallet?> GetWalletByIdAsync(int walletId, int userId);
 
         public Task<IEnumerable<Wallet>> GetUserWalletsAsync(int userId);
+        public Task<IEnumerable<Wallet>> GetWalletsByCurrencyIdAsync(int userId, int currencyId);
 
         public Task<int> AddWalletAsync(Wallet wallet);
 
