@@ -28,7 +28,20 @@ namespace SpendWise.Controllers
                 return HandleResultOnError(result);
             }
 
-            return Ok(result.Value);
+            return Ok(result.Value); 
+        }
+
+        [HttpGet("{walletId}/pair")]
+        public async Task<IActionResult> GetWalletPair([FromRoute] int walletId)
+        {
+            var result = await _walletService.GetWalletPairByIdAsync(CurrentUserId, walletId);
+
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(result.Value); 
         }
 
         [HttpGet]
