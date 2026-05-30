@@ -129,6 +129,12 @@
     <None Include="Config\SeedCurrencies.sql" />
     <Build Include="Ledger\Stored Procedures\sp_GetTransactionsByUserPaged.sql" />
     <Build Include="Identity\Stored Procedures\sp_UpdateUserRefreshToken.sql" />
+    <Build Include="Planning\Stored Procedures\sp_AddSharedDebt.sql" />
+    <Build Include="Planning\Stored Procedures\sp_UpdateSharedDept.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetSharedDeptByID.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetSharedDeptsForUser.sql" />
+    <Build Include="Planning\Stored Procedures\sp_DeleteSharedDept.sql" />
+    <Build Include="Planning\Stored Procedures\sp_ReturnDebtAmount.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />
