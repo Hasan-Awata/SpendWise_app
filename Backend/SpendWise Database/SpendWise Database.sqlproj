@@ -135,6 +135,11 @@
     <Build Include="Planning\Stored Procedures\sp_GetSharedDeptsForUser.sql" />
     <Build Include="Planning\Stored Procedures\sp_DeleteSharedDept.sql" />
     <Build Include="Planning\Stored Procedures\sp_ReturnDebtAmount.sql" />
+    <Build Include="Planning\Stored Procedures\sp_AddSavingGoal.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetAchievedGoals.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetAllUserGoal.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GoalExists.sql" />
+    <Build Include="Planning\Stored Procedures\sp_UpdateSavingGoal.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />
