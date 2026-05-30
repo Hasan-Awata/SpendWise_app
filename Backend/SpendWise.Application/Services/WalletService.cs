@@ -82,6 +82,19 @@ namespace SpendWise.Application.Services
 
             return Result<IEnumerable<WalletResponse>>.Success(walletsResponse);
         }
+
+        public async Task<Result<IEnumerable<WalletResponse>>> GetWalletPairByIdAsync(int userId, int walletId)
+        {
+            var walletsList = await _walletRepo.GetWalletPairByIdAsync(userId, walletId);
+
+            if (!walletsList.Any())
+                return Result<IEnumerable<WalletResponse>>.Success(Enumerable.Empty<WalletResponse>());
+
+            var walletsResponse = walletsList.Select(item => MapWalletToWalletResponse(item)).ToList();
+
+            return Result<IEnumerable<WalletResponse>>.Success(walletsResponse);
+        }
+
         // Writing methods --------------------------------------------------
         public async Task<Result<WalletResponse>> AddWalletAsync(WalletDTO walletDTO)
         {

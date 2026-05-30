@@ -13,6 +13,7 @@ namespace SpendWise.Application.Interfaces.Wallets
 
         public Task<IEnumerable<Wallet>> GetUserWalletsAsync(int userId);
         public Task<IEnumerable<Wallet>> GetWalletsByCurrencyIdAsync(int userId, int currencyId);
+        public Task<IEnumerable<Wallet>> GetWalletPairByIdAsync(int userId, int walletId);
 
         public Task<int> AddWalletAsync(Wallet wallet);
 
