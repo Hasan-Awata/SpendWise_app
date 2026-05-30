@@ -11,5 +11,11 @@ namespace SpendWise.Application.DTOs.Tag
         public string Label { get; set; } = string.Empty;
         public int OwnerId { get; set; }
 
+        public TagResponse(int id, string label, int ownerId)
+        {
+            Id = id;
+            Label = label;
+            OwnerId = ownerId;
+        }
     }
 }

@@ -7,10 +7,14 @@
     [Status]     NVARCHAR (50)   NOT NULL,
     [CreatedAt]  DATETIME        DEFAULT (getdate()) NOT NULL,
     [DueDate]    DATETIME        NULL,
+    [CreditorWalletID] INT NULL, 
+    [DebtorWalletID] INT NULL, 
     PRIMARY KEY CLUSTERED ([DebtID] ASC),
     CONSTRAINT [CHK_SharedDebts_Amount] CHECK ([Amount]>(0)),
     CONSTRAINT [FK_SharedDebts_Creditor] FOREIGN KEY ([CreditorID]) REFERENCES [Identity].[Users] ([UserID]),
-    CONSTRAINT [FK_SharedDebts_Debtor] FOREIGN KEY ([DebtorID]) REFERENCES [Identity].[Users] ([UserID])
+    CONSTRAINT [FK_SharedDebts_Debtor] FOREIGN KEY ([DebtorID]) REFERENCES [Identity].[Users] ([UserID]), 
+    CONSTRAINT [FK_SharedDebts_CreditorWallet] FOREIGN KEY ([CreditorWalletID]) REFERENCES [Banking].[Wallets]([WalletID]) ,
+    CONSTRAINT [FK_SharedDebts_DebtorWallet] FOREIGN KEY ([DebtorWalletID]) REFERENCES [Banking].[Wallets]([WalletID]) 
 );
 
 
