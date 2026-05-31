@@ -100,6 +100,62 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
+        public async Task<(int ExpenseId, bool IsOverLimit)> AddExpenseUsingBothWalletsAsync
+            (
+            Expense newExpense,
+            int primaryWalletId,
+            int savingWalletId,
+            decimal amountFromPrimaryWallet,
+            decimal amountFromSavingWallet
+            )
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_AddExpenseUsingBothWallets]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                // Core Data
+                command.Parameters.AddWithValue("@UserId", newExpense.UserId);
+                command.Parameters.AddWithValue("@CategoryId", newExpense.CategoryId);
+                command.Parameters.AddWithValue("@Amount", newExpense.Amount);
+                command.Parameters.AddWithValue("@Date", newExpense.Date);
+                command.Parameters.AddWithValue("@Title", newExpense.Title);
+
+                command.Parameters.AddWithValue("@PrimaryWalletId", primaryWalletId);
+                command.Parameters.AddWithValue("@SavingWalletId", savingWalletId);
+                command.Parameters.AddWithValue("@AmountFromPrimaryWallet", amountFromPrimaryWallet);
+                command.Parameters.AddWithValue("@AmountFromSavingWallet", amountFromSavingWallet);
+
+                // Additional Expense Fields
+                command.Parameters.AddWithValue("@Products", (object)newExpense.Products ?? DBNull.Value);
+                command.Parameters.AddWithValue("@TagId", newExpense.ExpenseTagId > 0 ? (object)newExpense.ExpenseTagId : DBNull.Value);
+
+                // Transaction/Shared Data
+                command.Parameters.AddWithValue("@Description", (object)newExpense.LinkedTransaction.Description ?? DBNull.Value);
+                command.Parameters.AddWithValue("@AmountInSp", newExpense.LinkedTransaction.AmountInSp);
+                command.Parameters.AddWithValue("@TransactionType", (int)enTransactionType.Dedduction);
+
+                // Output parameters
+                var outputId = new SqlParameter("@NewExpenseID", SqlDbType.Int) { Direction = ParameterDirection.Output };
+                var outputLimit = new SqlParameter("@IsOverLimit", SqlDbType.Bit) { Direction = ParameterDirection.Output };
+                command.Parameters.Add(outputId);
+                command.Parameters.Add(outputLimit);
+
+                await connection.OpenAsync();
+                await command.ExecuteNonQueryAsync();
+
+                return ((int)outputId.Value, (bool)outputLimit.Value);
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
         public async Task<(bool Success, bool IsOverLimit)> UpdateExpenseAsync(Expense newExpense)
         {
             try
@@ -124,6 +180,60 @@ namespace SpendWise.Infrastructure.Repositories
 
                 // 3. Transaction/Shared Data
                 command.Parameters.AddWithValue("@Title", newExpense.LinkedTransaction.Title);
+                command.Parameters.AddWithValue("@Description", (object)newExpense.LinkedTransaction.Description ?? DBNull.Value);
+                command.Parameters.AddWithValue("@AmountInSp", newExpense.LinkedTransaction.AmountInSp);
+                command.Parameters.AddWithValue("@TransactionType", (int)enTransactionType.Dedduction);
+
+                // Output parameter for logic
+                var outputLimit = new SqlParameter("@IsOverLimit", SqlDbType.Bit) { Direction = ParameterDirection.Output };
+                command.Parameters.Add(outputLimit);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                bool success = result != null && int.TryParse(result.ToString(), out int rows) && rows > 0;
+                return (success, (bool)outputLimit.Value);
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<(bool Success, bool IsOverLimit)> UpdateExpenseUsingBothWalletsAsync
+            (
+            Expense newExpense,
+            int PrimaryWalletId,
+            decimal AmountFromPrimaryWallet,
+            decimal AmountFromSavingWallet
+            )
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Ledger].[sp_UpdateExpenseUsingBothWallets]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                // Core Data
+                command.Parameters.AddWithValue("@ExpenseId", newExpense.ExpenseId);
+                command.Parameters.AddWithValue("@UserId", newExpense.UserId);
+                command.Parameters.AddWithValue("@CategoryId", newExpense.CategoryId);
+                command.Parameters.AddWithValue("@Amount", newExpense.Amount);
+                command.Parameters.AddWithValue("@Date", newExpense.Date);
+                command.Parameters.AddWithValue("@Title", newExpense.Title);
+
+                command.Parameters.AddWithValue("@PrimaryWalletId", PrimaryWalletId);
+                command.Parameters.AddWithValue("@AmountFromPrimaryWallet", AmountFromPrimaryWallet);
+                command.Parameters.AddWithValue("@AmountFromSavingWallet", AmountFromSavingWallet);
+
+                // Additional Expense Fields
+                command.Parameters.AddWithValue("@Products", (object)newExpense.Products ?? DBNull.Value);
+                command.Parameters.AddWithValue("@TagId", newExpense.ExpenseTagId > 0 ? (object)newExpense.ExpenseTagId : DBNull.Value);
+
+                // Transaction/Shared Data
                 command.Parameters.AddWithValue("@Description", (object)newExpense.LinkedTransaction.Description ?? DBNull.Value);
                 command.Parameters.AddWithValue("@AmountInSp", newExpense.LinkedTransaction.AmountInSp);
                 command.Parameters.AddWithValue("@TransactionType", (int)enTransactionType.Dedduction);
