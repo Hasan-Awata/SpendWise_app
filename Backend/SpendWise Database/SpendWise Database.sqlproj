@@ -143,6 +143,7 @@
     <Build Include="Banking\Stored Procedures\sp_GetWalletsByCurrencyId.sql" />
     <Build Include="Ledger\Stored Procedures\sp_AddExpenseUsingBothWallets.sql" />
     <Build Include="Ledger\Stored Procedures\sp_UpdateExpenseUsingBothWallets.sql" />
+    <Build Include="Banking\Stored Procedures\sp_GetUserWalletsPair.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />

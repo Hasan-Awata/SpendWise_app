@@ -111,14 +111,14 @@ public class WalletRepository : IWalletRepository
         }
     }
 
-    public async Task<IEnumerable<Wallet>> GetWalletPairByIdAsync(int userId, int walletId)
+    public async Task<IEnumerable<Wallet>> GetUserWalletsPairAsync(int userId, int walletId)
     {
         var wallets = new List<Wallet>();
 
         try
         {
             using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Banking].[sp_GetWalletPairById]", connection)
+            using var command = new SqlCommand("[Banking].[sp_GetUserWalletsPair]", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };

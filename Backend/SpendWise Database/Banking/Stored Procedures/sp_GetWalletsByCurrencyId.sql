@@ -4,5 +4,5 @@
 AS
 BEGIN
 	SELECT * FROM [Banking].Wallets 
-	WHERE UserID = @UserID AND CurrencyID = @CurrencyID;
+	WHERE UserID = @UserId AND CurrencyID = @CurrencyId;
 END

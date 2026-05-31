@@ -151,7 +151,7 @@ namespace SpendWise.Application.Services
                 return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
 
             // Fetch the unique Currency Wallet Pair
-            var walletPair = await _walletRepo.GetWalletPairByIdAsync(expenseDto.UserId, expenseDto.WalletId);
+            var walletPair = await _walletRepo.GetUserWalletsPairAsync(expenseDto.UserId, expenseDto.WalletId);
             var expensesWallet = walletPair.FirstOrDefault(w => !w.IsSaved);
             var savingWallet = walletPair.FirstOrDefault(w => w.IsSaved);
 
@@ -236,7 +236,7 @@ namespace SpendWise.Application.Services
                 return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
 
             // Fetch the wallet pairings
-            var walletPair = await _walletRepo.GetWalletPairByIdAsync(expenseDto.UserId, expenseDto.WalletId);
+            var walletPair = await _walletRepo.GetUserWalletsPairAsync(expenseDto.UserId, expenseDto.WalletId);
             var expensesWallet = walletPair.FirstOrDefault(w => !w.IsSaved);
             var savingWallet = walletPair.FirstOrDefault(w => w.IsSaved);
 

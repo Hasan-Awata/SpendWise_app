@@ -34,7 +34,7 @@ namespace SpendWise.Controllers
         [HttpGet("{walletId}/pair")]
         public async Task<IActionResult> GetWalletPair([FromRoute] int walletId)
         {
-            var result = await _walletService.GetWalletPairByIdAsync(CurrentUserId, walletId);
+            var result = await _walletService.GetUserWalletsPairAsync(CurrentUserId, walletId);
 
             if (!result.IsSuccess)
             {
