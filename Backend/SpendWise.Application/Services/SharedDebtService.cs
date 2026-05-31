@@ -1,5 +1,7 @@
 ﻿using SpendWise.Application.DTOs.SharedDebts;
+using SpendWise.Application.Interfaces.ExchangeRate;
 using SpendWise.Application.Interfaces.SharedDebts;
+using SpendWise.Domain.Constants;
 using SpendWise.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -11,11 +13,12 @@ namespace SpendWise.Application.Services
     public class SharedDebtService : ISharedDebtService
     {
         private readonly ISharedDebtRepository _debtRepo;
+        private readonly IExchangeRateService _exchangeRateService;
 
-        public SharedDebtService(ISharedDebtRepository debtRepo)
+        public SharedDebtService(ISharedDebtRepository debtRepo, IExchangeRateService exchangeRateService)
         {
             _debtRepo = debtRepo;
-            
+            _exchangeRateService = exchangeRateService;
         }
 
         public async Task<IEnumerable<SharedDebtResponse>> GetDebtsOwedToUserAsync(int userId)
@@ -55,7 +58,8 @@ namespace SpendWise.Application.Services
                 debtDto.CreatedAt,
                 debtDto.DueDate,
                 debtDto.CreditorWalletID,
-                debtDto.DebitorWalletID
+                debtDto.DebtorWalletID,
+                0 // Initial PaidAmount is 0
             );
 
             return await _debtRepo.AddDebtAsync(debt);
@@ -74,7 +78,8 @@ namespace SpendWise.Application.Services
                 debtDto.CreatedAt,
                 debtDto.DueDate,
                 debtDto.CreditorWalletID,
-                debtDto.DebitorWalletID
+                debtDto.DebtorWalletID,
+                debtDto.PaidAmount
             );
 
             return await _debtRepo.UpdateDebtAsync(debt);
@@ -96,7 +101,7 @@ namespace SpendWise.Application.Services
             return debts.Select(item => new SharedDebtResponse(item));
         }
 
-        public async Task<bool> ReturnDebtAmountAsync(int debtId, SharedDebtDTO debtDTO, decimal amount, string title, string description, decimal amountInSp)
+        public async Task<bool> ReturnDebtAmountAsync(int debtId, SharedDebtDTO debtDTO, decimal amount, string title, string description)
         {
             var debt = new SharedDebt(
                 debtId,
@@ -108,8 +113,11 @@ namespace SpendWise.Application.Services
                 debtDTO.CreatedAt,
                 debtDTO.DueDate,
                 debtDTO.CreditorWalletID,
-                debtDTO.DebitorWalletID
+                debtDTO.DebtorWalletID,
+                debtDTO.PaidAmount
             );
+
+            decimal amountInSp = await _exchangeRateService.NormalizeToSyrianPound(SupportedCurrencies.GetById(debtDTO.DebtorWalletID).Code, "Damascus", "black_market", Convert.ToDecimal(amount));
 
             return await _debtRepo.ReturnDebtAmountAsync(debt, amount, title, description, amountInSp);
         }

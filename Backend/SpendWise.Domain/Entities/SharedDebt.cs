@@ -16,8 +16,9 @@ namespace SpendWise.Domain.Entities
         public DateTime DueDate { get; set; }
         public int CreditorWalletID { get; set; }
         public int DebtorWalletID { get; set; }
+        public decimal PaidAmount { get; set; }
 
-        public SharedDebt(int debtID, int creditorID, int debtorID, decimal amount, string title, string status, DateTime createdAt, DateTime dueDate, int creditorWalletID, int debtorWalletID)
+        public SharedDebt(int debtID, int creditorID, int debtorID, decimal amount, string title, string status, DateTime createdAt, DateTime dueDate, int creditorWalletID, int debtorWalletID, decimal paidAmount)
         {
             DebtID = debtID;
             CreditorID = creditorID;
@@ -29,6 +30,7 @@ namespace SpendWise.Domain.Entities
             DueDate = dueDate;
             CreditorWalletID = creditorWalletID;
             DebtorWalletID = debtorWalletID;
+            PaidAmount = paidAmount;
         }
     }
 }

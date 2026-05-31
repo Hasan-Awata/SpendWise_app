@@ -10,8 +10,13 @@
 	@AmountInSp DECIMAL(18,2)
 AS
 BEGIN
-	
-	IF (SELECT * FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID AND Status = 'Accepted') IS NOT NULL
+	DECLARE @am DECIMAL(18,2), @paiAmount DECIMAL(18,2);
+	SET @am = (SELECT Amount FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID);
+	SET @paiAmount = (SELECT PaidAmount FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID);
+
+
+	IF ((SELECT * FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID AND Status = 'Accepted') IS NOT NULL
+	AND (@paiAmount + @Amount) <= @am)
 	BEGIN	
 		BEGIN TRAN
 		INSERT INTO [Ledger].[Transactions]
@@ -29,6 +34,10 @@ BEGIN
 		UPDATE Banking.Wallets
 		SET Balance = Balance - @Amount
 		WHERE @DebtorWalletID = WalletID;
+
+		UPDATE [Planning].[SharedDebts]
+		SET PaidAmount = PaidAmount + @Amount
+		WHERE DebtID = @DebtID;
 	COMMIT TRAN;
 
 	IF @@TRANCOUNT > 0 ROLLBACK TRAN;

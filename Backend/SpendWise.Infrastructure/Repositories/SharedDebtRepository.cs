@@ -159,7 +159,8 @@ namespace SpendWise.Infrastructure.Repositories
                         Convert.ToDateTime(reader["CreatedAt"]),
                         Convert.ToDateTime(reader["DueDate"]),
                         Convert.ToInt32(reader["CreditorWalletID"]),
-                        Convert.ToInt32(reader["DebtorWalletID"])
+                        Convert.ToInt32(reader["DebtorWalletID"]),
+                        Convert.ToDecimal(reader["PaidAmount"])
                     );
                 }
 
@@ -199,7 +200,8 @@ namespace SpendWise.Infrastructure.Repositories
                         Convert.ToDateTime(reader["CreatedAt"]),
                         Convert.ToDateTime(reader["DueDate"]),
                         Convert.ToInt32(reader["CreditorWalletID"]),
-                        Convert.ToInt32(reader["DebtorWalletID"])
+                        Convert.ToInt32(reader["DebtorWalletID"]),
+                        Convert.ToDecimal(reader["PaidAmount"])
                     );
                 }
 
@@ -241,7 +243,8 @@ namespace SpendWise.Infrastructure.Repositories
                         Convert.ToDateTime(reader["CreatedAt"]),
                         Convert.ToDateTime(reader["DueDate"]),
                         Convert.ToInt32(reader["CreditorWalletID"]),
-                        Convert.ToInt32(reader["DebtorWalletID"])
+                        Convert.ToInt32(reader["DebtorWalletID"]),
+                        Convert.ToDecimal(reader["PaidAmount"])
                     ));
                 }
 
@@ -283,7 +286,8 @@ namespace SpendWise.Infrastructure.Repositories
                         Convert.ToDateTime(reader["CreatedAt"]),
                         Convert.ToDateTime(reader["DueDate"]),
                         Convert.ToInt32(reader["CreditorWalletID"]),
-                        Convert.ToInt32(reader["DebtorWalletID"])
+                        Convert.ToInt32(reader["DebtorWalletID"]),
+                        Convert.ToDecimal(reader["PaidAmount"])
                     ));
                 }
 
@@ -349,7 +353,8 @@ namespace SpendWise.Infrastructure.Repositories
                         Convert.ToDateTime(reader["CreatedAt"]),
                         Convert.ToDateTime(reader["DueDate"]),
                         Convert.ToInt32(reader["CreditorWalletID"]),
-                        Convert.ToInt32(reader["DebtorWalletID"])
+                        Convert.ToInt32(reader["DebtorWalletID"]),
+                        Convert.ToDecimal(reader["PaidAmount"])
                     ));
                 }
 

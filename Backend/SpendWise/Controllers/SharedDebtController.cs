@@ -173,11 +173,11 @@ namespace SpendWise.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> ReturnDebtAmount([FromRoute] int debtId, [FromBody] SharedDebtDTO debtDTO, [FromBody] decimal amount, [FromBody] string title, [FromBody] string description, [FromBody] decimal amountInSp)
+        public async Task<IActionResult> ReturnDebtAmount([FromRoute] int debtId, [FromBody] SharedDebtDTO debtDTO, [FromBody] decimal amount, [FromBody] string title, [FromBody] string description)
         {
             if (debtId <= 0) return BadRequest();
 
-            var isDone = await _sharedDebtService.ReturnDebtAmountAsync(debtId, debtDTO, amount, title, description, amountInSp);
+            var isDone = await _sharedDebtService.ReturnDebtAmountAsync(debtId, debtDTO, amount, title, description);
             if (!isDone) return NotFound();
 
             return Ok(isDone);
