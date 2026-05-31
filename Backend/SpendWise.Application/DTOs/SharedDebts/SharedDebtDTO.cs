@@ -25,6 +25,7 @@ namespace SpendWise.Application.DTOs.SharedDebts
         public DateTime CreatedAt { get; set; }
 
         public int CreditorWalletID { get; set; }
-        public int DebitorWalletID { get; set; }
+        public int DebtorWalletID { get; set; }
+        public decimal PaidAmount { get; set; }
     }
 }

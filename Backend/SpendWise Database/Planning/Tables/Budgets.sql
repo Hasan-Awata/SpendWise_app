@@ -7,7 +7,6 @@
     [EndDate]         DATE            NOT NULL,
     [IsActive]        BIT             DEFAULT ((1)) NOT NULL,
     PRIMARY KEY CLUSTERED ([BudgetID] ASC),
-    CONSTRAINT [CHK_Budgets_Dates] CHECK ([StartDate]<[EndDate]),
     CONSTRAINT [FK_Budgets_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [Config].[Categories] ([CategoryID]),
     CONSTRAINT [FK_Budgets_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID])
 );
