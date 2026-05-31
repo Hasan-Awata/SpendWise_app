@@ -149,6 +149,12 @@
     <Build Include="Planning\Stored Procedures\sp_GetSharedDebtsOwedToUser.sql" />
     <Build Include="Planning\Stored Procedures\sp_GetSharedDebtsIHaveToPay.sql" />
     <Build Include="Planning\Stored Procedures\sp_CheckSharedDebtExists.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetFixedIncomesByUser.sql" />
+    <Build Include="Planning\Stored Procedures\sp_CreateFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_UpdateFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_DeleteFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_CheckFixedIncomeActive.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />
