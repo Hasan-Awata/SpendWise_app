@@ -30,7 +30,7 @@ namespace SpendWise.Application.Interfaces.SharedDebts
         public Task<bool> DeletDebtByTitleAsync(string title);
 
         public Task<IEnumerable<SharedDebtResponse>> GetSharedDebtsForUserAsync(int userId);
-        public Task<bool> ReturnDebtAmountAsync(int debtId, SharedDebtDTO debtDTO, decimal amount, string title, string description);
+        public Task<bool> ReturnDebtAmountAsync(int debtId, ReturnDebtDTO returnDebtDTO);
         public Task<bool> DebtExistsAsyns(int debtId);
     }
 }

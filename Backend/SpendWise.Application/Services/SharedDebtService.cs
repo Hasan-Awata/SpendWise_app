@@ -101,25 +101,25 @@ namespace SpendWise.Application.Services
             return debts.Select(item => new SharedDebtResponse(item));
         }
 
-        public async Task<bool> ReturnDebtAmountAsync(int debtId, SharedDebtDTO debtDTO, decimal amount, string title, string description)
+        public async Task<bool> ReturnDebtAmountAsync(int debtId, ReturnDebtDTO returnDebtDTO)
         {
             var debt = new SharedDebt(
                 debtId,
-                debtDTO.CreditorID,
-                debtDTO.DebtorID,
-                debtDTO.Amount,
-                debtDTO.Title,
-                debtDTO.Status,
-                debtDTO.CreatedAt,
-                debtDTO.DueDate,
-                debtDTO.CreditorWalletID,
-                debtDTO.DebtorWalletID,
-                debtDTO.PaidAmount
+                returnDebtDTO.DebtDTO.CreditorID,
+                returnDebtDTO.DebtDTO.DebtorID,
+                returnDebtDTO.DebtDTO.Amount,
+                returnDebtDTO.DebtDTO.Title,
+                returnDebtDTO.DebtDTO.Status,
+                returnDebtDTO.DebtDTO.CreatedAt,
+                returnDebtDTO.DebtDTO.DueDate,
+                returnDebtDTO.DebtDTO.CreditorWalletID,
+                returnDebtDTO.DebtDTO.DebtorWalletID,
+                returnDebtDTO.DebtDTO.PaidAmount
             );
 
-            decimal amountInSp = await _exchangeRateService.NormalizeToSyrianPound(SupportedCurrencies.GetById(debtDTO.DebtorWalletID).Code, "Damascus", "black_market", Convert.ToDecimal(amount));
+            decimal amountInSp = await _exchangeRateService.NormalizeToSyrianPound(SupportedCurrencies.GetById(returnDebtDTO.DebtDTO.DebtorWalletID).Code, "Damascus", "black_market", Convert.ToDecimal(returnDebtDTO.Amount));
 
-            return await _debtRepo.ReturnDebtAmountAsync(debt, amount, title, description, amountInSp);
+            return await _debtRepo.ReturnDebtAmountAsync(debt, returnDebtDTO.Amount, returnDebtDTO.Title, returnDebtDTO.Description, amountInSp);
         }
 
         public async Task<bool> DebtExistsAsyns(int debtId)
