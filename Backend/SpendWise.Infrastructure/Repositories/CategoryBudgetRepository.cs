@@ -41,7 +41,8 @@ namespace SpendWise.Infrastructure.Repositories
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
 
-                return result != null && int.TryParse(result.ToString(), out int insertedID) ? insertedID : -1;
+                // Safely handle potential DBNull or null returns from scalar execution
+                return result != null && result != DBNull.Value && int.TryParse(result.ToString(), out int insertedID) ? insertedID : -1;
             }
             catch (SqlException ex)
             {
@@ -71,7 +72,7 @@ namespace SpendWise.Infrastructure.Repositories
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
 
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+                return result != null && result != DBNull.Value && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
@@ -96,7 +97,7 @@ namespace SpendWise.Infrastructure.Repositories
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
 
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+                return result != null && result != DBNull.Value && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
@@ -122,19 +123,7 @@ namespace SpendWise.Infrastructure.Repositories
 
                 while (await reader.ReadAsync())
                 {
-                    budgets.Add(new CategoryBudget
-                    {
-                        CategoryBudgetId = (int)reader["BudgetID"],
-                        UserId = (int)reader["UserID"],
-                        CategoryId = (int)reader["CategoryID"],
-                        PercentageLimit = (decimal)reader["PercentageLimit"],
-                        PercentageProgress = (decimal)reader["PercentageProgress"],
-                        SpendingProgress = (decimal)reader["SpendingProgress"],
-                        MoneyLimit = (decimal)reader["MoneyLimit"],
-                        StartDate = (DateTime)reader["StartDate"],
-                        EndDate = (DateTime)reader["EndDate"],
-                        IsActive = (bool)reader["IsActive"]
-                    });
+                    budgets.Add(MapReaderToCategoryBudget(reader));
                 }
             }
             catch (SqlException ex) { SqlExceptionHandler.Handle(ex); throw; }
@@ -146,7 +135,6 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-
                 using var command = new SqlCommand("[Planning].[sp_GetCategoryBudget]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
@@ -160,19 +148,7 @@ namespace SpendWise.Infrastructure.Repositories
 
                 if (await reader.ReadAsync())
                 {
-                    return new CategoryBudget
-                    {
-                        CategoryBudgetId = (int)reader["BudgetID"],
-                        UserId = (int)reader["UserID"],
-                        CategoryId = (int)reader["CategoryID"],
-                        PercentageLimit = (decimal)reader["PercentageLimit"], 
-                        PercentageProgress = (decimal)reader["PercentageProgress"],
-                        SpendingProgress = (decimal)reader["SpendingProgress"],
-                        MoneyLimit = (decimal)reader["MoneyLimit"],
-                        StartDate = (DateTime)reader["StartDate"],
-                        EndDate = (DateTime)reader["EndDate"],
-                        IsActive = (bool)reader["IsActive"]
-                    };
+                    return MapReaderToCategoryBudget(reader);
                 }
                 return null!;
             }
@@ -181,6 +157,29 @@ namespace SpendWise.Infrastructure.Repositories
                 SqlExceptionHandler.Handle(ex);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Helper method to cleanly map a SqlDataReader to a CategoryBudget object while checking for DBNull values.
+        /// </summary>
+        private static CategoryBudget MapReaderToCategoryBudget(SqlDataReader reader)
+        {
+            return new CategoryBudget
+            {
+                CategoryBudgetId = reader["BudgetID"] != DBNull.Value ? (int)reader["BudgetID"] : 0,
+                UserId = reader["UserID"] != DBNull.Value ? (int)reader["UserID"] : 0,
+                CategoryId = reader["CategoryID"] != DBNull.Value ? (int)reader["CategoryID"] : 0,
+
+                // Calculated metrics / limits often prone to being null if no transactions exist yet
+                PercentageLimit = reader["PercentageLimit"] != DBNull.Value ? (decimal)reader["PercentageLimit"] : 0m,
+                PercentageProgress = reader["PercentageProgress"] != DBNull.Value ? (decimal)reader["PercentageProgress"] : 0m,
+                SpendingProgress = reader["SpendingProgress"] != DBNull.Value ? (decimal)reader["SpendingProgress"] : 0m,
+                MoneyLimit = reader["MoneyLimit"] != DBNull.Value ? (decimal)reader["MoneyLimit"] : 0m,
+
+                StartDate = reader["StartDate"] != DBNull.Value ? (DateTime)reader["StartDate"] : DateTime.MinValue,
+                EndDate = reader["EndDate"] != DBNull.Value ? (DateTime)reader["EndDate"] : DateTime.MinValue,
+                IsActive = reader["IsActive"] != DBNull.Value && (bool)reader["IsActive"]
+            };
         }
     }
 }
