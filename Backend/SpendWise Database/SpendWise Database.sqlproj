@@ -133,7 +133,7 @@
     <Build Include="Planning\Stored Procedures\sp_UpdateSharedDept.sql" />
     <Build Include="Planning\Stored Procedures\sp_GetSharedDeptByID.sql" />
     <Build Include="Planning\Stored Procedures\sp_GetSharedDeptsForUser.sql" />
-    <Build Include="Planning\Stored Procedures\sp_DeleteSharedDept.sql" />
+    <Build Include="Planning\Stored Procedures\sp_DeleteSharedDeptById.sql" />
     <Build Include="Planning\Stored Procedures\sp_ReturnDebtAmount.sql" />
     <Build Include="Planning\Stored Procedures\sp_AddSavingGoal.sql" />
     <Build Include="Planning\Stored Procedures\sp_GetAchievedGoals.sql" />
@@ -144,6 +144,11 @@
     <Build Include="Ledger\Stored Procedures\sp_AddExpenseUsingBothWallets.sql" />
     <Build Include="Ledger\Stored Procedures\sp_UpdateExpenseUsingBothWallets.sql" />
     <Build Include="Banking\Stored Procedures\sp_GetUserWalletsPair.sql" />
+    <Build Include="Planning\Stored Procedures\sp_DeleteSharedDebtByTitle.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetSharedDebtByTitle.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetSharedDebtsOwedToUser.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetSharedDebtsIHaveToPay.sql" />
+    <Build Include="Planning\Stored Procedures\sp_CheckSharedDebtExists.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />

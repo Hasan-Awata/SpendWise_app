@@ -13,6 +13,12 @@ namespace SpendWise.Application.Interfaces.SharedDebts
         // Get debts where the user is the debtor
         public Task<IEnumerable<SharedDebt>> GetTheDebtsIHaveToPayAsync(int userId);
 
+        // Get all debts for user
+        public Task<IEnumerable<SharedDebt>> GetSharedDebtsForUserAsync(int userId);
+
+        // Return money for a debt
+        public Task<bool> ReturnDebtAmountAsync(SharedDebt debt, decimal amount, string title, string description, decimal amountInSp);
+
         // CRUD Operations
         public Task<SharedDebt?> GetDebtByIdAsync(int debtId);
 

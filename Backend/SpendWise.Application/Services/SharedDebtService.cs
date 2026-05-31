@@ -53,7 +53,9 @@ namespace SpendWise.Application.Services
                 debtDto.Title,
                 debtDto.Status,
                 debtDto.CreatedAt,
-                debtDto.DueDate
+                debtDto.DueDate,
+                debtDto.CreditorWalletID,
+                debtDto.DebitorWalletID
             );
 
             return await _debtRepo.AddDebtAsync(debt);
@@ -70,7 +72,9 @@ namespace SpendWise.Application.Services
                 debtDto.Title,
                 debtDto.Status,
                 debtDto.CreatedAt,
-                debtDto.DueDate
+                debtDto.DueDate,
+                debtDto.CreditorWalletID,
+                debtDto.DebitorWalletID
             );
 
             return await _debtRepo.UpdateDebtAsync(debt);
@@ -84,6 +88,35 @@ namespace SpendWise.Application.Services
         public async Task<bool> DeletDebtByTitleAsync(string title)
         {
             return await _debtRepo.DeleteDebtByTitleAsync(title);
+        }
+
+        public async Task<IEnumerable<SharedDebtResponse>> GetSharedDebtsForUserAsync(int userId)
+        {
+            var debts = await _debtRepo.GetSharedDebtsForUserAsync(userId);
+            return debts.Select(item => new SharedDebtResponse(item));
+        }
+
+        public async Task<bool> ReturnDebtAmountAsync(int debtId, SharedDebtDTO debtDTO, decimal amount, string title, string description, decimal amountInSp)
+        {
+            var debt = new SharedDebt(
+                debtId,
+                debtDTO.CreditorID,
+                debtDTO.DebtorID,
+                debtDTO.Amount,
+                debtDTO.Title,
+                debtDTO.Status,
+                debtDTO.CreatedAt,
+                debtDTO.DueDate,
+                debtDTO.CreditorWalletID,
+                debtDTO.DebitorWalletID
+            );
+
+            return await _debtRepo.ReturnDebtAmountAsync(debt, amount, title, description, amountInSp);
+        }
+
+        public async Task<bool> DebtExistsAsyns(int debtId)
+        {
+            return await _debtRepo.DebtExistsAsync(debtId);
         }
     }
 }

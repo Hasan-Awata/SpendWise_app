@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [Planning].[SharedDebts] (
     [DebtID]     INT             IDENTITY (1, 1) NOT NULL,
-    [CreditorID] INT             NOT NULL,
-    [DebtorID]   INT             NOT NULL,
+    [CreditorID] INT             NULL,
+    [DebtorID]   INT             NULL,
     [Amount]     DECIMAL (18, 2) NOT NULL,
     [Title]      NVARCHAR (200)  NOT NULL,
     [Status]     NVARCHAR (50)   NOT NULL,

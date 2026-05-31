@@ -94,7 +94,18 @@ namespace SpendWise.Controllers
                 return Ok(debts);
             }
 
-            [HttpPost("AddDebt/{debtDto}")]
+        [HttpGet("GetAllDebtsForUser")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetAllDebtsForUser()
+        {
+            int userId = CurrentUserId;
+            var debts = await _sharedDebtService.GetSharedDebtsForUserAsync(userId);
+            if (debts == null) return NotFound();
+
+            return Ok(debts);
+        }
+        [HttpPost("AddDebt/{debtDto}")]
             [ProducesResponseType(StatusCodes.Status200OK)]
              [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddDebt([FromBody] SharedDebtDTO debtDto)
@@ -141,6 +152,32 @@ namespace SpendWise.Controllers
           
 
             var isDone = await _sharedDebtService.DeletDebtByTitleAsync(Title);
+            if (!isDone) return NotFound();
+
+            return Ok(isDone);
+        }
+        [HttpGet("CheckDebtExists/{debtId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CheckDebtExists([FromRoute] int debtId)
+        {
+            if (debtId <= 0) return BadRequest();
+
+            var isExist = await _sharedDebtService.DebtExistsAsyns(debtId);
+            if (!isExist) return NotFound();
+
+            return Ok(isExist);
+        }
+        [HttpPost("ReturnDebtAmount/{debtId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ReturnDebtAmount([FromRoute] int debtId, [FromBody] SharedDebtDTO debtDTO, [FromBody] decimal amount, [FromBody] string title, [FromBody] string description, [FromBody] decimal amountInSp)
+        {
+            if (debtId <= 0) return BadRequest();
+
+            var isDone = await _sharedDebtService.ReturnDebtAmountAsync(debtId, debtDTO, amount, title, description, amountInSp);
             if (!isDone) return NotFound();
 
             return Ok(isDone);

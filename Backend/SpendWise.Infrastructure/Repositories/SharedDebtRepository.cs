@@ -37,6 +37,8 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@Status", debt.Status);
                 command.Parameters.AddWithValue("@CreatedAt", debt.CreatedAt);
                 command.Parameters.AddWithValue("@DueDate", debt.DueDate);
+                command.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
+                command.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID);
 
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
@@ -66,8 +68,9 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@Amount", debt.Amount);
                 command.Parameters.AddWithValue("@Title", debt.Title);
                 command.Parameters.AddWithValue("@Status", debt.Status);
-                command.Parameters.AddWithValue("@CreatedAt", debt.CreatedAt);
                 command.Parameters.AddWithValue("@DueDate", debt.DueDate);
+                command.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
+                command.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID);
 
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();
@@ -154,7 +157,9 @@ namespace SpendWise.Infrastructure.Repositories
                         reader["Title"].ToString()!,
                         reader["Status"].ToString()!,
                         Convert.ToDateTime(reader["CreatedAt"]),
-                        Convert.ToDateTime(reader["DueDate"])
+                        Convert.ToDateTime(reader["DueDate"]),
+                        Convert.ToInt32(reader["CreditorWalletID"]),
+                        Convert.ToInt32(reader["DebtorWalletID"])
                     );
                 }
 
@@ -192,7 +197,9 @@ namespace SpendWise.Infrastructure.Repositories
                         reader["Title"].ToString()!,
                         reader["Status"].ToString()!,
                         Convert.ToDateTime(reader["CreatedAt"]),
-                        Convert.ToDateTime(reader["DueDate"])
+                        Convert.ToDateTime(reader["DueDate"]),
+                        Convert.ToInt32(reader["CreditorWalletID"]),
+                        Convert.ToInt32(reader["DebtorWalletID"])
                     );
                 }
 
@@ -212,7 +219,7 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_GetDebtsOwedToUser]", connection)
+                using var command = new SqlCommand("[Planning].[sp_GetSharedDebtsOwedToUser]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -232,7 +239,9 @@ namespace SpendWise.Infrastructure.Repositories
                         reader["Title"].ToString()!,
                         reader["Status"].ToString()!,
                         Convert.ToDateTime(reader["CreatedAt"]),
-                        Convert.ToDateTime(reader["DueDate"])
+                        Convert.ToDateTime(reader["DueDate"]),
+                        Convert.ToInt32(reader["CreditorWalletID"]),
+                        Convert.ToInt32(reader["DebtorWalletID"])
                     ));
                 }
 
@@ -252,7 +261,7 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_GetDebtsUserOwes]", connection)
+                using var command = new SqlCommand("[Planning].[sp_GetSharedDebtsIHaveToPay]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -272,7 +281,9 @@ namespace SpendWise.Infrastructure.Repositories
                         reader["Title"].ToString()!,
                         reader["Status"].ToString()!,
                         Convert.ToDateTime(reader["CreatedAt"]),
-                        Convert.ToDateTime(reader["DueDate"])
+                        Convert.ToDateTime(reader["DueDate"]),
+                        Convert.ToInt32(reader["CreditorWalletID"]),
+                        Convert.ToInt32(reader["DebtorWalletID"])
                     ));
                 }
 
@@ -301,6 +312,80 @@ namespace SpendWise.Infrastructure.Repositories
                 var result = await command.ExecuteScalarAsync();
 
                 return result != null && Convert.ToInt32(result) > 0;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<SharedDebt>> GetSharedDebtsForUserAsync(int  userId)
+        {
+            var debts = new List<SharedDebt>();
+
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Planning].[sp_GetSharedDebtsForUser]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@UserID", userId);
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    debts.Add(new SharedDebt(
+                        Convert.ToInt32(reader["DebtID"]),
+                        Convert.ToInt32(reader["CreditorID"]),
+                        Convert.ToInt32(reader["DebtorID"]),
+                        Convert.ToDecimal(reader["Amount"]),
+                        reader["Title"].ToString()!,
+                        reader["Status"].ToString()!,
+                        Convert.ToDateTime(reader["CreatedAt"]),
+                        Convert.ToDateTime(reader["DueDate"]),
+                        Convert.ToInt32(reader["CreditorWalletID"]),
+                        Convert.ToInt32(reader["DebtorWalletID"])
+                    ));
+                }
+
+                return debts;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> ReturnDebtAmountAsync(SharedDebt debt, decimal amount, string title, string description, decimal amountInSp)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Planning].[sp_ReturnDebtAmount]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@DebtID", debt.DebtID);
+                command.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
+                command.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
+                command.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
+                command.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID);
+                command.Parameters.AddWithValue("@Amount", amount);
+                command.Parameters.AddWithValue("@Title", title);
+                command.Parameters.AddWithValue("@Description", description);
+                command.Parameters.AddWithValue("@AmountInSp", amountInSp);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
             }
             catch (SqlException ex)
             {
