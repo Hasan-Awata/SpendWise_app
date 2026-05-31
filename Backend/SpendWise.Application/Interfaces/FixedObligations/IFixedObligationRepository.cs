@@ -1,20 +1,21 @@
-﻿using SpendWise.Application.DTOs;
-using SpendWise.Domain.Entities;
-using System;
+﻿using SpendWise.Domain.Entities;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace SpendWise.Application.Interfaces.FixedObligations
 {
     public interface IFixedObligationRepository
     {
-        // Reading from DB methods
-        public Task<FixedObligation> GetFixedObligationAsync(int obligationId, int UserID);
+        public Task<FixedObligation> GetFixedObligationAsync(int obligationId, int userId);
+
         public Task<IEnumerable<FixedObligation?>> GetFixedObligationsByUserIdAsync(int userId);
 
-        // Writing to DB methods
-        public Task<bool> CreateFixedObligationAsync(FixedObligation fixedObligation);
+        public Task<int> CreateFixedObligationAsync(FixedObligation fixedObligation);
+
         public Task<bool> UpdateFixedObligationAsync(FixedObligation fixedObligation);
-        public Task<bool> DeleteFixedObligationAsync(int obligationId, int UserID);
+
+        public Task<bool> DeleteFixedObligationAsync(int obligationId, int userId);
+
+        public Task<bool> IsObligationActive(int obligationId, int userId);
     }
 }
