@@ -126,5 +126,28 @@ namespace SpendWise.Application.Services
         {
             return await _debtRepo.DebtExistsAsync(debtId);
         }
+
+        public async Task<bool> AcceptSharedDebtAsync(int debtId, SharedDebtDTO debtDTO)
+        {
+            var debt = new SharedDebt(
+                debtId,
+                debtDTO.CreditorID,
+                debtDTO.DebtorID,
+                debtDTO.Amount,
+                debtDTO.Title,
+                debtDTO.Status,
+                debtDTO.CreatedAt,
+                debtDTO.DueDate,
+                debtDTO.CreditorWalletID,
+                debtDTO.DebtorWalletID,
+                debtDTO.PaidAmount
+            );
+            return await _debtRepo.AcceptDebtAsync(debt);
+        }
+
+        public async Task<bool> RefuseDebtAsync(int debtId)
+        {
+            return await _debtRepo.RefuseDebtAsync(debtId);
+        }
     }
 }

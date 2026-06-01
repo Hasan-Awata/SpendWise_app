@@ -2,7 +2,6 @@
 	@DebtID INT,
 	@CreditorID INT = NULL,
 	@DebtorID INT = NULL,
-	@Status NVARCHAR(50),
 	@DueDate DATETIME = NULL,
 	@CreditorWalletID INT = NULL,
 	@DebtorWalletID INT = NULL
@@ -16,7 +15,7 @@ AS
 			UPDATE Planning.SharedDebts
 			SET CreditorID = @CreditorID,
 				DebtorID = @DebtorID,
-				Status = @Status,
+				Status = 'Accepted',
 				DueDate = @DueDate,
 				CreditorWalletID = @CreditorWalletID,
 				DebtorWalletID = @DebtorWalletID

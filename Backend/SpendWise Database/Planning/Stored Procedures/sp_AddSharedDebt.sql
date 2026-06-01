@@ -10,9 +10,9 @@
 AS
 BEGIN
 	INSERT INTO [Planning].[SharedDebts]
-		([CreditorID], [DebtorID], [Amount], [Title], [CreatedAt], [DueDate], [CreditorWalletID], [DebtorWalletID])
+		([CreditorID], [DebtorID], [Amount], [Title], [Status], [CreatedAt], [DueDate], [CreditorWalletID], [DebtorWalletID])
 	VALUES
-		(@CreditorID, @DebtorID, @Amount, @Title, @CreatedAt, @DueDate, @CreditorWalletID, @DebtorWalletID);
+		(@CreditorID, @DebtorID, @Amount, @Title, 'Pending', @CreatedAt, @DueDate, @CreditorWalletID, @DebtorWalletID);
 	SELECT SCOPE_IDENTITY();
 END
 GO

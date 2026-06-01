@@ -34,7 +34,6 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
                 command.Parameters.AddWithValue("@Amount", debt.Amount);
                 command.Parameters.AddWithValue("@Title", debt.Title);
-                command.Parameters.AddWithValue("@Status", debt.Status);
                 command.Parameters.AddWithValue("@CreatedAt", debt.CreatedAt);
                 command.Parameters.AddWithValue("@DueDate", debt.DueDate);
                 command.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
@@ -67,7 +66,6 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
                 command.Parameters.AddWithValue("@Amount", debt.Amount);
                 command.Parameters.AddWithValue("@Title", debt.Title);
-                command.Parameters.AddWithValue("@Status", debt.Status);
                 command.Parameters.AddWithValue("@DueDate", debt.DueDate);
                 command.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
                 command.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID);
@@ -386,6 +384,59 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@Title", title);
                 command.Parameters.AddWithValue("@Description", description);
                 command.Parameters.AddWithValue("@AmountInSp", amountInSp);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> AcceptDebtAsync(SharedDebt debt)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Planning].[sp_AcceptSharedDebt]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@DebtID", debt.DebtID);
+                command.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
+                command.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
+                command.Parameters.AddWithValue("@DueDate", debt.DueDate);
+                command.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
+                command.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> RefuseDebtAsync(int debtId)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Planning].[sp_RefuseSharedDebt]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@DebtID", debtId);
 
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();

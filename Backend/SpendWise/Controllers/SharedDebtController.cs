@@ -180,8 +180,33 @@ namespace SpendWise.Controllers
             var isDone = await _sharedDebtService.ReturnDebtAmountAsync(debtId, returnDebtDTO);
             if (!isDone) return NotFound();
 
-    return Ok(isDone);
-}
-    }
-    }
+            return Ok(isDone);
+        }
+        [HttpPut("AcceptDebt/{debtId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> AcceptDebt([FromRoute] int debtId, [FromBody] SharedDebtDTO debtDTO)
+        {
+            if (debtId <= 0) return BadRequest();
 
+            var isDone = await _sharedDebtService.AcceptSharedDebtAsync(debtId, debtDTO);
+            if (!isDone) return NotFound();
+
+            return Ok(isDone);
+        }
+        [HttpPatch("RefuseDebt/{debtId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> RefuseDebt([FromRoute] int debtId)
+        {
+            if (debtId <= 0) return BadRequest();
+
+            var isDone = await _sharedDebtService.RefuseDebtAsync(debtId);
+            if (!isDone) return NotFound();
+
+            return Ok(isDone);
+        }
+    }
+}

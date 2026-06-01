@@ -5,7 +5,6 @@
 	@Amount DECIMAL(18,2) = NULL,
 	@Title NVARCHAR(200) = NULL,
 	@DueDate DATETIME = NULL,
-	@Status NVARCHAR(50) = NULL,
 	@CreditorWalletID INT = NULL,
 	@DebtorWalletID INT = NULL
 AS
@@ -18,7 +17,6 @@ BEGIN
 		[Amount] = CASE WHEN [CreditorID] = @CreditorID AND @Amount IS NOT NULL THEN @Amount ELSE [Amount] END,
 		[Title] = CASE WHEN [CreditorID] = @CreditorID AND @Title IS NOT NULL THEN @Title ELSE [Title] END,
 		[DueDate] = CASE WHEN [CreditorID] = @CreditorID AND @DueDate IS NOT NULL THEN @DueDate ELSE [DueDate] END,
-		[Status] = CASE WHEN @Status IS NOT NULL THEN @Status ELSE [Status] END,
 		[CreditorWalletID] = CASE WHEN @CreditorWalletID IS NOT NULL THEN @CreditorWalletID ELSE [CreditorWalletID] END,
 		[DebtorWalletID] = CASE WHEN @DebtorWalletID IS NOT NULL THEN @DebtorWalletID ELSE [DebtorWalletID] END
 	WHERE [DebtID] = @DebtID;
