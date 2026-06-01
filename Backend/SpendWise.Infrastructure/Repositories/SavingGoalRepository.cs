@@ -19,35 +19,57 @@ namespace SpendWise.Infrastructure.Repositories
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                                 ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings.");
         }
+        public async Task<bool> AddAmountToSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromWallet, decimal amountToSavingGoal, decimal amountInSp)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("[Planning].[sp_AddAmountToSavingGoalWithTransaction]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
 
+                command.Parameters.AddWithValue("@GoalId", goalId);
+                command.Parameters.AddWithValue("@WalletId", walletId);
+                command.Parameters.AddWithValue("@UserId", userId);
+                command.Parameters.AddWithValue("@AmountFromWallet", amountFromWallet);
+                command.Parameters.AddWithValue("@AmountToSavingGoal", amountToSavingGoal);
+                command.Parameters.AddWithValue("@AmountInSp", amountInSp);
+                command.Parameters.AddWithValue("@TransactionTitle", "Transfer money to the savings goal");
+                command.Parameters.AddWithValue("@TransactionType", 1); 
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                return result != null && Convert.ToInt32(result) == 1;
+            }
+            catch (SqlException ex)
+            {
+                SqlExceptionHandler.Handle(ex);
+                return false;
+            }
+        }
         public async Task<int> AddGoalAsync(SavingGoal goal)
         {
             try
             {
                 using var connection = new SqlConnection(_connectionString);
 
-                using var command = new SqlCommand("[Planning].[sp_AddSavingGoalWithTransaction]", connection)
+                using var command = new SqlCommand("[Planning].[sp_AddSavingGoal]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
-
-                // تأكد أن القيم داخل كائن goal (مثل UserID و CurrencyId) تحتوي على أرقام حقيقية موجودة بالداتا بيز
                 command.Parameters.AddWithValue("@UserId", goal.UserID);
                 command.Parameters.AddWithValue("@Title", goal.Title);
                 command.Parameters.AddWithValue("@TargetAmount", goal.TargetAmount);
                 command.Parameters.AddWithValue("@CurrentAmount", goal.CurrentAmount);
-                command.Parameters.AddWithValue("@CurrencyId", goal.CurrencyId);
                 command.Parameters.AddWithValue("@DeadlineDate", (object)goal.DeadlineDate ?? DBNull.Value);
+                command.Parameters.AddWithValue("@CurrencyId", goal.CurrencyId);
 
-                // تمرير القيم الاختيارية كـ DBNull حتى لا يحدث تعارض بالترتيب داخل البروسيجر
-//command.Parameters.AddWithValue("@WalletId", (object)goal.WalletID ?? DBNull.Value);
-                command.Parameters.AddWithValue("@CategoryId", DBNull.Value);
-                command.Parameters.AddWithValue("@TagId", DBNull.Value);
-                command.Parameters.AddWithValue("@Description", DBNull.Value);
-                command.Parameters.AddWithValue("@AmountInSp", 0);
-                command.Parameters.AddWithValue("@TransactionType", 1); // 1 تعني إيداع للهدف الادخاري
+                // عند إضافة هدف جديد، تكون حالته الافتراضية غير محقق بعد (False)
+                command.Parameters.AddWithValue("@IsAchieved", false);
 
-                // تعريف بارامتر الـ OUTPUT
+                // 3. تعريف بارامتر الـ OUTPUT لاستقبال المعرّف الجديد
                 var outputParam = new SqlParameter("@NewGoalID", SqlDbType.Int)
                 {
                     Direction = ParameterDirection.Output
@@ -57,7 +79,7 @@ namespace SpendWise.Infrastructure.Repositories
                 await connection.OpenAsync();
                 await command.ExecuteNonQueryAsync();
 
-                if (outputParam.Value != null && outputParam.Value != DBNull.Value)
+                 if (outputParam.Value != null && outputParam.Value != DBNull.Value)
                 {
                     return (int)outputParam.Value;
                 }

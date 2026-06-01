@@ -16,5 +16,6 @@ namespace SpendWise.Application.Interfaces.SavingGoals
         public Task<bool> DeleteGoalAsync(int goalId);
         public Task<bool> GoalExistsAsync(int goalId);
         public Task<IEnumerable<SavingGoal>> GetAchievedGoalsAsync(int userId);
+        public Task<bool> AddAmountToSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromWallet, decimal amountToSavingGoal, decimal amountInSp);
     }
 }

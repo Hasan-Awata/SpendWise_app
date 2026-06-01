@@ -161,6 +161,7 @@
     <Build Include="Planning\Stored Procedures\sp_GetFixedExpense.sql" />
     <Build Include="Planning\Stored Procedures\sp_GetFixedExpensesByUserId.sql" />
     <Build Include="Planning\Stored Procedures\sp_UpdateFixedExpense.sql" />
+    <Build Include="Planning\Stored Procedures\sp_AddAmountToSavingGoalWithTransaction.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />

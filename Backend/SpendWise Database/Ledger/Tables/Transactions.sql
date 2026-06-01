@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [Ledger].[Transactions] (
     [TransactionID]   INT             IDENTITY (1, 1) NOT NULL,
     [UserID]          INT             NOT NULL,
-    [WalletID]        INT             NULL,
+    [WalletID]        INT             NOT NULL,
     [CategoryID]      INT             NULL,
     [TagID]           INT             NULL,
     [GoalID]          INT             NULL,
