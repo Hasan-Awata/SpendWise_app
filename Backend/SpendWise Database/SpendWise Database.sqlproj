@@ -75,6 +75,7 @@
     <Folder Include="Planning\Stored Procedures\" />
     <Folder Include="Security\" />
     <Folder Include="Planning\Functions" />
+    <Folder Include="Planning\Triggers" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="Ledger\Tables\Expenses.sql" />
@@ -149,6 +150,9 @@
     <Build Include="Planning\Stored Procedures\sp_GetSharedDebtsOwedToUser.sql" />
     <Build Include="Planning\Stored Procedures\sp_GetSharedDebtsIHaveToPay.sql" />
     <Build Include="Planning\Stored Procedures\sp_CheckSharedDebtExists.sql" />
+    <Build Include="Planning\Stored Procedures\sp_AcceptSharedDebt.sql" />
+    <Build Include="Planning\Stored Procedures\sp_RefuseSharedDebt.sql" />
+    <Build Include="Planning\Triggers\trg_PaidAmountChangedForDebt.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />

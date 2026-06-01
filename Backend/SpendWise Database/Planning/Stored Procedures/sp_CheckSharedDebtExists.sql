@@ -1,4 +1,4 @@
-﻿CREATE PROCEDURE [dbo].[sp_CheckSharedDebtExists]
+﻿CREATE PROCEDURE [Planning].[sp_CheckSharedDebtExists]
 	@DebtID INT
 AS
 	IF EXISTS (SELECT 1 FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID)
