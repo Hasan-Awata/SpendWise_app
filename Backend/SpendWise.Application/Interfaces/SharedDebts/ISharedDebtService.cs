@@ -33,7 +33,7 @@ namespace SpendWise.Application.Interfaces.SharedDebts
         public Task<bool> ReturnDebtAmountAsync(int debtId, ReturnDebtDTO returnDebtDTO);
         public Task<bool> DebtExistsAsyns(int debtId);
 
-        public Task<bool> AcceptSharedDebtAsync(int debtId, SharedDebtDTO debtDTO);
+        public Task<bool> AcceptSharedDebtAsync(int debtId, ReturnDebtDTO debtDTO);
         public Task<bool> RefuseDebtAsync(int debtId);
     }
 }

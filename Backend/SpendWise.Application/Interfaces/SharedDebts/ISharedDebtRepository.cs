@@ -35,7 +35,7 @@ namespace SpendWise.Application.Interfaces.SharedDebts
         // Bonus: Common for repositories to check existence
         public Task<bool> DebtExistsAsync(int debtId);
 
-        public Task<bool> AcceptDebtAsync(SharedDebt debt);
+        public Task<bool> AcceptDebtAsync(SharedDebt debt, decimal amount, string title, string description, decimal amountInSp);
 
         public Task<bool> RefuseDebtAsync(int debtId);
     }

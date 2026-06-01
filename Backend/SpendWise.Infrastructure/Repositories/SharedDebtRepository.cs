@@ -397,7 +397,7 @@ namespace SpendWise.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> AcceptDebtAsync(SharedDebt debt)
+        public async Task<bool> AcceptDebtAsync(SharedDebt debt, decimal amount, string title, string description, decimal amountInSp)
         {
             try
             {
@@ -413,6 +413,10 @@ namespace SpendWise.Infrastructure.Repositories
                 command.Parameters.AddWithValue("@DueDate", debt.DueDate);
                 command.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
                 command.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID);
+                command.Parameters.AddWithValue("@Amount", amount);
+                command.Parameters.AddWithValue("@Title", title);
+                command.Parameters.AddWithValue("@Description", description);
+                command.Parameters.AddWithValue("@AmountInSp", amountInSp);
 
                 await connection.OpenAsync();
                 var result = await command.ExecuteScalarAsync();

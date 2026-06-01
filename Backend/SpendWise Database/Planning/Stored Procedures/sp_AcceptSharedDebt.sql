@@ -4,7 +4,11 @@
 	@DebtorID INT = NULL,
 	@DueDate DATETIME = NULL,
 	@CreditorWalletID INT = NULL,
-	@DebtorWalletID INT = NULL
+	@DebtorWalletID INT = NULL,
+	@Amount DECIMAL(18,2),
+	@Title NVARCHAR(255),
+	@Description NVARCHAR(MAX) = NULL,
+	@AmountInSp DECIMAL(18,2)
 AS
 	DECLARE @S NVARCHAR(50);
 	SELECT @S = Status FROM Planning.SharedDebts WHERE DebtID = @DebtID
@@ -24,13 +28,23 @@ AS
 			DECLARE @Am DECIMAL(18,2);
 			SELECT @Am = Amount FROM Planning.SharedDebts WHERE DebtID = @DebtID;
 
+			INSERT INTO [Ledger].[Transactions]
+				([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description],[AmountInSp])
+			VALUES
+				(@CreditorID, @CreditorWalletID, @DebtID, @Title, @Amount, 1, @Description, @AmountInSp);
 			UPDATE Banking.Wallets
 			SET Balance = Balance - @Am
 			WHERE WalletID = @CreditorWalletID;
 
+			INSERT INTO [Ledger].[Transactions]
+				([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description],[AmountInSp])
+			VALUES
+				(@DebtorID, @DebtorWalletID, @DebtID, @Title, @Amount, 0, @Description, @AmountInSp);
 			UPDATE Banking.Wallets
-			SET Balance = Balance - @Am
+			SET Balance = Balance + @Am
 			WHERE WalletID = @DebtorID;
+
+			
 		COMMIT TRAN;
 
 		IF @@TRANCOUNT > 0 ROLLBACK TRAN;

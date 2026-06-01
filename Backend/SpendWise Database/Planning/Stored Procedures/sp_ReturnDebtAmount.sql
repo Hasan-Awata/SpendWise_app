@@ -22,7 +22,7 @@ BEGIN
 		INSERT INTO [Ledger].[Transactions]
 			([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description],[AmountInSp])
 		VALUES
-			(@CreditorID, @CreditorWalletID, @DebtID, @Title, @Amount, 1, @Description, @AmountInSp);
+			(@CreditorID, @CreditorWalletID, @DebtID, @Title, @Amount, 0, @Description, @AmountInSp);
 		UPDATE Banking.Wallets
 		SET Balance = Balance + @Amount
 		WHERE @CreditorWalletID = WalletID;
@@ -30,7 +30,7 @@ BEGIN
 		INSERT INTO [Ledger].[Transactions]
 			([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description],[AmountInSp])
 		VALUES
-			(@DebtorID, @DebtorWalletID, @DebtID, @Title, @Amount, 0, @Description, @AmountInSp);
+			(@DebtorID, @DebtorWalletID, @DebtID, @Title, @Amount, 1, @Description, @AmountInSp);
 		UPDATE Banking.Wallets
 		SET Balance = Balance - @Amount
 		WHERE @DebtorWalletID = WalletID;

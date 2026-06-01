@@ -105,7 +105,7 @@ namespace SpendWise.Controllers
 
             return Ok(debts);
         }
-        [HttpPost("AddDebt/{debtDto}")]
+        [HttpPost("AddDebt")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddDebt([FromBody] SharedDebtDTO debtDto)
@@ -186,11 +186,11 @@ namespace SpendWise.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> AcceptDebt([FromRoute] int debtId, [FromBody] SharedDebtDTO debtDTO)
+        public async Task<IActionResult> AcceptDebt([FromRoute] int debtId, [FromBody] ReturnDebtDTO returnDebtDTO)
         {
             if (debtId <= 0) return BadRequest();
 
-            var isDone = await _sharedDebtService.AcceptSharedDebtAsync(debtId, debtDTO);
+            var isDone = await _sharedDebtService.AcceptSharedDebtAsync(debtId, returnDebtDTO);
             if (!isDone) return NotFound();
 
             return Ok(isDone);
