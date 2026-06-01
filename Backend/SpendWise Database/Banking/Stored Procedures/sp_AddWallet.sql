@@ -16,7 +16,7 @@ BEGIN
         -- (Optional, but provides a clean error message that your new SqlExceptionHandler can catch!)
         IF NOT EXISTS (SELECT 1 FROM [Config].Currencies WHERE CurrencyID = @CurrencyId)
         BEGIN
-            THROW 50001, 'The specified Currency ID does not exist.', 1; 
+            ;THROW 50001, 'The specified Currency ID does not exist.', 1; 
         END
 
         -- 2. Create the Wallet using the directly provided CurrencyId
@@ -24,6 +24,9 @@ BEGIN
         VALUES (@UserId, @CurrencyId, @Balance, @IsSaved);
         
         DECLARE @NewWalletID INT = SCOPE_IDENTITY();
+
+        INSERT INTO [Banking].Wallets (UserID, CurrencyID, Balance, IsSaved)
+        VALUES (@UserId, @CurrencyId, 0, ~@IsSaved);
 
         COMMIT TRAN; -- Lock Released: Operation succeeded
         

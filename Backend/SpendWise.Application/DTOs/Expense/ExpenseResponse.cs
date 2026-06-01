@@ -37,7 +37,6 @@ namespace SpendWise.Application.DTOs.Expense
             ExpenseTagId = expense.ExpenseTagId;
             Products = expense.Products;
             CategoryId = expense.CategoryId;
-            CurrencyId = currencyId;
 
             TransactionId = expense.LinkedTransaction.TransactionId;
             Description = expense.LinkedTransaction.Description;
