@@ -30,6 +30,7 @@ namespace SpendWise.Application.DTOs.SavingGoals
         public DateTime DeadlineDate { get; set; }
 
        public int CurrencyId { get; set; }
+        public bool IsActive { get; set; }
 
     }
 }

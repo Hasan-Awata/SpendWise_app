@@ -195,7 +195,7 @@ namespace SpendWise.Application.Services
                 return -1;
 
             
-            var savinggoal =new SavingGoal(-1,userID,savingGoal.Title,savingGoal.TargetAmount,savingGoal.CurrentAmount,savingGoal.DeadlineDate,savingGoal.CurrencyId);
+            var savinggoal =new SavingGoal(-1,userID,savingGoal.Title,savingGoal.TargetAmount,savingGoal.CurrentAmount,savingGoal.DeadlineDate,savingGoal.CurrencyId,savingGoal.IsActive);
             
             return await _goalRepo.AddGoalAsync(savinggoal);
             
@@ -207,7 +207,7 @@ namespace SpendWise.Application.Services
             if (savingGoal==null )
                 return false;
 
-            var savinggoal = new SavingGoal(savingGoalId, savingGoal.UserId, savingGoal.Title, savingGoal.TargetAmount, savingGoal.CurrentAmount, savingGoal.DeadlineDate,savingGoal.CurrencyId);
+            var savinggoal = new SavingGoal(savingGoalId, savingGoal.UserId, savingGoal.Title, savingGoal.TargetAmount, savingGoal.CurrentAmount, savingGoal.DeadlineDate,savingGoal.CurrencyId,savingGoal.IsActive);
 
             return await _goalRepo.UpdateGoalAsync(savinggoal);
             

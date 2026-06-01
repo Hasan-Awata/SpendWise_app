@@ -25,22 +25,44 @@ namespace SpendWise.Infrastructure.Repositories
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                // Updated schema from [Ledger] to [Planning]
-                using var command = new SqlCommand("[Planning].[sp_AddSavingGoal]", connection)
+
+                using var command = new SqlCommand("[Planning].[sp_AddSavingGoalWithTransaction]", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
 
+                // تأكد أن القيم داخل كائن goal (مثل UserID و CurrencyId) تحتوي على أرقام حقيقية موجودة بالداتا بيز
                 command.Parameters.AddWithValue("@UserId", goal.UserID);
                 command.Parameters.AddWithValue("@Title", goal.Title);
                 command.Parameters.AddWithValue("@TargetAmount", goal.TargetAmount);
                 command.Parameters.AddWithValue("@CurrentAmount", goal.CurrentAmount);
-                command.Parameters.AddWithValue("@DeadlineDate", goal.DeadlineDate);
+                command.Parameters.AddWithValue("@CurrencyId", goal.CurrencyId);
+                command.Parameters.AddWithValue("@DeadlineDate", (object)goal.DeadlineDate ?? DBNull.Value);
+
+                // تمرير القيم الاختيارية كـ DBNull حتى لا يحدث تعارض بالترتيب داخل البروسيجر
+//command.Parameters.AddWithValue("@WalletId", (object)goal.WalletID ?? DBNull.Value);
+                command.Parameters.AddWithValue("@CategoryId", DBNull.Value);
+                command.Parameters.AddWithValue("@TagId", DBNull.Value);
+                command.Parameters.AddWithValue("@Description", DBNull.Value);
+                command.Parameters.AddWithValue("@AmountInSp", 0);
+                command.Parameters.AddWithValue("@TransactionType", 1); // 1 تعني إيداع للهدف الادخاري
+
+                // تعريف بارامتر الـ OUTPUT
+                var outputParam = new SqlParameter("@NewGoalID", SqlDbType.Int)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                command.Parameters.Add(outputParam);
 
                 await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
+                await command.ExecuteNonQueryAsync();
 
-                return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
+                if (outputParam.Value != null && outputParam.Value != DBNull.Value)
+                {
+                    return (int)outputParam.Value;
+                }
+
+                return -1;
             }
             catch (SqlException ex)
             {
@@ -115,7 +137,7 @@ namespace SpendWise.Infrastructure.Repositories
                     CommandType = CommandType.StoredProcedure
                 };
 
-                command.Parameters.AddWithValue("@GoalId", goalId);
+                command.Parameters.AddWithValue("@GoalID", goalId);
 
                 await connection.OpenAsync();
                 using var reader = await command.ExecuteReaderAsync();
@@ -129,7 +151,8 @@ namespace SpendWise.Infrastructure.Repositories
                         Convert.ToDecimal(reader["TargetAmount"]),
                         Convert.ToDecimal(reader["CurrentAmount"]),
                         Convert.ToDateTime(reader["DeadlineDate"]),
-                        Convert.ToInt32(reader["CurrencyID"])
+                        Convert.ToInt32(reader["CurrencyID"]),
+                        Convert.ToBoolean(reader["IsAchieved"])
                     );
                 }
 
@@ -181,7 +204,8 @@ namespace SpendWise.Infrastructure.Repositories
                             Convert.ToDecimal(reader["TargetAmount"]),
                             Convert.ToDecimal(reader["CurrentAmount"]),
                             Convert.ToDateTime(reader["DeadlineDate"]),
-                            Convert.ToInt32(reader["CurrencyID"])
+                            Convert.ToInt32(reader["CurrencyID"]),
+                        Convert.ToBoolean(reader["IsAchieved"])
                         ));
                     }
                 }
@@ -222,7 +246,8 @@ namespace SpendWise.Infrastructure.Repositories
                         Convert.ToDecimal(reader["TargetAmount"]),
                         Convert.ToDecimal(reader["CurrentAmount"]),
                         Convert.ToDateTime(reader["DeadlineDate"]),
-                        Convert.ToInt32(reader["CurrencyID"])
+                        Convert.ToInt32(reader["CurrencyID"]),
+                        Convert.ToBoolean(reader["IsAchieved"])
                     ));
                 }
 

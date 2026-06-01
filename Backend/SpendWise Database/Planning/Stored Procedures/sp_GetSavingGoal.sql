@@ -1,7 +1,4 @@
-﻿-- ==========================================
--- 5. Get Single Saving Goal By ID
--- ==========================================
-CREATE PROCEDURE [Planning].[sp_GetSavingGoalById]
+﻿create PROCEDURE [Planning].[sp_GetSavingGoalById]
     @GoalId INT
 AS
 BEGIN
@@ -14,7 +11,8 @@ BEGIN
         TargetAmount, 
         CurrentAmount, 
         DeadlineDate, 
-        CurrencyID
+        CurrencyID,
+        IsAchieved 
     FROM [Planning].[SavingsGoals]
     WHERE GoalID = @GoalId;
 END

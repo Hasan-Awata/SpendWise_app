@@ -14,9 +14,10 @@ BEGIN
         TargetAmount, 
         CurrentAmount, 
         DeadlineDate, 
-        CurrencyID
+        CurrencyID,
+        IsAchieved
     FROM [Planning].[SavingsGoals]
     WHERE UserID = @UserId 
-      AND CurrentAmount >= TargetAmount
+      AND CurrentAmount <= TargetAmount
     ORDER BY DeadlineDate DESC;
 END

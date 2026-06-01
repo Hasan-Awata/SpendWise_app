@@ -14,23 +14,18 @@ BEGIN
 	SET @am = (SELECT Amount FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID);
 	SET @paiAmount = (SELECT PaidAmount FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID);
 
-
-	IF ((SELECT * FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID AND Status = 'Accepted') IS NOT NULL
+	IF (EXISTS (SELECT 1 FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID AND Status = 'Accepted')
 	AND (@paiAmount + @Amount) <= @am)
 	BEGIN	
 		BEGIN TRAN
-		INSERT INTO [Ledger].[Transactions]
-			([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description],[AmountInSp])
-		VALUES
-			(@CreditorID, @CreditorWalletID, @DebtID, @Title, @Amount, 1, @Description, @AmountInSp);
+		INSERT INTO [Ledger].[Transactions]			([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description],[AmountInSp])
+		VALUES			(@CreditorID, @CreditorWalletID, @DebtID, @Title, @Amount, 1, @Description, @AmountInSp);
 		UPDATE Banking.Wallets
 		SET Balance = Balance + @Amount
 		WHERE @CreditorWalletID = WalletID;
 
-		INSERT INTO [Ledger].[Transactions]
-			([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description],[AmountInSp])
-		VALUES
-			(@DebtorID, @DebtorWalletID, @DebtID, @Title, @Amount, 0, @Description, @AmountInSp);
+		INSERT INTO [Ledger].[Transactions]			([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description],[AmountInSp])
+		VALUES			(@DebtorID, @DebtorWalletID, @DebtID, @Title, @Amount, 0, @Description, @AmountInSp);
 		UPDATE Banking.Wallets
 		SET Balance = Balance - @Amount
 		WHERE @DebtorWalletID = WalletID;
@@ -38,9 +33,9 @@ BEGIN
 		UPDATE [Planning].[SharedDebts]
 		SET PaidAmount = PaidAmount + @Amount
 		WHERE DebtID = @DebtID;
-	COMMIT TRAN;
+		COMMIT TRAN;
 
-	IF @@TRANCOUNT > 0 ROLLBACK TRAN;
+		IF @@TRANCOUNT > 0 ROLLBACK TRAN;
 	END
 
 	SELECT @@ROWCOUNT AS rowsAffected;
