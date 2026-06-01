@@ -137,7 +137,8 @@ namespace SpendWise.Application.Services
             newIncome.LinkedTransaction.TransactionId = newIncomeId;
 
             // 3 - Form the response ----------------------------------------------
-            return Result<IncomeResponse>.Success(new IncomeResponse(newIncome));
+            var incomeResponse = new IncomeResponse(newIncome) { CurrencyId = wallet.CurrencyId };
+            return Result<IncomeResponse>.Success(incomeResponse);
         }
 
         public async Task<Result<IncomeResponse>> UpdateIncomeAsync(IncomeDTO incomeDto)
@@ -158,7 +159,8 @@ namespace SpendWise.Application.Services
                 return Result<IncomeResponse>.Failure("Failed to update the income in the database.", enErrorType.Failure);
 
             // 3 - Form the response ----------------------------------------------
-            return Result<IncomeResponse>.Success(new IncomeResponse(updatedIncome));
+            var incomeResponse = new IncomeResponse(updatedIncome) { CurrencyId = wallet.CurrencyId };
+            return Result<IncomeResponse>.Success(incomeResponse);
         }
 
         public async Task<Result> DeleteIncomeAsync(int incomeId, int userId)

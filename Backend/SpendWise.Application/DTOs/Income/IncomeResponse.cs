@@ -22,6 +22,9 @@ namespace SpendWise.Application.DTOs.Income
         public string Description { get; set; } = string.Empty;
         public decimal AmountInSp { get; set; } = 0.0m;
 
+        // Additional data (often assigned after initialization)
+        public int CurrencyId { get; set; }
+
         public IncomeResponse(SpendWise.Domain.Entities.Income income)
         {
             Id = income.Id;

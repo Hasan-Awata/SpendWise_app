@@ -150,7 +150,7 @@ namespace SpendWise.Application.Services
             if (expenseDto.Products.Sum(p => p.Price) != expenseDto.Amount)
                 return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
 
-            // Fetch the unique Currency Wallet Pair
+            // Fetch the unique Currency Wallet Pair 
             var walletPair = await _walletRepo.GetUserWalletsPairAsync(expenseDto.UserId, expenseDto.WalletId);
             var expensesWallet = walletPair.FirstOrDefault(w => !w.IsSaved);
             var savingWallet = walletPair.FirstOrDefault(w => w.IsSaved);
@@ -215,7 +215,7 @@ namespace SpendWise.Application.Services
             newExpense.LinkedTransaction.TransactionId = newExpenseId;
 
             // 3 - Form Response
-            var expenseResponse = new ExpenseResponse(newExpense) { IsOverLimit = isOverLimit };
+            var expenseResponse = new ExpenseResponse(newExpense) { IsOverLimit = isOverLimit, CurrencyId = expensesWallet.CurrencyId };
             return Result<ExpenseResponse>.Success(expenseResponse);
         }
 
@@ -265,7 +265,7 @@ namespace SpendWise.Application.Services
                 return Result<ExpenseResponse>.Failure("Failed to update the expense in the database.", enErrorType.Failure);
 
             // 3 - Form Response
-            var expenseResponse = new ExpenseResponse(updatedExpense) { IsOverLimit = isOverLimit };
+            var expenseResponse = new ExpenseResponse(updatedExpense) { IsOverLimit = isOverLimit, CurrencyId = expensesWallet.CurrencyId };
             return Result<ExpenseResponse>.Success(expenseResponse);
         }
 
