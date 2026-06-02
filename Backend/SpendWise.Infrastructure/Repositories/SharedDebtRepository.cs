@@ -22,381 +22,251 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> AddDebtAsync(SharedDebt debt)
         {
-            try
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_AddSharedDebt]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_AddSharedDebt]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
+                cmd.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
+                cmd.Parameters.AddWithValue("@Amount", debt.Amount);
+                cmd.Parameters.AddWithValue("@Title", debt.Title);
+                cmd.Parameters.AddWithValue("@CreatedAt", debt.CreatedAt);
+                cmd.Parameters.AddWithValue("@DueDate", debt.DueDate);
+                cmd.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID > 0 ? debt.CreditorWalletID : DBNull.Value);
+                cmd.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID > 0 ? debt.DebtorWalletID : DBNull.Value);
+            });
 
-                command.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
-                command.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
-                command.Parameters.AddWithValue("@Amount", debt.Amount);
-                command.Parameters.AddWithValue("@Title", debt.Title);
-                command.Parameters.AddWithValue("@Status", debt.Status);
-                command.Parameters.AddWithValue("@CreatedAt", debt.CreatedAt);
-                command.Parameters.AddWithValue("@DueDate", debt.DueDate);
-                command.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
-                command.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return result > 0 ? result : -1;
         }
 
         public async Task<bool> UpdateDebtAsync(SharedDebt debt)
         {
-            try
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_UpdateSharedDebt]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_UpdateSharedDebt]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@DebtID", debt.DebtID);
+                cmd.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
+                cmd.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
+                cmd.Parameters.AddWithValue("@Amount", debt.Amount);
+                cmd.Parameters.AddWithValue("@Title", debt.Title);
+                cmd.Parameters.AddWithValue("@DueDate", debt.DueDate);
+                cmd.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID > 0 ? debt.CreditorWalletID : DBNull.Value);
+                cmd.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID > 0 ? debt.DebtorWalletID : DBNull.Value);
+            });
 
-                command.Parameters.AddWithValue("@DebtID", debt.DebtID);
-                command.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
-                command.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
-                command.Parameters.AddWithValue("@Amount", debt.Amount);
-                command.Parameters.AddWithValue("@Title", debt.Title);
-                command.Parameters.AddWithValue("@Status", debt.Status);
-                command.Parameters.AddWithValue("@DueDate", debt.DueDate);
-                command.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
-                command.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return rowsAffected > 0;
         }
 
         public async Task<bool> DeleteDebtByIdAsync(int debtId)
         {
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_DeleteSharedDebtById]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@DebtID", debtId);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_DeleteSharedDebtById]",
+                cmd => cmd.Parameters.AddWithValue("@DebtID", debtId));
+            return rowsAffected > 0;
         }
 
         public async Task<bool> DeleteDebtByTitleAsync(string title)
         {
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_DeleteSharedDebtByTitle]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@Title", title);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_DeleteSharedDebtByTitle]",
+                cmd => cmd.Parameters.AddWithValue("@Title", title));
+            return rowsAffected > 0;
         }
 
         public async Task<SharedDebt?> GetDebtByIdAsync(int debtId)
         {
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_GetSharedDebtById]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@DebtID", debtId);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
-                {
-                    return new SharedDebt(
-                        Convert.ToInt32(reader["DebtID"]),
-                        Convert.ToInt32(reader["CreditorID"]),
-                        Convert.ToInt32(reader["DebtorID"]),
-                        Convert.ToDecimal(reader["Amount"]),
-                        reader["Title"].ToString()!,
-                        reader["Status"].ToString()!,
-                        Convert.ToDateTime(reader["CreatedAt"]),
-                        Convert.ToDateTime(reader["DueDate"]),
-                        Convert.ToInt32(reader["CreditorWalletID"]),
-                        Convert.ToInt32(reader["DebtorWalletID"]),
-                        Convert.ToDecimal(reader["PaidAmount"])
-                    );
-                }
-
-                return null;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return await ExecuteReaderSingleAsync("[Planning].[sp_GetSharedDebtById]",
+                cmd => cmd.Parameters.AddWithValue("@DebtID", debtId), MapToSharedDebt);
         }
 
         public async Task<SharedDebt?> GetDebtByTitleAsync(string title)
         {
+            return await ExecuteReaderSingleAsync("[Planning].[sp_GetSharedDebtByTitle]",
+                cmd => cmd.Parameters.AddWithValue("@Title", title), MapToSharedDebt);
+        }
+
+        public async Task<IEnumerable<SharedDebt>> GetDebtsOwedToUserAsync(int userId)
+        {
+            return await ExecuteReaderListAsync("[Planning].[sp_GetSharedDebtsOwedToUser]",
+                cmd => cmd.Parameters.AddWithValue("@UserId", userId), MapToSharedDebt);
+        }
+
+        public async Task<IEnumerable<SharedDebt>> GetTheDebtsIHaveToPayAsync(int userId)
+        {
+            return await ExecuteReaderListAsync("[Planning].[sp_GetSharedDebtsIHaveToPay]",
+                cmd => cmd.Parameters.AddWithValue("@UserId", userId), MapToSharedDebt);
+        }
+
+        public async Task<bool> DebtExistsAsync(int debtId)
+        {
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_CheckSharedDebtExists]",
+                cmd => cmd.Parameters.AddWithValue("@DebtID", debtId));
+            return result > 0;
+        }
+
+        public async Task<IEnumerable<SharedDebt>> GetSharedDebtsForUserAsync(int userId)
+        {
+            return await ExecuteReaderListAsync("[Planning].[sp_GetSharedDebtsForUser]",
+                cmd => cmd.Parameters.AddWithValue("@UserID", userId), MapToSharedDebt);
+        }
+
+        public async Task<bool> ReturnDebtAmountAsync(SharedDebt debt, decimal amount, string title, string description, decimal amountInSp)
+        {
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_ReturnDebtAmount]", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@DebtID", debt.DebtID);
+                cmd.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
+                cmd.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
+                cmd.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
+                cmd.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID);
+                cmd.Parameters.AddWithValue("@Amount", amount);
+                cmd.Parameters.AddWithValue("@Title", title);
+                cmd.Parameters.AddWithValue("@Description", description);
+                cmd.Parameters.AddWithValue("@AmountInSp", amountInSp);
+            });
+
+            return rowsAffected > 0;
+        }
+
+        public async Task<bool> AcceptDebtAsync(SharedDebt debt, decimal amount, string title, string description, decimal amountInSp)
+        {
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_AcceptSharedDebt]", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@DebtID", debt.DebtID);
+                cmd.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
+                cmd.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
+                cmd.Parameters.AddWithValue("@DueDate", debt.DueDate);
+                cmd.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
+                cmd.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID);
+                cmd.Parameters.AddWithValue("@Title", title);
+                cmd.Parameters.AddWithValue("@Description", description);
+                cmd.Parameters.AddWithValue("@AmountInSp", amountInSp);
+            });
+
+            return rowsAffected > 0;
+        }
+
+        public async Task<bool> RefuseDebtAsync(int debtId)
+        {
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_RefuseSharedDebt]",
+                cmd => cmd.Parameters.AddWithValue("@DebtID", debtId));
+            return rowsAffected > 0;
+        }
+
+        // =========================================================================
+        // REUSABLE HELPER METHODS & MAPPERS
+        // =========================================================================
+        private SharedDebt MapToSharedDebt(SqlDataReader reader)
+        {
+            // Extracted the object mapping to prevent repeating it across 5 different methods
+            return new SharedDebt(
+                EmptyValuesHandler.GetInt32OrDefault(reader, "DebtID"),
+                EmptyValuesHandler.GetInt32OrDefault(reader, "CreditorID"),
+                EmptyValuesHandler.GetInt32OrDefault(reader,"DebtorID"),
+                EmptyValuesHandler.GetDecimalOrDefault(reader,"Amount"),
+                reader["Title"].ToString()!,
+                reader["Status"].ToString()!,
+                EmptyValuesHandler.GetDateTimeOrDefault(reader,"CreatedAt"),
+                EmptyValuesHandler.GetDateTimeOrDefault(reader, "DueDate"),
+                EmptyValuesHandler.GetInt32OrDefault(reader, "CreditorWalletID"),
+                EmptyValuesHandler.GetInt32OrDefault(reader, "DebtorWalletID"),
+                EmptyValuesHandler.GetDecimalOrDefault(reader, "PaidAmount")
+            );
+        }
+
+        private async Task<T?> ExecuteScalarAsync<T>(string storedProcedure, Action<SqlCommand> addParameters)
+        {
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_GetSharedDebtByTitle]", connection)
+                using var command = new SqlCommand(storedProcedure, connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
 
-                command.Parameters.AddWithValue("@Title", title);
+                addParameters?.Invoke(command);
+
+                await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+
+                if (result != null && result != DBNull.Value)
+                {
+                    return (T)Convert.ChangeType(result, typeof(T));
+                }
+                return default;
+            }
+            catch (SqlException ex)
+            {
+                HandleCustomSqlException(ex);
+                throw;
+            }
+        }
+
+        private async Task<List<T>> ExecuteReaderListAsync<T>(string storedProcedure, Action<SqlCommand> addParameters, Func<SqlDataReader, T> mapFunc)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand(storedProcedure, connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                addParameters?.Invoke(command);
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                var results = new List<T>();
+                while (await reader.ReadAsync())
+                {
+                    results.Add(mapFunc(reader));
+                }
+                return results;
+            }
+            catch (SqlException ex)
+            {
+                HandleCustomSqlException(ex);
+                throw;
+            }
+        }
+
+        private async Task<T?> ExecuteReaderSingleAsync<T>(string storedProcedure, Action<SqlCommand> addParameters, Func<SqlDataReader, T> mapFunc)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand(storedProcedure, connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                addParameters?.Invoke(command);
 
                 await connection.OpenAsync();
                 using var reader = await command.ExecuteReaderAsync();
 
                 if (await reader.ReadAsync())
                 {
-                    return new SharedDebt(
-                        Convert.ToInt32(reader["DebtID"]),
-                        Convert.ToInt32(reader["CreditorID"]),
-                        Convert.ToInt32(reader["DebtorID"]),
-                        Convert.ToDecimal(reader["Amount"]),
-                        reader["Title"].ToString()!,
-                        reader["Status"].ToString()!,
-                        Convert.ToDateTime(reader["CreatedAt"]),
-                        Convert.ToDateTime(reader["DueDate"]),
-                        Convert.ToInt32(reader["CreditorWalletID"]),
-                        Convert.ToInt32(reader["DebtorWalletID"]),
-                        Convert.ToDecimal(reader["PaidAmount"])
-                    );
+                    return mapFunc(reader);
                 }
-
-                return null;
+                return default;
             }
             catch (SqlException ex)
             {
-                SqlExceptionHandler.Handle(ex);
+                HandleCustomSqlException(ex);
                 throw;
             }
         }
 
-        public async Task<IEnumerable<SharedDebt>> GetDebtsOwedToUserAsync(int userId)
+        private void HandleCustomSqlException(SqlException ex)
         {
-            var debts = new List<SharedDebt>();
-
-            try
+            // 51000 Range = Business Logic Guards explicitly thrown in SQL
+            if (ex.Number >= 51000 && ex.Number < 52000)
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_GetSharedDebtsOwedToUser]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@UserId", userId);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
-                {
-                    debts.Add(new SharedDebt(
-                        Convert.ToInt32(reader["DebtID"]),
-                        Convert.ToInt32(reader["CreditorID"]),
-                        Convert.ToInt32(reader["DebtorID"]),
-                        Convert.ToDecimal(reader["Amount"]),
-                        reader["Title"].ToString()!,
-                        reader["Status"].ToString()!,
-                        Convert.ToDateTime(reader["CreatedAt"]),
-                        Convert.ToDateTime(reader["DueDate"]),
-                        Convert.ToInt32(reader["CreditorWalletID"]),
-                        Convert.ToInt32(reader["DebtorWalletID"]),
-                        Convert.ToDecimal(reader["PaidAmount"])
-                    ));
-                }
-
-                return debts;
+                // Throw an exception type that your API layer knows means "Bad Request" (400)
+                throw new InvalidOperationException(ex.Message, ex);
             }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
-        }
 
-        public async Task<IEnumerable<SharedDebt>> GetTheDebtsIHaveToPayAsync(int userId)
-        {
-            var debts = new List<SharedDebt>();
-
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_GetSharedDebtsIHaveToPay]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@UserId", userId);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
-                {
-                    debts.Add(new SharedDebt(
-                        Convert.ToInt32(reader["DebtID"]),
-                        Convert.ToInt32(reader["CreditorID"]),
-                        Convert.ToInt32(reader["DebtorID"]),
-                        Convert.ToDecimal(reader["Amount"]),
-                        reader["Title"].ToString()!,
-                        reader["Status"].ToString()!,
-                        Convert.ToDateTime(reader["CreatedAt"]),
-                        Convert.ToDateTime(reader["DueDate"]),
-                        Convert.ToInt32(reader["CreditorWalletID"]),
-                        Convert.ToInt32(reader["DebtorWalletID"]),
-                        Convert.ToDecimal(reader["PaidAmount"])
-                    ));
-                }
-
-                return debts;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
-        }
-
-        public async Task<bool> DebtExistsAsync(int debtId)
-        {
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_CheckSharedDebtExists]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@DebtID", debtId);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && Convert.ToInt32(result) > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
-        }
-
-        public async Task<IEnumerable<SharedDebt>> GetSharedDebtsForUserAsync(int  userId)
-        {
-            var debts = new List<SharedDebt>();
-
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_GetSharedDebtsForUser]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@UserID", userId);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
-                {
-                    debts.Add(new SharedDebt(
-                        Convert.ToInt32(reader["DebtID"]),
-                        Convert.ToInt32(reader["CreditorID"]),
-                        Convert.ToInt32(reader["DebtorID"]),
-                        Convert.ToDecimal(reader["Amount"]),
-                        reader["Title"].ToString()!,
-                        reader["Status"].ToString()!,
-                        Convert.ToDateTime(reader["CreatedAt"]),
-                        Convert.ToDateTime(reader["DueDate"]),
-                        Convert.ToInt32(reader["CreditorWalletID"]),
-                        Convert.ToInt32(reader["DebtorWalletID"]),
-                        Convert.ToDecimal(reader["PaidAmount"])
-                    ));
-                }
-
-                return debts;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
-        }
-
-        public async Task<bool> ReturnDebtAmountAsync(SharedDebt debt, decimal amount, string title, string description, decimal amountInSp)
-        {
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_ReturnDebtAmount]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@DebtID", debt.DebtID);
-                command.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
-                command.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
-                command.Parameters.AddWithValue("@CreditorWalletID", debt.CreditorWalletID);
-                command.Parameters.AddWithValue("@DebtorWalletID", debt.DebtorWalletID);
-                command.Parameters.AddWithValue("@Amount", amount);
-                command.Parameters.AddWithValue("@Title", title);
-                command.Parameters.AddWithValue("@Description", description);
-                command.Parameters.AddWithValue("@AmountInSp", amountInSp);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            // For 50000 range and all other unhandled SQL exceptions:
+            // We just log/handle it here. 
+            // The calling method's catch block will re-throw the actual exception using 'throw;'
+            SqlExceptionHandler.Handle(ex);
         }
     }
 }

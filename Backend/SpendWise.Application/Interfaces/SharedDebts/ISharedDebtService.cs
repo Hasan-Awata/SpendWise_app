@@ -32,5 +32,8 @@ namespace SpendWise.Application.Interfaces.SharedDebts
         public Task<IEnumerable<SharedDebtResponse>> GetSharedDebtsForUserAsync(int userId);
         public Task<bool> ReturnDebtAmountAsync(int debtId, ReturnDebtDTO returnDebtDTO);
         public Task<bool> DebtExistsAsyns(int debtId);
+
+        public Task<bool> AcceptSharedDebtAsync(int debtId, ReturnDebtDTO debtDTO);
+        public Task<bool> RefuseDebtAsync(int debtId);
     }
 }
