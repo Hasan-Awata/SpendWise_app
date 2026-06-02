@@ -21,6 +21,19 @@ namespace SpendWise.Application.Services
             _exchangeRateService = exchangeRateService;
         }
 
+        private async Task<decimal> CalcAmountInSp(int currencyId, decimal amount)
+        {
+            if (currencyId == SupportedCurrencies.SyrianPoundId)
+            {
+                return amount;
+            }
+
+            Currency? walletCurrency = SupportedCurrencies.GetById(currencyId);
+            if (walletCurrency == null) return 0.0m;
+
+            return await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "damascus", "sell", amount);
+        }
+
         public async Task<IEnumerable<SharedDebtResponse>> GetDebtsOwedToUserAsync(int userId)
         {
             var debts = await _debtRepo.GetDebtsOwedToUserAsync(userId);
@@ -117,8 +130,7 @@ namespace SpendWise.Application.Services
                 returnDebtDTO.DebtDTO.PaidAmount
             );
 
-            decimal amountInSp = await _exchangeRateService.NormalizeToSyrianPound(SupportedCurrencies.GetById(returnDebtDTO.DebtDTO.DebtorWalletID).Code, "Damascus", "black_market", Convert.ToDecimal(returnDebtDTO.Amount));
-
+            decimal amountInSp = await CalcAmountInSp(SupportedCurrencies.GetById(returnDebtDTO.DebtDTO.DebtorWalletID).Id, returnDebtDTO.Amount);
             return await _debtRepo.ReturnDebtAmountAsync(debt, returnDebtDTO.Amount, returnDebtDTO.Title, returnDebtDTO.Description, amountInSp);
         }
 
@@ -142,7 +154,7 @@ namespace SpendWise.Application.Services
                 returnDebtDTO.DebtDTO.DebtorWalletID,
                 returnDebtDTO.DebtDTO.PaidAmount
             );
-            decimal amountInSp = await _exchangeRateService.NormalizeToSyrianPound(SupportedCurrencies.GetById(returnDebtDTO.DebtDTO.DebtorWalletID).Code, "Damascus", "black_market", Convert.ToDecimal(returnDebtDTO.Amount));
+            decimal amountInSp = await CalcAmountInSp(SupportedCurrencies.GetById(returnDebtDTO.DebtDTO.DebtorWalletID).Id, returnDebtDTO.Amount);
 
             return await _debtRepo.AcceptDebtAsync(debt, returnDebtDTO.Amount, returnDebtDTO.Title, returnDebtDTO.Description, amountInSp);
         }

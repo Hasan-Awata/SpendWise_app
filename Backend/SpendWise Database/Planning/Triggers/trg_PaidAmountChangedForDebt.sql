@@ -1,4 +1,4 @@
-﻿CREATE TRIGGER [trg_PaidAmountChangedForDebt]
+﻿CREATE TRIGGER [Planning].[trg_PaidAmountChangedForDebt]
 	ON [Planning].[SharedDebts]
 	AFTER UPDATE
 	AS

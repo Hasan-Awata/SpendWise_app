@@ -1,48 +1,56 @@
 ﻿CREATE PROCEDURE [Planning].[sp_ReturnDebtAmount]
-	@DebtID INT,
-	@CreditorID INT,
-	@DebtorID INT,
-	@CreditorWalletID INT,
-	@DebtorWalletID INT,
-	@Amount DECIMAL(18,2),
-	@Title NVARCHAR(255),
-	@Description NVARCHAR(MAX) = NULL,
-	@AmountInSp DECIMAL(18,2)
+  @DebtID INT,
+  @CreditorID INT,
+  @DebtorID INT,
+  @CreditorWalletID INT,
+  @DebtorWalletID INT,
+  @Amount DECIMAL(18,2),
+  @Title NVARCHAR(255),
+  @Description NVARCHAR(MAX) = NULL,
+  @AmountInSp DECIMAL(18,2)
 AS
 BEGIN
-	DECLARE @am DECIMAL(18,2), @paiAmount DECIMAL(18,2);
-	SET @am = (SELECT Amount FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID);
-	SET @paiAmount = (SELECT PaidAmount FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID);
+  SET NOCOUNT ON;
+  SET XACT_ABORT ON; 
 
+  DECLARE @am DECIMAL(18,2);
+  DECLARE @paiAmount DECIMAL(18,2);
 
-	IF ((SELECT * FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID AND Status = 'Accepted') IS NOT NULL
-	AND (@paiAmount + @Amount) <= @am)
-	BEGIN	
-		BEGIN TRAN
-		INSERT INTO [Ledger].[Transactions]
-			([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description],[AmountInSp])
-		VALUES
-			(@CreditorID, @CreditorWalletID, @DebtID, @Title, @Amount, 0, @Description, @AmountInSp);
-		UPDATE Banking.Wallets
-		SET Balance = Balance + @Amount
-		WHERE @CreditorWalletID = WalletID;
+  SELECT @am = ISNULL(Amount, 0), @paiAmount = ISNULL(PaidAmount, 0) 
+  FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID;
 
-		INSERT INTO [Ledger].[Transactions]
-			([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description],[AmountInSp])
-		VALUES
-			(@DebtorID, @DebtorWalletID, @DebtID, @Title, @Amount, 1, @Description, @AmountInSp);
-		UPDATE Banking.Wallets
-		SET Balance = Balance - @Amount
-		WHERE @DebtorWalletID = WalletID;
+  IF NOT EXISTS(SELECT 1 FROM [Planning].[SharedDebts] WHERE DebtID = @DebtID AND Status = 'Accepted')
+  BEGIN
+      ;THROW 51012, 'Validation Error: Debt must exist and be in ''Accepted'' status to process a return.', 1;
+  END
 
-		UPDATE [Planning].[SharedDebts]
-		SET PaidAmount = PaidAmount + @Amount
-		WHERE DebtID = @DebtID;
-	COMMIT TRAN;
+  IF (@paiAmount + @Amount) > @am
+  BEGIN
+      ;THROW 51013, 'Validation Error: Return amount cannot exceed the total remaining debt amount.', 1;
+  END
 
-	IF @@TRANCOUNT > 0 ROLLBACK TRAN;
-	END
+  BEGIN TRY
+    BEGIN TRAN;
 
-	SELECT @@ROWCOUNT AS rowsAffected;
+    INSERT INTO [Ledger].[Transactions] ([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description], [AmountInSp])
+    VALUES (@CreditorID, @CreditorWalletID, @DebtID, @Title, @Amount, 0, @Description, @AmountInSp);
+    
+    UPDATE Banking.Wallets SET Balance = Balance + @Amount WHERE WalletID = @CreditorWalletID;
+
+    INSERT INTO [Ledger].[Transactions] ([UserID], [WalletID], [DebtID], [Title], [Amount], [TransactionType], [Description], [AmountInSp])
+    VALUES (@DebtorID, @DebtorWalletID, @DebtID, @Title, @Amount, 1, @Description, @AmountInSp);
+    
+    UPDATE Banking.Wallets SET Balance = Balance - @Amount WHERE WalletID = @DebtorWalletID;
+
+    UPDATE [Planning].[SharedDebts] SET PaidAmount = ISNULL(PaidAmount, 0) + @Amount WHERE DebtID = @DebtID;
+
+    COMMIT TRAN;
+    SELECT 1;
+  END TRY
+  BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRAN;
+    DECLARE @ErrMsg NVARCHAR(2048) = 'Database Error in sp_ReturnDebtAmount: ' + ERROR_MESSAGE();
+    THROW 50012, @ErrMsg, 1;
+  END CATCH
 END
 GO
