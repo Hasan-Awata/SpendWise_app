@@ -97,6 +97,7 @@ builder.Services.AddScoped<ICategoryBudgetRepository, CategoryBudgetRepository>(
 
 
 builder.Services.AddScoped<ISharedDebtRepository, SharedDebtRepository>();
+builder.Services.AddScoped<ISharedDebtService, SharedDebtService>();
 
 builder.Services.AddScoped<IFixedObligationsService, FixedObligationsService>();
 builder.Services.AddScoped<IFixedObligationRepository, FixedObligationRepository>();
