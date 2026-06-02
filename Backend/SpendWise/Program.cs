@@ -147,6 +147,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddExceptionHandler<SpendWise.Middlewares.GlobalExceptionHandler>();
 builder.Services.AddProblemDetails(); // Required to standardize the JSON output
 
+// ── Register Schedulers ─────────────────────────────────────
+builder.Services.AddHostedService<FixedIncomeScheduler>();
+builder.Services.AddHostedService<FixedExpenseScheduler>();
+
 // ─────────────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
