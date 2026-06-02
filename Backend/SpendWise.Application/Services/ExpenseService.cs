@@ -224,7 +224,7 @@ namespace SpendWise.Application.Services
             newExpense.LinkedTransaction.TransactionId = newExpenseId;
 
             // 3 - Form Response
-            var expenseResponse = new ExpenseResponse(newExpense) { IsOverLimit = isOverLimit, CurrencyId = expensesWallet.CurrencyId };
+            var expenseResponse = new ExpenseResponse(newExpense) { IsOverLimit = isOverLimit };
             return Result<ExpenseResponse>.Success(expenseResponse);
         }
 
@@ -314,7 +314,7 @@ namespace SpendWise.Application.Services
                 return Result<ExpenseResponse>.Failure("Failed to update the expense in the database.", enErrorType.Failure);
 
             // 3 - Form Response
-            var expenseResponse = new ExpenseResponse(updatedExpense) { IsOverLimit = isOverLimit, CurrencyId = expensesWallet.CurrencyId };
+            var expenseResponse = new ExpenseResponse(updatedExpense) { IsOverLimit = isOverLimit };
             return Result<ExpenseResponse>.Success(expenseResponse);
         }
 
