@@ -30,7 +30,7 @@
 GO
 CREATE NONCLUSTERED INDEX [IX_Transactions_User_Date]
     ON [Ledger].[Transactions]([UserID] ASC, [TransactionDate] DESC)
-    INCLUDE([Amount], [TransactionType], [CategoryID], [WalletID], [Title]);
+    INCLUDE([Amount], [TransactionType], [CategoryID], [WalletID], [Title], [TagID], [AmountInSp]);
 
 
 GO

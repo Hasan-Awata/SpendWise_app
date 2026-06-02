@@ -13,7 +13,7 @@
 
 
 GO
-CREATE NONCLUSTERED INDEX [IX_Wallets_User]
-    ON [Banking].[Wallets]([UserID] ASC)
-    INCLUDE([Balance], [CurrencyID]);
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_Wallets_UserCurrencySaved_Covering]
+    ON [Banking].[Wallets]([UserID] ASC, [CurrencyID] ASC, [IsSaved] ASC)
+    INCLUDE([Balance]);
 

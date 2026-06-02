@@ -19,15 +19,13 @@
     CONSTRAINT [FK_SharedDebts_DebtorWallet] FOREIGN KEY ([DebtorWalletID]) REFERENCES [Banking].[Wallets]([WalletID]) 
 );
 
-
 GO
 CREATE NONCLUSTERED INDEX [IX_SharedDebts_Debtor]
-    ON [Planning].[SharedDebts]([DebtorID] ASC, [DueDate] ASC)
-    INCLUDE([Amount], [CreditorID], [Status]);
-
+    ON [Planning].[SharedDebts]([DebtorID] ASC)
+    INCLUDE([Amount], [Title], [Status], [DueDate], [PaidAmount]);
 
 GO
 CREATE NONCLUSTERED INDEX [IX_SharedDebts_Creditor]
-    ON [Planning].[SharedDebts]([CreditorID] ASC, [DueDate] ASC)
-    INCLUDE([Amount], [DebtorID], [Status]);
+    ON [Planning].[SharedDebts]([CreditorID] ASC)
+    INCLUDE([Amount], [Title], [Status], [DueDate], [PaidAmount]);
 

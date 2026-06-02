@@ -20,5 +20,5 @@
 GO
 CREATE NONCLUSTERED INDEX [IX_Incomes_User_Date]
     ON [Ledger].[Incomes]([UserID] ASC, [Date] DESC)
-    INCLUDE([Amount], [WalletID]);
+    INCLUDE([Title], [Amount], [WalletID], [TagID]);
 

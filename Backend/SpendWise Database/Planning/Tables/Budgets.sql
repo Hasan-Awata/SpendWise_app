@@ -11,14 +11,8 @@
     CONSTRAINT [FK_Budgets_Users] FOREIGN KEY ([UserID]) REFERENCES [Identity].[Users] ([UserID])
 );
 
-
 GO
-CREATE UNIQUE NONCLUSTERED INDEX [UQ_Budgets_ActiveCategory]
-    ON [Planning].[Budgets]([UserID] ASC, [CategoryID] ASC) WHERE ([IsActive]=(1));
-
-
-GO
-CREATE NONCLUSTERED INDEX [IX_Budgets_User_Dates]
-    ON [Planning].[Budgets]([UserID] ASC, [StartDate] ASC, [EndDate] ASC)
-    INCLUDE([CategoryID], [PercentageLimit]);
+CREATE NONCLUSTERED INDEX [IX_Budgets_User_Category_Covering]
+    ON [Planning].[Budgets]([UserID] ASC, [CategoryID] ASC)
+    INCLUDE([PercentageLimit], [StartDate], [EndDate], [IsActive]);
 
