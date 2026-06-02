@@ -43,7 +43,7 @@ class DeleteCategoryBudgetController extends GetxController {
           }
 
           Get.back(result: true);
-          HelperFunction.showSnackBar("نجاح", "تم حذف الميزانية بنجاح");
+          // HelperFunction.showSnackBar("نجاح", "تم حذف الميزانية بنجاح");
         },
       );
     } catch (e) {

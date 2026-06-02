@@ -1,64 +1,67 @@
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
-import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource_impl.dart';
 import 'package:spendwise/features/auth/data/models/user_model.dart';
 
 class CurrentUser {
-  // تصميم Singleton لمنع تكرار النسخ في الذاكرة
-  factory CurrentUser() => CurrentUser._internal();
-  CurrentUser._internal();
+  CurrentUser._();
 
-  static UserModel? _currentUser;
+  static UserModel? _user;
 
-  /// الوصول المباشر لكائن المستخدم
-  static UserModel? get user => _currentUser;
+  static UserModel? get user => _user;
 
-  /// جلب المعرف بشكل سريع (من الكاش)
-  static int? get userId {
+  static bool get isLoggedIn => _user != null;
+
+  static int? get userId => _user?.userId;
+
+  static String get token => _user?.token ?? "";
+
+  static String get refreshToken => _user?.refreshToken ?? "";
+
+  /// تحميل المستخدم من التخزين المحلي عند تشغيل التطبيق
+  static Future<void> initialize() async {
     try {
-      final userSource = Get.find<AppUserLocalDatasource>();
-      // نستخدم الـ Getter المباشر المتاح في الـ Implementation لسرعة الوصول
-      return (userSource as AppUserLocalDatasourceImpl).currentUserId;
+      final datasource = Get.find<AppUserLocalDatasource>();
+
+      _user = await datasource.getUser();
+
+      print("✅ CurrentUser initialized => ${_user?.userName}");
     } catch (e) {
-      return _currentUser?.userId;
+      print("❌ CurrentUser initialize error => $e");
     }
   }
 
-  /// التحقق مما إذا كان المستخدم مسجل دخوله حالياً
-  static bool get isUserLoggedIn {
-    return _currentUser != null;
-  }
-
-  /// تهيئة بيانات المستخدم عند بداية تشغيل التطبيق
-  static Future<void> initializeUser() async {
+  /// حفظ المستخدم في الذاكرة والتخزين المحلي
+  static Future<void> save(UserModel user) async {
     try {
-      final userSource = Get.find<AppUserLocalDatasource>();
-      userSource.init();
-      final user = await userSource.getUser();
+      final datasource = Get.find<AppUserLocalDatasource>();
 
-      _currentUser = user;
+      await datasource.registerLocal(user);
 
-      if (user != null) {
-        print("👤 CurrentUser Synced: ${user.userName} (ID: ${user.userId})");
-      } else {
-        print("👤 CurrentUser: No local user session found.");
-      }
+      _user = user;
+
+      print("✅ CurrentUser saved");
     } catch (e) {
-      print("⚠️ Critical Error initializing CurrentUser: $e");
+      print("❌ CurrentUser save error => $e");
     }
   }
 
-  /// تحديث الذاكرة المؤقتة (عند تحديث البيانات من السيرفر أو تعديل البروفايل)
-  static void updateCache(UserModel? user) {
-    _currentUser = user;
-    print("🔄 CurrentUser Cache Updated.");
+  /// تحديث الكاش فقط
+  static void update(UserModel? user) {
+    _user = user;
   }
 
-  /// الحصول على التوكن بشكل سريع لإضافته لطلبات الـ API
-  static String get token => _currentUser?.token ?? "";
+  /// حذف الجلسة
+  static Future<void> clear() async {
+    try {
+      final datasource = Get.find<AppUserLocalDatasource>();
 
-  static void clear() {
-    _currentUser = null;
-    Get.find<AppUserLocalDatasource>().clear();
+      await datasource.clear();
+
+      _user = null;
+
+      print("✅ CurrentUser cleared");
+    } catch (e) {
+      print("❌ CurrentUser clear error => $e");
+    }
   }
 }

@@ -22,93 +22,114 @@ const ExpenseModelSchema = CollectionSchema(
       name: r'amount',
       type: IsarType.double,
     ),
-    r'categoryId': PropertySchema(
+    r'amountFromRegular': PropertySchema(
       id: 1,
+      name: r'amountFromRegular',
+      type: IsarType.double,
+    ),
+    r'amountFromSavings': PropertySchema(
+      id: 2,
+      name: r'amountFromSavings',
+      type: IsarType.double,
+    ),
+    r'categoryId': PropertySchema(
+      id: 3,
       name: r'categoryId',
       type: IsarType.long,
     ),
     r'createdAt': PropertySchema(
-      id: 2,
+      id: 4,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'date': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'date',
       type: IsarType.dateTime,
     ),
     r'description': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'description',
       type: IsarType.string,
     ),
     r'expenseTagId': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'expenseTagId',
       type: IsarType.long,
     ),
     r'id': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'id',
       type: IsarType.long,
     ),
     r'isDeleted': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'isDeleted',
       type: IsarType.bool,
     ),
     r'isFixed': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'isFixed',
       type: IsarType.bool,
     ),
+    r'isOverLimit': PropertySchema(
+      id: 11,
+      name: r'isOverLimit',
+      type: IsarType.bool,
+    ),
     r'isSynced': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'isSynced',
       type: IsarType.bool,
     ),
     r'lastSyncError': PropertySchema(
-      id: 10,
+      id: 13,
       name: r'lastSyncError',
       type: IsarType.dateTime,
     ),
     r'localId': PropertySchema(
-      id: 11,
+      id: 14,
       name: r'localId',
       type: IsarType.string,
     ),
     r'products': PropertySchema(
-      id: 12,
+      id: 15,
       name: r'products',
-      type: IsarType.string,
+      type: IsarType.objectList,
+      target: r'ProductModel',
+    ),
+    r'serverId': PropertySchema(
+      id: 16,
+      name: r'serverId',
+      type: IsarType.long,
     ),
     r'syncAttempts': PropertySchema(
-      id: 13,
+      id: 17,
       name: r'syncAttempts',
       type: IsarType.long,
     ),
     r'title': PropertySchema(
-      id: 14,
+      id: 18,
       name: r'title',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 15,
+      id: 19,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'userId': PropertySchema(
-      id: 16,
+      id: 20,
       name: r'userId',
       type: IsarType.long,
     ),
     r'walletId': PropertySchema(
-      id: 17,
+      id: 21,
       name: r'walletId',
       type: IsarType.long,
     ),
     r'walletLocalId': PropertySchema(
-      id: 18,
+      id: 22,
       name: r'walletLocalId',
       type: IsarType.string,
     )
@@ -147,7 +168,7 @@ const ExpenseModelSchema = CollectionSchema(
     )
   },
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {r'ProductModel': ProductModelSchema},
   getId: _expenseModelGetId,
   getLinks: _expenseModelGetLinks,
   attach: _expenseModelAttach,
@@ -168,9 +189,17 @@ int _expenseModelEstimateSize(
   }
   bytesCount += 3 + object.localId.length * 3;
   {
-    final value = object.products;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
+    final list = object.products;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        final offsets = allOffsets[ProductModel]!;
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount +=
+              ProductModelSchema.estimateSize(value, offsets, allOffsets);
+        }
+      }
     }
   }
   {
@@ -195,24 +224,33 @@ void _expenseModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDouble(offsets[0], object.amount);
-  writer.writeLong(offsets[1], object.categoryId);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeDateTime(offsets[3], object.date);
-  writer.writeString(offsets[4], object.description);
-  writer.writeLong(offsets[5], object.expenseTagId);
-  writer.writeLong(offsets[6], object.id);
-  writer.writeBool(offsets[7], object.isDeleted);
-  writer.writeBool(offsets[8], object.isFixed);
-  writer.writeBool(offsets[9], object.isSynced);
-  writer.writeDateTime(offsets[10], object.lastSyncError);
-  writer.writeString(offsets[11], object.localId);
-  writer.writeString(offsets[12], object.products);
-  writer.writeLong(offsets[13], object.syncAttempts);
-  writer.writeString(offsets[14], object.title);
-  writer.writeDateTime(offsets[15], object.updatedAt);
-  writer.writeLong(offsets[16], object.userId);
-  writer.writeLong(offsets[17], object.walletId);
-  writer.writeString(offsets[18], object.walletLocalId);
+  writer.writeDouble(offsets[1], object.amountFromRegular);
+  writer.writeDouble(offsets[2], object.amountFromSavings);
+  writer.writeLong(offsets[3], object.categoryId);
+  writer.writeDateTime(offsets[4], object.createdAt);
+  writer.writeDateTime(offsets[5], object.date);
+  writer.writeString(offsets[6], object.description);
+  writer.writeLong(offsets[7], object.expenseTagId);
+  writer.writeLong(offsets[8], object.id);
+  writer.writeBool(offsets[9], object.isDeleted);
+  writer.writeBool(offsets[10], object.isFixed);
+  writer.writeBool(offsets[11], object.isOverLimit);
+  writer.writeBool(offsets[12], object.isSynced);
+  writer.writeDateTime(offsets[13], object.lastSyncError);
+  writer.writeString(offsets[14], object.localId);
+  writer.writeObjectList<ProductModel>(
+    offsets[15],
+    allOffsets,
+    ProductModelSchema.serialize,
+    object.products,
+  );
+  writer.writeLong(offsets[16], object.serverId);
+  writer.writeLong(offsets[17], object.syncAttempts);
+  writer.writeString(offsets[18], object.title);
+  writer.writeDateTime(offsets[19], object.updatedAt);
+  writer.writeLong(offsets[20], object.userId);
+  writer.writeLong(offsets[21], object.walletId);
+  writer.writeString(offsets[22], object.walletLocalId);
 }
 
 ExpenseModel _expenseModelDeserialize(
@@ -223,24 +261,32 @@ ExpenseModel _expenseModelDeserialize(
 ) {
   final object = ExpenseModel(
     amount: reader.readDouble(offsets[0]),
-    categoryId: reader.readLongOrNull(offsets[1]),
-    createdAt: reader.readDateTimeOrNull(offsets[2]),
-    date: reader.readDateTime(offsets[3]),
-    description: reader.readStringOrNull(offsets[4]),
-    expenseTagId: reader.readLongOrNull(offsets[5]),
-    id: reader.readLongOrNull(offsets[6]),
-    isDeleted: reader.readBoolOrNull(offsets[7]) ?? false,
-    isFixed: reader.readBoolOrNull(offsets[8]),
-    isSynced: reader.readBoolOrNull(offsets[9]) ?? false,
-    lastSyncError: reader.readDateTimeOrNull(offsets[10]),
-    localId: reader.readString(offsets[11]),
-    products: reader.readStringOrNull(offsets[12]),
-    syncAttempts: reader.readLongOrNull(offsets[13]) ?? 0,
-    title: reader.readStringOrNull(offsets[14]),
-    updatedAt: reader.readDateTimeOrNull(offsets[15]),
-    userId: reader.readLongOrNull(offsets[16]),
-    walletId: reader.readLongOrNull(offsets[17]),
-    walletLocalId: reader.readStringOrNull(offsets[18]),
+    amountFromRegular: reader.readDoubleOrNull(offsets[1]) ?? 0.0,
+    amountFromSavings: reader.readDoubleOrNull(offsets[2]) ?? 0.0,
+    categoryId: reader.readLongOrNull(offsets[3]),
+    createdAt: reader.readDateTimeOrNull(offsets[4]),
+    date: reader.readDateTime(offsets[5]),
+    description: reader.readStringOrNull(offsets[6]),
+    expenseTagId: reader.readLongOrNull(offsets[7]),
+    id: reader.readLongOrNull(offsets[8]),
+    isDeleted: reader.readBoolOrNull(offsets[9]) ?? false,
+    isFixed: reader.readBoolOrNull(offsets[10]),
+    isOverLimit: reader.readBoolOrNull(offsets[11]),
+    isSynced: reader.readBoolOrNull(offsets[12]) ?? false,
+    lastSyncError: reader.readDateTimeOrNull(offsets[13]),
+    localId: reader.readString(offsets[14]),
+    products: reader.readObjectList<ProductModel>(
+      offsets[15],
+      ProductModelSchema.deserialize,
+      allOffsets,
+      ProductModel(),
+    ),
+    syncAttempts: reader.readLongOrNull(offsets[17]) ?? 0,
+    title: reader.readStringOrNull(offsets[18]),
+    updatedAt: reader.readDateTimeOrNull(offsets[19]),
+    userId: reader.readLongOrNull(offsets[20]),
+    walletId: reader.readLongOrNull(offsets[21]),
+    walletLocalId: reader.readStringOrNull(offsets[22]),
   );
   object.isarId = id;
   return object;
@@ -256,40 +302,53 @@ P _expenseModelDeserializeProp<P>(
     case 0:
       return (reader.readDouble(offset)) as P;
     case 1:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset) ?? 0.0) as P;
     case 2:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset) ?? 0.0) as P;
     case 3:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 5:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 6:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 8:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 9:
       return (reader.readBoolOrNull(offset) ?? false) as P;
     case 10:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 11:
-      return (reader.readString(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 12:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 13:
-      return (reader.readLongOrNull(offset) ?? 0) as P;
-    case 14:
-      return (reader.readStringOrNull(offset)) as P;
-    case 15:
       return (reader.readDateTimeOrNull(offset)) as P;
+    case 14:
+      return (reader.readString(offset)) as P;
+    case 15:
+      return (reader.readObjectList<ProductModel>(
+        offset,
+        ProductModelSchema.deserialize,
+        allOffsets,
+        ProductModel(),
+      )) as P;
     case 16:
       return (reader.readLongOrNull(offset)) as P;
     case 17:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset) ?? 0) as P;
     case 18:
+      return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 20:
+      return (reader.readLongOrNull(offset)) as P;
+    case 21:
+      return (reader.readLongOrNull(offset)) as P;
+    case 22:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -665,6 +724,138 @@ extension ExpenseModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'amount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      amountFromRegularEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'amountFromRegular',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      amountFromRegularGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'amountFromRegular',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      amountFromRegularLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'amountFromRegular',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      amountFromRegularBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'amountFromRegular',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      amountFromSavingsEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'amountFromSavings',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      amountFromSavingsGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'amountFromSavings',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      amountFromSavingsLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'amountFromSavings',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      amountFromSavingsBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'amountFromSavings',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -1213,6 +1404,34 @@ extension ExpenseModelQueryFilter
   }
 
   QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      isOverLimitIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'isOverLimit',
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      isOverLimitIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'isOverLimit',
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      isOverLimitEqualTo(bool? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isOverLimit',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
       isSyncedEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1506,137 +1725,164 @@ extension ExpenseModelQueryFilter
   }
 
   QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
-      productsEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
+      productsLengthEqualTo(int length) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'products',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
-      productsGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'products',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
-      productsLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'products',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
-      productsBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'products',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
-      productsStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'products',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
-      productsEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'products',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
-      productsContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'products',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
-      productsMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'products',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.listLength(
+        r'products',
+        length,
+        true,
+        length,
+        true,
+      );
     });
   }
 
   QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
       productsIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'products',
-        value: '',
-      ));
+      return query.listLength(
+        r'products',
+        0,
+        true,
+        0,
+        true,
+      );
     });
   }
 
   QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
       productsIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'products',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      productsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'products',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      productsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'products',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      productsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'products',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      serverIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'serverId',
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      serverIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'serverId',
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      serverIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      serverIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'products',
-        value: '',
+        include: include,
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      serverIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      serverIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'serverId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -2226,7 +2472,14 @@ extension ExpenseModelQueryFilter
 }
 
 extension ExpenseModelQueryObject
-    on QueryBuilder<ExpenseModel, ExpenseModel, QFilterCondition> {}
+    on QueryBuilder<ExpenseModel, ExpenseModel, QFilterCondition> {
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterFilterCondition>
+      productsElement(FilterQuery<ProductModel> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'products');
+    });
+  }
+}
 
 extension ExpenseModelQueryLinks
     on QueryBuilder<ExpenseModel, ExpenseModel, QFilterCondition> {}
@@ -2242,6 +2495,34 @@ extension ExpenseModelQuerySortBy
   QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> sortByAmountDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'amount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      sortByAmountFromRegular() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountFromRegular', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      sortByAmountFromRegularDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountFromRegular', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      sortByAmountFromSavings() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountFromSavings', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      sortByAmountFromSavingsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountFromSavings', Sort.desc);
     });
   }
 
@@ -2344,6 +2625,19 @@ extension ExpenseModelQuerySortBy
     });
   }
 
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> sortByIsOverLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isOverLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      sortByIsOverLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isOverLimit', Sort.desc);
+    });
+  }
+
   QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> sortByIsSynced() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isSynced', Sort.asc);
@@ -2381,15 +2675,15 @@ extension ExpenseModelQuerySortBy
     });
   }
 
-  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> sortByProducts() {
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> sortByServerId() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'products', Sort.asc);
+      return query.addSortBy(r'serverId', Sort.asc);
     });
   }
 
-  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> sortByProductsDesc() {
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> sortByServerIdDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'products', Sort.desc);
+      return query.addSortBy(r'serverId', Sort.desc);
     });
   }
 
@@ -2479,6 +2773,34 @@ extension ExpenseModelQuerySortThenBy
   QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> thenByAmountDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'amount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      thenByAmountFromRegular() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountFromRegular', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      thenByAmountFromRegularDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountFromRegular', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      thenByAmountFromSavings() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountFromSavings', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      thenByAmountFromSavingsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountFromSavings', Sort.desc);
     });
   }
 
@@ -2581,6 +2903,19 @@ extension ExpenseModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> thenByIsOverLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isOverLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy>
+      thenByIsOverLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isOverLimit', Sort.desc);
+    });
+  }
+
   QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> thenByIsSynced() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isSynced', Sort.asc);
@@ -2630,15 +2965,15 @@ extension ExpenseModelQuerySortThenBy
     });
   }
 
-  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> thenByProducts() {
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> thenByServerId() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'products', Sort.asc);
+      return query.addSortBy(r'serverId', Sort.asc);
     });
   }
 
-  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> thenByProductsDesc() {
+  QueryBuilder<ExpenseModel, ExpenseModel, QAfterSortBy> thenByServerIdDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'products', Sort.desc);
+      return query.addSortBy(r'serverId', Sort.desc);
     });
   }
 
@@ -2725,6 +3060,20 @@ extension ExpenseModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ExpenseModel, ExpenseModel, QDistinct>
+      distinctByAmountFromRegular() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'amountFromRegular');
+    });
+  }
+
+  QueryBuilder<ExpenseModel, ExpenseModel, QDistinct>
+      distinctByAmountFromSavings() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'amountFromSavings');
+    });
+  }
+
   QueryBuilder<ExpenseModel, ExpenseModel, QDistinct> distinctByCategoryId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'categoryId');
@@ -2774,6 +3123,12 @@ extension ExpenseModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ExpenseModel, ExpenseModel, QDistinct> distinctByIsOverLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isOverLimit');
+    });
+  }
+
   QueryBuilder<ExpenseModel, ExpenseModel, QDistinct> distinctByIsSynced() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isSynced');
@@ -2794,10 +3149,9 @@ extension ExpenseModelQueryWhereDistinct
     });
   }
 
-  QueryBuilder<ExpenseModel, ExpenseModel, QDistinct> distinctByProducts(
-      {bool caseSensitive = true}) {
+  QueryBuilder<ExpenseModel, ExpenseModel, QDistinct> distinctByServerId() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'products', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'serverId');
     });
   }
 
@@ -2855,6 +3209,20 @@ extension ExpenseModelQueryProperty
     });
   }
 
+  QueryBuilder<ExpenseModel, double, QQueryOperations>
+      amountFromRegularProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'amountFromRegular');
+    });
+  }
+
+  QueryBuilder<ExpenseModel, double, QQueryOperations>
+      amountFromSavingsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'amountFromSavings');
+    });
+  }
+
   QueryBuilder<ExpenseModel, int?, QQueryOperations> categoryIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'categoryId');
@@ -2903,6 +3271,12 @@ extension ExpenseModelQueryProperty
     });
   }
 
+  QueryBuilder<ExpenseModel, bool?, QQueryOperations> isOverLimitProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isOverLimit');
+    });
+  }
+
   QueryBuilder<ExpenseModel, bool, QQueryOperations> isSyncedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isSynced');
@@ -2922,9 +3296,16 @@ extension ExpenseModelQueryProperty
     });
   }
 
-  QueryBuilder<ExpenseModel, String?, QQueryOperations> productsProperty() {
+  QueryBuilder<ExpenseModel, List<ProductModel>?, QQueryOperations>
+      productsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'products');
+    });
+  }
+
+  QueryBuilder<ExpenseModel, int?, QQueryOperations> serverIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'serverId');
     });
   }
 

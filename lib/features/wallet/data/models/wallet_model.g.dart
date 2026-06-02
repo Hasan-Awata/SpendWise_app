@@ -57,28 +57,33 @@ const WalletModelSchema = CollectionSchema(
       name: r'localId',
       type: IsarType.string,
     ),
-    r'serverId': PropertySchema(
+    r'numberOfTransactions': PropertySchema(
       id: 8,
+      name: r'numberOfTransactions',
+      type: IsarType.long,
+    ),
+    r'serverId': PropertySchema(
+      id: 9,
       name: r'serverId',
       type: IsarType.long,
     ),
     r'syncAttempts': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'syncAttempts',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'userId': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'userId',
       type: IsarType.long,
     ),
     r'walletId': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'walletId',
       type: IsarType.long,
     )
@@ -148,11 +153,12 @@ void _walletModelSerialize(
   writer.writeBool(offsets[5], object.isSynced);
   writer.writeDateTime(offsets[6], object.lastSyncError);
   writer.writeString(offsets[7], object.localId);
-  writer.writeLong(offsets[8], object.serverId);
-  writer.writeLong(offsets[9], object.syncAttempts);
-  writer.writeDateTime(offsets[10], object.updatedAt);
-  writer.writeLong(offsets[11], object.userId);
-  writer.writeLong(offsets[12], object.walletId);
+  writer.writeLong(offsets[8], object.numberOfTransactions);
+  writer.writeLong(offsets[9], object.serverId);
+  writer.writeLong(offsets[10], object.syncAttempts);
+  writer.writeDateTime(offsets[11], object.updatedAt);
+  writer.writeLong(offsets[12], object.userId);
+  writer.writeLong(offsets[13], object.walletId);
 }
 
 WalletModel _walletModelDeserialize(
@@ -170,10 +176,11 @@ WalletModel _walletModelDeserialize(
     isSynced: reader.readBoolOrNull(offsets[5]) ?? false,
     lastSyncError: reader.readDateTimeOrNull(offsets[6]),
     localId: reader.readString(offsets[7]),
-    syncAttempts: reader.readLongOrNull(offsets[9]) ?? 0,
-    updatedAt: reader.readDateTimeOrNull(offsets[10]),
-    userId: reader.readLong(offsets[11]),
-    walletId: reader.readLongOrNull(offsets[12]),
+    numberOfTransactions: reader.readLongOrNull(offsets[8]) ?? 0,
+    syncAttempts: reader.readLongOrNull(offsets[10]) ?? 0,
+    updatedAt: reader.readDateTimeOrNull(offsets[11]),
+    userId: reader.readLong(offsets[12]),
+    walletId: reader.readLongOrNull(offsets[13]),
   );
   object.isarId = id;
   return object;
@@ -203,14 +210,16 @@ P _walletModelDeserializeProp<P>(
     case 7:
       return (reader.readString(offset)) as P;
     case 8:
-      return (reader.readLongOrNull(offset)) as P;
-    case 9:
       return (reader.readLongOrNull(offset) ?? 0) as P;
+    case 9:
+      return (reader.readLongOrNull(offset)) as P;
     case 10:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset) ?? 0) as P;
     case 11:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 12:
+      return (reader.readLong(offset)) as P;
+    case 13:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1018,6 +1027,62 @@ extension WalletModelQueryFilter
   }
 
   QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition>
+      numberOfTransactionsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'numberOfTransactions',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition>
+      numberOfTransactionsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'numberOfTransactions',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition>
+      numberOfTransactionsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'numberOfTransactions',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition>
+      numberOfTransactionsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'numberOfTransactions',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterFilterCondition>
       serverIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1453,6 +1518,20 @@ extension WalletModelQuerySortBy
     });
   }
 
+  QueryBuilder<WalletModel, WalletModel, QAfterSortBy>
+      sortByNumberOfTransactions() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'numberOfTransactions', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterSortBy>
+      sortByNumberOfTransactionsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'numberOfTransactions', Sort.desc);
+    });
+  }
+
   QueryBuilder<WalletModel, WalletModel, QAfterSortBy> sortByServerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'serverId', Sort.asc);
@@ -1626,6 +1705,20 @@ extension WalletModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<WalletModel, WalletModel, QAfterSortBy>
+      thenByNumberOfTransactions() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'numberOfTransactions', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WalletModel, WalletModel, QAfterSortBy>
+      thenByNumberOfTransactionsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'numberOfTransactions', Sort.desc);
+    });
+  }
+
   QueryBuilder<WalletModel, WalletModel, QAfterSortBy> thenByServerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'serverId', Sort.asc);
@@ -1739,6 +1832,13 @@ extension WalletModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<WalletModel, WalletModel, QDistinct>
+      distinctByNumberOfTransactions() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'numberOfTransactions');
+    });
+  }
+
   QueryBuilder<WalletModel, WalletModel, QDistinct> distinctByServerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'serverId');
@@ -1824,6 +1924,13 @@ extension WalletModelQueryProperty
   QueryBuilder<WalletModel, String, QQueryOperations> localIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'localId');
+    });
+  }
+
+  QueryBuilder<WalletModel, int, QQueryOperations>
+      numberOfTransactionsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'numberOfTransactions');
     });
   }
 

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
-import 'package:spendwise/features/transaction/presentation/manager/transaction_controller.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/balance_card.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/quick_actions_row.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/recent_transactions_list.dart';
@@ -23,9 +22,6 @@ class _HomeState extends State<Home> {
   final controller = MainController.instance;
 
   // Injection of the updated reactive transaction pipeline controller context
-  final transactionController = Get.put(
-    TransactionController(getTransactionsUseCase: Get.find()),
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +32,7 @@ class _HomeState extends State<Home> {
         color: SpColor.accentBlue,
         backgroundColor: SpColor.surfaceNavy,
         onRefresh: () async {
-          // Trigger concurrent repository cache refreshes across your architecture domains
-          await controller.refreshAllData();
-          await transactionController.fetchInitialTransactions();
+          await controller.transactionController.fetchInitialTransactions();
           controller.showAll.value = false;
         },
         child: SingleChildScrollView(
@@ -51,7 +45,7 @@ class _HomeState extends State<Home> {
               // كارت الرصيد المحدث (صافي الربح: دخل - مصاريف)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                child: const BalanceCard(),
+                child: BalanceCard(),
               ),
 
               const SizedBox(height: 30),
@@ -65,7 +59,11 @@ class _HomeState extends State<Home> {
               const SizedBox(height: 30),
 
               // قسم أهداف الادخار
-              const SavingsGoalsSection(),
+              Obx(
+                () => (controller.savingGoalsController.savingGoals.isNotEmpty)
+                    ? const SavingsGoalsSection()
+                    : SizedBox(),
+              ),
 
               const SizedBox(height: 30),
 

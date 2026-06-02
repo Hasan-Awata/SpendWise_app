@@ -12,17 +12,4 @@ class SyncManager {
       rethrow;
     }
   }
-
-  Future<void> syncLast() async {
-    for (final engine in engines) {
-      try {
-        await engine.syncLastItem();
-      } catch (e) {
-        print(
-          "🚨 SyncManager: Failed to trigger syncLastItem on an engine: $e",
-        );
-        rethrow;
-      }
-    }
-  }
 }

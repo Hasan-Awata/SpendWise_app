@@ -1,6 +1,5 @@
 // // تعليق: ملف حقن التبعيات الخاص بأهداف الادخار لضمان الربط الصحيح بين الطبقات المختلفة وتوفير الذاكرة
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
 import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
@@ -23,13 +22,12 @@ import 'package:spendwise/features/savings_goals/presentation/manager/saving_goa
 class SavingGoalBinding implements Bindings {
   @override
   void dependencies() {
-    // 1. Data Sources (حقن مصادر البيانات المحلية والبعيدة)
     Get.lazyPut<SavingGoalRemoteDatasource>(
-      () => SavingGoalRemoteDatasourceImpl(client: http.Client()),
+      () => SavingGoalRemoteDatasourceImpl(network: Get.find<NetworkService>()),
       fenix: true,
     );
-    Get.lazyPut<SavingGoalLocalDatasource>(
-      () => SavingGoalLocalDatasourceImpl(Get.find<Isar>()),
+    Get.lazyPut<SavingGoalLocalDataSource>(
+      () => SavingGoalLocalDataSourceImpl(Get.find<Isar>()),
       fenix: true,
     );
 
@@ -38,7 +36,7 @@ class SavingGoalBinding implements Bindings {
       () => SavingGoalRepositoryImpl(
         remoteDatasource: Get.find(),
         localDatasource: Get.find(),
-        network: Get.find<NetworkService>(),
+        syncQueueRepository: Get.find(),
       ),
       fenix: true,
     );
@@ -69,6 +67,7 @@ class SavingGoalBinding implements Bindings {
         updateSavingGoalUseCase: Get.find(),
         deleteSavingGoalUseCase: Get.find(),
         userIdUsecase: Get.find<GetUserIdUsecase>(),
+        walletsListController: Get.find(),
       ),
       fenix: true,
     );

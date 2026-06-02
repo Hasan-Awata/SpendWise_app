@@ -1,4 +1,4 @@
-// API Endpoints configuration for SpendWise project
+// تعليق: تعديل ملف روابط الـ API لتتوافق تماماً مع روابط الـ Controller بعد تنظيفها من المتغيرات الزائدة والمشوهة في الـ المسار (Routes)
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/data/datasource/app_user_local_datasource.dart';
 import 'package:spendwise/features/helper_function.dart';
@@ -6,38 +6,50 @@ import 'package:spendwise/features/helper_function.dart';
 class ApiEndpoints {
   // static const String baseUrl = "http://www.spendwise.somee.com/api/";
   // static const String baseUrl = "https://192.168.49.1:5999/api/";
-  // Auth Endpoints
-  // افترضنا أن الـ IP الخاص بك هو 192.168.1.10
-  //
+
   static const String baseUrl = "http://localhost:5254/api/";
+
+  // Auth Endpoints
   static const String register = "Authentication/register";
   static const String login = "Authentication/login";
   static const String logout = "auth/logout";
 
   // Wallet Endpoints
   static const String wallet = "wallets";
+
   // Income Endpoints
   static const String income = 'incomes';
 
-  static const String expense = 'Expenses';
+  // Expense Endpoints
+  static const String expense = 'expenses';
 
+  // Tag Endpoints
   static const String tag = 'tags';
 
-  static const String savingGoalsBase = 'Saving_Goal';
+  // Saving Goals Endpoints
+  // ملاحظة: المسار الأساسي هو saving-goals
+  static const String savingGoalsBase = 'saving-goals';
 
-  static const String getGoalById = 'GetGoalByID';
+  // الـ Controller يستخدم [HttpGet("{id}")]
+  static const String getGoalById = ''; // سيتم دمجها مع /api/saving-goals/{id}
 
-  static const String getAllUserGoals = 'GetAllUserGoals';
+  // الـ Controller يستخدم [HttpGet] بدون مسار إضافي
+  static const String getAllUserGoals = '';
 
-  static const String addGoal = 'AddGoal';
+  // الـ Controller يستخدم [HttpPost] بدون مسار إضافي
+  static const String addGoal = '';
 
-  static const String updateGoal = 'UpdateGoal';
+  // الـ Controller يستخدم [HttpPatch("{goalId}")]
+  static const String updateGoal = '';
 
-  static const String deleteGoal = 'DeleteGoal';
-  static const String categories = 'categories';
+  // الـ Controller يستخدم [HttpDelete("{goalId}")]
+  static const String deleteGoal = '';
 
-  static const String getAchievedGoals = 'GetAchievedGoals';
+  static const String getAchievedGoals = 'achieved';
+
+  static const String categories = 'categories/budgets';
   static const String transactions = "transactions";
+  static const String refreshToken = "Authentication/refresh";
 
   Future<Map<String, String>?> getHeaders() async {
     try {

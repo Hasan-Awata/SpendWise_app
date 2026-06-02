@@ -1,5 +1,4 @@
 // add_expense_view.dart
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
@@ -7,7 +6,7 @@ import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/expense/presentation/manager/add_expense_controller.dart';
 import 'package:spendwise/features/expense/presentation/widgets/tag_widget.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
-import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field_description.dart';
+import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/date_picker_widget.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.dart';
 
@@ -47,18 +46,14 @@ class AddExpenseView extends GetView<AddExpenseController> {
               children: [
                 _sectionCard(
                   children: [
-                    _modernField(
-                      label: "عنوان المصروف",
-                      controller: controller.titleTextController,
-                      icon: Icons.title_rounded,
+                    _field(
+                      "عنوان المصروف",
+                      controller.titleTextController,
+                      Icons.title_rounded,
                     ),
                     const SizedBox(height: 18),
-                    _modernField(
-                      label: "المبلغ",
-                      controller: controller.amountController,
-                      icon: Icons.attach_money_rounded,
-                      number: true,
-                    ),
+                    // // ميزة: استبدال حقل الإدخال اليدوي بحاكي رقمي ذكي يقرأ المجموع تلقائياً من قائمة المنتجات المضافة
+                    _buildLiveTotalAmountTile(),
                   ],
                 ),
 
@@ -78,7 +73,7 @@ class AddExpenseView extends GetView<AddExpenseController> {
 
                 _sectionCard(
                   children: [
-                    CustomTextFieldDescription(
+                    CustomTextField(
                       label: "الوصف",
                       hint: "تفاصيل إضافية...",
                       textEditingController: controller.descriptionController,
@@ -118,157 +113,329 @@ class AddExpenseView extends GetView<AddExpenseController> {
     );
   }
 
-  Widget _sectionCard({required List<Widget> children}) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-        ),
-        border: Border.all(color: Colors.white10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.28),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+  // // تعليق: بطاقة عرض المجموع المباشر المحسوب برمجياً لمنع التلاعب بالأرقام المتسببة بأخطاء السيرفر
+  Widget _buildLiveTotalAmountTile() {
+    return Obx(() {
+      final total = controller.totalCalculatedAmount.value;
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: SpColor.surfaceNavy.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: total > 0
+                ? SpColor.expenseRed.withOpacity(0.3)
+                : Colors.white10,
           ),
-        ],
-      ),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _modernField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    bool number = false,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: number ? TextInputType.number : TextInputType.text,
-      style: const TextStyle(color: Colors.white, fontSize: 15),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white60),
-        prefixIcon: Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF15A5A).withOpacity(0.12),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(icon, color: const Color(0xFFF15A5A)),
         ),
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.04),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFixedExpenseSection() {
-    return Obx(
-      () => AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                gradient: LinearGradient(
-                  colors: controller.isFixed.value
-                      ? [const Color(0xFFF15A5A), const Color(0xFFFF8C8C)]
-                      : [const Color(0xFF1E293B), const Color(0xFF0F172A)],
+            Row(
+              children: [
+                Icon(
+                  Icons.calculate_rounded,
+                  color: total > 0 ? SpColor.expenseRed : Colors.white38,
+                  size: 20,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: controller.isFixed.value
-                        ? Colors.red.withOpacity(0.2)
-                        : Colors.black.withOpacity(0.2),
-                    blurRadius: 14,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                value: controller.isFixed.value,
-                activeThumbColor: Colors.white,
-                onChanged: (v) {
-                  controller.isFixed.value = v;
-                },
-                title: const Text(
-                  "مصروف ثابت",
+                const SizedBox(width: 10),
+                const Text(
+                  "المبلغ الإجمالي المالي:",
                   style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 17,
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                subtitle: const Padding(
-                  padding: EdgeInsets.only(top: 4),
-                  child: Text(
-                    "سيتم تكراره تلقائياً",
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ),
-              ),
+              ],
             ),
-
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              child: controller.isFixed.value
-                  ? Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: _sectionCard(
-                        children: [
-                          _modernField(
-                            label: "التكرار بالأيام",
-                            controller: controller.repeatController,
-                            icon: Icons.repeat_rounded,
-                            number: true,
-                          ),
-                        ],
-                      ),
-                    )
-                  : const SizedBox(),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                color: total > 0 ? SpColor.expenseRed : Colors.white38,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              child: Text("\$${total.toStringAsFixed(2)}"),
             ),
           ],
         ),
-      ),
-    );
+      );
+    });
   }
 
-  Widget _buildSaveButton() {
-    return Obx(
-      () => AnimatedSwitcher(
-        duration: const Duration(milliseconds: 250),
-        child: controller.isLoadingSave.value
-            ? const Padding(
-                padding: EdgeInsets.all(10),
-                child: CircularProgressIndicator(color: Color(0xFFF15A5A)),
-              )
-            : SizedBox(
-                width: double.infinity,
-                height: 58,
-                child: CustomButton(
-                  text: "حفظ المصروف",
-                  onPressed: controller.saveExpense,
+  // =====================================================
+  // PRODUCT SECTION (NEW SPLIT FIELDS UI)
+  // =====================================================
+  Widget _buildProductSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "المنتجات المشتراة",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: _field(
+                "الاسم",
+                controller.productNameController,
+                Icons.shopping_bag_rounded,
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            Expanded(
+              flex: 2,
+              child: _field(
+                "الكمية",
+                controller.productQuantityController,
+                Icons.production_quantity_limits_rounded,
+                number: true,
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            Expanded(
+              flex: 2,
+              child: _field(
+                "السعر",
+                controller.productPriceController,
+                Icons.attach_money_rounded,
+                number: true,
+              ),
+            ),
+            const SizedBox(width: 10),
+
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                if (controller.productNameController.text.trim().isNotEmpty) {
+                  controller.addProductToList();
+                  FocusManager.instance.primaryFocus?.unfocus();
+                }
+              },
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
                   color: const Color(0xFFF15A5A),
                 ),
+                child: const Icon(Icons.add_rounded, color: Colors.white),
               ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        Obx(
+          () => controller.tempProducts.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: Colors.white38,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "يرجى إضافة منتج واحد على الأقل لتحديد تكلفة المصروف.",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.4),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: List.generate(controller.tempProducts.length, (
+                    index,
+                  ) {
+                    final product = controller.tempProducts[index];
+                    final displayText =
+                        "${product.name} (x${product.quantity}) - \$${product.price}";
+
+                    return Chip(
+                      label: Text(
+                        displayText,
+                        style: const TextStyle(
+                          color: SpColor.expenseRed,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      backgroundColor: SpColor.surfaceNavy,
+                      deleteIconColor: SpColor.expenseRed,
+                      onDeleted: () {
+                        controller.removeProduct(index);
+                      },
+                    );
+                  }),
+                ),
+        ),
+      ],
+    );
+  }
+
+  // =====================================================
+  // FIXED EXPENSE (UPDATED WITH GRADIENT & ANIMATIONS)
+  // =====================================================
+  Widget _buildFixedExpenseSection() {
+    return Obx(
+      () => Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: SpColor.surfaceNavy,
+              borderRadius: BorderRadius.circular(20),
+              gradient: controller.isFixed.value
+                  ? LinearGradient(
+                      colors: [
+                        SpColor.expenseRed,
+                        Colors.white.withOpacity(0.7),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              border: Border.all(
+                color: controller.isFixed.value
+                    ? const Color(0xFFF15A5A).withOpacity(0.5)
+                    : Colors.white.withOpacity(0.05),
+                width: 1.5,
+              ),
+            ),
+            child: Theme(
+              data: ThemeData(
+                splashColor: const Color(0xFFF15A5A).withOpacity(0.1),
+                highlightColor: Colors.transparent,
+              ),
+              child: SwitchListTile(
+                value: controller.isFixed.value,
+                onChanged: (v) => controller.isFixed.value = v,
+                activeThumbColor: Colors.white,
+                activeTrackColor: const Color(0xFFF15A5A),
+                inactiveThumbColor: Colors.white54,
+                inactiveTrackColor: Colors.white10,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                title: Row(
+                  children: [
+                    Icon(
+                      Icons.star_rounded,
+                      color: controller.isFixed.value
+                          ? const Color(0xFFF15A5A)
+                          : Colors.white54,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      "مصروف ثابت دوري",
+                      style: TextStyle(
+                        color: controller.isFixed.value
+                            ? Colors.white
+                            : Colors.white70,
+                        fontWeight: controller.isFixed.value
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return SizeTransition(
+                sizeFactor: animation,
+                axisAlignment: -1.0,
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+            child: controller.isFixed.value
+                ? Padding(
+                    key: const ValueKey('repeat_field_key'),
+                    padding: const EdgeInsets.only(top: 14),
+                    child: _sectionCard(
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: Colors.white38,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "سيتم تكرار هذا المصروف تلقائياً بناءً على عدد الأيام المحددة.",
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.5),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _field(
+                          "التكرار (بالأيام)",
+                          controller.repeatController,
+                          Icons.repeat_rounded,
+                          number: true,
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox(key: ValueKey('empty_key')),
+          ),
+        ],
       ),
     );
   }
 
+  // =====================================================
+  // SAVE BUTTON
+  // =====================================================
+  Widget _buildSaveButton() {
+    return Obx(
+      () => controller.isLoadingSave.value
+          ? const CircularProgressIndicator(color: Color(0xFFF15A5A))
+          : SizedBox(
+              width: double.infinity,
+              height: 58,
+              child: CustomButton(
+                text: "حفظ المصروف",
+                onPressed: controller.saveExpense,
+                color: const Color(0xFFF15A5A),
+              ),
+            ),
+    );
+  }
+
+  // =====================================================
+  // CATEGORY
+  // =====================================================
   Widget _buildCategoryDropdown() {
     return Obx(
       () => SPDropdownSearch(
@@ -285,112 +452,30 @@ class AddExpenseView extends GetView<AddExpenseController> {
     );
   }
 
-  Widget _buildProductSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "المنتجات",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-
-        const SizedBox(height: 14),
-
-        Row(
-          children: [
-            Expanded(
-              child: _modernField(
-                label: "أدخل منتج",
-                controller: controller.productsController,
-                icon: Icons.shopping_bag_rounded,
-              ),
-            ),
-
-            const SizedBox(width: 10),
-
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: controller.addProductToList,
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: const Color(0xFFF15A5A),
-                ),
-                child: const Icon(Icons.add_rounded, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 16),
-
-        Obx(
-          () => Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: controller.tempProducts
-                .map(
-                  (product) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    child: Chip(
-                      label: Text(
-                        product,
-                        style: const TextStyle(
-                          color: SpColor.expenseRed,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      backgroundColor: SpColor.surfaceNavy,
-                      deleteIconColor: SpColor.expenseRed,
-                      onDeleted: () {
-                        controller.removeProduct(product);
-                      },
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDatePicker() {
-    return Obx(
-      () => DatePickerWidget(
-        onTap: () => controller.fetchDate(Get.context!),
-        selectedDate: controller.selectedDate.value,
-        color: const Color(0xFFF15A5A),
-      ),
-    );
-  }
-
+  // =====================================================
+  // WALLET
+  // =====================================================
   Widget _buildWalletDropdown() {
     return Obx(
       () => SPDropdownSearch(
         themeColor: SpColor.expenseRed,
         label: "المحفظة",
-        items: controller.walletsListController.wallets
+        items: controller.walletsListController.regularWallets
             .map((w) => "${w.currency.currencyName} (${w.currency.code})")
             .toList(),
         onChanged: (value) {
-          final index = controller.walletsListController.wallets.indexWhere(
-            (w) =>
-                "${w.currency.currencyName} (${w.currency.code})"
-                    .toLowerCase()
-                    .trim() ==
-                value?.toLowerCase().trim(),
-          );
+          final index = controller.walletsListController.regularWallets
+              .indexWhere(
+                (w) =>
+                    "${w.currency.currencyName} (${w.currency.code})"
+                        .toLowerCase()
+                        .trim() ==
+                    value?.toLowerCase().trim(),
+              );
 
           if (index != -1) {
             controller.selectedWallet.value =
-                controller.walletsListController.wallets[index];
+                controller.walletsListController.regularWallets[index];
           }
         },
         hint: "اختر محفظة",
@@ -398,6 +483,9 @@ class AddExpenseView extends GetView<AddExpenseController> {
     );
   }
 
+  // =====================================================
+  // TAG
+  // =====================================================
   Widget _buildTagDropdown() {
     return Obx(
       () => SPDropdownSearch(
@@ -406,7 +494,6 @@ class AddExpenseView extends GetView<AddExpenseController> {
         items: controller.tagController.myTags.map((e) => e.name).toList(),
         onChanged: (value) {
           controller.tagTextController.text = value ?? "";
-
           controller.selectedTag.value = controller.tagController.myTags
               .firstWhereOrNull((e) => e.name == value);
         },
@@ -417,18 +504,67 @@ class AddExpenseView extends GetView<AddExpenseController> {
 
   Widget _buildTagPreview() {
     return Obx(
-      () => AnimatedSwitcher(
-        duration: const Duration(milliseconds: 250),
-        child: controller.selectedTag.value != null
-            ? TagWidget(
-                tagName: controller.selectedTag.value!.name,
-                icon: Icons.check_circle_rounded,
-                color: const Color(0xFFF15A5A),
-                onDelete: () {
-                  controller.selectedTag.value = null;
-                },
-              )
-            : const SizedBox(),
+      () => controller.selectedTag.value != null
+          ? TagWidget(
+              tagName: controller.selectedTag.value!.name,
+              icon: Icons.check_circle_rounded,
+              color: const Color(0xFFF15A5A),
+              onDelete: () => controller.selectedTag.value = null,
+            )
+          : const SizedBox(),
+    );
+  }
+
+  // =====================================================
+  // HELPERS
+  // =====================================================
+  Widget _sectionCard({required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(26),
+        color: const Color(0xFF1E293B),
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _field(
+    String label,
+    TextEditingController ctr,
+    IconData icon, {
+    bool number = false,
+  }) {
+    return TextField(
+      controller: ctr,
+      keyboardType: number
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.text,
+      style: const TextStyle(color: Colors.white, fontSize: 13),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: SpColor.expenseRed, size: 18),
+        labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.04),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 10,
+          horizontal: 10,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker() {
+    return Obx(
+      () => DatePickerWidget(
+        onTap: () => controller.fetchDate(Get.context!),
+        selectedDate: controller.selectedDate.value,
+        color: const Color(0xFFF15A5A),
       ),
     );
   }

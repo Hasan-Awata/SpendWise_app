@@ -9,6 +9,7 @@ import 'package:spendwise/features/home/presentation/manager/main_controller.dar
 import 'package:spendwise/features/income/domain/entities/income_entity.dart';
 import 'package:spendwise/features/income/domain/usecases/get_incomes_usecase.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class IncomesListController extends GetxController {
   final GetIncomesUsecase getIncomesUseCase;
@@ -44,6 +45,11 @@ class IncomesListController extends GetxController {
   void onInit() {
     super.onInit();
     // مراقبة تغيير الشهر أو المحفظة لتحديث الإجماليات
+
+    ever(
+      Get.find<WalletsListController>().wallets,
+      (_) => fetchAllIncomes(isRefresh: true),
+    );
     everAll([
       dashboardMonth,
       mainController.selectWallet,

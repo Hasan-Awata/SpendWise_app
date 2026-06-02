@@ -5,7 +5,7 @@ import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 abstract class WalletRepository {
   /// إضافة محفظة
   /// ترجع رسالة توضح الحالة (محلي / تم المزامنة / خطأ)
-  Future<Either<Failure, String>> addWallet(WalletEntity wallet);
+  Future<Either<Failure, WalletEntity>> addWallet(WalletEntity wallet);
 
   /// جلب المحافظ
   Future<Either<Failure, List<WalletEntity>>> getMyWallets();
@@ -15,4 +15,15 @@ abstract class WalletRepository {
 
   /// حذف محفظة
   Future<Either<Failure, String>> deleteWallet(WalletEntity wallet);
+  Future<Either<Failure, String>> decreaseBalance({
+    required int walletId,
+    required double amount,
+  });
+
+  Future<Either<Failure, String>> increaseBalance({
+    required int walletId,
+    required double amountFromRegular,
+    required double amountFromSavings,
+  });
+  Future<Either<Failure, double>> getWalletBalance({required int currencyId});
 }

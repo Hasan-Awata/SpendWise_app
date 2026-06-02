@@ -1,10 +1,5 @@
-// lib/features/transaction/data/datasources/transaction_remote_data_source.dart
-// TransactionRemoteDataSourceImpl: Dispatches networking payloads to sync global server ledger states using core page request tokens
-
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
+import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/features/pages/data/model/page_response.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 
@@ -15,96 +10,102 @@ abstract class TransactionRemoteDataSource {
     int userId,
     PageRequest page,
   );
+
   Future<TransactionModel> addTransaction(TransactionModel transaction);
+
   Future<TransactionModel?> updateTransaction(TransactionModel transaction);
+
   Future<bool> deleteTransaction(TransactionModel transaction);
 }
 
-class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
-  final http.Client client;
+class TransactionRemoteDataSourceImpl
+    implements TransactionRemoteDataSource {
+  final NetworkService network;
 
-  TransactionRemoteDataSourceImpl({required this.client});
+  TransactionRemoteDataSourceImpl({required this.network});
 
+  // =========================
+  // GET TRANSACTIONS
+  // =========================
   @override
   Future<PagedResponse<TransactionModel>?> getMyTransactions(
     int userId,
     PageRequest page,
   ) async {
-    // Build URL with pagination and userId query parameters dynamically matching [HttpGet] API criteria
-    final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.transactions}")
-        .replace(
-          queryParameters: {
-            'UserId': userId.toString(),
-            'PageNumber': page.pageNumber.toString(),
-            'PageSize': page.pageSize.toString(),
-          },
-        );
-
-    final headers = await ApiEndpoints().getHeaders();
-    final response = await client.get(url, headers: headers);
-    print(
-      "transactions is ->>>> ${response.body} , status code ${response.statusCode}",
+    final result = await network.request(
+      endpoint: ApiEndpoints.transactions,
+      method: "GET",
+      queryParameters: {
+        "UserId": userId,
+        "PageNumber": page.pageNumber,
+        "PageSize": page.pageSize,
+      },
     );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      final decodedData = jsonDecode(response.body);
-      return PagedResponse<TransactionModel>.fromJson(
-        decodedData,
-        (json) => TransactionModel.fromJson(json),
-      );
-    } else {
-      throw Exception("فشل جلب المعاملات من السيرفر: ${response.statusCode}");
-    }
+
+    final List list = result is Map && result["data"] is List
+        ? result["data"]
+        : result;
+
+    final transactions = list
+        .map((e) => TransactionModel.fromJson(e))
+        .toList();
+
+    return PagedResponse<TransactionModel>(
+      data: transactions,
+      totalRecords: transactions.length,
+      pageNumber: page.pageNumber,
+      pageSize: page.pageSize,
+      totalPages: 1,
+    );
   }
 
+  // =========================
+  // ADD TRANSACTION
+  // =========================
   @override
-  Future<TransactionModel> addTransaction(TransactionModel transaction) async {
-    final url = Uri.parse(
-      "${ApiEndpoints.baseUrl}${ApiEndpoints.transactions}",
+  Future<TransactionModel> addTransaction(
+    TransactionModel transaction,
+  ) async {
+    final result = await network.request(
+      endpoint: ApiEndpoints.transactions,
+      method: "POST",
+      body: transaction.toJson(),
     );
-    final headers = await ApiEndpoints().getHeaders();
-    final body = jsonEncode(transaction.toJson());
 
-    final response = await client.post(url, headers: headers, body: body);
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return TransactionModel.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception("فشل إضافة المعاملة المالية: ${response.body}");
-    }
+    return TransactionModel.fromJson(result);
   }
 
+  // =========================
+  // UPDATE TRANSACTION
+  // =========================
   @override
   Future<TransactionModel?> updateTransaction(
     TransactionModel transaction,
   ) async {
-    final url = Uri.parse(
-      "${ApiEndpoints.baseUrl}${ApiEndpoints.transactions}/${transaction.id}",
+    final result = await network.request(
+      endpoint:
+          "${ApiEndpoints.transactions}/${transaction.id}",
+      method: "PATCH",
+      body: transaction.toJson(),
     );
-    final headers = await ApiEndpoints().getHeaders();
-    final body = jsonEncode(transaction.toJson());
 
-    final response = await client.patch(url, headers: headers, body: body);
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      if (response.body.isEmpty) return transaction;
-      return TransactionModel.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception("فشل تحديث المعاملة المالية: ${response.statusCode}");
-    }
+    return TransactionModel.fromJson(result);
   }
 
+  // =========================
+  // DELETE TRANSACTION
+  // =========================
   @override
   Future<bool> deleteTransaction(TransactionModel transaction) async {
-    final url = Uri.parse(
-      "${ApiEndpoints.baseUrl}${ApiEndpoints.transactions}/${transaction.id}",
-    );
-    final headers = await ApiEndpoints().getHeaders();
+    try {
+      await network.request(
+        endpoint:
+            "${ApiEndpoints.transactions}/${transaction.id}",
+        method: "DELETE",
+      );
 
-    final response = await client.delete(url, headers: headers);
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
       return true;
-    } else {
+    } catch (e) {
       return false;
     }
   }

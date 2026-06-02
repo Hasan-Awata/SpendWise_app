@@ -1,5 +1,5 @@
 // lib/features/transaction/presentation/manager/transaction_controller.dart
-// TransactionController: Reactive controller managing state streams and layout pipelines with zero UI duplication risks
+// TransactionController: Reactive state manager preventing UI duplicate layouts by filtering exclusively via Isar primary keys
 
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/current_user.dart';
@@ -13,9 +13,12 @@ class TransactionController extends GetxController {
   final GetTransactionsUseCase getTransactionsUseCase;
   TransactionController({required this.getTransactionsUseCase});
 
-  var transactions = <TransactionEntity>[].obs;
-  var isLoading = false.obs;
-  var isLoadMore = false.obs;
+  // =====================================================
+  // STATE
+  // =====================================================
+  final RxList<TransactionEntity> transactions = <TransactionEntity>[].obs;
+  final RxBool isLoading = false.obs;
+  final RxBool isLoadMore = false.obs;
 
   int _currentPage = 1;
   final int _pageSize = 15;
@@ -27,21 +30,20 @@ class TransactionController extends GetxController {
     super.onInit();
   }
 
-  // جلب البيانات لأول مرة أو عند عمل سحب للتحديث (Refresh)
+  // =====================================================
+  // FETCH INITIAL (REFRESH)
+  // =====================================================
   Future<void> fetchInitialTransactions() async {
     try {
       isLoading(true);
       _currentPage = 1;
       _hasMoreData = true;
-      transactions.clear();
 
-      // استدعاء دالة جلب المعاملات عبر تمرير الـ userId وكائن الـ PageRequest
       final result = await getTransactionsUseCase.getTransactionsByUser(
         CurrentUser.userId!,
         PageRequest(pageNumber: _currentPage, pageSize: _pageSize),
       );
 
-      // فك غلاف الـ Either والوصول إلى الـ PagedResponse بداخل دالة النجاح
       result.fold(
         (failure) {
           HelperFunction.showSnackBar(
@@ -51,19 +53,11 @@ class TransactionController extends GetxController {
           );
         },
         (pagedResponse) {
-          // استخراج المصفوفة الصافية من داخل الـ PagedResponse.data وحقنها في الـ RxList
           transactions.assignAll(pagedResponse.data);
 
-          // تحديث بوابة حماية الـ Pagination بناءً على عدد الصفحات الكلي المرجوع من الـ Repository
           if (_currentPage >= pagedResponse.totalPages) {
             _hasMoreData = false;
           }
-
-          // HelperFunction.showSnackBar(
-          //   "تم التحديث",
-          //   "تم جلب المعاملات المالية الأخيرة بنجاح.",
-          //   isError: false,
-          // );
         },
       );
     } catch (e) {
@@ -77,9 +71,10 @@ class TransactionController extends GetxController {
     }
   }
 
-  // تحميل المزيد عند النزول لأسفل الشاشة (Pagination)
+  // =====================================================
+  // FETCH MORE (PAGINATION)
+  // =====================================================
   Future<void> fetchMoreTransactions() async {
-    // بوابات حماية: توقف فوراً إذا كان هناك جلب قيد التنفيذ أو انتهت بيانات السيرفر
     if (isLoadMore.value || !_hasMoreData || isLoading.value) return;
 
     try {
@@ -93,7 +88,7 @@ class TransactionController extends GetxController {
 
       result.fold(
         (failure) {
-          _currentPage--; // التراجع عن مؤشر الصفحة في حال الفشل
+          _currentPage--;
           HelperFunction.showSnackBar(
             "خطأ في التحميل",
             "فشل تحميل المعاملات الإضافية.",
@@ -106,26 +101,36 @@ class TransactionController extends GetxController {
           if (newTransactions.isEmpty) {
             _hasMoreData = false;
           } else {
-            // حصر صارم لكل المعرفات الظاهرة حالياً على شاشة المستخدم لمنع التكرار البصري نهائياً
-            final currentRemoteIds = transactions
-                .map((t) => t.id)
-                .where((id) => id != null)
-                .toSet();
-            final currentLocalIds = transactions.map((t) => t.localId).toSet();
+            /* تطبيق طلبك بدقة: الفلترة والتحقق من التكرار 
+               يعتمدان الآن كلياً على الـ isarId الفريد محلياً والـ id السيرفري سحابياً
+            */
+            final Map<int, TransactionEntity> isarIdMap = {
+              for (final t in transactions)
+                if (t.isarId != null) t.isarId!: t,
+            };
 
-            final uniqueNewTransactions = newTransactions.where((t) {
-              final hasDuplicateRemoteId =
-                  t.id != null && currentRemoteIds.contains(t.id);
-              final hasDuplicateLocalId = currentLocalIds.contains(t.localId);
+            final Map<int, TransactionEntity> serverIdMap = {
+              for (final t in transactions)
+                if (t.id != null) t.id!: t,
+            };
 
-              return !hasDuplicateRemoteId && !hasDuplicateLocalId;
-            }).toList();
+            final List<TransactionEntity> uniqueNewTransactions = [];
+
+            for (final t in newTransactions) {
+              final isDuplicateIsar =
+                  t.isarId != null && isarIdMap.containsKey(t.isarId);
+              final isDuplicateServer =
+                  t.id != null && serverIdMap.containsKey(t.id);
+
+              if (!isDuplicateIsar && !isDuplicateServer) {
+                uniqueNewTransactions.add(t);
+              }
+            }
 
             if (uniqueNewTransactions.isNotEmpty) {
               transactions.addAll(uniqueNewTransactions);
             }
 
-            // تحديث حالة انتهاء البيانات بناءً على مؤشر الـ totalPages المرجوع من السيرفر/الكاش
             if (_currentPage >= pagedResponse.totalPages ||
                 newTransactions.length < _pageSize) {
               _hasMoreData = false;
@@ -134,9 +139,8 @@ class TransactionController extends GetxController {
         },
       );
     } catch (e) {
-      _currentPage--; // التراجع عن مؤشر الصفحة في حال حدوث استثناء مفاجئ بالشبكة
+      _currentPage--;
     } finally {
-      // قفل زمني بسيط لمنع الـ Scroll Trigger العشوائي المتكرر في نفس الأجزاء من الثانية
       await Future.delayed(const Duration(milliseconds: 200));
       isLoadMore(false);
     }

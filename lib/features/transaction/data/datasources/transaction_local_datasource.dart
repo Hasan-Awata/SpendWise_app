@@ -1,6 +1,3 @@
-// lib/features/transaction/data/datasources/transaction_local_datasource.dart
-// TransactionLocalDataSource: Local storage interface managing transaction cache lifecycles, full resets, and data retrieval
-
 import 'package:isar/isar.dart';
 import 'package:spendwise/features/category/data/models/category_model.dart';
 
@@ -12,6 +9,12 @@ abstract class TransactionLocalDataSource {
 
   // حفظ أو تحديث معاملة مالية فردية (مطلوبة للـ Loop في الـ Repository الجديد)
   Future<void> cacheTransaction(TransactionModel model);
+
+  /*
+    إضافة الدالة الناقصة updateTransaction في الـ interface 
+    لتلبية نداء دمج البيانات وتحديثها الذكي داخل الـ Repository لمنع التكرار.
+  */
+  Future<void> updateTransaction(TransactionModel model);
 
   // جلب كافة المعاملات المخزنة محلياً لعمل الفلترة والـ Pagination بالـ Repository
   Future<List<TransactionModel>> getAllCachedTransactions();
@@ -42,6 +45,17 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
   Future<void> cacheTransaction(TransactionModel model) async {
     await isar.writeTxn(() async {
       // استخدام putByLocalId يعتمد على الـ Index الفريد للـ UUID لمنع تكرار الصفوف
+      await isar.transactionModels.putByLocalId(model);
+    });
+  }
+
+  @override
+  Future<void> updateTransaction(TransactionModel model) async {
+    await isar.writeTxn(() async {
+      /* بما أن Isar تدعم الـ Upsert عبر putByLocalId، فإن استدعاءها هنا 
+        يقوم بتحديث الحقول القادمة من السيرفر (مثل id السيرفر وحالة الـ sync) 
+        دون تكرار المعاملة أو تصفير بياناتها المحلية.
+      */
       await isar.transactionModels.putByLocalId(model);
     });
   }

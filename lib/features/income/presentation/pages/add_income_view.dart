@@ -212,21 +212,22 @@ class _AddIncomeViewState extends State<AddIncomeView> {
 
         label: "المحفظة",
 
-        items: controller.walletsListController.wallets
+        items: controller.walletsListController.regularWallets
             .map((w) => "${w.currency.currencyName} (${w.currency.code})")
             .toList(),
 
         onChanged: (value) {
-          final index = controller.walletsListController.wallets.indexWhere(
-            (w) =>
-                "${w.currency.currencyName} (${w.currency.code})"
-                    .toLowerCase()
-                    .trim() ==
-                value?.toLowerCase().trim(),
-          );
+          final index = controller.walletsListController.regularWallets
+              .indexWhere(
+                (w) =>
+                    "${w.currency.currencyName} (${w.currency.code})"
+                        .toLowerCase()
+                        .trim() ==
+                    value?.toLowerCase().trim(),
+              );
           if (index != -1) {
             controller.selectedWallet.value =
-                controller.walletsListController.wallets[index];
+                controller.walletsListController.regularWallets[index];
           }
         },
 

@@ -52,18 +52,23 @@ const TagModelSchema = CollectionSchema(
       name: r'name',
       type: IsarType.string,
     ),
-    r'syncAttempts': PropertySchema(
+    r'serverId': PropertySchema(
       id: 7,
+      name: r'serverId',
+      type: IsarType.long,
+    ),
+    r'syncAttempts': PropertySchema(
+      id: 8,
       name: r'syncAttempts',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'userId': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'userId',
       type: IsarType.long,
     )
@@ -133,9 +138,10 @@ void _tagModelSerialize(
   writer.writeDateTime(offsets[4], object.lastSyncError);
   writer.writeString(offsets[5], object.localId);
   writer.writeString(offsets[6], object.name);
-  writer.writeLong(offsets[7], object.syncAttempts);
-  writer.writeDateTime(offsets[8], object.updatedAt);
-  writer.writeLong(offsets[9], object.userId);
+  writer.writeLong(offsets[7], object.serverId);
+  writer.writeLong(offsets[8], object.syncAttempts);
+  writer.writeDateTime(offsets[9], object.updatedAt);
+  writer.writeLong(offsets[10], object.userId);
 }
 
 TagModel _tagModelDeserialize(
@@ -152,9 +158,9 @@ TagModel _tagModelDeserialize(
     lastSyncError: reader.readDateTimeOrNull(offsets[4]),
     localId: reader.readString(offsets[5]),
     name: reader.readString(offsets[6]),
-    syncAttempts: reader.readLongOrNull(offsets[7]) ?? 0,
-    updatedAt: reader.readDateTimeOrNull(offsets[8]),
-    userId: reader.readLong(offsets[9]),
+    syncAttempts: reader.readLongOrNull(offsets[8]) ?? 0,
+    updatedAt: reader.readDateTimeOrNull(offsets[9]),
+    userId: reader.readLong(offsets[10]),
   );
   object.isarId = id;
   return object;
@@ -182,10 +188,12 @@ P _tagModelDeserializeProp<P>(
     case 6:
       return (reader.readString(offset)) as P;
     case 7:
-      return (reader.readLongOrNull(offset) ?? 0) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 8:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset) ?? 0) as P;
     case 9:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 10:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1042,6 +1050,75 @@ extension TagModelQueryFilter
     });
   }
 
+  QueryBuilder<TagModel, TagModel, QAfterFilterCondition> serverIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'serverId',
+      ));
+    });
+  }
+
+  QueryBuilder<TagModel, TagModel, QAfterFilterCondition> serverIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'serverId',
+      ));
+    });
+  }
+
+  QueryBuilder<TagModel, TagModel, QAfterFilterCondition> serverIdEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TagModel, TagModel, QAfterFilterCondition> serverIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TagModel, TagModel, QAfterFilterCondition> serverIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TagModel, TagModel, QAfterFilterCondition> serverIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'serverId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<TagModel, TagModel, QAfterFilterCondition> syncAttemptsEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
@@ -1310,6 +1387,18 @@ extension TagModelQuerySortBy on QueryBuilder<TagModel, TagModel, QSortBy> {
     });
   }
 
+  QueryBuilder<TagModel, TagModel, QAfterSortBy> sortByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TagModel, TagModel, QAfterSortBy> sortByServerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.desc);
+    });
+  }
+
   QueryBuilder<TagModel, TagModel, QAfterSortBy> sortBySyncAttempts() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncAttempts', Sort.asc);
@@ -1445,6 +1534,18 @@ extension TagModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<TagModel, TagModel, QAfterSortBy> thenByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TagModel, TagModel, QAfterSortBy> thenByServerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.desc);
+    });
+  }
+
   QueryBuilder<TagModel, TagModel, QAfterSortBy> thenBySyncAttempts() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncAttempts', Sort.asc);
@@ -1528,6 +1629,12 @@ extension TagModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<TagModel, TagModel, QDistinct> distinctByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'serverId');
+    });
+  }
+
   QueryBuilder<TagModel, TagModel, QDistinct> distinctBySyncAttempts() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'syncAttempts');
@@ -1594,6 +1701,12 @@ extension TagModelQueryProperty
   QueryBuilder<TagModel, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<TagModel, int?, QQueryOperations> serverIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'serverId');
     });
   }
 

@@ -1,98 +1,71 @@
-import 'dart:async'; // تم استيرادها لاستخدام TimeoutException
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
+import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/features/wallet/data/datasources/wallet_remote_datasource.dart';
 import 'package:spendwise/features/wallet/data/models/wallet_model.dart';
 
 class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
-  final http.Client client;
-  final Duration timeoutDuration = const Duration(seconds: 7);
+  final NetworkService network;
 
-  WalletRemoteDatasourceImpl({required this.client});
+  WalletRemoteDatasourceImpl({required this.network});
 
+  // =========================
+  // GET WALLETS
+  // =========================
   @override
   Future<List<WalletModel>?> getMyWallets() async {
-    final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.wallet}");
+    final result = await network.request(
+      endpoint: ApiEndpoints.wallet,
+      method: "GET",
+    );
 
-    try {
-      final headers = await ApiEndpoints().getHeaders();
-      final response = await client
-          .get(url, headers: headers)
-          .timeout(timeoutDuration);
+    final List list = result is Map && result["data"] is List
+        ? result["data"]
+        : result;
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final List<dynamic> jsonData = jsonDecode(response.body);
-        return jsonData.map((json) => WalletModel.fromJson(json)).toList();
-      } else {
-        throw Exception("فشل جلب البيانات: ${response.statusCode}");
-      }
-    } on TimeoutException {
-      throw Exception("انتهت مهلة الاتصال");
-    } catch (e) {
-      throw Exception("خطأ في جلب البيانات: $e");
-    }
+    return list.map((e) => WalletModel.fromJson(e)).toList();
   }
 
+  // =========================
+  // ADD WALLET
+  // =========================
   @override
   Future<WalletModel> addWalet(WalletModel wallet) async {
-    final url = Uri.parse("${ApiEndpoints.baseUrl}${ApiEndpoints.wallet}");
-    final headers = await ApiEndpoints().getHeaders();
+    final result = await network.request(
+      endpoint: ApiEndpoints.wallet,
+      method: "POST",
+      body: wallet.toJson(),
+    );
 
-    try {
-      final response = await client
-          .post(url, headers: headers, body: jsonEncode(wallet.toJson()))
-          .timeout(timeoutDuration);
-      print(
-        "response is is is is wallet ${response.body} status:${response.statusCode}",
-      );
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return WalletModel.fromJson(jsonDecode(response.body));
-      } else {
-        throw Exception("فشل إضافة المحفظة: ${response.body}");
-      }
-    } catch (e) {
-      throw Exception("خطأ في الإضافة: $e");
-    }
+    return WalletModel.fromJson(result);
   }
 
+  // =========================
+  // UPDATE WALLET
+  // =========================
   @override
   Future<WalletModel?> updateWallet(WalletModel wallet) async {
-    final url = Uri.parse(
-      "${ApiEndpoints.baseUrl}${ApiEndpoints.wallet}/${wallet.walletId}",
+    final result = await network.request(
+      endpoint: "${ApiEndpoints.wallet}/${wallet.walletId}",
+      method: "PATCH",
+      body: wallet.toJson(),
     );
-    final headers = await ApiEndpoints().getHeaders();
 
-    try {
-      final response = await client
-          .patch(url, headers: headers, body: jsonEncode(wallet.toJson()))
-          .timeout(timeoutDuration);
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return response.body.isEmpty
-            ? null
-            : WalletModel.fromJson(jsonDecode(response.body));
-      }
-      return null;
-    } catch (e) {
-      throw Exception("خطأ في التحديث: $e");
-    }
+    return WalletModel.fromJson(result);
   }
 
+  // =========================
+  // DELETE WALLET
+  // =========================
   @override
   Future<bool> deleteWallet(WalletModel wallet) async {
-    final url = Uri.parse(
-      "${ApiEndpoints.baseUrl}${ApiEndpoints.wallet}/${wallet.walletId}",
-    );
-    final headers = await ApiEndpoints().getHeaders();
+    try {
+      await network.request(
+        endpoint: "${ApiEndpoints.wallet}/${wallet.walletId}",
+        method: "DELETE",
+      );
 
-    final response = await client
-        .delete(url, headers: headers)
-        .timeout(timeoutDuration);
-    if (response.statusCode >= 200 && response.statusCode < 300) {
       return true;
-    } else {
+    } catch (e) {
       return false;
     }
   }

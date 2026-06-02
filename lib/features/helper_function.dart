@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:spendwise/core/utils/colors.dart';
 
 class HelperFunction {
-  static Future<DateTime?> chooseDate(BuildContext context) async {
+  static Future<DateTime?> chooseDate(
+    BuildContext context, {
+    DateTime? initialDate,
+  }) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: initialDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
       builder: (context, child) {
@@ -24,6 +28,32 @@ class HelperFunction {
       },
     );
     return pickedDate;
+  }
+
+  // [Comment: إضافة دالة حوار تأكيدي لاستخدامها في التحقق من الميزانية]
+  static Future<bool> showConfirmationDialog(
+    String title,
+    String message,
+  ) async {
+    bool confirmed = false;
+
+    await Get.defaultDialog(
+      title: title,
+      middleText: message,
+      textConfirm: "متابعة",
+      textCancel: "إلغاء",
+      confirmTextColor: Colors.white,
+      onConfirm: () {
+        confirmed = true;
+        Get.back(); // إغلاق الحوار
+      },
+      onCancel: () {
+        confirmed = false;
+        Get.back(); // إغلاق الحوار
+      },
+    );
+
+    return confirmed;
   }
 
   static String? validatePassword(String? value) {
@@ -88,5 +118,23 @@ class HelperFunction {
       hash *= 0x100000001b3;
     }
     return hash;
+  }
+
+  static Widget buildShimmer({double height = 56, double radius = 20}) {
+    return Shimmer.fromColors(
+      baseColor: SpColor.surfaceNavy.withOpacity(0.3),
+      highlightColor: SpColor.surfaceNavy.withOpacity(0.6),
+      child: ClipRRect(
+        // إضافة هذا لقص الحواف
+        borderRadius: BorderRadius.circular(radius),
+        child: Container(
+          height: height,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(radius),
+          ),
+        ),
+      ),
+    );
   }
 }

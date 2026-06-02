@@ -8,6 +8,7 @@ import 'package:spendwise/features/income/domain/entities/income_entity.dart';
 import 'package:spendwise/features/income/presentation/manager/delete_income_controller.dart';
 import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
 import 'package:spendwise/features/income/presentation/manager/update_income_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class IncomeListView extends GetView<IncomesListController> {
   const IncomeListView({super.key});
@@ -236,7 +237,7 @@ class IncomeListView extends GetView<IncomesListController> {
 
       children: [
         Text(
-          "${income.wallet?.currency.code ?? ""} ${income.amount.toStringAsFixed(2)}",
+          '${Get.find<WalletsListController>().wallets.firstWhere((w) => w.walletId == income.walletId).currency.code} ${income.amount.toStringAsFixed(2)}',
 
           style: const TextStyle(
             color: SpColor.incomeGreen,

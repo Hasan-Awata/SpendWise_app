@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
+import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/sync/queue/sync_queue_repository.dart';
 import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
@@ -25,74 +25,79 @@ class WalletBinding implements Bindings {
   @override
   void dependencies() {
     // =====================================================
-    // LOCAL SERVICES
+    // 1. LOCAL SERVICES & DATASOURCES (الحقن الدائم والمستقر)
     // =====================================================
 
-    Get.lazyPut<CurrencyLocal>(
-      () => CurrencyLocal(Get.find<Isar>()),
+    if (!Get.isRegistered<CurrencyLocal>()) {
+      Get.put<CurrencyLocal>(CurrencyLocal(Get.find<Isar>()), permanent: true);
+    }
+
+    if (!Get.isRegistered<WalletRemoteDatasource>()) {
+      Get.put<WalletRemoteDatasource>(
+        WalletRemoteDatasourceImpl(network: Get.find<NetworkService>()),
+        permanent: true,
+      );
+    }
+
+    if (!Get.isRegistered<WalletLocalDatasource>()) {
+      Get.put<WalletLocalDatasource>(
+        WalletLocalDatasourceImpl(Get.find<Isar>()),
+        permanent: true,
+      );
+    }
+
+    // =====================================================
+    // 2. REPOSITORIES
+    // =====================================================
+
+    if (!Get.isRegistered<CurrencyRepository>()) {
+      Get.put<CurrencyRepository>(
+        CurrencyRepositoryImpl(Get.find<CurrencyLocal>()),
+        permanent: true,
+      );
+    }
+
+    if (!Get.isRegistered<WalletRepository>()) {
+      Get.put<WalletRepository>(
+        WalletRepositoryImpl(
+          remote: Get.find(),
+          local: Get.find(),
+          currencyRepository: Get.find(),
+          syncQueueRepository: Get.find<SyncQueueRepository>(),
+        ),
+        permanent: true,
+      );
+    }
+
+    // =====================================================
+    // 3. USE CASES
+    // =====================================================
+
+    if (!Get.isRegistered<GetMyWalletsUseCase>()) {
+      Get.put(GetMyWalletsUseCase(Get.find()), permanent: true);
+    }
+    if (!Get.isRegistered<AddWalletUseCase>()) {
+      Get.put(AddWalletUseCase(Get.find()), permanent: true);
+    }
+    if (!Get.isRegistered<UpdateWalletUseCase>()) {
+      Get.put(UpdateWalletUseCase(Get.find()), permanent: true);
+    }
+    if (!Get.isRegistered<DeleteWalletUseCase>()) {
+      Get.put(DeleteWalletUseCase(Get.find()), permanent: true);
+    }
+
+    // =====================================================
+    // 4. CONTROLLERS (تحويل كامل لـ lazyPut + fenix لمرونة الاستدعاء)
+    // =====================================================
+
+    // متحكم قائمة المحافظ الرئيسي
+    Get.lazyPut<WalletsListController>(
+      () => WalletsListController(getMyWalletsUseCase: Get.find()),
       fenix: true,
     );
 
-    // =====================================================
-    // DATASOURCES
-    // =====================================================
-
-    Get.lazyPut<WalletRemoteDatasource>(
-      () => WalletRemoteDatasourceImpl(client: http.Client()),
-      fenix: true,
-    );
-
-    Get.lazyPut<WalletLocalDatasource>(
-      () => WalletLocalDatasourceImpl(Get.find<Isar>()),
-      fenix: true,
-    );
-
-    // =====================================================
-    // REPOSITORIES
-    // =====================================================
-
-    Get.lazyPut<CurrencyRepository>(
-      () => CurrencyRepositoryImpl(Get.find<CurrencyLocal>()),
-      fenix: true,
-    );
-
-    Get.lazyPut<WalletRepository>(
-      () => WalletRepositoryImpl(
-        remote: Get.find(),
-        local: Get.find(),
-        currencyRepository: Get.find(),
-        syncQueueRepository: Get.find<SyncQueueRepository>(),
-      ),
-      fenix: true,
-    );
-
-    // =====================================================
-    // USE CASES
-    // =====================================================
-
-    Get.lazyPut(() => GetMyWalletsUseCase(Get.find()), fenix: true);
-
-    Get.lazyPut(() => AddWalletUseCase(Get.find()), fenix: true);
-
-    Get.lazyPut(() => UpdateWalletUseCase(Get.find()), fenix: true);
-
-    Get.lazyPut(() => DeleteWalletUseCase(Get.find()), fenix: true);
-
-    // Get.lazyPut(() => GetAllWalletsLocalUseCase(Get.find()), fenix: true);
-
-    // =====================================================
-    // CONTROLLERS
-    // =====================================================
-
-    Get.put(
-      WalletsListController(
-        getMyWalletsUseCase: Get.find(),
-
-        // getAllLocalWalletsUseCase: Get.find(),
-      ),
-    );
-
-    Get.lazyPut(
+    // متحكم إضافة محفظة جديدة
+    Get.lazyPut<AddWalletController>(
       () => AddWalletController(
         addWalletUseCase: Get.find(),
         userIdUsecase: Get.find<GetUserIdUsecase>(),
@@ -101,16 +106,19 @@ class WalletBinding implements Bindings {
       fenix: true,
     );
 
-    Get.lazyPut(
+    // متحكم حذف محفظة
+    Get.lazyPut<DeleteWalletController>(
       () => DeleteWalletController(
         deleteWalletUseCase: Get.find(),
         walletsListController: Get.find<WalletsListController>(),
+        getTransactionsUseCase: Get.find(),
+        userIdUsecase: Get.find(),
       ),
-
       fenix: true,
     );
 
-    Get.lazyPut(
+    // متحكم تعديل بيانات المحفظة
+    Get.lazyPut<UpdateWalletController>(
       () => UpdateWalletController(
         updateWalletUseCase: Get.find(),
         walletsListController: Get.find<WalletsListController>(),

@@ -8,6 +8,8 @@ part 'user_model.g.dart';
 class UserModel extends UserEntity {
   Id isarId = Isar.autoIncrement;
 
+  // // ميزة: إضافة حقل الـ refreshToken هنا ليتم حفظه داخل قاعدة بيانات Isar محلياً
+
   UserModel({
     required super.userId,
     super.firstName,
@@ -15,6 +17,7 @@ class UserModel extends UserEntity {
     super.userName,
     required super.token,
     super.expiry,
+    super.refreshToken, // // تعليق: استقبال الـ refreshToken وحفظه في الحقل المحلي الخاص بـ Isar
   });
 
   factory UserModel.fromJson(Map<dynamic, dynamic> json) {
@@ -36,6 +39,9 @@ class UserModel extends UserEntity {
 
     return UserModel(
       token: (json["Token"] ?? json["token"] ?? "").toString(),
+      // // ميزة: التقاط الـ RefreshToken القادم من استجابة الـ API عند تسجيل الدخول أو التجديد
+      refreshToken: (json["RefreshToken"] ?? json["refreshToken"] ?? "")
+          .toString(),
       firstName: (json["FirstName"] ?? json["firstName"] ?? "").toString(),
       lastName: (json["LastName"] ?? json["lastName"] ?? "").toString(),
       userName: (json["UserName"] ?? json["userName"] ?? "").toString(),
@@ -51,13 +57,14 @@ class UserModel extends UserEntity {
       "LastName": lastName,
       "UserName": userName,
       "Token": token,
-      "Expiry": expiry
-          ?.toIso8601String(), // يفضل تحويل التاريخ لنص عند التحويل لـ JSON
+      "RefreshToken":
+          refreshToken, // // تعليق: تحويل الـ RefreshToken إلى JSON عند الحاجة
+      "Expiry": expiry?.toIso8601String(),
     };
   }
 
   @override
   String toString() {
-    return 'UserModel(userId: $userId, firstName: $firstName, lastName: $lastName, userName: $userName, token: $token, expiry: $expiry)';
+    return 'UserModel(isarId: $isarId, userId: $userId, firstName: $firstName, lastName: $lastName, userName: $userName, token: $token, refreshToken: $refreshToken, expiry: $expiry)';
   }
 }

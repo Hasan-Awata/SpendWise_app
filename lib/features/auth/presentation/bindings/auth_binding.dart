@@ -40,7 +40,10 @@ class AuthBinding extends Bindings {
 
     if (!Get.isRegistered<AppUserRemoteDatasource>()) {
       Get.lazyPut<AppUserRemoteDatasource>(
-        () => AppUserRemoteDatasourceImpl(client: http.Client()),
+        () => AppUserRemoteDatasourceImpl(
+          client: http.Client(),
+          localDatasource: Get.find<AppUserLocalDatasource>(),
+        ),
         fenix: true,
       );
     }

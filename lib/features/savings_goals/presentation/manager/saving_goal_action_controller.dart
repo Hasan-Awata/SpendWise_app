@@ -1,4 +1,6 @@
-// // [Controller logic to handle saving goals actions with proper validation and UI synchronization]
+// lib/features/savings_goals/presentation/manager/saving_goal_action_controller.dart
+// Controller: Manages CRUD actions for saving goals, ensuring local data persistence and queued synchronization triggers.
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
@@ -8,79 +10,75 @@ import 'package:spendwise/features/savings_goals/domain/usecases/add_saving_goal
 import 'package:spendwise/features/savings_goals/domain/usecases/delete_saving_goal_usecase.dart';
 import 'package:spendwise/features/savings_goals/domain/usecases/update_saving_goal_usecase.dart';
 import 'package:spendwise/features/savings_goals/presentation/manager/saving_goal_lis_controller.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class SavingGoalActionController extends GetxController {
   final AddSavingGoalUseCase addSavingGoalUseCase;
   final UpdateSavingGoalUseCase updateSavingGoalUseCase;
   final DeleteSavingGoalUseCase deleteSavingGoalUseCase;
   final GetUserIdUsecase userIdUsecase;
+  final WalletsListController walletsListController;
 
   SavingGoalActionController({
     required this.addSavingGoalUseCase,
     required this.updateSavingGoalUseCase,
     required this.deleteSavingGoalUseCase,
     required this.userIdUsecase,
+    required this.walletsListController,
   });
 
   final titleController = TextEditingController();
   final targetAmountController = TextEditingController();
   final currentAmountController = TextEditingController();
-  var deadlineDate = DateTime.now().obs;
 
+  var deadlineDate = DateTime.now().obs;
   var isActionLoading = false.obs;
+  final selectedWallet = Rxn<WalletEntity>();
+
+  @override
+  void onInit() {
+    super.onInit();
+    walletsListController.loadWallets();
+  }
 
   Future<void> addSavingGoal() async {
     if (!_validateInputs()) return;
 
+    isActionLoading.value = true;
     try {
-      int? userId;
-      bool hasError = false;
       final userResult = await userIdUsecase.getUserId();
-      userResult.fold(
-        (failure) {
-          HelperFunction.showSnackBar(
-            "خطأ في جلب المستخدم",
-            failure.message,
-            isError: true,
-          );
-          hasError = true;
-        },
-        (id) {
-          userId = id;
-        },
-      );
-      if (hasError || userId == null) {
-        isActionLoading.value = false;
-        return;
-      }
 
-      isActionLoading.value = true;
-      final newGoal = SavingGoalEntity(
-        userId: userId!,
-        title: titleController.text.trim(),
-        targetAmount: double.parse(targetAmountController.text),
-        currentAmount: double.parse(
-          currentAmountController.text.isEmpty
-              ? "0"
-              : currentAmountController.text,
-        ),
-        deadlineDate: deadlineDate.value,
-        isSynced: false,
-      );
-
-      final result = await addSavingGoalUseCase.call(newGoal);
-
-      result.fold(
-        (failure) =>
+      await userResult.fold(
+        (failure) async =>
             HelperFunction.showSnackBar("خطأ", failure.message, isError: true),
-        (successMessage) {
-          _resetFields();
-          _refreshList();
-          HelperFunction.showSnackBar("نجاح", "تم إضافة هدف الادخار بنجاح");
+        (userId) async {
+          final newGoal = SavingGoalEntity(
+            userId: userId,
+            title: titleController.text.trim(),
+            targetAmount: double.parse(targetAmountController.text),
+            currentAmount: double.tryParse(currentAmountController.text) ?? 0.0,
+            deadlineDate: deadlineDate.value,
+            isSynced: false.obs,
+            currencyId: selectedWallet.value!.currencyId,
+          );
+
+          final result = await addSavingGoalUseCase.call(newGoal);
+          result.fold(
+            (failure) => HelperFunction.showSnackBar(
+              "خطأ",
+              failure.message,
+              isError: true,
+            ),
+            (success) {
+              _resetFields();
+              _refreshList();
+              HelperFunction.showSnackBar("نجاح", "تم إضافة هدف الادخار بنجاح");
+              Get.back();
+            },
+          );
         },
       );
-    } catch (e) {
-      HelperFunction.showSnackBar("خطأ", "حدث خطأ غير متوقع", isError: true);
     } finally {
       isActionLoading.value = false;
     }
@@ -89,16 +87,12 @@ class SavingGoalActionController extends GetxController {
   Future<void> updateSavingGoal(SavingGoalEntity goal) async {
     if (!_validateInputs()) return;
 
+    isActionLoading.value = true;
     try {
-      isActionLoading.value = true;
-
+      // تحديث بيانات الكيان المحلي
       goal.title = titleController.text.trim();
       goal.targetAmount = double.parse(targetAmountController.text);
-      goal.currentAmount = double.parse(
-        currentAmountController.text.isEmpty
-            ? "0"
-            : currentAmountController.text,
-      );
+      goal.currentAmount = double.tryParse(currentAmountController.text) ?? 0.0;
       goal.deadlineDate = deadlineDate.value;
 
       final result = await updateSavingGoalUseCase.call(goal);
@@ -112,42 +106,35 @@ class SavingGoalActionController extends GetxController {
           HelperFunction.showSnackBar("نجاح", "تم تحديث الهدف بنجاح");
         },
       );
-    } catch (e) {
-      HelperFunction.showSnackBar(
-        "خطأ",
-        "فشل في تحديث البيانات",
-        isError: true,
-      );
     } finally {
       isActionLoading.value = false;
     }
   }
 
   Future<void> deleteSavingGoal(SavingGoalEntity goal) async {
-    try {
-      final result = await deleteSavingGoalUseCase.call(goal);
-
-      result.fold(
-        (failure) =>
-            HelperFunction.showSnackBar("خطأ", failure.message, isError: true),
-        (success) {
-          if (Get.isRegistered<SavingGoalListController>()) {
-            Get.find<SavingGoalListController>().savingGoals.removeWhere(
-              (g) => g.localId == goal.localId,
-            );
-          }
-          HelperFunction.showSnackBar("نجاح", "تم حذف الهدف");
-          if (Get.isOverlaysOpen) Get.back();
-        },
+    // حذف فوري من الواجهة (Optimistic Update)
+    if (Get.isRegistered<SavingGoalListController>()) {
+      Get.find<SavingGoalListController>().savingGoals.removeWhere(
+        (g) => g.localId == goal.localId,
       );
-    } catch (e) {
-      HelperFunction.showSnackBar("خطأ", "فشل عملية الحذف", isError: true);
+      Get.find<SavingGoalListController>().refresh();
     }
+
+    final result = await deleteSavingGoalUseCase.call(goal);
+    result.fold(
+      (failure) {
+        _refreshList(); // إعادة التحميل في حال فشل الحذف لضمان تزامن البيانات
+        HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
+      },
+      (success) {
+        // HelperFunction.showSnackBar("نجاح", "تم حذف الهدف");
+        if (Get.isOverlaysOpen) Get.back();
+      },
+    );
   }
 
   bool _validateInputs() {
-    final title = titleController.text.trim();
-    if (title.isEmpty) {
+    if (titleController.text.trim().isEmpty) {
       HelperFunction.showSnackBar(
         "تنبيه",
         "يرجى إدخال عنوان الهدف",
@@ -155,7 +142,6 @@ class SavingGoalActionController extends GetxController {
       );
       return false;
     }
-
     final target = double.tryParse(targetAmountController.text);
     if (target == null || target <= 0) {
       HelperFunction.showSnackBar(

@@ -5,6 +5,7 @@ import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/income/domain/entities/income_entity.dart';
 import 'package:spendwise/features/income/domain/usecases/delete_income_usecase.dart';
 import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class DeleteIncomeController extends GetxController {
   DeleteIncomeController({
@@ -43,9 +44,13 @@ class DeleteIncomeController extends GetxController {
 
           // إعادة حساب إجماليات الكروت في الداشبورد فوراً
           incomesListController.updateDashboardTotals();
+          Get.find<WalletsListController>().decreaseWalletBalance(
+            walletId: income.walletId!,
+            amount: income.amount,
+          );
 
           Get.back();
-          HelperFunction.showSnackBar("تم الحذف", "تم حذف سجل الدخل بنجاح");
+          // HelperFunction.showSnackBar("تم الحذف", "تم حذف سجل الدخل بنجاح");
         },
       );
     } catch (e) {

@@ -12,25 +12,29 @@ class TagSyncRepository implements SyncRepository<TagModel> {
 
   @override
   Future<void> createByLocalId(int localId) async {
-    // جلب العنصر محلياً
     final tag = await local.getTagByIsarId(localId);
     if (tag == null) return;
 
+    // 🔴 منع إعادة الإرسال إذا تم مزامنته مسبقاً
+    if (tag.isSynced == true && tag.id != null) return;
+
     try {
       final remoteTag = await remote.addTag(tag);
+
       if (remoteTag != null) {
-        tag.id = remoteTag.id;
-        tag.isSynced = true;
+        tag
+          ..id = remoteTag.id
+          ..isSynced = true;
+
         await local.updateTagLocally(tag);
       }
     } catch (e) {
-      final errorString = e.toString();
+      final msg = e.toString();
 
-      if (errorString.contains("409") || errorString.contains("Conflict")) {
+      // 🟡 معالجة تكرار السيرفر (Conflict)
+      if (msg.contains("409") || msg.contains("Conflict")) {
         if (kDebugMode) {
-          print(
-            "⚠️ TagSyncRepository: Tag already exists on server (409). Resolving conflict locally...",
-          );
+          print("⚠️ Tag already exists on server (409) -> mark synced");
         }
 
         tag.isSynced = true;
@@ -47,41 +51,40 @@ class TagSyncRepository implements SyncRepository<TagModel> {
     final tag = await local.getTagByIsarId(localId);
     if (tag == null) return;
 
-    await remote.updateTag(tag);
-    tag.isSynced = true;
-    await local.updateTagLocally(tag);
+    // 🔴 لا تحدث إذا غير مرتبط بالسيرفر
+    if (tag.id == null) return;
+
+    try {
+      await remote.updateTag(tag);
+
+      tag.isSynced = true;
+      await local.updateTagLocally(tag);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   @override
   Future<void> deleteByLocalId(int localId) async {
     final tag = await local.getTagByIsarId(localId);
-
     if (tag == null) return;
 
-    // =========================
-    // إذا العنصر غير متزامن مع السيرفر
-    // نحذفه محلياً مباشرة
-    // =========================
-
+    // 🔴 إذا لم يُرفع للسيرفر → حذف محلي فقط
     if (tag.id == null || tag.id == -1) {
       await local.deleteTagLocally(tag);
       return;
     }
 
-    // =========================
-    // حذف من السيرفر
-    // =========================
+    try {
+      final isRemoved = await remote.deleteTag(tag.id!);
 
-    final isRemoved = await remote.deleteTag(tag.id!);
+      if (!isRemoved) {
+        throw Exception("Failed to delete tag from server");
+      }
 
-    if (!isRemoved) {
-      throw Exception("فشل حذف التاج من السيرفر");
+      await local.deleteTagLocally(tag);
+    } catch (e) {
+      rethrow;
     }
-
-    // =========================
-    // حذف محلي بعد نجاح السيرفر
-    // =========================
-
-    await local.deleteTagLocally(tag);
   }
 }

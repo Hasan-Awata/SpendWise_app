@@ -3,6 +3,7 @@
 
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/core/services/init_isar.dart';
 import 'package:spendwise/features/transaction/data/datasources/transaction_local_datasource.dart';
 import 'package:spendwise/features/transaction/data/datasources/transaction_remote_datasource.dart';
@@ -18,7 +19,8 @@ class TransactionBinding extends Bindings {
   void dependencies() {
     Get.lazyPut(() => http.Client());
     Get.lazyPut<TransactionRemoteDataSource>(
-      () => TransactionRemoteDataSourceImpl(client: Get.find()),
+      () =>
+          TransactionRemoteDataSourceImpl(network: Get.find<NetworkService>()),
     );
     Get.lazyPut<TransactionLocalDataSource>(
       () => TransactionLocalDataSourceImpl(isar: InitIsar.isar!),

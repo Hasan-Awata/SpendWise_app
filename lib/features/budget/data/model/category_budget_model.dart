@@ -1,12 +1,13 @@
-import 'package:get/get.dart'; // تأكد من بقاء الاستيراد من أجل تحويلات الـ Entity
+import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:spendwise/features/budget/domain/entities/category_budget_entity.dart';
+import 'package:spendwise/features/sync/model/syncable_model.dart';
 import 'package:uuid/uuid.dart';
 
 part 'category_budget_model.g.dart';
 
 @collection
-class CategoryBudgetModel {
+class CategoryBudgetModel implements SyncableModel {
   Id isarId = Isar.autoIncrement;
 
   @Index(unique: true)
@@ -23,6 +24,7 @@ class CategoryBudgetModel {
   double percentageLimit;
   double percentageProgress;
 
+  // الخصائص المضافة لتتطابق مع الـ DTO في الـ Backend
   double moneyLimit;
   double spendingProgress;
 
@@ -31,9 +33,12 @@ class CategoryBudgetModel {
 
   bool isActive;
 
+  @override
   bool isSynced;
+  @override
   bool isDeleted;
 
+  @override
   int syncAttempts;
   DateTime? lastSyncError;
 
@@ -47,12 +52,12 @@ class CategoryBudgetModel {
     required this.categoryId,
     required this.percentageLimit,
     this.percentageProgress = 0,
-    this.moneyLimit = 0,
-    this.spendingProgress = 0,
+    required this.moneyLimit, // تم الإضافة
+    required this.spendingProgress, // تم الإضافة
     required this.startDate,
     required this.endDate,
     this.isActive = true,
-    this.isSynced = false, // القيمة الافتراضية أصبحت bool عادية
+    this.isSynced = false,
     this.isDeleted = false,
     this.syncAttempts = 0,
     this.lastSyncError,
@@ -71,8 +76,8 @@ class CategoryBudgetModel {
       categoryId: categoryId,
       percentageLimit: percentageLimit,
       percentageProgress: percentageProgress,
-      moneyLimit: moneyLimit,
-      spendingProgress: spendingProgress,
+      moneyLimit: moneyLimit, // تم الإضافة
+      spendingProgress: spendingProgress, // تم الإضافة
       startDate: startDate,
       endDate: endDate,
       isActive: isActive,
@@ -91,14 +96,12 @@ class CategoryBudgetModel {
       categoryId: entity.categoryId,
       percentageLimit: entity.percentageLimit,
       percentageProgress: entity.percentageProgress,
-      moneyLimit: entity.moneyLimit,
-      spendingProgress: entity.spendingProgress,
+      moneyLimit: entity.moneyLimit, // تم الإضافة
+      spendingProgress: entity.spendingProgress, // تم الإضافة
       startDate: entity.startDate,
       endDate: entity.endDate,
       isActive: entity.isActive,
-      isSynced: entity
-          .isSynced
-          .value, // استخراج القيمة الحقيقية للـ bool من الـ RxBool
+      isSynced: entity.isSynced.value,
       isDeleted: entity.isDeleted,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
@@ -111,60 +114,66 @@ class CategoryBudgetModel {
     Map<String, dynamic> json, {
     String? localId,
   }) {
-    // معالجة مرنة لجلب النصوص البرمجية للتواريخ بحالتين الأحرف الكبيرة والصغيرة
     final startDateRaw = json['startDate'] ?? json['StartDate'];
     final endDateRaw = json['endDate'] ?? json['EndDate'];
 
     return CategoryBudgetModel(
       localId: localId ?? const Uuid().v4(),
-
       categoryBudgetId: json['categoryBudgetId'] ?? json['CategoryBudgetId'],
-
       userId: json['userId'] ?? json['UserId'] ?? 0,
-
       categoryId: json['categoryId'] ?? json['CategoryId'] ?? 0,
-
       percentageLimit: (json['percentageLimit'] ?? json['PercentageLimit'] ?? 0)
           .toDouble(),
-
       percentageProgress:
           (json['percentageProgress'] ?? json['PercentageProgress'] ?? 0)
               .toDouble(),
-
+      // جلب البيانات من الـ JSON
       moneyLimit: (json['moneyLimit'] ?? json['MoneyLimit'] ?? 0).toDouble(),
-
       spendingProgress:
           (json['spendingProgress'] ?? json['SpendingProgress'] ?? 0)
               .toDouble(),
-
       startDate: startDateRaw != null
           ? DateTime.parse(startDateRaw)
           : DateTime.now(),
-
       endDate: endDateRaw != null ? DateTime.parse(endDateRaw) : DateTime.now(),
-
       isActive: json['isActive'] ?? json['IsActive'] ?? true,
-
-      isSynced: true, // متوافق تماماً الآن كقيمة bool
+      isSynced: true,
     );
   }
 
+  // ================= TO JSON =================
+
   Map<String, dynamic> toJson() {
-    // تم تفصيل الـ Map لتطابق كلاس CategoryBudgetDTO في الـ .NET تماماً
     return {
-      'categoryBudgetId': -1,
+      'categoryBudgetId': categoryBudgetId,
       'userId': userId,
       'categoryId': categoryId,
-      'percentageLimit': percentageLimit, // سيرسل كـ double متوافق مع decimal
+      'percentageLimit': percentageLimit,
       // 'percentageProgress': percentageProgress,
-      'startDate': startDate.toIso8601String(), // صيغة النص القياسية للتاريخ
-      'endDate': endDate.toIso8601String(), // صيغة النص القياسية للتاريخ
+      'startDate': startDate.toIso8601String(),
+      'endDate': endDate.toIso8601String(),
       'isActive': isActive,
     };
   }
 
   @override
   String toString() {
-    return 'CategoryBudgetModel(isarId: $isarId, localId: $localId, categoryBudgetId: $categoryBudgetId, userId: $userId, categoryId: $categoryId, percentageLimit: $percentageLimit%, percentageProgress: $percentageProgress, moneyLimit: $moneyLimit, spendingProgress: $spendingProgress, startDate: $startDate, endDate: $endDate, isActive: $isActive, isSynced: $isSynced, isDeleted: $isDeleted)';
+    return 'CategoryBudgetModel(localId: $localId, categoryBudgetId: $categoryBudgetId, userId: $userId, categoryId: $categoryId, percentageLimit: $percentageLimit, moneyLimit: $moneyLimit, spendingProgress: $spendingProgress, startDate: $startDate, endDate: $endDate, isActive: $isActive, isSynced: $isSynced)';
+  }
+
+  @override
+  void markSynced(int id) {
+    categoryBudgetId = id;
+    isSynced = true;
+    isDeleted = false;
+    syncAttempts = 0;
+    lastSyncError = null;
+    updatedAt = DateTime.now();
+  }
+
+  @override
+  int? get serverId {
+    if (categoryBudgetId == null || categoryBudgetId! <= 0) return null;
+    return categoryBudgetId;
   }
 }

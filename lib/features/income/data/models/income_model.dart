@@ -1,6 +1,7 @@
 import 'package:get/get_rx/src/rx_types/rx_types.dart';
 import 'package:isar/isar.dart';
 import 'package:spendwise/features/income/domain/entities/income_entity.dart';
+import 'package:spendwise/features/sync/model/syncable_model.dart';
 import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:uuid/uuid.dart';
@@ -8,7 +9,7 @@ import 'package:uuid/uuid.dart';
 part 'income_model.g.dart';
 
 @collection
-class IncomeModel {
+class IncomeModel implements SyncableModel {
   Id isarId = Isar.autoIncrement;
   @Index(unique: true)
   String localId;
@@ -25,11 +26,14 @@ class IncomeModel {
 
   String? description;
 
+  @override
   int syncAttempts;
   DateTime? lastSyncError;
   String? walletLocalId;
 
-  bool isSynced = false;
+  @override
+  bool isSynced;
+  @override
   bool isDeleted = false;
 
   DateTime? createdAt;
@@ -49,6 +53,7 @@ class IncomeModel {
     this.isDeleted = false,
     this.syncAttempts = 0,
     this.lastSyncError,
+
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now(),
@@ -69,6 +74,7 @@ class IncomeModel {
       incomeTagId: incomeTagId,
       description: description ?? "",
       walletLocalId: walletLocalId,
+
       isSynced: isSynced.obs,
       isDeleted: isDeleted,
       tag: tag,
@@ -90,6 +96,7 @@ class IncomeModel {
       date: entity.date,
       incomeTagId: entity.incomeTagId,
       description: entity.description,
+
       isSynced: entity.isSynced.value,
       isDeleted: entity.isDeleted,
       walletLocalId: entity.walletLocalId,
@@ -113,6 +120,7 @@ class IncomeModel {
           : DateTime.now(),
       incomeTagId: json['incomeTagId'] ?? json['IncomeTagId'],
       description: json['description'] ?? json['Description'],
+
       isSynced: true,
     );
   }
@@ -144,6 +152,7 @@ IncomeModel {
   amount: $amount
   date: $date
   description: $description
+ 
   walletLocalId: $walletLocalId
   isSynced: $isSynced
   isDeleted: $isDeleted
@@ -153,5 +162,21 @@ IncomeModel {
   updatedAt: $updatedAt
 }
 ''';
+  }
+
+  @override
+  void markSynced(int id) {
+    this.id = id;
+    isSynced = true;
+    isDeleted = false;
+    syncAttempts = 0;
+    lastSyncError = null;
+    updatedAt = DateTime.now();
+  }
+
+  @override
+  int? get serverId {
+    if (id == null || id! <= 0) return null;
+    return id;
   }
 }

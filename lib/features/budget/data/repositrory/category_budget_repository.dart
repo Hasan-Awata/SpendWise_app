@@ -10,4 +10,8 @@ abstract class CategoryBudgetRepository {
   Future<Either<Failure, Unit>> updateBudget(CategoryBudgetEntity budget);
 
   Future<Either<Failure, Unit>> deleteBudget(CategoryBudgetEntity budget);
+
+  Future<Either<Failure, CategoryBudgetEntity?>> getActiveBudgetForCategory(
+    int categoryId,
+  );
 }

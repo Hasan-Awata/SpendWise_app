@@ -32,18 +32,23 @@ const UserModelSchema = CollectionSchema(
       name: r'lastName',
       type: IsarType.string,
     ),
-    r'token': PropertySchema(
+    r'refreshToken': PropertySchema(
       id: 3,
+      name: r'refreshToken',
+      type: IsarType.string,
+    ),
+    r'token': PropertySchema(
+      id: 4,
       name: r'token',
       type: IsarType.string,
     ),
     r'userId': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'userId',
       type: IsarType.long,
     ),
     r'userName': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'userName',
       type: IsarType.string,
     )
@@ -80,6 +85,12 @@ int _userModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.refreshToken;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.token.length * 3;
   {
     final value = object.userName;
@@ -99,9 +110,10 @@ void _userModelSerialize(
   writer.writeDateTime(offsets[0], object.expiry);
   writer.writeString(offsets[1], object.firstName);
   writer.writeString(offsets[2], object.lastName);
-  writer.writeString(offsets[3], object.token);
-  writer.writeLong(offsets[4], object.userId);
-  writer.writeString(offsets[5], object.userName);
+  writer.writeString(offsets[3], object.refreshToken);
+  writer.writeString(offsets[4], object.token);
+  writer.writeLong(offsets[5], object.userId);
+  writer.writeString(offsets[6], object.userName);
 }
 
 UserModel _userModelDeserialize(
@@ -114,9 +126,10 @@ UserModel _userModelDeserialize(
     expiry: reader.readDateTimeOrNull(offsets[0]),
     firstName: reader.readStringOrNull(offsets[1]),
     lastName: reader.readStringOrNull(offsets[2]),
-    token: reader.readString(offsets[3]),
-    userId: reader.readLong(offsets[4]),
-    userName: reader.readStringOrNull(offsets[5]),
+    refreshToken: reader.readStringOrNull(offsets[3]),
+    token: reader.readString(offsets[4]),
+    userId: reader.readLong(offsets[5]),
+    userName: reader.readStringOrNull(offsets[6]),
   );
   object.isarId = id;
   return object;
@@ -136,10 +149,12 @@ P _userModelDeserializeProp<P>(
     case 2:
       return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 5:
+      return (reader.readLong(offset)) as P;
+    case 6:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -660,6 +675,159 @@ extension UserModelQueryFilter
     });
   }
 
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition>
+      refreshTokenIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'refreshToken',
+      ));
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition>
+      refreshTokenIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'refreshToken',
+      ));
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition> refreshTokenEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'refreshToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition>
+      refreshTokenGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'refreshToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition>
+      refreshTokenLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'refreshToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition> refreshTokenBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'refreshToken',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition>
+      refreshTokenStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'refreshToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition>
+      refreshTokenEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'refreshToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition>
+      refreshTokenContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'refreshToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition> refreshTokenMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'refreshToken',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition>
+      refreshTokenIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'refreshToken',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterFilterCondition>
+      refreshTokenIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'refreshToken',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<UserModel, UserModel, QAfterFilterCondition> tokenEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1035,6 +1203,18 @@ extension UserModelQuerySortBy on QueryBuilder<UserModel, UserModel, QSortBy> {
     });
   }
 
+  QueryBuilder<UserModel, UserModel, QAfterSortBy> sortByRefreshToken() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refreshToken', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterSortBy> sortByRefreshTokenDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refreshToken', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserModel, UserModel, QAfterSortBy> sortByToken() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'token', Sort.asc);
@@ -1122,6 +1302,18 @@ extension UserModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<UserModel, UserModel, QAfterSortBy> thenByRefreshToken() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refreshToken', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserModel, UserModel, QAfterSortBy> thenByRefreshTokenDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refreshToken', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserModel, UserModel, QAfterSortBy> thenByToken() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'token', Sort.asc);
@@ -1181,6 +1373,13 @@ extension UserModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<UserModel, UserModel, QDistinct> distinctByRefreshToken(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'refreshToken', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<UserModel, UserModel, QDistinct> distinctByToken(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1225,6 +1424,12 @@ extension UserModelQueryProperty
   QueryBuilder<UserModel, String?, QQueryOperations> lastNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastName');
+    });
+  }
+
+  QueryBuilder<UserModel, String?, QQueryOperations> refreshTokenProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'refreshToken');
     });
   }
 

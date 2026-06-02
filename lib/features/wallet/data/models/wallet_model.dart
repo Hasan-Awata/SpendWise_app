@@ -39,6 +39,8 @@ class WalletModel implements SyncableModel {
   @ignore
   WalletModel? wallet;
 
+  int numberOfTransactions; // عدد المعاملات المرتبطة بالمحفظة
+
   // =====================================================
   // SYNC RETRY SYSTEM
   // =====================================================
@@ -65,6 +67,7 @@ class WalletModel implements SyncableModel {
     this.isDeleted = false,
     this.syncAttempts = 0,
     this.lastSyncError,
+    this.numberOfTransactions = 0,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now(),
@@ -80,6 +83,7 @@ class WalletModel implements SyncableModel {
     required double balance,
     required int currencyId,
     String? localId,
+    numberOfTransactions = 0,
     bool isSaved = false,
     bool isSynced = false,
     bool isDeleted = false,
@@ -87,6 +91,7 @@ class WalletModel implements SyncableModel {
     return WalletModel(
       localId: localId ?? const Uuid().v4(),
       walletId: walletId,
+      numberOfTransactions: numberOfTransactions,
       userId: userId,
       balance: balance,
       currencyId: currencyId,
@@ -112,6 +117,7 @@ class WalletModel implements SyncableModel {
       isSaved: entity.isSaved,
       isSynced: entity.isSynced.value,
       isDeleted: entity.isDeleted,
+      numberOfTransactions: entity.numberOfTransactions,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     );
@@ -130,6 +136,7 @@ class WalletModel implements SyncableModel {
       currency: currency ?? Currency(code: "", currencyName: ""),
       createdAt: createdAt,
       updatedAt: updatedAt,
+      numberOfTransactions: numberOfTransactions,
     );
   }
 
@@ -140,16 +147,26 @@ class WalletModel implements SyncableModel {
   factory WalletModel.fromJson(Map<String, dynamic> json, {String? localId}) {
     return WalletModel(
       localId: localId ?? const Uuid().v4(),
-      walletId: json["walletId"] ?? json["id"],
-      userId: json["userId"] ?? json["UserId"],
-      balance: (json["balance"] ?? json["Balance"] ?? 0).toDouble(),
-      currencyId: json["currencyId"] ?? json["CurrencyId"],
-      isSaved: json['isSaved'] ?? json['IsSaved'] ?? false,
+      walletId: int.tryParse((json["walletId"] ?? json["id"] ?? "").toString()),
+      userId:
+          int.tryParse((json["userId"] ?? json["UserId"] ?? 0).toString()) ?? 0,
+      balance:
+          double.tryParse(
+            (json["balance"] ?? json["Balance"] ?? 0).toString(),
+          ) ??
+          0.0,
+      currencyId:
+          int.tryParse(
+            (json["currencyId"] ?? json["CurrencyId"] ?? 0).toString(),
+          ) ??
+          0,
+      isSaved: json["isSaved"] ?? json["IsSaved"] ?? false,
       isSynced: true,
       isDeleted: false,
+      numberOfTransactions:
+          json["numberOfTransactions"] ?? json["NumberOfTransactions"] ?? 0,
     );
   }
-
   Map<String, dynamic> toJson({bool isCreate = false}) {
     return {
       "walletId": walletId ?? -1,
@@ -163,7 +180,6 @@ class WalletModel implements SyncableModel {
   // =====================================================
   // COPY WITH
   // =====================================================
-
   WalletModel copyWith({
     Id? isarId,
     String? localId,
@@ -178,23 +194,29 @@ class WalletModel implements SyncableModel {
     DateTime? lastSyncError,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? numberOfTransactions,
+    Currency? currency,
+    WalletModel? wallet,
   }) {
     return WalletModel(
-      localId: localId ?? this.localId,
-      walletId: walletId ?? this.walletId,
-      userId: userId ?? this.userId,
-      balance: balance ?? this.balance,
-      currencyId: currencyId ?? this.currencyId,
-      isSaved: isSaved ?? this.isSaved,
-      isSynced: isSynced ?? this.isSynced,
-      isDeleted: isDeleted ?? this.isDeleted,
-      syncAttempts: syncAttempts ?? this.syncAttempts,
-      lastSyncError: lastSyncError ?? this.lastSyncError,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    )..isarId = isarId ?? this.isarId;
+        localId: localId ?? this.localId,
+        walletId: walletId ?? this.walletId,
+        userId: userId ?? this.userId,
+        balance: balance ?? this.balance,
+        currencyId: currencyId ?? this.currencyId,
+        isSaved: isSaved ?? this.isSaved,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
+        syncAttempts: syncAttempts ?? this.syncAttempts,
+        lastSyncError: lastSyncError ?? this.lastSyncError,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        numberOfTransactions: numberOfTransactions ?? this.numberOfTransactions,
+      )
+      ..isarId = isarId ?? this.isarId
+      ..currency = currency ?? this.currency
+      ..wallet = wallet ?? this.wallet;
   }
-
   // =====================================================
   // DEBUG
   // =====================================================

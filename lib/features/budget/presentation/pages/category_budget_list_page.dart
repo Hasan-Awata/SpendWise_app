@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/budget/domain/entities/category_budget_entity.dart';
-import 'package:spendwise/features/budget/presentation/manager/add_category_budget_controller.dart';
 import 'package:spendwise/features/budget/presentation/manager/category_budget_list_controller.dart';
 import 'package:spendwise/features/budget/presentation/manager/delete_category_budget_controller.dart';
 
@@ -14,17 +12,11 @@ class CategoryBudgetListPage extends GetView<CategoryBudgetListController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: SpColor.surfaceNavy,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: SpColor.offWhite),
-          onPressed: () => Get.back(),
-        ),
-      ),
+      appBar: AppBar(backgroundColor: SpColor.surfaceNavy),
       backgroundColor: SpColor.primaryDark,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Get.toNamed(Routes.ADD_CATEGORY_BUDGET);
+          Get.back();
         },
         backgroundColor: SpColor.accentBlue,
         foregroundColor: SpColor.primaryDark,
@@ -34,90 +26,87 @@ class CategoryBudgetListPage extends GetView<CategoryBudgetListController> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-              decoration: const BoxDecoration(
-                color: SpColor.surfaceNavy,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(28),
-                  bottomRight: Radius.circular(28),
-                ),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 10),
-                  Text(
-                    "ميزانيات الأقسام",
-                    style: TextStyle(
-                      color: SpColor.offWhite,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    "قم بإدارة حدود الإنفاق لكل قسم وتتبع استهلاكك",
-                    style: TextStyle(color: SpColor.mutedGrey, fontSize: 15),
-                  ),
-                ],
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+            decoration: const BoxDecoration(
+              color: SpColor.surfaceNavy,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(28),
+                bottomRight: Radius.circular(28),
               ),
             ),
-            Expanded(
-              child: Obx(() {
-                if (controller.isLoading.value) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: SpColor.accentBlue),
-                  );
-                }
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "ميزانيات الأقسام",
+                  style: TextStyle(
+                    color: SpColor.offWhite,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "قم بإدارة حدود الإنفاق لكل قسم وتتبع استهلاكك",
+                  style: TextStyle(color: SpColor.mutedGrey, fontSize: 15),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Obx(() {
+              if (controller.isLoading.value) {
+                return const Center(
+                  child: CircularProgressIndicator(color: SpColor.accentBlue),
+                );
+              }
 
-                if (controller.errorMessage.value != null) {
-                  return Center(
-                    child: Text(
-                      controller.errorMessage.value!,
-                      style: const TextStyle(
-                        color: SpColor.expenseRed,
-                        fontSize: 16,
-                      ),
+              if (controller.errorMessage.value != null) {
+                return Center(
+                  child: Text(
+                    controller.errorMessage.value!,
+                    style: const TextStyle(
+                      color: SpColor.expenseRed,
+                      fontSize: 16,
                     ),
-                  );
-                }
-
-                if (controller.budgets.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      "لا توجد ميزانيات مدرجة حالياً",
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: SpColor.mutedGrey,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                }
-
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    await controller.loadBudgets(isRefresh: true);
-                  },
-                  child: ListView.builder(
-                    controller: controller.scrollController,
-                    padding: const EdgeInsets.all(16),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: controller.budgets.length,
-                    itemBuilder: (_, index) {
-                      return _BudgetCard(budget: controller.budgets[index]);
-                    },
                   ),
                 );
-              }),
-            ),
-          ],
-        ),
+              }
+
+              if (controller.budgets.isEmpty) {
+                return const Center(
+                  child: Text(
+                    "لا توجد ميزانيات مدرجة حالياً",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: SpColor.mutedGrey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                );
+              }
+
+              return RefreshIndicator(
+                onRefresh: () async {
+                  await controller.loadBudgets(isRefresh: true);
+                },
+                child: ListView.builder(
+                  controller: controller.scrollController,
+                  padding: const EdgeInsets.all(16),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: controller.budgets.length,
+                  itemBuilder: (_, index) {
+                    return _BudgetCard(budget: controller.budgets[index]);
+                  },
+                ),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }
@@ -165,12 +154,7 @@ class _BudgetCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        if (Get.isRegistered<ManageCategoryBudgetController>()) {
-          final manageController = Get.find<ManageCategoryBudgetController>();
-          manageController.selectedCategoryId.value = budget.categoryId;
-          manageController.updateFieldsForSelectedCategory();
-        }
-        Get.toNamed(Routes.ADD_CATEGORY_BUDGET);
+        Get.back();
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 18),

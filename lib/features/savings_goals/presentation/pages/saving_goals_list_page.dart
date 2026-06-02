@@ -55,14 +55,17 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                       horizontal: 16,
                       vertical: 10,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: List.generate(controller.savingGoals.length, (
-                        index,
-                      ) {
-                        final goal = controller.savingGoals[index];
-                        return _buildGoalCard(goal);
-                      }),
+                    child: Obx(
+                      () => ListView.builder(
+                        shrinkWrap: true,
+                        physics:
+                            const NeverScrollableScrollPhysics(), // لأننا داخل SingleChildScrollView
+                        itemCount: controller.savingGoals.length,
+                        itemBuilder: (context, index) {
+                          final goal = controller.savingGoals[index];
+                          return _buildGoalCard(goal);
+                        },
+                      ),
                     ),
                   );
                 }),
@@ -72,6 +75,29 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
         },
       ),
     );
+  }
+
+  Widget _syncStatusBadge(SavingGoalEntity goal) {
+    return Obx(() {
+      final bool synced = goal.isSynced.value;
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: synced
+              ? Colors.green.withOpacity(0.1)
+              : Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          synced ? "متزامن" : "غير متزامن",
+          style: TextStyle(
+            color: synced ? Colors.greenAccent : Colors.orangeAccent,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildGoalCard(SavingGoalEntity goal) {
@@ -119,6 +145,8 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    SizedBox(width: 10),
+                    _syncStatusBadge(goal),
                   ],
                 ),
                 PopupMenuButton<String>(

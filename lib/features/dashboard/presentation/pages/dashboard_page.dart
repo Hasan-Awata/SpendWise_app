@@ -72,7 +72,19 @@ class DashboardPage extends StatelessWidget {
             title: 'ميزانية التصنيفات', // Category Budget
             subtitle: 'تحديد حدود الصرف لكل تصنيف',
             color: const Color(0xFF8B5CF6),
-            onTap: () => Get.toNamed('/add-category-budget'),
+            onTap: () => Get.toNamed(Routes.ADD_CATEGORY_BUDGET),
+          ),
+          _DashboardTile(
+            icon:
+                Icons.people_outline, // أيقونة مناسبة للديون المشتركة (مشاركة)
+            title: 'الديون المشتركة', // Shared Debt
+            subtitle: 'إدارة الديون بينك وبين الآخرين',
+            color: const Color(
+              0xFFF59E0B,
+            ), // لون برتقالي (Amber) لتمييز الديون عن الميزانية
+            onTap: () => Get.toNamed(
+              Routes.ADD_SHARED_DEBTS,
+            ), // تأكد من مطابقة اسم المسار عندك
           ),
         ],
       ),

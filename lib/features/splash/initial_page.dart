@@ -33,29 +33,40 @@ class _InitialPageState extends State<InitialPage> {
         throw Exception("Isar initialization failed");
       }
 
-      // تسجيل Isar داخل GetX
+      // =========================
+      // REGISTER ISAR
+      // =========================
       if (!Get.isRegistered<Isar>()) {
         Get.put<Isar>(isar, permanent: true);
       }
 
-      // تهيئة المستخدم الحالي
-      await CurrentUser.initializeUser();
+      // =========================
+      // INIT CURRENT USER
+      // =========================
+      await CurrentUser.initialize();
 
-      // تهيئة العملات
+      // =========================
+      // INIT CURRENCIES
+      // =========================
       await CurrencyLocal(isar).initializaCurrencies();
 
-      // التحقق من تسجيل الدخول
-      final isLogged = CurrentUser.isUserLoggedIn;
+      // =========================
+      // CHECK LOGIN STATE
+      // =========================
+      final isLogged = CurrentUser.isLoggedIn;
 
       print("✅ User Logged In => $isLogged");
 
-      // تأخير بسيط للسلاش
+      // Splash delay
       await Future.delayed(const Duration(milliseconds: 2000));
 
       if (!mounted) return;
 
+      // =========================
+      // NAVIGATION
+      // =========================
       if (isLogged) {
-        Get.offAllNamed(Routes.MAIN_SCREEN);
+        await Get.offAllNamed(Routes.MAIN_SCREEN);
       } else {
         setState(() {
           isLoading = false;
@@ -78,9 +89,9 @@ class _InitialPageState extends State<InitialPage> {
       return Introduction();
     }
 
-    return Container(
-      color: SpColor.primaryDark,
-      child: Center(
+    return Scaffold(
+      backgroundColor: SpColor.primaryDark,
+      body: Center(
         child: Shimmer.fromColors(
           baseColor: SpColor.surfaceNavy,
           highlightColor: SpColor.accentBlue,

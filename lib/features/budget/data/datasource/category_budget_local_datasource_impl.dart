@@ -9,7 +9,7 @@ class CategoryBudgetLocalDatasourceImpl
   CategoryBudgetLocalDatasourceImpl(this.isar);
 
   @override
-  Future<List<CategoryBudgetModel>> getBudgets() async {
+  Future<List<CategoryBudgetModel>?> getBudgets() async {
     return await isar.categoryBudgetModels.where().findAll();
   }
 
@@ -59,5 +59,13 @@ class CategoryBudgetLocalDatasourceImpl
     await isar.writeTxn(() async {
       await isar.categoryBudgetModels.clear();
     });
+  }
+
+  @override
+  Future<CategoryBudgetModel?> getBudgetByIsarId(int isarId) async {
+    return await isar.categoryBudgetModels
+        .filter()
+        .isarIdEqualTo(isarId)
+        .findFirst();
   }
 }

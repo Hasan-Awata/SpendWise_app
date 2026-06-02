@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
+import 'package:spendwise/features/savings_goals/data/datasources/saving_goal_local_datasource.dart';
 import 'package:spendwise/features/savings_goals/domain/entities/saving_goal_entity.dart';
 import 'package:spendwise/features/savings_goals/domain/usecases/get_saving_goal_usecase.dart';
 
@@ -193,9 +194,21 @@ class SavingGoalListController extends GetxController {
       (e) => e.localId == updatedGoal.localId,
     );
     if (index != -1) {
+      // تحديث البيانات مع الحفاظ على حالة الـ localId
       savingGoals[index] = updatedGoal;
       savingGoals.refresh();
       _calculateSummary();
+    }
+  }
+
+  // دالة متخصصة للتعامل مع المزامنة (تُستدعى من الـ ActionController)
+  void notifyGoalChanged(String localId) async {
+    // إعادة تحميل البيانات أو تحديث العنصر المتأثر فقط من الـ LocalDatasource
+    final updated = await Get.find<SavingGoalLocalDataSource>().getSavingGoal(
+      localId,
+    );
+    if (updated != null) {
+      updateGoalLocally(updated.toEntity());
     }
   }
 

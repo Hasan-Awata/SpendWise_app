@@ -1,12 +1,13 @@
 import 'package:get/get_rx/src/rx_types/rx_types.dart';
 import 'package:isar/isar.dart';
+import 'package:spendwise/features/sync/model/syncable_model.dart';
 import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 import 'package:uuid/uuid.dart';
 
 part 'tag_model.g.dart';
 
 @collection
-class TagModel {
+class TagModel implements SyncableModel {
   Id isarId = Isar.autoIncrement;
 
   @Index(unique: true)
@@ -18,10 +19,13 @@ class TagModel {
   int userId;
   String name;
 
+  @override
   bool isSynced;
+  @override
   bool isDeleted;
 
   // 🔥 retry system
+  @override
   int syncAttempts;
   DateTime? lastSyncError;
 
@@ -86,5 +90,21 @@ class TagModel {
   @override
   toString() {
     return 'TagModel{localId: $localId, id: $id, userId: $userId, name: $name, isSynced: $isSynced, isDeleted: $isDeleted, syncAttempts: $syncAttempts, lastSyncError: $lastSyncError, createdAt: $createdAt, updatedAt: $updatedAt}';
+  }
+
+  @override
+  void markSynced(int id) {
+    this.id = id;
+    isSynced = true;
+    isDeleted = false;
+    syncAttempts = 0;
+    lastSyncError = null;
+    updatedAt = DateTime.now();
+  }
+
+  @override
+  int? get serverId {
+    if (id == null || id! <= 0) return null;
+    return id;
   }
 }

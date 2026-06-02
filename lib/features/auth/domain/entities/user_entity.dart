@@ -9,6 +9,7 @@ class UserEntity {
   final String token;
 
   final DateTime? expiry;
+  final String? refreshToken;
 
   UserEntity({
     this.firstName,
@@ -17,5 +18,6 @@ class UserEntity {
     required this.userId,
     required this.token,
     this.expiry,
+    this.refreshToken,
   });
 }

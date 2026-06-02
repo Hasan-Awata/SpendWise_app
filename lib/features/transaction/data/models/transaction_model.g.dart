@@ -22,89 +22,124 @@ const TransactionModelSchema = CollectionSchema(
       name: r'amount',
       type: IsarType.double,
     ),
-    r'categoryId': PropertySchema(
+    r'amountInSp': PropertySchema(
       id: 1,
+      name: r'amountInSp',
+      type: IsarType.double,
+    ),
+    r'categoryId': PropertySchema(
+      id: 2,
       name: r'categoryId',
       type: IsarType.long,
     ),
     r'createdAt': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'date': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'date',
       type: IsarType.dateTime,
     ),
     r'description': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'description',
       type: IsarType.string,
     ),
     r'expenseTagId': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'expenseTagId',
       type: IsarType.long,
     ),
     r'id': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'id',
       type: IsarType.long,
     ),
+    r'isDebtProcess': PropertySchema(
+      id: 8,
+      name: r'isDebtProcess',
+      type: IsarType.bool,
+    ),
     r'isDeleted': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'isDeleted',
       type: IsarType.bool,
     ),
+    r'isExpenseProcess': PropertySchema(
+      id: 10,
+      name: r'isExpenseProcess',
+      type: IsarType.bool,
+    ),
+    r'isFixedExpenseProcess': PropertySchema(
+      id: 11,
+      name: r'isFixedExpenseProcess',
+      type: IsarType.bool,
+    ),
+    r'isFixedIncomeProcess': PropertySchema(
+      id: 12,
+      name: r'isFixedIncomeProcess',
+      type: IsarType.bool,
+    ),
+    r'isIncomeProcess': PropertySchema(
+      id: 13,
+      name: r'isIncomeProcess',
+      type: IsarType.bool,
+    ),
+    r'isSavingGoalProcess': PropertySchema(
+      id: 14,
+      name: r'isSavingGoalProcess',
+      type: IsarType.bool,
+    ),
     r'isSynced': PropertySchema(
-      id: 8,
+      id: 15,
       name: r'isSynced',
       type: IsarType.bool,
     ),
     r'lastSyncError': PropertySchema(
-      id: 9,
+      id: 16,
       name: r'lastSyncError',
       type: IsarType.dateTime,
     ),
     r'localId': PropertySchema(
-      id: 10,
+      id: 17,
       name: r'localId',
       type: IsarType.string,
     ),
     r'syncAttempts': PropertySchema(
-      id: 11,
+      id: 18,
       name: r'syncAttempts',
       type: IsarType.long,
     ),
     r'title': PropertySchema(
-      id: 12,
+      id: 19,
       name: r'title',
       type: IsarType.string,
     ),
     r'transactionType': PropertySchema(
-      id: 13,
+      id: 20,
       name: r'transactionType',
       type: IsarType.byte,
       enumMap: _TransactionModeltransactionTypeEnumValueMap,
     ),
     r'updatedAt': PropertySchema(
-      id: 14,
+      id: 21,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'userId': PropertySchema(
-      id: 15,
+      id: 22,
       name: r'userId',
       type: IsarType.long,
     ),
     r'walletId': PropertySchema(
-      id: 16,
+      id: 23,
       name: r'walletId',
       type: IsarType.long,
     ),
     r'walletLocalId': PropertySchema(
-      id: 17,
+      id: 24,
       name: r'walletLocalId',
       type: IsarType.string,
     )
@@ -185,23 +220,30 @@ void _transactionModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDouble(offsets[0], object.amount);
-  writer.writeLong(offsets[1], object.categoryId);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeDateTime(offsets[3], object.date);
-  writer.writeString(offsets[4], object.description);
-  writer.writeLong(offsets[5], object.expenseTagId);
-  writer.writeLong(offsets[6], object.id);
-  writer.writeBool(offsets[7], object.isDeleted);
-  writer.writeBool(offsets[8], object.isSynced);
-  writer.writeDateTime(offsets[9], object.lastSyncError);
-  writer.writeString(offsets[10], object.localId);
-  writer.writeLong(offsets[11], object.syncAttempts);
-  writer.writeString(offsets[12], object.title);
-  writer.writeByte(offsets[13], object.transactionType.index);
-  writer.writeDateTime(offsets[14], object.updatedAt);
-  writer.writeLong(offsets[15], object.userId);
-  writer.writeLong(offsets[16], object.walletId);
-  writer.writeString(offsets[17], object.walletLocalId);
+  writer.writeDouble(offsets[1], object.amountInSp);
+  writer.writeLong(offsets[2], object.categoryId);
+  writer.writeDateTime(offsets[3], object.createdAt);
+  writer.writeDateTime(offsets[4], object.date);
+  writer.writeString(offsets[5], object.description);
+  writer.writeLong(offsets[6], object.expenseTagId);
+  writer.writeLong(offsets[7], object.id);
+  writer.writeBool(offsets[8], object.isDebtProcess);
+  writer.writeBool(offsets[9], object.isDeleted);
+  writer.writeBool(offsets[10], object.isExpenseProcess);
+  writer.writeBool(offsets[11], object.isFixedExpenseProcess);
+  writer.writeBool(offsets[12], object.isFixedIncomeProcess);
+  writer.writeBool(offsets[13], object.isIncomeProcess);
+  writer.writeBool(offsets[14], object.isSavingGoalProcess);
+  writer.writeBool(offsets[15], object.isSynced);
+  writer.writeDateTime(offsets[16], object.lastSyncError);
+  writer.writeString(offsets[17], object.localId);
+  writer.writeLong(offsets[18], object.syncAttempts);
+  writer.writeString(offsets[19], object.title);
+  writer.writeByte(offsets[20], object.transactionType.index);
+  writer.writeDateTime(offsets[21], object.updatedAt);
+  writer.writeLong(offsets[22], object.userId);
+  writer.writeLong(offsets[23], object.walletId);
+  writer.writeString(offsets[24], object.walletLocalId);
 }
 
 TransactionModel _transactionModelDeserialize(
@@ -212,25 +254,32 @@ TransactionModel _transactionModelDeserialize(
 ) {
   final object = TransactionModel(
     amount: reader.readDouble(offsets[0]),
-    categoryId: reader.readLongOrNull(offsets[1]),
-    createdAt: reader.readDateTimeOrNull(offsets[2]),
-    date: reader.readDateTime(offsets[3]),
-    description: reader.readStringOrNull(offsets[4]),
-    expenseTagId: reader.readLongOrNull(offsets[5]),
-    id: reader.readLongOrNull(offsets[6]),
-    isDeleted: reader.readBoolOrNull(offsets[7]) ?? false,
-    isSynced: reader.readBoolOrNull(offsets[8]) ?? false,
-    lastSyncError: reader.readDateTimeOrNull(offsets[9]),
-    localId: reader.readString(offsets[10]),
-    syncAttempts: reader.readLongOrNull(offsets[11]) ?? 0,
-    title: reader.readStringOrNull(offsets[12]),
+    amountInSp: reader.readDoubleOrNull(offsets[1]) ?? 0.0,
+    categoryId: reader.readLongOrNull(offsets[2]),
+    createdAt: reader.readDateTimeOrNull(offsets[3]),
+    date: reader.readDateTime(offsets[4]),
+    description: reader.readStringOrNull(offsets[5]),
+    expenseTagId: reader.readLongOrNull(offsets[6]),
+    id: reader.readLongOrNull(offsets[7]),
+    isDebtProcess: reader.readBoolOrNull(offsets[8]) ?? false,
+    isDeleted: reader.readBoolOrNull(offsets[9]) ?? false,
+    isExpenseProcess: reader.readBoolOrNull(offsets[10]) ?? false,
+    isFixedExpenseProcess: reader.readBoolOrNull(offsets[11]) ?? false,
+    isFixedIncomeProcess: reader.readBoolOrNull(offsets[12]) ?? false,
+    isIncomeProcess: reader.readBoolOrNull(offsets[13]) ?? false,
+    isSavingGoalProcess: reader.readBoolOrNull(offsets[14]) ?? false,
+    isSynced: reader.readBoolOrNull(offsets[15]) ?? false,
+    lastSyncError: reader.readDateTimeOrNull(offsets[16]),
+    localId: reader.readString(offsets[17]),
+    syncAttempts: reader.readLongOrNull(offsets[18]) ?? 0,
+    title: reader.readStringOrNull(offsets[19]),
     transactionType: _TransactionModeltransactionTypeValueEnumMap[
-            reader.readByteOrNull(offsets[13])] ??
+            reader.readByteOrNull(offsets[20])] ??
         enTransactionType.addition,
-    updatedAt: reader.readDateTimeOrNull(offsets[14]),
-    userId: reader.readLongOrNull(offsets[15]),
-    walletId: reader.readLongOrNull(offsets[16]),
-    walletLocalId: reader.readStringOrNull(offsets[17]),
+    updatedAt: reader.readDateTimeOrNull(offsets[21]),
+    userId: reader.readLongOrNull(offsets[22]),
+    walletId: reader.readLongOrNull(offsets[23]),
+    walletLocalId: reader.readStringOrNull(offsets[24]),
   );
   object.isarId = id;
   return object;
@@ -246,40 +295,54 @@ P _transactionModelDeserializeProp<P>(
     case 0:
       return (reader.readDouble(offset)) as P;
     case 1:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset) ?? 0.0) as P;
     case 2:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 3:
-      return (reader.readDateTime(offset)) as P;
-    case 4:
-      return (reader.readStringOrNull(offset)) as P;
-    case 5:
       return (reader.readLongOrNull(offset)) as P;
+    case 3:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 4:
+      return (reader.readDateTime(offset)) as P;
+    case 5:
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
       return (reader.readLongOrNull(offset)) as P;
     case 7:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 8:
       return (reader.readBoolOrNull(offset) ?? false) as P;
     case 9:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 11:
-      return (reader.readLongOrNull(offset) ?? 0) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 12:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 13:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 14:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 15:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 16:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 17:
+      return (reader.readString(offset)) as P;
+    case 18:
+      return (reader.readLongOrNull(offset) ?? 0) as P;
+    case 19:
+      return (reader.readStringOrNull(offset)) as P;
+    case 20:
       return (_TransactionModeltransactionTypeValueEnumMap[
               reader.readByteOrNull(offset)] ??
           enTransactionType.addition) as P;
-    case 14:
+    case 21:
       return (reader.readDateTimeOrNull(offset)) as P;
-    case 15:
+    case 22:
       return (reader.readLongOrNull(offset)) as P;
-    case 16:
+    case 23:
       return (reader.readLongOrNull(offset)) as P;
-    case 17:
+    case 24:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -669,6 +732,72 @@ extension TransactionModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'amount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterFilterCondition>
+      amountInSpEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'amountInSp',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterFilterCondition>
+      amountInSpGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'amountInSp',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterFilterCondition>
+      amountInSpLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'amountInSp',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterFilterCondition>
+      amountInSpBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'amountInSp',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -1185,10 +1314,70 @@ extension TransactionModelQueryFilter
   }
 
   QueryBuilder<TransactionModel, TransactionModel, QAfterFilterCondition>
+      isDebtProcessEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isDebtProcess',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterFilterCondition>
       isDeletedEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isDeleted',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterFilterCondition>
+      isExpenseProcessEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isExpenseProcess',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterFilterCondition>
+      isFixedExpenseProcessEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isFixedExpenseProcess',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterFilterCondition>
+      isFixedIncomeProcessEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isFixedIncomeProcess',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterFilterCondition>
+      isIncomeProcessEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isIncomeProcess',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterFilterCondition>
+      isSavingGoalProcessEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isSavingGoalProcess',
         value: value,
       ));
     });
@@ -2136,6 +2325,20 @@ extension TransactionModelQuerySortBy
   }
 
   QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByAmountInSp() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountInSp', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByAmountInSpDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountInSp', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
       sortByCategoryId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'categoryId', Sort.asc);
@@ -2218,6 +2421,20 @@ extension TransactionModelQuerySortBy
   }
 
   QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsDebtProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDebtProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsDebtProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDebtProcess', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
       sortByIsDeleted() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isDeleted', Sort.asc);
@@ -2228,6 +2445,76 @@ extension TransactionModelQuerySortBy
       sortByIsDeletedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isDeleted', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsExpenseProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isExpenseProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsExpenseProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isExpenseProcess', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsFixedExpenseProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFixedExpenseProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsFixedExpenseProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFixedExpenseProcess', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsFixedIncomeProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFixedIncomeProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsFixedIncomeProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFixedIncomeProcess', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsIncomeProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isIncomeProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsIncomeProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isIncomeProcess', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsSavingGoalProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSavingGoalProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      sortByIsSavingGoalProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSavingGoalProcess', Sort.desc);
     });
   }
 
@@ -2388,6 +2675,20 @@ extension TransactionModelQuerySortThenBy
   }
 
   QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByAmountInSp() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountInSp', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByAmountInSpDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'amountInSp', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
       thenByCategoryId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'categoryId', Sort.asc);
@@ -2470,6 +2771,20 @@ extension TransactionModelQuerySortThenBy
   }
 
   QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsDebtProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDebtProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsDebtProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDebtProcess', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
       thenByIsDeleted() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isDeleted', Sort.asc);
@@ -2480,6 +2795,76 @@ extension TransactionModelQuerySortThenBy
       thenByIsDeletedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isDeleted', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsExpenseProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isExpenseProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsExpenseProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isExpenseProcess', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsFixedExpenseProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFixedExpenseProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsFixedExpenseProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFixedExpenseProcess', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsFixedIncomeProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFixedIncomeProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsFixedIncomeProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFixedIncomeProcess', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsIncomeProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isIncomeProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsIncomeProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isIncomeProcess', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsSavingGoalProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSavingGoalProcess', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QAfterSortBy>
+      thenByIsSavingGoalProcessDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSavingGoalProcess', Sort.desc);
     });
   }
 
@@ -2647,6 +3032,13 @@ extension TransactionModelQueryWhereDistinct
   }
 
   QueryBuilder<TransactionModel, TransactionModel, QDistinct>
+      distinctByAmountInSp() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'amountInSp');
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QDistinct>
       distinctByCategoryId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'categoryId');
@@ -2687,9 +3079,51 @@ extension TransactionModelQueryWhereDistinct
   }
 
   QueryBuilder<TransactionModel, TransactionModel, QDistinct>
+      distinctByIsDebtProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isDebtProcess');
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QDistinct>
       distinctByIsDeleted() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isDeleted');
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QDistinct>
+      distinctByIsExpenseProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isExpenseProcess');
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QDistinct>
+      distinctByIsFixedExpenseProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isFixedExpenseProcess');
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QDistinct>
+      distinctByIsFixedIncomeProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isFixedIncomeProcess');
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QDistinct>
+      distinctByIsIncomeProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isIncomeProcess');
+    });
+  }
+
+  QueryBuilder<TransactionModel, TransactionModel, QDistinct>
+      distinctByIsSavingGoalProcess() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isSavingGoalProcess');
     });
   }
 
@@ -2779,6 +3213,13 @@ extension TransactionModelQueryProperty
     });
   }
 
+  QueryBuilder<TransactionModel, double, QQueryOperations>
+      amountInSpProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'amountInSp');
+    });
+  }
+
   QueryBuilder<TransactionModel, int?, QQueryOperations> categoryIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'categoryId');
@@ -2818,9 +3259,51 @@ extension TransactionModelQueryProperty
     });
   }
 
+  QueryBuilder<TransactionModel, bool, QQueryOperations>
+      isDebtProcessProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isDebtProcess');
+    });
+  }
+
   QueryBuilder<TransactionModel, bool, QQueryOperations> isDeletedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isDeleted');
+    });
+  }
+
+  QueryBuilder<TransactionModel, bool, QQueryOperations>
+      isExpenseProcessProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isExpenseProcess');
+    });
+  }
+
+  QueryBuilder<TransactionModel, bool, QQueryOperations>
+      isFixedExpenseProcessProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isFixedExpenseProcess');
+    });
+  }
+
+  QueryBuilder<TransactionModel, bool, QQueryOperations>
+      isFixedIncomeProcessProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isFixedIncomeProcess');
+    });
+  }
+
+  QueryBuilder<TransactionModel, bool, QQueryOperations>
+      isIncomeProcessProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isIncomeProcess');
+    });
+  }
+
+  QueryBuilder<TransactionModel, bool, QQueryOperations>
+      isSavingGoalProcessProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isSavingGoalProcess');
     });
   }
 

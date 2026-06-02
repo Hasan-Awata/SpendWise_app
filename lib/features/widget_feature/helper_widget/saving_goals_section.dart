@@ -44,22 +44,21 @@ class _SavingsGoalsSectionState extends State<SavingsGoalsSection> {
           ],
         ),
         const SizedBox(height: 10),
-        SizedBox(
-          height: 140, // تم زيادة الارتفاع ليتناسب مع التصميم الجديد
-          child: Obx(() {
-            if (controller.savingGoals.isEmpty) {
-              return _buildEmptyState();
-            }
-            return ListView.builder(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: controller.savingGoals.length,
-              itemBuilder: (context, index) {
-                final goal = controller.savingGoals[index];
-                return _buildEnhancedGoalCard(goal);
-              },
-            );
-          }),
+        Obx(
+          () => (controller.isLoading.value)
+              ? CircularProgressIndicator(color: SpColor.savinggoalColor)
+              : SizedBox(
+                  height: 140, // تم زيادة الارتفاع ليتناسب مع التصميم الجديد
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: controller.savingGoals.length,
+                    itemBuilder: (context, index) {
+                      final goal = controller.savingGoals[index];
+                      return _buildEnhancedGoalCard(goal);
+                    },
+                  ),
+                ),
         ),
       ],
     );
@@ -113,7 +112,7 @@ class _SavingsGoalsSectionState extends State<SavingsGoalsSection> {
                     ),
                   ),
                 ),
-                if (!goal.isSynced)
+                if (!goal.isSynced.value)
                   const Icon(
                     Icons.sync_problem,
                     size: 14,
@@ -279,22 +278,6 @@ class _SavingsGoalsSectionState extends State<SavingsGoalsSection> {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: SpColor.surfaceNavy.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: const Center(
-        child: Text(
-          "لا توجد أهداف نشطة",
-          style: TextStyle(color: Colors.white38),
         ),
       ),
     );

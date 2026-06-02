@@ -1,40 +1,20 @@
-// // [تم تحديث الكلاس بالكامل: إضافة أيقونة تبديل تفاعلية، تحسين واجهة اختيار المحفظة باستخدام Bottom Sheet، وتنسيق الألوان لتعزيز تجربة المستخدم]
+// lib/features/home/presentation/widgets/balance_card.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
-import 'package:spendwise/features/income/presentation/manager/incomes_list_controller.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
-class BalanceCard extends StatefulWidget {
+class BalanceCard extends StatelessWidget {
   const BalanceCard({super.key});
 
   @override
-  State<BalanceCard> createState() => _BalanceCardState();
-}
-
-class _BalanceCardState extends State<BalanceCard> {
-  final expensesController = Get.find<ExpensesListController>();
-  final incomesListController = Get.find<IncomesListController>();
-  final walletListController = Get.find<WalletsListController>();
-  final mainController = Get.find<MainController>();
-
-  @override
-  void initState() {
-    super.initState();
-    // تعيين المحفظة الأولى كافتراضية إذا لم تكن مختارة مسبقاً
-    if (walletListController.wallets.isNotEmpty &&
-        mainController.selectWallet.value == null) {
-      mainController.selectWallet.value = walletListController.wallets[0];
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final mainController = Get.find<MainController>();
+
     return GestureDetector(
-      onTap: () => _showWalletPicker(),
+      onTap: () => _showWalletPicker(context, mainController),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(25),
@@ -54,259 +34,188 @@ class _BalanceCardState extends State<BalanceCard> {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "إجمالي الرصيد الحقيقي",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // مؤشر بصري يوضح اسم المحفظة النشطة حالياً
-                    Obx(() {
-                      final walletName =
-                          mainController
-                              .selectWallet
-                              .value
-                              ?.currency
-                              .currencyName ??
-                          "اختر محفظة";
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: SpColor.accentBlue.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          walletName,
-                          style: const TextStyle(
-                            color: SpColor.accentBlue,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-                // زر اختيار التاريخ
-                Obx(() {
-                  final monthLabel = DateFormat(
-                    'MMMM yyyy',
-                    'ar',
-                  ).format(incomesListController.dashboardMonth.value);
-                  return Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () =>
-                          incomesListController.pickDashboardMonth(context),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.calendar_month,
-                              color: Colors.white70,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              monthLabel,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
-            const SizedBox(height: 15),
-            // عرض الرصيد مع أيقونة التبديل
-            Obx(() {
-              final wallet = mainController.selectWallet.value;
-              return Row(
+        child: Obx(() {
+          final isLoading = mainController.isLoading.value;
+          final activeWallet =
+              mainController.selectWallet.value ??
+              (mainController.walletListController.regularWallets.isNotEmpty
+                  ? mainController.walletListController.regularWallets[0]
+                  : null);
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Text(
-                      wallet == null
-                          ? "0.00"
-                          : "${wallet.currency.code} ${wallet.balance}",
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "إجمالي الرصيد الحقيقي",
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      _buildWalletBadge(activeWallet, isLoading),
+                    ],
                   ),
-                  // أيقونة تدل على أن القسم قابل للضغط والتبديل
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.swap_vert_rounded,
-                      color: SpColor.accentBlue,
-                      size: 22,
-                    ),
-                  ),
+                  _buildMonthPicker(mainController, context),
                 ],
-              );
-            }),
-            const SizedBox(height: 20),
-            // إحصائيات التدفق المالي
-            Obx(() {
-              final income = incomesListController.monthlyAndWalletIncome.value;
-              final expense = expensesController.monthlyAndWalletExpense.value;
-              final wallet = mainController.selectWallet.value;
-              final currencyCode = wallet?.currency.code ?? "";
+              ),
+              const SizedBox(height: 15),
+              _buildBalanceDisplay(activeWallet, isLoading),
+              const SizedBox(height: 20),
+              _buildStatsRow(mainController, activeWallet, isLoading),
+            ],
+          );
+        }),
+      ),
+    );
+  }
 
-              return Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildFlowStat(
-                        Icons.arrow_downward_rounded,
-                        "الدخل",
-                        "$currencyCode $income",
-                        SpColor.incomeGreen,
-                      ),
-                    ),
-                    Container(width: 1, height: 25, color: Colors.white10),
-                    Expanded(
-                      child: _buildFlowStat(
-                        Icons.arrow_upward_rounded,
-                        "المصاريف",
-                        "$currencyCode $expense",
-                        SpColor.expenseRed,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
+  Widget _buildWalletBadge(activeWallet, bool isLoading) {
+    if (isLoading) return _buildShimmer(width: 80, height: 18, radius: 6);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: SpColor.accentBlue.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        activeWallet?.currency.currencyName ?? "لا توجد محفظة",
+        style: const TextStyle(
+          color: SpColor.accentBlue,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
 
-  // استخدام Bottom Sheet بدلاً من Dialog لتجربة مستخدم أفضل على الموبايل
-  void _showWalletPicker() {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: const BoxDecoration(
-          color: SpColor.primaryDark2,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+  Widget _buildBalanceDisplay(activeWallet, bool isLoading) {
+    if (isLoading) return _buildShimmer(width: 180, height: 35, radius: 10);
+    final currencyCode = activeWallet?.currency.code ?? "SYP";
+    final balance = activeWallet?.balance ?? 0.0;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            "$currencyCode ${balance.toStringAsFixed(2)}",
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        Container(
+          width: 39,
+          height: 39,
+          decoration: BoxDecoration(
+            color: SpColor.accentBlue.withAlpha(40),
+            borderRadius: BorderRadius.circular(100),
+          ),
+          child: const Icon(
+            Icons.swap_vert_rounded,
+            color: SpColor.accentBlue,
+            size: 27,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsRow(
+    MainController controller,
+    activeWallet,
+    bool isLoading,
+  ) {
+    if (isLoading)
+      return _buildShimmer(width: double.infinity, height: 60, radius: 20);
+
+    final incomeTotal = controller.getFilteredIncomeTotal(activeWallet);
+    final expenseTotal = controller.getFilteredExpenseTotal(activeWallet);
+    final currencyCode = activeWallet?.currency.code ?? "";
+
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildFlowStat(
+              Icons.arrow_downward_rounded,
+              "الدخل",
+              "$currencyCode ${incomeTotal.toStringAsFixed(1)}",
+              SpColor.incomeGreen,
+            ),
+          ),
+          Container(width: 1, height: 25, color: Colors.white10),
+          Expanded(
+            child: _buildFlowStat(
+              Icons.arrow_upward_rounded,
+              "المصاريف",
+              "$currencyCode ${expenseTotal.toStringAsFixed(1)}",
+              SpColor.expenseRed,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // دالة الـ Shimmer الأساسية
+  Widget _buildShimmer({
+    required double width,
+    required double height,
+    required double radius,
+  }) {
+    return Shimmer.fromColors(
+      baseColor: Colors.white.withOpacity(0.1),
+      highlightColor: Colors.white.withOpacity(0.25),
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(radius),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthPicker(MainController controller, BuildContext context) {
+    final monthLabel = DateFormat(
+      'MMMM yyyy',
+      'ar',
+    ).format(controller.incomesListController.dashboardMonth.value);
+    return InkWell(
+      onTap: () => controller.incomesListController.pickDashboardMonth(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
           children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white12,
-                borderRadius: BorderRadius.circular(10),
+            const Icon(Icons.calendar_month, color: Colors.white70, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              monthLabel,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              "تبديل المحفظة النشطة",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 15),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: walletListController.wallets.length,
-                itemBuilder: (context, index) {
-                  final wallet = walletListController.wallets[index];
-                  final isSelected =
-                      mainController.selectWallet.value?.walletId ==
-                      wallet.walletId;
-                  return ListTile(
-                    onTap: () {
-                      mainController.selectWallet.value = wallet;
-                      Get.back();
-                    },
-                    leading: CircleAvatar(
-                      backgroundColor: isSelected
-                          ? SpColor.accentBlue.withOpacity(0.2)
-                          : Colors.white.withOpacity(0.05),
-                      child: Icon(
-                        Icons.account_balance_wallet_rounded,
-                        color: isSelected ? SpColor.accentBlue : Colors.white54,
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(
-                      "محفظة ${wallet.currency.currencyName}",
-                      style: TextStyle(
-                        color: isSelected ? SpColor.accentBlue : Colors.white,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                    trailing: isSelected
-                        ? const Icon(
-                            Icons.check_circle,
-                            color: SpColor.accentBlue,
-                            size: 20,
-                          )
-                        : null,
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
           ],
         ),
       ),
-      isScrollControlled: true,
     );
   }
 
@@ -332,7 +241,6 @@ class _BalanceCardState extends State<BalanceCard> {
         const SizedBox(height: 4),
         Text(
           amount,
-          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -340,6 +248,76 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showWalletPicker(BuildContext context, MainController mainController) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: const BoxDecoration(
+          color: SpColor.primaryDark,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white12,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "تبدل المحفظة النشطة",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Obx(
+              () => Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount:
+                      mainController.walletListController.regularWallets.length,
+                  itemBuilder: (context, index) {
+                    final wallet = mainController
+                        .walletListController
+                        .regularWallets[index];
+                    final isSelected =
+                        mainController.selectWallet.value?.walletId ==
+                        wallet.walletId;
+                    return ListTile(
+                      onTap: () {
+                        mainController.selectWallet.value = wallet;
+                        Get.back();
+                      },
+                      title: Text(
+                        "محفظة ${wallet.currency.currencyName}",
+                        style: TextStyle(
+                          color: isSelected ? SpColor.accentBlue : Colors.white,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: SpColor.accentBlue,
+                            )
+                          : null,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
     );
   }
 }

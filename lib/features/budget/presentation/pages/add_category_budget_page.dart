@@ -4,17 +4,20 @@ import 'package:intl/intl.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/budget/presentation/manager/add_category_budget_controller.dart';
+import 'package:spendwise/features/helper_function.dart';
 
-class ManageCategoryBudgetScreen
-    extends GetView<ManageCategoryBudgetController> {
+class ManageCategoryBudgetScreen extends StatelessWidget {
   final int userId;
   final RxDouble localSliderValue = 25.0.obs;
+
+  final ManageCategoryBudgetController controller = Get.put(
+    ManageCategoryBudgetController(updateBudgetUseCase: Get.find()),
+  );
 
   ManageCategoryBudgetScreen({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context) {
-    // ربط مستمع لتغيير النص في الـ controller لتحديث السلايدر الرسومي تلقائياً عند تغيير الفئة
     ever(controller.selectedCategoryId, (_) {
       localSliderValue.value =
           double.tryParse(controller.percentageController.text) ?? 25.0;
@@ -35,51 +38,32 @@ class ManageCategoryBudgetScreen
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () {
-              Get.toNamed(Routes.CATEGORY_BUDGET);
-            },
-            icon: Icon(Icons.list),
+            onPressed: () => Get.toNamed(Routes.CATEGORY_BUDGET),
+            icon: const Icon(Icons.list),
           ),
         ],
       ),
-      body: Obx(() {
-        if (controller.isLoading.value &&
-            controller.listController.budgets.isEmpty) {
-          return const Center(
-            child: CircularProgressIndicator(color: SpColor.accentBlue),
-          );
-        }
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(20.0),
-          child: Form(
-            key: controller.formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. عرض الـ 4 تصنيفات الثابتة مع حالتها الحالية
-                _FixedCategoryGrid(controller: controller),
-                const SizedBox(height: 30),
-
-                // 2. السلايدر الذكي للتعديل
-                _PercentageSliderSection(controller: controller),
-                const SizedBox(height: 25),
-
-                // 3. النطاق الزمني للميزانية المحددة
-                _DateRangeSection(controller: controller),
-                const SizedBox(height: 25),
-
-                // 4. سويتش التفعيل
-                _ActivationSwitchSection(controller: controller),
-                const SizedBox(height: 40),
-
-                // 5. زر الحفظ الذكي (تعديل أو إضافة)
-                _SubmitButton(controller: controller, userId: userId),
-              ],
-            ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: controller.formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _FixedCategoryGrid(controller: controller),
+              const SizedBox(height: 30),
+              _PercentageSliderSection(controller: controller),
+              const SizedBox(height: 25),
+              _DateRangeSection(controller: controller),
+              const SizedBox(height: 25),
+              _ActivationSwitchSection(controller: controller),
+              const SizedBox(height: 40),
+              _SubmitButton(controller: controller, userId: userId),
+            ],
           ),
-        );
-      }),
+        ),
+      ),
     );
   }
 }
@@ -95,20 +79,12 @@ class _FixedCategoryGrid extends StatelessWidget {
       children: [
         const Text(
           "اختر الفئة لمعاينتها أو التعديل عليها",
-          style: TextStyle(
-            color: SpColor.mutedGrey,
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(color: SpColor.mutedGrey, fontSize: 15),
         ),
         const SizedBox(height: 12),
-        // وضعنا الـ Obx هنا وسنقوم بالوصول لمتغير .value بالداخل ليختفي الخطأ فوراً
         Obx(() {
-          // خدعة ذكية: نقرأ طول القائمة التفاعلية activeBudgets ليتم تسجيل هذا الـ Widget في نظام المراقبة لـ GetX
           final _ = controller.listController.budgets.length;
-          final selectedId = controller
-              .selectedCategoryId
-              .value; // مراقبة التصنيف الحالي أيضاً
+          final selectedId = controller.selectedCategoryId.value;
 
           return GridView.builder(
             shrinkWrap: true,
@@ -125,13 +101,11 @@ class _FixedCategoryGrid extends StatelessWidget {
               final isSelected = selectedId == item.categoryId;
               final hasBudget = item.budget != null;
 
-              IconData categoryIcon = Icons.folder_open_outlined;
-              if (item.categoryId == 1)
-                categoryIcon = Icons.shopping_cart_outlined;
-              if (item.categoryId == 2) categoryIcon = Icons.movie_outlined;
-              if (item.categoryId == 3)
-                categoryIcon = Icons.card_giftcard_outlined;
-              if (item.categoryId == 4) categoryIcon = Icons.savings_outlined;
+              IconData icon = Icons.folder_open_outlined;
+              if (item.categoryId == 1) icon = Icons.shopping_cart_outlined;
+              if (item.categoryId == 2) icon = Icons.movie_outlined;
+              if (item.categoryId == 3) icon = Icons.card_giftcard_outlined;
+              if (item.categoryId == 4) icon = Icons.savings_outlined;
 
               return GestureDetector(
                 onTap: () =>
@@ -153,12 +127,11 @@ class _FixedCategoryGrid extends StatelessWidget {
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           Icon(
-                            categoryIcon,
+                            icon,
                             color: isSelected
                                 ? SpColor.accentBlue
                                 : SpColor.mutedGrey,
@@ -180,8 +153,8 @@ class _FixedCategoryGrid extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         hasBudget
-                            ? "الميزانية الحالية: ${item.budget!.percentageLimit.toStringAsFixed(0)}%"
-                            : "لا توجد ميزانية مخصصة",
+                            ? "الميزانية: ${item.budget!.percentageLimit.toStringAsFixed(0)}%"
+                            : "لا توجد ميزانية",
                         style: TextStyle(
                           color: hasBudget
                               ? SpColor.incomeGreen
@@ -203,33 +176,31 @@ class _FixedCategoryGrid extends StatelessWidget {
 
 class _PercentageSliderSection extends StatelessWidget {
   final ManageCategoryBudgetController controller;
-
-  // تعديل الـ Constructor لاستقبال الـ controller فقط
   const _PercentageSliderSection({required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    // نضع الـ Obx هنا لضمان استماع السلايدر للتغييرات القادمة من الـ controller فور الانتقال بين الفئات
-    return Obx(
-      () => Container(
+    return Obx(() {
+      // حساب هل المجموع تجاوز الـ 100%
+      final total = controller.totalPercentage;
+      final isOverLimit = total > 100;
+      if (controller.listController.isLoading.value) {
+        return HelperFunction.buildShimmer(height: 150);
+      }
+      return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: SpColor.surfaceNavy,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  "النسبة المئوية المخصصة للميزانية",
-                  style: TextStyle(
-                    color: SpColor.mutedGrey,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  "النسبة المئوية المخصصة",
+                  style: TextStyle(color: SpColor.mutedGrey),
                 ),
                 Text(
                   "${controller.sliderValue.value.toStringAsFixed(0)}%",
@@ -241,88 +212,59 @@ class _PercentageSliderSection extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 1,
-              child: TextFormField(
-                controller: controller.percentageController,
-                readOnly: true,
-                decoration: const InputDecoration(border: InputBorder.none),
-                validator: (value) => (value == null || value.isEmpty)
-                    ? "يرجى تحديد النسبة المئوية"
-                    : null,
-              ),
-            ),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: controller.sliderValue.value > 60
-                    ? SpColor.expenseRed
-                    : SpColor.accentBlue,
-                inactiveTrackColor: SpColor.primaryDark,
-                thumbColor: SpColor.offWhite,
-                trackHeight: 6,
-              ),
-              child: Slider(
-                value: controller.sliderValue.value,
-                min: 1.0,
-                max: 100.0,
-                onChanged: (value) {
-                  // تحديث القيمتين معاً في الـ controller مباشرة أثناء السحب
+            Slider(
+              activeColor: controller.isOverLimit.value
+                  ? SpColor.expenseRed
+                  : SpColor.accentBlue,
+              value: controller.sliderValue.value,
+              min: 1.0,
+              max: 100.0,
+              onChanged: (value) {
+                final currentOthersTotal =
+                    controller.totalPercentage - controller.sliderValue.value;
+                final maxAllowed = 100.0 - currentOthersTotal;
+
+                if (value <= maxAllowed) {
                   controller.sliderValue.value = value;
                   controller.percentageController.text = value.toStringAsFixed(
                     0,
                   );
-                },
+                } else {
+                  controller.sliderValue.value = maxAllowed;
+                  controller.percentageController.text = maxAllowed
+                      .toStringAsFixed(0);
+                }
+
+                // تحديث الـ Flag بعد كل حركة
+                controller.isOverLimit.value =
+                    controller.totalPercentage > 100.01;
+              },
+            ),
+            // إضافة نص المجموع التفاعلي
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                "إجمالي الميزانيات: ${controller.totalPercentage.toStringAsFixed(0)}%",
+                style: TextStyle(
+                  color: controller.isOverLimit.value
+                      ? SpColor.expenseRed
+                      : SpColor.mutedGrey,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
+            if (controller.isOverLimit.value) // استخدام الـ Flag هنا فقط
+              const Text(
+                "تحذير: لا يمكن تجاوز 100%",
+                style: TextStyle(color: SpColor.expenseRed),
+              ),
           ],
         ),
-      ),
-    );
+      );
+    });
   }
 }
 
-// ================= تعديل كلاس زر الإدخال السفلي =================
-class _SubmitButton extends StatelessWidget {
-  final ManageCategoryBudgetController controller;
-  final int userId;
-
-  const _SubmitButton({required this.controller, required this.userId});
-
-  @override
-  Widget build(BuildContext context) {
-    final currentCat = controller.categoryList.firstWhere(
-      (c) => c.categoryId == controller.selectedCategoryId.value,
-    );
-    final isUpdateMode = currentCat.budget != null;
-
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        // نمرر قيمة السلايدر مباشرة من الـ controller
-        onPressed: () =>
-            controller.saveOrUpdateBudget(userId, controller.sliderValue.value),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isUpdateMode
-              ? SpColor.incomeGreen
-              : SpColor.accentBlue,
-          foregroundColor: SpColor.primaryDark,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          elevation: 4,
-        ),
-        child: Text(
-          isUpdateMode ? "تحديث ميزانية الفئة" : "حفظ وإدراج الميزانية",
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-}
-
-// كلاس النطاق الزمني
 class _DateRangeSection extends StatelessWidget {
   final ManageCategoryBudgetController controller;
   const _DateRangeSection({required this.controller});
@@ -330,114 +272,184 @@ class _DateRangeSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(
-      () => Row(
-        children: [
-          Expanded(
-            child: _buildDateTile(
-              title: "تاريخ البدء",
-              icon: Icons.date_range,
-              onTap: () => controller.pickStartDate(context),
-              dateStream: controller.startDate,
+      () => controller.listController.isLoading.value
+          ? Row(
+              // Shimmer موازي لشكل الـ Row
+              children: [
+                Expanded(child: HelperFunction.buildShimmer(height: 80)),
+                const SizedBox(width: 12),
+                Expanded(child: HelperFunction.buildShimmer(height: 80)),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: _buildTile(
+                    "تاريخ البدء",
+                    Icons.date_range,
+                    () => controller.pickStartDate(context),
+                    controller.startDate,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTile(
+                    "تاريخ الانتهاء",
+                    Icons.event_available,
+                    () => controller.pickEndDate(context),
+                    controller.endDate,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildDateTile(
-              title: "تاريخ الانتهاء",
-              icon: Icons.event_available,
-              onTap: () => controller.pickEndDate(context),
-              dateStream: controller.endDate,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _buildDateTile({
-    required String title,
-    required IconData icon,
-    required VoidCallback onTap,
-    required Rxn<DateTime> dateStream,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-        decoration: BoxDecoration(
-          color: SpColor.surfaceNavy,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: SpColor.accentBlue, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildTile(
+    String title,
+    IconData icon,
+    VoidCallback onTap,
+    Rxn<DateTime> date,
+  ) {
+    return Obx(
+      () => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: SpColor.surfaceNavy,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: SpColor.accentBlue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 7),
+              Row(
                 children: [
+                  Icon(icon, color: SpColor.accentBlue, size: 20),
+                  const SizedBox(width: 10),
                   Text(
-                    title,
-                    style: const TextStyle(
-                      color: SpColor.mutedGrey,
-                      fontSize: 11,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    dateStream.value != null
-                        ? DateFormat('yyyy/MM/dd').format(dateStream.value!)
+                    date.value != null
+                        ? DateFormat('yyyy/MM/dd').format(date.value!)
                         : "اختر التاريخ",
                     style: const TextStyle(
                       color: SpColor.offWhite,
-                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// كلاس سويتش التفعيل
+class _SubmitButton extends StatelessWidget {
+  final ManageCategoryBudgetController controller;
+  final int userId;
+  const _SubmitButton({required this.controller, required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Obx(() {
+        // نتحقق من حالة التحميل أو المجموع الخاطئ
+        if (controller.isLoading.value) {
+          return CircularProgressIndicator(color: SpColor.incomeGreen);
+        }
+
+        final currentCat =
+            controller.selectedCategory; // استخدمنا الـ Getter المحدث
+        final isUpdate = currentCat.budget != null;
+
+        return SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            // تعطيل الزر إذا كان المجموع أكبر من 100
+            onPressed: controller.isOverLimit.value
+                ? null
+                : () => controller.saveOrUpdateBudget(
+                    userId,
+                    controller.sliderValue.value,
+                  ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: controller.isOverLimit.value
+                  ? SpColor.mutedGrey
+                  : (isUpdate ? SpColor.incomeGreen : SpColor.accentBlue),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: Text(isUpdate ? "تحديث الميزانية" : "حفظ الميزانية"),
+          ),
+        );
+      }),
+    );
+  }
+}
+
 class _ActivationSwitchSection extends StatelessWidget {
   final ManageCategoryBudgetController controller;
   const _ActivationSwitchSection({required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+    return Obx(() {
+      if (controller.listController.isLoading.value)
+        return HelperFunction.buildShimmer(height: 70);
+
+      return Container(
         decoration: BoxDecoration(
           color: SpColor.surfaceNavy.withOpacity(0.5),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: controller.isActive.value
+                ? SpColor.accentBlue.withOpacity(0.3)
+                : Colors.transparent,
+          ),
         ),
         child: SwitchListTile(
-          contentPadding: EdgeInsets.zero,
+          activeThumbColor: SpColor.accentBlue,
+          activeTrackColor: SpColor.accentBlue.withOpacity(0.4),
+          inactiveThumbColor: SpColor.mutedGrey,
+          inactiveTrackColor: SpColor.primaryDark,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 4,
+          ),
           title: const Text(
-            "تفعيل الميزانية فوراً",
+            "تفعيل الميزانية",
             style: TextStyle(
               color: SpColor.offWhite,
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          subtitle: const Text(
-            "سيتم احتساب ميزانية الفئة في الإحصاءات فور الحفظ",
-            style: TextStyle(color: SpColor.mutedGrey, fontSize: 11),
+          subtitle: Text(
+            controller.isActive.value
+                ? "الميزانية مفعلة حالياً"
+                : "الميزانية معطلة",
+            style: TextStyle(
+              color: controller.isActive.value
+                  ? SpColor.accentBlue
+                  : SpColor.mutedGrey,
+              fontSize: 12,
+            ),
           ),
           value: controller.isActive.value,
-          activeThumbColor: SpColor.incomeGreen,
-          inactiveTrackColor: SpColor.primaryDark,
-          onChanged: (bool value) => controller.isActive.value = value,
+          onChanged: (v) => controller.isActive.value = v,
         ),
-      ),
-    );
+      );
+    });
   }
 }

@@ -16,6 +16,7 @@ class WalletEntity {
 
   Currency currency;
 
+  int numberOfTransactions; // عدد المعاملات المرتبطة بالمحفظة
   DateTime? createdAt;
   DateTime? updatedAt;
 
@@ -27,7 +28,7 @@ class WalletEntity {
     required this.balance,
     required this.currencyId,
     this.isSaved = false,
-
+    this.numberOfTransactions = 0,
     this.isDeleted = false,
     required this.currency,
     this.createdAt,

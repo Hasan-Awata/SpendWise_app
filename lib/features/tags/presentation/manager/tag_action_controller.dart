@@ -174,7 +174,7 @@ class TagActionController extends GetxController {
         // rollback
         tagViewController.addTagLocally(backup);
 
-        HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
+        // HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
       }, (message) {});
     } finally {
       isLoading.value = false;

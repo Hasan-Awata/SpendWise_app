@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/core/services/init_isar.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
@@ -17,44 +16,79 @@ import 'package:spendwise/features/tags/domain/usecases/update_tag_usecase.dart'
 import 'package:spendwise/features/tags/presentation/manager/tag_action_controller.dart';
 import 'package:spendwise/features/tags/presentation/manager/tag_view_controller.dart';
 
-// This binding class manages the immediate injection of tag-related dependencies using Get.put
 class TagBinding implements Bindings {
   @override
   void dependencies() {
-    // 1. DataSources
-    // We use Get.put to initialize the data sources immediately in memory
-    Get.put<TagRemoteDatasource>(
-      TagRemoteDatasourceImpl(client: http.Client()),
+    // =====================================================
+    // 1. SERVICES & DATA SOURCES (الحقن المستقر والدائم)
+    // =====================================================
+
+    if (!Get.isRegistered<TagRemoteDatasource>()) {
+      Get.put<TagRemoteDatasource>(
+        TagRemoteDatasourceImpl(network: Get.find<NetworkService>()),
+        permanent: true,
+      );
+    }
+
+    if (!Get.isRegistered<TagLocalDatasource>()) {
+      Get.put<TagLocalDatasource>(
+        TagLocalDatasourceImpl(InitIsar.isar!),
+        permanent: true,
+      );
+    }
+
+    // =====================================================
+    // 2. REPOSITORY
+    // =====================================================
+
+    if (!Get.isRegistered<TagRepository>()) {
+      Get.put<TagRepository>(
+        TagRepositoryImpl(
+          local: Get.find<TagLocalDatasource>(),
+          syncQueueRepository: Get.find<SyncQueueRepository>(),
+          remote: Get.find<TagRemoteDatasource>(),
+        ),
+        permanent: true,
+      );
+    }
+
+    // =====================================================
+    // 3. USE CASES
+    // =====================================================
+
+    if (!Get.isRegistered<AddTagUsecase>()) {
+      Get.put(AddTagUsecase(Get.find<TagRepository>()), permanent: true);
+    }
+    if (!Get.isRegistered<GetMyTagsUsecase>()) {
+      Get.put(GetMyTagsUsecase(Get.find<TagRepository>()), permanent: true);
+    }
+    if (!Get.isRegistered<DeleteTagUsecase>()) {
+      Get.put(DeleteTagUsecase(Get.find<TagRepository>()), permanent: true);
+    }
+    if (!Get.isRegistered<UpdateTagUsecase>()) {
+      Get.put(UpdateTagUsecase(Get.find<TagRepository>()), permanent: true);
+    }
+
+    // =====================================================
+    // 4. CONTROLLERS (الاستدعاء الكسول الذكي وإعادة الإحياء التلقائي)
+    // =====================================================
+
+    // متحكم عرض وقراءة الأوسوم/التصنيفات
+    Get.lazyPut<TagViewController>(
+      () => TagViewController(getMyTagsUseCase: Get.find<GetMyTagsUsecase>()),
+      fenix: true,
     );
 
-    Get.put<TagLocalDatasource>(TagLocalDatasourceImpl(InitIsar.isar!));
-
-    Get.lazyPut<NetworkService>(() => NetworkService(), fenix: true);
-
-    Get.put<TagRepository>(
-      TagRepositoryImpl(
-        local: Get.find<TagLocalDatasource>(),
-        syncQueueRepository: Get.find<SyncQueueRepository>(),
-        remote: Get.find<TagRemoteDatasource>(),
-      ),
-    );
-
-    // 3. UseCases
-    Get.put(AddTagUsecase(Get.find<TagRepository>()));
-    Get.put(GetMyTagsUsecase(Get.find<TagRepository>()));
-    Get.put(DeleteTagUsecase(Get.find<TagRepository>()));
-    Get.put(UpdateTagUsecase(Get.find<TagRepository>()));
-
-    Get.put(TagViewController(getMyTagsUseCase: Get.find<GetMyTagsUsecase>()));
-    // 4. Controllers
-    Get.put(
-      TagActionController(
+    // متحكم العمليات (إضافة، تعديل، حذف)
+    Get.lazyPut<TagActionController>(
+      () => TagActionController(
         updateTagUsecase: Get.find<UpdateTagUsecase>(),
         deleteTagUsecase: Get.find<DeleteTagUsecase>(),
         addTagUsecase: Get.find<AddTagUsecase>(),
         userIdUsecase: Get.find<GetUserIdUsecase>(),
         tagViewController: Get.find<TagViewController>(),
       ),
+      fenix: true,
     );
   }
 }

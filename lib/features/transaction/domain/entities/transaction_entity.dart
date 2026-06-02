@@ -7,6 +7,7 @@ import 'package:spendwise/features/tags/domain/entities/tag_entity.dart';
 import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 
 class TransactionEntity {
+  final int? isarId;
   final String? localId;
   final int? id;
   final int? userId;
@@ -80,5 +81,6 @@ class TransactionEntity {
     this.wallet,
     this.createdAt,
     this.updatedAt,
+    this.isarId,
   });
 }

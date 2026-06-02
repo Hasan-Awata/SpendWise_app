@@ -122,6 +122,7 @@ class TransactionModel {
   }) {
     return TransactionEntity(
       localId: localId,
+      isarId: isarId,
       id: id,
       userId: userId,
       title: title ?? "no title",
@@ -144,23 +145,25 @@ class TransactionModel {
   }
 
   // ========================= JSON =========================
-
   factory TransactionModel.fromJson(
     Map<String, dynamic> json, {
     String? localId,
   }) {
     final dynamic rawValue =
         json['transactionType'] ?? json['TransactionType'] ?? 0;
+
     int rawType = 0;
 
     if (rawValue is int) {
       rawType = rawValue;
     } else if (rawValue is String) {
-      final int? parsedInt = int.tryParse(rawValue);
+      final parsedInt = int.tryParse(rawValue);
+
       if (parsedInt != null) {
         rawType = parsedInt;
       } else {
         final stringValue = rawValue.toLowerCase();
+
         if (stringValue == 'dedduction' ||
             stringValue == 'expense' ||
             stringValue == '1') {
@@ -177,56 +180,82 @@ class TransactionModel {
 
     bool checkProcessId(dynamic idValue) {
       if (idValue == null) return false;
-      if (idValue is int) return idValue != -1;
+
+      if (idValue is int) {
+        return idValue != -1;
+      }
+
       if (idValue is String) {
         final parsed = int.tryParse(idValue);
         return parsed != null && parsed != -1;
       }
+
       return false;
     }
 
+    final int? transactionId = json['transactionId'] ?? json['TransactionId'];
+
     return TransactionModel(
-      localId:
-          localId ??
-          json['walletLocalId'] ??
-          json['WalletLocalId'] ??
-          const Uuid().v4(),
-      id: json['transactionId'] ?? json['TransactionId'],
+      localId: const Uuid().v4(),
+
+      id: transactionId,
+
       userId: json['userId'] ?? json['UserId'],
+
       title: json['title'] ?? json['Title'] ?? '',
+
       amount: (json['amount'] ?? json['Amount'] ?? 0).toDouble(),
+
       amountInSp: (json['amountInSp'] ?? json['AmountInSp'] ?? 0).toDouble(),
+
       date: _parseDate(json),
+
       description: json['description'] ?? json['Description'] ?? '',
-      walletId: json['walletId'] ?? json['WalletId'] ?? -1,
+
+      walletId: json['walletId'] ?? json['WalletId'],
+
       walletLocalId: json['walletLocalId'] ?? json['WalletLocalId'],
-      categoryId: json['categoryId'] ?? json['CategoryId'] ?? -1,
+
+      categoryId: json['categoryId'] ?? json['CategoryId'],
+
       expenseTagId:
           json['tagId'] ??
           json['TagId'] ??
           json['expenseTagId'] ??
-          json['ExpenseTagId'] ??
-          -1,
+          json['ExpenseTagId'],
 
       isIncomeProcess: checkProcessId(json['incomeId'] ?? json['IncomeId']),
+
       isExpenseProcess: checkProcessId(json['expenseId'] ?? json['ExpenseId']),
+
       isFixedIncomeProcess: checkProcessId(
         json['fixedIncomeId'] ?? json['FixedIncomeId'],
       ),
+
       isFixedExpenseProcess: checkProcessId(
         json['fixedExpenseId'] ?? json['FixedExpenseId'],
       ),
+
       isSavingGoalProcess: checkProcessId(
         json['savingGoalId'] ?? json['SavingGoalId'],
       ),
+
       isDebtProcess: checkProcessId(json['debtId'] ?? json['DebtId']),
 
       transactionType: resolvedType,
+
       isSynced: true,
       isDeleted: false,
+
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString())
+          : null,
+
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'].toString())
+          : null,
     );
   }
-
   Map<String, dynamic> toJson({bool isCreate = false}) {
     return {
       'transactionId': id ?? -1,

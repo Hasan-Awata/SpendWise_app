@@ -4,7 +4,6 @@
 // =========================================================================
 
 import 'package:dartz/dartz.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/error/failure.dart';
 import 'package:spendwise/core/network/network_service.dart';
@@ -28,10 +27,6 @@ class CategoryBudgetRepositoryImpl implements CategoryBudgetRepository {
     required this.syncQueueRepository,
   });
 
-  // =========================================================================
-  // GET
-  // =========================================================================
-
   @override
   Future<Either<Failure, List<CategoryBudgetEntity>>> getBudgets() async {
     try {
@@ -41,80 +36,106 @@ class CategoryBudgetRepositoryImpl implements CategoryBudgetRepository {
 
       if (isOnline) {
         try {
-          if (kDebugMode) {
-            print("📡 Fetching category budgets from remote...");
-          }
-
           final remoteBudgets = await remote.getBudgets();
-          print("RAW LENGTH FROM SERVER = ${remoteBudgets.length}");
-
-          await local.clear();
 
           for (final budget in remoteBudgets) {
-            print("budgte ------ >>> ${budget.categoryId}");
             budget
               ..isDeleted = false
               ..isSynced = true;
 
-            await local.addBudget(budget);
+            final existing = await local.getBudgetByCategoryId(
+              budget.categoryId,
+            );
+
+            if (existing == null) {
+              await local.addBudget(budget);
+            } else {
+              budget
+                ..isarId = existing.isarId
+                ..localId = existing.localId;
+
+              await local.updateBudget(budget);
+            }
           }
         } catch (e) {
-          if (kDebugMode) {
-            print("⚠️ Remote category budget sync failed: $e");
-          }
+          final localData = await local.getBudgets() ?? [];
+          final filtered = localData.where((e) => !e.isDeleted).toList()
+            ..sort((a, b) => b.startDate.compareTo(a.startDate));
+          return Right(filtered.map((e) => e.toEntity()).toList());
         }
       }
 
-      final localData = await local.getBudgets();
-
-      final filtered = localData.where((e) => !e.isDeleted).toList();
-
-      final entities = filtered.map((e) => e.toEntity()).toList();
-
-      return Right(entities);
+      final localData = await local.getBudgets() ?? [];
+      final filtered = localData.where((e) => !e.isDeleted).toList()
+        ..sort((a, b) => b.startDate.compareTo(a.startDate));
+      return Right(filtered.map((e) => e.toEntity()).toList());
     } catch (e) {
-      return Left(
-        CacheFailure("فشل تحميل ميزانيات التصنيفات: ${e.toString()}"),
-      );
+      return Left(CacheFailure("Failed to load budgets: $e"));
     }
   }
 
-  // =========================================================================
-  // ADD
-  // =========================================================================
+  @override
+  Future<Either<Failure, CategoryBudgetEntity?>> getActiveBudgetForCategory(
+    int categoryId,
+  ) async {
+    try {
+      // تعليق: نقوم بجلب الميزانية النشطة للفئة المختارة محلياً لسرعة الوصول
+      final localData = await local.getBudgets() ?? [];
+      final activeBudget = localData.firstWhere(
+        (b) => b.categoryId == categoryId && b.isActive && !b.isDeleted,
+      );
 
+      return Right(activeBudget.toEntity());
+    } catch (e) {
+      return Left(CacheFailure("Failed to get budget: $e"));
+    }
+  }
+
+  // =========================================================
+  // ADD (Offline-first + immediate sync if online)
+  // =========================================================
   @override
   Future<Either<Failure, String>> addBudget(CategoryBudgetEntity budget) async {
     try {
       final model = CategoryBudgetModel.fromEntity(budget)
         ..isDeleted = false
         ..isSynced = false
-        ..createdAt = DateTime.now()
-        ..updatedAt = DateTime.now();
-
+        ..moneyLimit = budget.moneyLimit
+        ..spendingProgress = budget.spendingProgress
+        ..startDate = budget.startDate
+        ..endDate = budget.endDate;
+      // 1. save locally
       await local.addBudget(model);
 
-      await syncQueueRepository.addToQueue(
-        SyncQueueModel(
-          id: const Uuid().v4(),
-          localId: model.localId,
-          action: SyncAction.create,
-          table: "category_budget",
-          createdAt: DateTime.now(),
-          isarId: model.isarId,
-        ),
-      );
+      final isOnline = Get.find<NetworkService>().isOnline.value;
 
-      return const Right("تم حفظ الميزانية محلياً وبانتظار المزامنة");
+      if (isOnline) {
+        try {
+          final remoteBudget = await remote.addBudget(model);
+
+          model
+            ..categoryBudgetId = remoteBudget.categoryBudgetId
+            ..isSynced = true;
+
+          await local.updateBudget(model);
+        } catch (e) {
+          // fallback -> queue
+          await _addToQueue(model.localId, SyncAction.create, model.isarId);
+        }
+      } else {
+        // offline -> queue
+        await _addToQueue(model.localId, SyncAction.create, model.isarId);
+      }
+
+      return const Right("Budget saved");
     } catch (e) {
-      return Left(CacheFailure("فشل إضافة الميزانية: ${e.toString()}"));
+      return Left(CacheFailure("Add budget failed: $e"));
     }
   }
 
-  // =========================================================================
+  // =========================================================
   // UPDATE
-  // =========================================================================
-
+  // =========================================================
   @override
   Future<Either<Failure, Unit>> updateBudget(
     CategoryBudgetEntity entity,
@@ -123,43 +144,54 @@ class CategoryBudgetRepositoryImpl implements CategoryBudgetRepository {
       final localBudget = await local.getBudgetByCategoryId(entity.categoryId);
 
       if (localBudget == null) {
-        return Left(CacheFailure("الميزانية غير موجودة للتعديل"));
+        return Left(CacheFailure("Budget not found"));
       }
 
       localBudget
         ..percentageLimit = entity.percentageLimit
         ..percentageProgress = entity.percentageProgress
-        ..moneyLimit = entity.moneyLimit
-        ..spendingProgress = entity.spendingProgress
+        ..moneyLimit = entity
+            .moneyLimit // أضف هذه
+        ..spendingProgress = entity
+            .spendingProgress // أضف هذه
         ..startDate = entity.startDate
         ..endDate = entity.endDate
         ..isActive = entity.isActive
-        ..updatedAt = DateTime.now()
         ..isSynced = false;
 
-      await local.addBudget(localBudget);
+      await local.updateBudget(localBudget);
 
-      await syncQueueRepository.addToQueue(
-        SyncQueueModel(
-          id: const Uuid().v4(),
-          localId: localBudget.localId,
-          action: SyncAction.update,
-          table: "category_budget",
-          createdAt: DateTime.now(),
-          isarId: localBudget.isarId,
-        ),
-      );
+      final isOnline = Get.find<NetworkService>().isOnline.value;
+
+      if (isOnline) {
+        try {
+          await remote.updateBudget(localBudget);
+          localBudget.isSynced = true;
+          await local.updateBudget(localBudget);
+        } catch (e) {
+          await _addToQueue(
+            localBudget.localId,
+            SyncAction.update,
+            localBudget.isarId,
+          );
+        }
+      } else {
+        await _addToQueue(
+          localBudget.localId,
+          SyncAction.update,
+          localBudget.isarId,
+        );
+      }
 
       return const Right(unit);
     } catch (e) {
-      return Left(CacheFailure("فشل تعديل الميزانية: ${e.toString()}"));
+      return Left(CacheFailure("Update failed: $e"));
     }
   }
 
-  // =========================================================================
+  // =========================================================
   // DELETE
-  // =========================================================================
-
+  // =========================================================
   @override
   Future<Either<Failure, Unit>> deleteBudget(
     CategoryBudgetEntity entity,
@@ -168,7 +200,7 @@ class CategoryBudgetRepositoryImpl implements CategoryBudgetRepository {
       final localBudget = await local.getBudgetByCategoryId(entity.categoryId);
 
       if (localBudget == null) {
-        return Left(CacheFailure("الميزانية غير موجودة للحذف"));
+        return Left(CacheFailure("Budget not found"));
       }
 
       localBudget
@@ -178,20 +210,49 @@ class CategoryBudgetRepositoryImpl implements CategoryBudgetRepository {
 
       await local.updateBudget(localBudget);
 
-      await syncQueueRepository.addToQueue(
-        SyncQueueModel(
-          id: const Uuid().v4(),
-          localId: localBudget.localId,
-          action: SyncAction.delete,
-          table: "category_budget",
-          createdAt: DateTime.now(),
-          isarId: localBudget.isarId,
-        ),
-      );
+      final isOnline = Get.find<NetworkService>().isOnline.value;
+
+      if (isOnline) {
+        try {
+          await remote.deleteBudget(localBudget.categoryId);
+        } catch (e) {
+          await _addToQueue(
+            localBudget.localId,
+            SyncAction.delete,
+            localBudget.isarId,
+          );
+        }
+      } else {
+        await _addToQueue(
+          localBudget.localId,
+          SyncAction.delete,
+          localBudget.isarId,
+        );
+      }
 
       return const Right(unit);
     } catch (e) {
-      return Left(CacheFailure("فشل حذف الميزانية: ${e.toString()}"));
+      return Left(CacheFailure("Delete failed: $e"));
     }
+  }
+
+  // =========================================================
+  // QUEUE HELPER
+  // =========================================================
+  Future<void> _addToQueue(
+    String localId,
+    SyncAction action,
+    int isarId,
+  ) async {
+    await syncQueueRepository.addToQueue(
+      SyncQueueModel(
+        id: const Uuid().v4(),
+        localId: localId,
+        action: action,
+        table: "category_budget",
+        createdAt: DateTime.now(),
+        isarId: isarId,
+      ),
+    );
   }
 }

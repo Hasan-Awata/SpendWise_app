@@ -33,6 +33,12 @@ class AddWalletController extends GetxController {
 
   final selectedCurrency = Rxn<Currency>();
 
+  // نوع المحفظة
+  final isSaved = false.obs;
+
+  // المحفظة المصدر
+  final selectedSourceWallet = Rxn<WalletEntity>();
+
   // =========================
   // CONTROLLERS
   // =========================
@@ -40,6 +46,8 @@ class AddWalletController extends GetxController {
   final balanceController = TextEditingController();
 
   final currencySearchController = TextEditingController();
+
+  final sourceWalletSearchController = TextEditingController();
 
   // =========================
   // CURRENCIES
@@ -50,6 +58,10 @@ class AddWalletController extends GetxController {
   late final CurrencyLocal currencyLocal;
 
   late final List<Currency> allCurrencies;
+
+  // المحافظ العادية المتاحة لتكون مصدر
+  List<WalletEntity> get availableSourceWallets =>
+      walletsListController.regularWallets.where((w) => !w.isDeleted).toList();
 
   @override
   void onInit() {
@@ -116,6 +128,52 @@ class AddWalletController extends GetxController {
   }
 
   // =========================
+  // TOGGLE TYPE
+  // =========================
+
+  void toggleIsSaved(bool value) {
+    isSaved.value = value;
+
+    selectedSourceWallet.value = null;
+
+    sourceWalletSearchController.clear();
+
+    // تنظيف العملة عند التبديل
+    if (value) {
+      selectedCurrency.value = null;
+
+      selectedCurrencyId.value = null;
+
+      currencySearchController.clear();
+    }
+  }
+
+  // =========================
+  // SELECT SOURCE WALLET
+  // =========================
+
+  void selectSourceWallet(String walletLabel) {
+    sourceWalletSearchController.text = walletLabel;
+
+    final wallet = availableSourceWallets.firstWhereOrNull(
+      (w) =>
+          "${w.currency.currencyName} (${w.balance.toStringAsFixed(2)})" ==
+          walletLabel,
+    );
+
+    if (wallet == null) {
+      return;
+    }
+
+    selectedSourceWallet.value = wallet;
+
+    // وراثة العملة تلقائياً
+    selectedCurrency.value = wallet.currency;
+
+    selectedCurrencyId.value = wallet.currencyId;
+  }
+
+  // =========================
   // SAVE
   // =========================
 
@@ -165,8 +223,21 @@ class AddWalletController extends GetxController {
 
         balance: double.tryParse(balanceController.text.trim()) ?? 0,
 
+        isSaved: isSaved.value,
+
         isSynced: false.obs,
       );
+
+      // =====================
+      // خصم الرصيد من المحفظة الأصلية
+      // =====================
+
+      if (isSaved.value && selectedSourceWallet.value != null) {
+        walletsListController.decreaseWalletBalance(
+          walletId: selectedSourceWallet.value!.walletId!,
+          amount: wallet.balance,
+        );
+      }
 
       // =====================
       // OPTIMISTIC UI
@@ -185,7 +256,12 @@ class AddWalletController extends GetxController {
           _handleError("فشل الحفظ", failure.message);
         },
         (_) {
-          HelperFunction.showSnackBar("تم بنجاح", "تم إنشاء المحفظة بنجاح");
+          HelperFunction.showSnackBar(
+            "تم بنجاح",
+            isSaved.value
+                ? "تم إنشاء المحفظة الادخارية بنجاح"
+                : "تم إنشاء المحفظة بنجاح",
+          );
 
           resetFields();
         },
@@ -203,6 +279,16 @@ class AddWalletController extends GetxController {
 
   bool _validateInputs() {
     // =====================
+    // SOURCE WALLET
+    // =====================
+
+    if (isSaved.value && selectedSourceWallet.value == null) {
+      _handleError("خطأ في التحقق", "يرجى اختيار المحفظة المصدر");
+
+      return false;
+    }
+
+    // =====================
     // CURRENCY
     // =====================
 
@@ -216,13 +302,27 @@ class AddWalletController extends GetxController {
     // DUPLICATE
     // =====================
 
-    final isDuplicate = walletsListController.wallets.any(
+    // المحافظ العادية
+    final isDuplicateRegular = walletsListController.regularWallets.any(
       (wallet) =>
           wallet.currencyId == selectedCurrencyId.value && !wallet.isDeleted,
     );
 
-    if (isDuplicate) {
-      _handleError("تنبيه", "هذه المحفظة موجودة بالفعل");
+    // المحافظ الادخارية
+    final isDuplicateSavings = walletsListController.savingsWallets.any(
+      (wallet) =>
+          wallet.currencyId == selectedCurrencyId.value && !wallet.isDeleted,
+    );
+
+    // تحقق حسب النوع
+    if (!isSaved.value && isDuplicateRegular) {
+      _handleError("تنبيه", "توجد محفظة عادية بهذه العملة مسبقاً");
+
+      return false;
+    }
+
+    if (isSaved.value && isDuplicateSavings) {
+      _handleError("تنبيه", "توجد محفظة ادخارية بهذه العملة مسبقاً");
 
       return false;
     }
@@ -239,6 +339,16 @@ class AddWalletController extends GetxController {
       return false;
     }
 
+    // =====================
+    // SOURCE BALANCE
+    // =====================
+
+    if (isSaved.value && balance > selectedSourceWallet.value!.balance) {
+      _handleError("الرصيد غير كافٍ", "رصيد المحفظة المصدر لا يكفي");
+
+      return false;
+    }
+
     return true;
   }
 
@@ -251,9 +361,15 @@ class AddWalletController extends GetxController {
 
     currencySearchController.clear();
 
+    sourceWalletSearchController.clear();
+
     selectedCurrency.value = null;
 
     selectedCurrencyId.value = null;
+
+    selectedSourceWallet.value = null;
+
+    isSaved.value = false;
   }
 
   // =========================
@@ -273,6 +389,8 @@ class AddWalletController extends GetxController {
     balanceController.dispose();
 
     currencySearchController.dispose();
+
+    sourceWalletSearchController.dispose();
 
     super.onClose();
   }

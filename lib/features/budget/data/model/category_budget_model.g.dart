@@ -78,28 +78,33 @@ const CategoryBudgetModelSchema = CollectionSchema(
       name: r'percentageProgress',
       type: IsarType.double,
     ),
-    r'spendingProgress': PropertySchema(
+    r'serverId': PropertySchema(
       id: 12,
+      name: r'serverId',
+      type: IsarType.long,
+    ),
+    r'spendingProgress': PropertySchema(
+      id: 13,
       name: r'spendingProgress',
       type: IsarType.double,
     ),
     r'startDate': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'startDate',
       type: IsarType.dateTime,
     ),
     r'syncAttempts': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'syncAttempts',
       type: IsarType.long,
     ),
     r'updatedAt': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'userId': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'userId',
       type: IsarType.long,
     )
@@ -186,11 +191,12 @@ void _categoryBudgetModelSerialize(
   writer.writeDouble(offsets[9], object.moneyLimit);
   writer.writeDouble(offsets[10], object.percentageLimit);
   writer.writeDouble(offsets[11], object.percentageProgress);
-  writer.writeDouble(offsets[12], object.spendingProgress);
-  writer.writeDateTime(offsets[13], object.startDate);
-  writer.writeLong(offsets[14], object.syncAttempts);
-  writer.writeDateTime(offsets[15], object.updatedAt);
-  writer.writeLong(offsets[16], object.userId);
+  writer.writeLong(offsets[12], object.serverId);
+  writer.writeDouble(offsets[13], object.spendingProgress);
+  writer.writeDateTime(offsets[14], object.startDate);
+  writer.writeLong(offsets[15], object.syncAttempts);
+  writer.writeDateTime(offsets[16], object.updatedAt);
+  writer.writeLong(offsets[17], object.userId);
 }
 
 CategoryBudgetModel _categoryBudgetModelDeserialize(
@@ -209,14 +215,14 @@ CategoryBudgetModel _categoryBudgetModelDeserialize(
     isSynced: reader.readBoolOrNull(offsets[6]) ?? false,
     lastSyncError: reader.readDateTimeOrNull(offsets[7]),
     localId: reader.readString(offsets[8]),
-    moneyLimit: reader.readDoubleOrNull(offsets[9]) ?? 0,
+    moneyLimit: reader.readDouble(offsets[9]),
     percentageLimit: reader.readDouble(offsets[10]),
     percentageProgress: reader.readDoubleOrNull(offsets[11]) ?? 0,
-    spendingProgress: reader.readDoubleOrNull(offsets[12]) ?? 0,
-    startDate: reader.readDateTime(offsets[13]),
-    syncAttempts: reader.readLongOrNull(offsets[14]) ?? 0,
-    updatedAt: reader.readDateTimeOrNull(offsets[15]),
-    userId: reader.readLong(offsets[16]),
+    spendingProgress: reader.readDouble(offsets[13]),
+    startDate: reader.readDateTime(offsets[14]),
+    syncAttempts: reader.readLongOrNull(offsets[15]) ?? 0,
+    updatedAt: reader.readDateTimeOrNull(offsets[16]),
+    userId: reader.readLong(offsets[17]),
   );
   object.isarId = id;
   return object;
@@ -248,20 +254,22 @@ P _categoryBudgetModelDeserializeProp<P>(
     case 8:
       return (reader.readString(offset)) as P;
     case 9:
-      return (reader.readDoubleOrNull(offset) ?? 0) as P;
+      return (reader.readDouble(offset)) as P;
     case 10:
       return (reader.readDouble(offset)) as P;
     case 11:
       return (reader.readDoubleOrNull(offset) ?? 0) as P;
     case 12:
-      return (reader.readDoubleOrNull(offset) ?? 0) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 13:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 14:
-      return (reader.readLongOrNull(offset) ?? 0) as P;
+      return (reader.readDateTime(offset)) as P;
     case 15:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset) ?? 0) as P;
     case 16:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 17:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1447,6 +1455,80 @@ extension CategoryBudgetModelQueryFilter on QueryBuilder<CategoryBudgetModel,
   }
 
   QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterFilterCondition>
+      serverIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'serverId',
+      ));
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterFilterCondition>
+      serverIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'serverId',
+      ));
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterFilterCondition>
+      serverIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterFilterCondition>
+      serverIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterFilterCondition>
+      serverIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterFilterCondition>
+      serverIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'serverId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterFilterCondition>
       spendingProgressEqualTo(
     double value, {
     double epsilon = Query.epsilon,
@@ -1932,6 +2014,20 @@ extension CategoryBudgetModelQuerySortBy
   }
 
   QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterSortBy>
+      sortByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterSortBy>
+      sortByServerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterSortBy>
       sortBySpendingProgress() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'spendingProgress', Sort.asc);
@@ -2187,6 +2283,20 @@ extension CategoryBudgetModelQuerySortThenBy
   }
 
   QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterSortBy>
+      thenByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterSortBy>
+      thenByServerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QAfterSortBy>
       thenBySpendingProgress() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'spendingProgress', Sort.asc);
@@ -2344,6 +2454,13 @@ extension CategoryBudgetModelQueryWhereDistinct
   }
 
   QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QDistinct>
+      distinctByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'serverId');
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, CategoryBudgetModel, QDistinct>
       distinctBySpendingProgress() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'spendingProgress');
@@ -2466,6 +2583,12 @@ extension CategoryBudgetModelQueryProperty
       percentageProgressProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'percentageProgress');
+    });
+  }
+
+  QueryBuilder<CategoryBudgetModel, int?, QQueryOperations> serverIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'serverId');
     });
   }
 

@@ -36,14 +36,7 @@ class _AddTagPageState extends State<AddTagPage> {
               fontSize: 22,
             ),
           ),
-          leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios_new,
-              color: Colors.white,
-              size: 20,
-            ),
-            onPressed: () => Get.back(),
-          ),
+
           actions: [
             IconButton(
               onPressed: () => Get.toNamed(Routes.LIST_TAG),

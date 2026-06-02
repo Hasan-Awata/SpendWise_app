@@ -8,12 +8,16 @@ import 'package:spendwise/features/auth/domain/usecases/login_params.dart';
 import 'package:spendwise/features/auth/domain/usecases/signup_params.dart';
 
 import '../models/user_model.dart';
+import 'app_user_local_datasource.dart';
 import 'app_user_remote_datasource.dart';
 
 class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
   final http.Client client;
-
-  AppUserRemoteDatasourceImpl({required this.client});
+  final AppUserLocalDatasource localDatasource;
+  AppUserRemoteDatasourceImpl({
+    required this.client,
+    required this.localDatasource,
+  });
 
   // // ميزة: دالة مساعدة لبناء الرابط الكامل لتقليل التكرار
   Uri _buildUri(String endpoint) {
@@ -109,6 +113,7 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
     return map.containsKey('UserId') ||
         map.containsKey('userId') ||
         map.containsKey('Token') ||
-        map.containsKey('token');
+        map.containsKey('token') ||
+        map.containsKey('refreshToken');
   }
 }

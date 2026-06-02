@@ -67,33 +67,38 @@ const IncomeModelSchema = CollectionSchema(
       name: r'localId',
       type: IsarType.string,
     ),
-    r'syncAttempts': PropertySchema(
+    r'serverId': PropertySchema(
       id: 10,
+      name: r'serverId',
+      type: IsarType.long,
+    ),
+    r'syncAttempts': PropertySchema(
+      id: 11,
       name: r'syncAttempts',
       type: IsarType.long,
     ),
     r'title': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'title',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'userId': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'userId',
       type: IsarType.long,
     ),
     r'walletId': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'walletId',
       type: IsarType.long,
     ),
     r'walletLocalId': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'walletLocalId',
       type: IsarType.string,
     )
@@ -183,12 +188,13 @@ void _incomeModelSerialize(
   writer.writeBool(offsets[7], object.isSynced);
   writer.writeDateTime(offsets[8], object.lastSyncError);
   writer.writeString(offsets[9], object.localId);
-  writer.writeLong(offsets[10], object.syncAttempts);
-  writer.writeString(offsets[11], object.title);
-  writer.writeDateTime(offsets[12], object.updatedAt);
-  writer.writeLong(offsets[13], object.userId);
-  writer.writeLong(offsets[14], object.walletId);
-  writer.writeString(offsets[15], object.walletLocalId);
+  writer.writeLong(offsets[10], object.serverId);
+  writer.writeLong(offsets[11], object.syncAttempts);
+  writer.writeString(offsets[12], object.title);
+  writer.writeDateTime(offsets[13], object.updatedAt);
+  writer.writeLong(offsets[14], object.userId);
+  writer.writeLong(offsets[15], object.walletId);
+  writer.writeString(offsets[16], object.walletLocalId);
 }
 
 IncomeModel _incomeModelDeserialize(
@@ -208,12 +214,12 @@ IncomeModel _incomeModelDeserialize(
     isSynced: reader.readBoolOrNull(offsets[7]) ?? false,
     lastSyncError: reader.readDateTimeOrNull(offsets[8]),
     localId: reader.readString(offsets[9]),
-    syncAttempts: reader.readLongOrNull(offsets[10]) ?? 0,
-    title: reader.readStringOrNull(offsets[11]),
-    updatedAt: reader.readDateTimeOrNull(offsets[12]),
-    userId: reader.readLong(offsets[13]),
-    walletId: reader.readLongOrNull(offsets[14]),
-    walletLocalId: reader.readStringOrNull(offsets[15]),
+    syncAttempts: reader.readLongOrNull(offsets[11]) ?? 0,
+    title: reader.readStringOrNull(offsets[12]),
+    updatedAt: reader.readDateTimeOrNull(offsets[13]),
+    userId: reader.readLong(offsets[14]),
+    walletId: reader.readLongOrNull(offsets[15]),
+    walletLocalId: reader.readStringOrNull(offsets[16]),
   );
   object.isarId = id;
   return object;
@@ -247,16 +253,18 @@ P _incomeModelDeserializeProp<P>(
     case 9:
       return (reader.readString(offset)) as P;
     case 10:
-      return (reader.readLongOrNull(offset) ?? 0) as P;
-    case 11:
-      return (reader.readStringOrNull(offset)) as P;
-    case 12:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 13:
-      return (reader.readLong(offset)) as P;
-    case 14:
       return (reader.readLongOrNull(offset)) as P;
+    case 11:
+      return (reader.readLongOrNull(offset) ?? 0) as P;
+    case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 14:
+      return (reader.readLong(offset)) as P;
     case 15:
+      return (reader.readLongOrNull(offset)) as P;
+    case 16:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1346,6 +1354,79 @@ extension IncomeModelQueryFilter
   }
 
   QueryBuilder<IncomeModel, IncomeModel, QAfterFilterCondition>
+      serverIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'serverId',
+      ));
+    });
+  }
+
+  QueryBuilder<IncomeModel, IncomeModel, QAfterFilterCondition>
+      serverIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'serverId',
+      ));
+    });
+  }
+
+  QueryBuilder<IncomeModel, IncomeModel, QAfterFilterCondition> serverIdEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<IncomeModel, IncomeModel, QAfterFilterCondition>
+      serverIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<IncomeModel, IncomeModel, QAfterFilterCondition>
+      serverIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'serverId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<IncomeModel, IncomeModel, QAfterFilterCondition> serverIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'serverId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<IncomeModel, IncomeModel, QAfterFilterCondition>
       syncAttemptsEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -2035,6 +2116,18 @@ extension IncomeModelQuerySortBy
     });
   }
 
+  QueryBuilder<IncomeModel, IncomeModel, QAfterSortBy> sortByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<IncomeModel, IncomeModel, QAfterSortBy> sortByServerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.desc);
+    });
+  }
+
   QueryBuilder<IncomeModel, IncomeModel, QAfterSortBy> sortBySyncAttempts() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncAttempts', Sort.asc);
@@ -2245,6 +2338,18 @@ extension IncomeModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<IncomeModel, IncomeModel, QAfterSortBy> thenByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<IncomeModel, IncomeModel, QAfterSortBy> thenByServerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serverId', Sort.desc);
+    });
+  }
+
   QueryBuilder<IncomeModel, IncomeModel, QAfterSortBy> thenBySyncAttempts() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncAttempts', Sort.asc);
@@ -2384,6 +2489,12 @@ extension IncomeModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<IncomeModel, IncomeModel, QDistinct> distinctByServerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'serverId');
+    });
+  }
+
   QueryBuilder<IncomeModel, IncomeModel, QDistinct> distinctBySyncAttempts() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'syncAttempts');
@@ -2490,6 +2601,12 @@ extension IncomeModelQueryProperty
   QueryBuilder<IncomeModel, String, QQueryOperations> localIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'localId');
+    });
+  }
+
+  QueryBuilder<IncomeModel, int?, QQueryOperations> serverIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'serverId');
     });
   }
 

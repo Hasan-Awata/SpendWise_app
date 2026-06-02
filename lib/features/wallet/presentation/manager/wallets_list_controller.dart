@@ -1,6 +1,10 @@
+// lib/features/wallet/presentation/manager/wallets_list_controller.dart
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/features/helper_function.dart';
+import 'package:spendwise/features/wallet/data/repositories/wallet_repository.dart';
 import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:spendwise/features/wallet/domain/usecases/get_wallets_usecase.dart';
 
@@ -9,41 +13,37 @@ class WalletsListController extends GetxController {
 
   WalletsListController({required this.getMyWalletsUseCase});
 
-  // =========================
+  // =====================================================
   // STATE
-  // =========================
+  // =====================================================
   final RxList<WalletEntity> wallets = <WalletEntity>[].obs;
+
+  List<WalletEntity> get regularWallets =>
+      wallets.where((w) => !w.isSaved).toList();
+  List<WalletEntity> get savingsWallets =>
+      wallets.where((w) => w.isSaved).toList();
+  final Rxn<WalletEntity> selectWallet = Rxn<WalletEntity>();
 
   final isLoading = false.obs;
   final isRefreshing = false.obs;
   final isLoadingMore = false.obs;
-
-  // جعلناها false افتراضياً لأن الـ Repository حالياً يجلب كل البيانات دفعة واحدة
   final hasMoreData = false.obs;
   final errorMessage = ''.obs;
 
   final ScrollController scrollController = ScrollController();
-
-  // متغير الحماية من الحلقة المفرغة
   bool _isProcessing = false;
 
-  // =========================
-  // INIT
-  // =========================
   @override
   void onInit() {
     super.onInit();
     scrollController.addListener(_scrollListener);
+
     loadWallets(isRefresh: true);
   }
 
-  // =========================
-  // SCROLL
-  // =========================
   void _scrollListener() {
-    if (!scrollController.hasClients || _isProcessing) return;
-
-    // [نصيحة داخل الكود]: إذا كان لا يوجد بيانات إضافية (Pagination) توقف عن طلب المزيد لمنع التكرار.
+    if (!scrollController.hasClients) return;
+    if (_isProcessing) return;
     if (!hasMoreData.value) return;
 
     final position = scrollController.position;
@@ -54,28 +54,22 @@ class WalletsListController extends GetxController {
     }
   }
 
-  // =========================
-  // LOAD
-  // =========================
   Future<void> loadWallets({bool isRefresh = false}) async {
-    // 1. حماية صارمة لمنع تداخل الطلبات (سبب الـ Logs المتكررة)
     if (_isProcessing) return;
-
     _isProcessing = true;
 
     try {
       errorMessage.value = '';
-
       if (isRefresh) {
         isRefreshing.value = true;
       } else {
         isLoadingMore.value = true;
       }
 
-      // إظهار حالة التحميل الكلية فقط في المرة الأولى
-      if (wallets.isEmpty) isLoading.value = true;
+      if (wallets.isEmpty) {
+        isLoading.value = true;
+      }
 
-      // استدعاء البيانات (محلي + سيرفر كما عدلنا في الـ Repository)
       final result = await getMyWalletsUseCase.call();
 
       result.fold(
@@ -84,25 +78,23 @@ class WalletsListController extends GetxController {
           HelperFunction.showSnackBar("خطأ", failure.message);
         },
         (data) {
-          // [نصيحة داخل الكود]: نقوم بتنظيف البيانات من التكرار بناءً على الـ ID الفريد.
           final uniqueData = _sanitize(data);
-
-          // [نصيحة داخل الكود]: نستخدم assignAll لأن القائمة تأتي كاملة من الـ Local Database.
           wallets.assignAll(uniqueData);
 
-          // ترتيب العناصر حسب تاريخ الإنشاء (الأحدث أولاً)
           wallets.sort(
             (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
               a.createdAt ?? DateTime(0),
             ),
           );
 
-          // [نصيحة داخل الكود]: بما أن الـ API لا يدعم pagination (صفحات) حالياً، نغلق الميزة لمنع الـ Infinite Loop.
+          if (wallets.isNotEmpty && selectWallet.value == null) {
+            selectWallet.value = wallets.first;
+          }
+
           hasMoreData.value = false;
         },
       );
     } finally {
-      // إنهاء كافة حالات التحميل
       isLoading.value = false;
       isRefreshing.value = false;
       isLoadingMore.value = false;
@@ -110,58 +102,128 @@ class WalletsListController extends GetxController {
     }
   }
 
-  // =========================
-  // SANITIZE (إزالة التكرار)
-  // =========================
+  // دالة للتحقق من وجود رصيد كافٍ لعملة محددة عبر جميع محافظ المستخدم
+  bool hasSufficientBalance({
+    required int currencyId,
+    required double requiredAmount,
+  }) {
+    double totalBalance = 0.0;
+
+    // نجمع رصيد كل المحافظ التي لها نفس عملة المصروف
+    for (var wallet in wallets) {
+      if (wallet.currencyId == currencyId) {
+        totalBalance += wallet.balance;
+      }
+    }
+
+    // تحقق إذا كان المجموع الكلي يغطي المبلغ المطلوب
+    return totalBalance >= requiredAmount;
+  }
+
   List<WalletEntity> _sanitize(List<WalletEntity> list) {
     final Map<String, WalletEntity> map = {};
-
     for (final item in list) {
-      // [نصيحة داخل الكود]: نستخدم localId كمفتاح فريد لضمان عدم ظهور المحفظة مرتين في القائمة.
       if (item.localId.isNotEmpty) {
         map[item.localId] = item;
       }
     }
-
     return map.values.toList();
   }
 
-  // =========================
-  // OPTIMISTIC UI HELPERS
-  // =========================
-  // تستخدم لتحديث الواجهة فوراً قبل اكتمال عمليات المزامنة
+  // =====================================================
+  // BALANCE OPERATIONS
+  // =====================================================
 
+  Future<void> revertBalance({
+    required int walletId,
+    required double amountFromRegular,
+    required double amountFromSavings,
+  }) async {
+    final result = await Get.find<WalletRepository>().increaseBalance(
+      walletId: walletId,
+      amountFromRegular: amountFromRegular,
+      amountFromSavings: amountFromSavings,
+    );
+
+    result.fold(
+      (failure) {
+        if (kDebugMode) print("Failed to revert balance: ${failure.message}");
+      },
+      (success) {
+        loadWallets();
+      },
+    );
+  }
+
+  Future<bool> decreaseWalletBalance({
+    required int walletId,
+    required double amount,
+  }) async {
+    final result = await Get.find<WalletRepository>().decreaseBalance(
+      walletId: walletId,
+      amount: amount,
+    );
+
+    return result.fold(
+      (failure) {
+        HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
+        return false;
+      },
+      (success) {
+        loadWallets();
+        return true;
+      },
+    );
+  }
+
+  // الدالة التي كانت مفقودة وتسبب الخطأ في الـ UI
+  Future<bool> increaseWalletBalance({
+    required int walletId,
+    required double amountFromRegular,
+    required double amountFromSavings,
+  }) async {
+    final result = await Get.find<WalletRepository>().increaseBalance(
+      walletId: walletId,
+      amountFromRegular: amountFromRegular,
+      amountFromSavings: amountFromSavings,
+    );
+    return result.fold(
+      (failure) {
+        HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
+        return false;
+      },
+      (success) {
+        loadWallets();
+        return true;
+      },
+    );
+  }
+
+  // =====================================================
+  // CRUD & HELPERS
+  // =====================================================
   void addWalletLocally(WalletEntity wallet) {
     wallets.insert(0, wallet);
-    wallets.refresh(); // لضمان تحديث واجهة GetX
+    wallets.refresh();
+    if (selectWallet.value == null) selectWallet.value = wallet;
   }
 
   void updateWalletLocally(WalletEntity wallet) {
     final index = wallets.indexWhere((e) => e.localId == wallet.localId);
-    if (index != -1) {
-      wallets[index] = wallet;
-      wallets.refresh();
-    }
+    if (index == -1) return;
+    wallets[index] = wallet;
+    wallets.refresh();
   }
 
   void deleteWalletLocally(String localId) {
     wallets.removeWhere((e) => e.localId == localId);
+    wallets.refresh();
   }
 
-  // =========================
-  // REFRESH & RETRY
-  // =========================
   Future<void> refreshWallets() async {
     await loadWallets(isRefresh: true);
   }
 
-  Future<void> retry() async {
-    await loadWallets(isRefresh: true);
-  }
-
-  // =========================
-  // DISPOSE
-  // =========================
   @override
   void onClose() {
     scrollController.dispose();

@@ -1,7 +1,3 @@
-// =========================================================================
-// تطبيق مستودع الدخل المعدل ليعتمد بالكامل على طابور المزامنة الموحد
-// =========================================================================
-
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -16,96 +12,61 @@ import 'package:spendwise/features/pages/data/model/page_response.dart';
 import 'package:spendwise/features/pages/domain/entities/page_request.dart';
 import 'package:spendwise/features/sync/queue/sync_queue_model.dart';
 import 'package:spendwise/features/sync/queue/sync_queue_repository.dart';
-import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
-import 'package:spendwise/features/wallet/data/datasources/wallet_local_datasource.dart';
-import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:uuid/uuid.dart';
 
 class IncomeRepositoryImpl implements IncomeRepository {
   final IncomeLocalDataSource localDataSource;
   final IncomeRemoteDatasource remote;
-  final WalletLocalDatasource walletLocalDatasource;
-  final CurrencyLocal currencyLocal;
   final SyncQueueRepository syncQueueRepository;
 
   IncomeRepositoryImpl({
     required this.localDataSource,
-    required this.walletLocalDatasource,
-    required this.currencyLocal,
-    required this.syncQueueRepository,
     required this.remote,
+    required this.syncQueueRepository,
   });
 
-  // =========================================================================
-  // دالة getIncomes: تجلب من السيرفر وتحدث الكاش بالكامل إن وجد إنترنت، وإلا تقرأ محلياً
-  // =========================================================================
-
+  // =========================================================
+  // GET (Remote if online + cache fallback)
+  // =========================================================
   @override
   Future<Either<Failure, PagedResponse<IncomeEntity>>> getIncomes(
     int? userId,
     PageRequest page,
   ) async {
     try {
-      // 1. التحقق من توفر الإنترنت عبر الـ NetworkService
-      final networkService = Get.find<NetworkService>();
-      final isOnline = networkService.isOnline.value;
+      final network = Get.find<NetworkService>();
+      final isOnline = network.isOnline.value;
 
       if (isOnline) {
         try {
-          if (kDebugMode) {
-            print(
-              "📡 Internet available. Fetching fresh incomes from remote...",
-            );
-          }
-
-          // أ) جلب البيانات الطازجة كاملة من السيرفر
-          // (قم بتعديل الدالة لتناسب الباك إند، سواء تمرير صفحة أو جلب الكل)
           final remoteResponse = await remote.getMyIncomes(userId!, page);
 
           if (remoteResponse != null) {
-            // ب) [فرّغ]: مسح البيانات المحلية القديمة لتجنب التكرار وتطابق السيرفر
             await localDataSource.clear();
 
-            // ج) [أملأ]: تخزين البيانات الجديدة القادمة من السيرفر محلياً
-            for (var remoteIncome in remoteResponse.data) {
-              remoteIncome.isSynced = true; // وسمها كمتزامنة
-              remoteIncome.isDeleted = false;
-              await localDataSource.addIncome(remoteIncome);
+            for (final income in remoteResponse.data) {
+              income.isSynced = true;
+              income.isDeleted = false;
+              await localDataSource.addIncome(income);
             }
           }
-        } catch (remoteError) {
-          // حماية خفية (Fallback): إذا حدث خطأ غير متوقع من السيرفر (مثل 500 أو timeout) رغم وجود إنترنت
-          // لا نجعل التطبيق ينهار، بل نكتفي بطباعة الخطأ ونتركه يكمل ليعرض الكاش المحلي المتاح
+        } catch (e) {
           if (kDebugMode) {
-            print(
-              "⚠️ Failed to fetch from remote (Server error), falling back to cache: $remoteError",
-            );
+            print("⚠️ Remote failed, fallback to local: $e");
           }
-        }
-      } else {
-        if (kDebugMode) {
-          print(
-            "📴 No internet connection. Reading directly from local cache...",
-          );
         }
       }
 
-      // =========================================================================
-      // 2. معالجة وعرض البيانات المحلية (سواء كانت المحدثة من السيرفر أو الكاش القديم)
-      // =========================================================================
       final localData = await localDataSource.getIncomes();
 
-      // فلترة العناصر غير المحذوفة وترتيبها تنازلياً حسب التاريخ
-      final filtered = localData.where((item) => !item.isDeleted).toList()
+      final filtered = localData.where((e) => !e.isDeleted).toList()
         ..sort((a, b) => b.date.compareTo(a.date));
 
-      // تطبيق الـ Pagination محلياً على القائمة النهائية المسترجعة لضمان تماسك الـ Type
       final slice = _paginate(filtered, page);
-      final entities = _mapToEntities(slice);
 
       return Right(
         PagedResponse(
-          data: entities,
+          data: slice.map((e) => e.toEntity()).toList(),
           totalRecords: filtered.length,
           pageNumber: page.pageNumber,
           pageSize: page.pageSize,
@@ -113,43 +74,64 @@ class IncomeRepositoryImpl implements IncomeRepository {
         ),
       );
     } catch (e) {
-      return Left(CacheFailure("حدث خطأ أثناء تحميل الدخل: ${e.toString()}"));
+      return Left(CacheFailure("Error loading incomes: $e"));
     }
   }
 
+  // =========================================================
+  // CREATE
+  // =========================================================
   @override
   Future<Either<Failure, String>> addIncome(IncomeEntity income) async {
     try {
-      final model = IncomeModel.fromEntity(income)
-        ..isSynced = false
-        ..isDeleted = false
-        ..createdAt = DateTime.now()
-        ..updatedAt = DateTime.now();
+      final network = Get.find<NetworkService>();
+      final isOnline = network.isOnline.value;
 
+      final model = IncomeModel.fromEntity(income)
+        ..createdAt = DateTime.now()
+        ..updatedAt = DateTime.now()
+        ..isDeleted = false
+        ..isSynced = false;
+
+      // 1. Always save locally first
       await localDataSource.addIncome(model);
 
-      await syncQueueRepository.addToQueue(
-        SyncQueueModel(
-          id: const Uuid().v4(),
-          localId: model.localId,
-          action: SyncAction.create,
-          table: "income",
-          createdAt: DateTime.now(),
-          isarId: model.isarId,
-        ),
-      );
+      if (isOnline) {
+        try {
+          final remoteIncome = await remote.addIncome(model);
 
-      return const Right("تم الحفظ محلياً وبانتظار المزامنة");
+          if (remoteIncome != null) {
+            model
+              ..id = remoteIncome.id
+              ..isSynced = true;
+
+            await localDataSource.updateIncome(model);
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print("⚠️ Online create failed → queue fallback: $e");
+          }
+
+          await _addToQueue(model, SyncAction.create);
+        }
+      } else {
+        await _addToQueue(model, SyncAction.create);
+      }
+
+      return const Right("Income saved");
     } catch (e) {
-      return Left(CacheFailure("فشل الإضافة محلياً: ${e.toString()}"));
+      return Left(CacheFailure("Add income failed: $e"));
     }
   }
 
+  // =========================================================
+  // UPDATE
+  // =========================================================
   @override
   Future<Either<Failure, Unit>> updateIncome(IncomeEntity entity) async {
     try {
       final local = await localDataSource.getIncome(entity.localId);
-      if (local == null) return Left(CacheFailure("الدخل غير موجود للتعديل"));
+      if (local == null) return Left(CacheFailure("Not found"));
 
       local
         ..amount = entity.amount
@@ -161,28 +143,34 @@ class IncomeRepositoryImpl implements IncomeRepository {
 
       await localDataSource.updateIncome(local);
 
-      await syncQueueRepository.addToQueue(
-        SyncQueueModel(
-          id: const Uuid().v4(),
-          localId: local.localId,
-          action: SyncAction.update,
-          table: "income",
-          createdAt: DateTime.now(),
-          isarId: local.isarId,
-        ),
-      );
+      final network = Get.find<NetworkService>();
+
+      if (network.isOnline.value) {
+        try {
+          await remote.updateIncome(local);
+          local.isSynced = true;
+          await localDataSource.updateIncome(local);
+        } catch (e) {
+          await _addToQueue(local, SyncAction.update);
+        }
+      } else {
+        await _addToQueue(local, SyncAction.update);
+      }
 
       return const Right(unit);
     } catch (e) {
-      return Left(CacheFailure("فشل التحديث محلياً: ${e.toString()}"));
+      return Left(CacheFailure("Update failed: $e"));
     }
   }
 
+  // =========================================================
+  // DELETE
+  // =========================================================
   @override
   Future<Either<Failure, Unit>> deleteIncome(IncomeEntity entity) async {
     try {
       final local = await localDataSource.getIncome(entity.localId);
-      if (local == null) return Left(CacheFailure("الدخل غير موجود للحذف"));
+      if (local == null) return Left(CacheFailure("Not found"));
 
       local
         ..isDeleted = true
@@ -191,44 +179,43 @@ class IncomeRepositoryImpl implements IncomeRepository {
 
       await localDataSource.updateIncome(local);
 
-      await syncQueueRepository.addToQueue(
-        SyncQueueModel(
-          id: const Uuid().v4(),
-          localId: local.localId,
-          action: SyncAction.delete,
-          table: "income",
-          createdAt: DateTime.now(),
-          isarId: local.isarId,
-        ),
-      );
+      final network = Get.find<NetworkService>();
+
+      if (network.isOnline.value) {
+        try {
+          await remote.deleteIncome(local);
+        } catch (e) {
+          await _addToQueue(local, SyncAction.delete);
+        }
+      } else {
+        await _addToQueue(local, SyncAction.delete);
+      }
 
       return const Right(unit);
     } catch (e) {
-      return Left(CacheFailure("فشل الحذف محلياً: ${e.toString()}"));
+      return Left(CacheFailure("Delete failed: $e"));
     }
+  }
+
+  // =========================================================
+  // QUEUE HELPER
+  // =========================================================
+  Future<void> _addToQueue(IncomeModel model, SyncAction action) async {
+    await syncQueueRepository.addToQueue(
+      SyncQueueModel(
+        id: const Uuid().v4(),
+        localId: model.localId,
+        isarId: model.isarId,
+        table: "income",
+        action: action,
+        createdAt: DateTime.now(),
+      ),
+    );
   }
 
   List<IncomeModel> _paginate(List<IncomeModel> list, PageRequest page) {
     final start = (page.pageNumber - 1) * page.pageSize;
     final end = (start + page.pageSize).clamp(0, list.length);
     return start >= list.length ? [] : list.sublist(start, end);
-  }
-
-  List<IncomeEntity> _mapToEntities(List<IncomeModel> slice) {
-    return slice.map((model) {
-      WalletEntity? wallet;
-      if (model.walletLocalId != null) {
-        final walletModel = walletLocalDatasource.getWallet(
-          model.walletLocalId!,
-        );
-        if (walletModel != null) {
-          walletModel.currency = currencyLocal.tryCurrencyById(
-            walletModel.currencyId,
-          );
-          wallet = walletModel.toEntity();
-        }
-      }
-      return model.toEntity(wallet: wallet);
-    }).toList();
   }
 }

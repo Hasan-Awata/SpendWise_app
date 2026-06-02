@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
+import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/savings_goals/presentation/manager/saving_goal_action_controller.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
+import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.dart';
 
 class AddSavingGoalPage extends GetView<SavingGoalActionController> {
   const AddSavingGoalPage({super.key});
@@ -69,7 +71,8 @@ class AddSavingGoalPage extends GetView<SavingGoalActionController> {
                   ),
 
                   const SizedBox(height: 16),
-
+                  _buildWalletDropdown(),
+                  const SizedBox(height: 16),
                   // TARGET
                   CustomTextField(
                     label: 'المبلغ المستهدف',
@@ -106,7 +109,17 @@ class AddSavingGoalPage extends GetView<SavingGoalActionController> {
                   text: controller.isActionLoading.value
                       ? "جاري الحفظ..."
                       : "حفظ الهدف",
-                  onPressed: () => controller.addSavingGoal(),
+                  onPressed: () {
+                    if (controller.selectedWallet.value == null) {
+                      HelperFunction.showSnackBar(
+                        "تنبيه",
+                        "يرجى اختيار محفظة أولاً",
+                        isError: true,
+                      );
+                      return;
+                    }
+                    controller.addSavingGoal();
+                  },
                   color: SpColor.savinggoalColor,
                 ),
               ),
@@ -116,6 +129,36 @@ class AddSavingGoalPage extends GetView<SavingGoalActionController> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildWalletDropdown() {
+    return Obx(
+      () => controller.walletsListController.regularWallets.isEmpty
+          ? const Text(
+              "لا توجد محافظ متاحة",
+              style: TextStyle(color: Colors.white38),
+            )
+          : SPDropdownSearch(
+              themeColor: SpColor.savinggoalColor,
+              label: "المحفظة",
+              items: controller.walletsListController.regularWallets
+                  .map(
+                    (w) => "${w.currency.currencyName} (${w.currency.code})",
+                  ) // يفضل استخدام `اسم` المحفظة w.name
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) return;
+                final selected = controller.walletsListController.regularWallets
+                    .firstWhere(
+                      (w) =>
+                          "${w.currency.currencyName} (${w.currency.code})" ==
+                          value,
+                    );
+                controller.selectedWallet.value = selected;
+              },
+              hint: 'اختر محفظة',
+            ),
     );
   }
 }
