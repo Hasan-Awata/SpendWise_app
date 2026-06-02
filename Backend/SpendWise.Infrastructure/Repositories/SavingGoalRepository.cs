@@ -17,70 +17,36 @@ namespace SpendWise.Infrastructure.Repositories
                   ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings."))
         { }
 
-        {
-            _connectionString = configuration.GetConnectionString("DefaultConnection")
-                                ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings.");
-        }
         public async Task<bool> WithdrawAmountFromSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromSavingGoal, decimal amountToWallet, decimal amountInSp)
         {
-            using (var connection = new SqlConnection(_connectionString))
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_WithdrawAmountFromSavingGoalWithTransaction]", cmd =>
             {
-                using (var command = new SqlCommand("[Planning].[sp_WithdrawAmountFromSavingGoalWithTransaction]", connection))
-                {
-                    command.CommandType = CommandType.StoredProcedure;
-
-                     command.Parameters.AddWithValue("@GoalId", goalId);
-                    command.Parameters.AddWithValue("@WalletId", walletId);
-                    command.Parameters.AddWithValue("@UserId", userId);
-                    command.Parameters.AddWithValue("@AmountFromSavingGoal", amountFromSavingGoal);
-                    command.Parameters.AddWithValue("@AmountToWallet", amountToWallet);
-                    command.Parameters.AddWithValue("@AmountInSp", amountInSp);
-                     command.Parameters.AddWithValue("@TransactionTitle", "Withdrawal from Saving Goal");
-                    command.Parameters.AddWithValue("@TransactionType", 2); 
-                    try
-                    {
-                        await connection.OpenAsync();
-
-                         var result = await command.ExecuteScalarAsync();
-
-                        if (result != null && Convert.ToInt32(result) == 1)
-                        {
-                            return true;
-                        }
-
-                        return false;
-                    }
-                    catch (Exception ex)
-                    {
-                         return false;
-                    }
-                }
-            }
+                cmd.Parameters.AddWithValue("@GoalId", goalId);
+                cmd.Parameters.AddWithValue("@WalletId", walletId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@AmountFromSavingGoal", amountFromSavingGoal);
+                cmd.Parameters.AddWithValue("@AmountToWallet", amountToWallet);
+                cmd.Parameters.AddWithValue("@AmountInSp", amountInSp);
+                cmd.Parameters.AddWithValue("@TransactionTitle", "Withdraw money from the savings goal");
+                cmd.Parameters.AddWithValue("@TransactionType", 1);
+            });
+            return result == 1;
         }
-
         public async Task<bool> AddAmountToSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromWallet, decimal amountToSavingGoal, decimal amountInSp)
         {
-            try
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_AddAmountToSavingGoalWithTransaction]", cmd =>
             {
-                var result = await ExecuteScalarAsync<int>("[Planning].[sp_AddAmountToSavingGoalWithTransaction]", cmd =>
-                {
-                    cmd.Parameters.AddWithValue("@GoalId", goalId);
-                    cmd.Parameters.AddWithValue("@WalletId", walletId);
-                    cmd.Parameters.AddWithValue("@UserId", userId);
-                    cmd.Parameters.AddWithValue("@AmountFromWallet", amountFromWallet);
-                    cmd.Parameters.AddWithValue("@AmountToSavingGoal", amountToSavingGoal);
-                    cmd.Parameters.AddWithValue("@AmountInSp", amountInSp);
-                    cmd.Parameters.AddWithValue("@TransactionTitle", "Transfer money to the savings goal");
-                    cmd.Parameters.AddWithValue("@TransactionType", 1);
-                });
+                cmd.Parameters.AddWithValue("@GoalId", goalId);
+                cmd.Parameters.AddWithValue("@WalletId", walletId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@AmountFromWallet", amountFromWallet);
+                cmd.Parameters.AddWithValue("@AmountToSavingGoal", amountToSavingGoal);
+                cmd.Parameters.AddWithValue("@AmountInSp", amountInSp);
+                cmd.Parameters.AddWithValue("@TransactionTitle", "Transfer money to the savings goal");
+                cmd.Parameters.AddWithValue("@TransactionType", 1);
+            });
 
-                return result == 1;
-            }
-            catch (SqlException)
-            {
-                // Maintained original behavior to suppress specific exceptions and return false
-                return false;
-            }
+            return result == 1;
         }
 
         public async Task<int> AddGoalAsync(SavingGoal goal)
@@ -103,34 +69,6 @@ namespace SpendWise.Infrastructure.Repositories
             });
 
             return (int)(outputId?.Value ?? -1);
-        }
-                 var outputParam = new SqlParameter("@NewGoalID", SqlDbType.Int)
-                {
-                    Direction = ParameterDirection.Output
-                };
-                command.Parameters.Add(outputParam);
-
-                await connection.OpenAsync();
-
-                  await command.ExecuteNonQueryAsync();
-
-                  if (outputParam.Value != null && outputParam.Value != DBNull.Value)
-                {
-                    return (int)outputParam.Value;
-                }
-
-                      return -1;
-            }
-            catch (SqlException ex)
-            {
-                
-                return -1;
-            }
-            catch (Exception ex)
-            {
-                        return -1;
-            }
-         
         }
 
         public async Task<bool> UpdateGoalAsync(SavingGoal updatedGoal)
