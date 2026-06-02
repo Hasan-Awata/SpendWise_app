@@ -61,16 +61,15 @@ namespace SpendWise.Controllers
                 return NotFound();
             }
 
-            // 2. نجلب الكائن الكامل الذي يحتوي على الـ ID والتفاصيل (SavingGoalResponse) لتقديمه للـ Frontend
             var createdGoal = await _savingGoalService.GetGoalByIdAsync(goalId);
 
             if (createdGoal == null)
             {
-                return NotFound();
+
+                return BadRequest("Error in your input *_*");
             }
 
-            // 3. نرجع الـ 201 Created مع الكائن الكامل والرابط الصحيح
-            return CreatedAtAction(nameof(GetGoalByID), new { id = goalId }, createdGoal);
+                return CreatedAtAction(nameof(GetGoalByID), new { id = goalId }, createdGoal);
         }
 
         [HttpPatch("{goalId}")]
