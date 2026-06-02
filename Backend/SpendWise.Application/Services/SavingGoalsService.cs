@@ -86,8 +86,8 @@ namespace SpendWise.Application.Services
                     goalCurrency == null || string.IsNullOrEmpty(goalCurrency.Code))
                     return false;
 
-                amountSYR = await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "Damascus", "black_market", amountFromWallet);
-                 decimal amountAsSavingGoal = await _exchangeRateService.NormalizeFromSyrianPund(goalCurrency.Code, "black_market", amountSYR);
+                amountSYR = await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "Damascus", "sell", amountFromWallet);
+                 decimal amountAsSavingGoal = await _exchangeRateService.NormalizeFromSyrianPund(goalCurrency.Code, "Damascus", amountSYR);
                 amountToSavingGoal = Convert.ToDecimal(amountAsSavingGoal);
             }
             else
@@ -107,22 +107,18 @@ namespace SpendWise.Application.Services
                 return false;
             }
         }
-        public async Task<bool>WithdrawAmountFromSavingGoal (int savingGoalId ,int walletId ,int userId ,double amount)
+        public async Task<bool> WithdrawAmountFromSavingGoal(int savingGoalId, int walletId, int userId, double amount)
         {
-
-            
             if (userId <= 0)
                 return false;
             if (amount == 0) return true;
-            if (amount<0)
+            if (amount < 0)
                 return false;
             if (walletId <= 0) return false;
+            if (savingGoalId <= 0) return false;
 
 
-            if (savingGoalId <= 0) { return false; }
-
-
-            var CurrentSavingGoal = await _goalRepo.GetGoalByIdAsync(savingGoalId);
+             var CurrentSavingGoal = await _goalRepo.GetGoalByIdAsync(savingGoalId);
 
             if (CurrentSavingGoal == null)
                 return false;
@@ -130,51 +126,61 @@ namespace SpendWise.Application.Services
             if (CurrentSavingGoal.CurrentAmount < Convert.ToDecimal(amount))
                 return false;
 
-
-
-            var wallet = await _walletRepo.GetWalletByIdAsync(walletId, userId);
+   var wallet = await _walletRepo.GetWalletByIdAsync(walletId, userId);
             if (wallet == null) return false;
 
-            CurrentSavingGoal.CurrentAmount-=Convert.ToDecimal(amount);
 
+             var goalCurrency = SupportedCurrencies.GetById(CurrentSavingGoal.CurrencyId);
+            var walletCurrency = SupportedCurrencies.GetById(wallet.CurrencyId);
 
-
-            if (!await _goalRepo.UpdateGoalAsync(CurrentSavingGoal))
+            if (goalCurrency == null || string.IsNullOrEmpty(goalCurrency.Code) ||
+                walletCurrency == null || string.IsNullOrEmpty(walletCurrency.Code))
                 return false;
 
 
-            if (wallet.CurrencyId != CurrentSavingGoal.CurrencyId)
+            decimal amountFromGoal = Convert.ToDecimal(amount);
+            decimal amountToWallet = amountFromGoal;
+            decimal amountSYR = 0;
+
+            try
             {
+                 if (wallet.CurrencyId != CurrentSavingGoal.CurrencyId)
+                {   amountSYR = await _exchangeRateService.NormalizeToSyrianPound(
+                        goalCurrency.Code, "Damascus", "sell", amountFromGoal);
 
-                decimal amountSYR = await _exchangeRateService.NormalizeToSyrianPound(SupportedCurrencies.GetById(CurrentSavingGoal.CurrencyId).Code, "Damascus", "black_market", Convert.ToDecimal(amount));
+                      decimal amountAsWallet = await _exchangeRateService.NormalizeFromSyrianPund(
+                        walletCurrency.Code, "Damascus", amountSYR);
 
-
-                decimal amountAsSavingGoal = await _exchangeRateService.NormalizeFromSyrianPund(SupportedCurrencies.GetById(wallet.CurrencyId).Code, "black_market", amountSYR);
-
-
-
-                wallet.Balance += Convert.ToDecimal(amountAsSavingGoal);
+                    amountToWallet = Convert.ToDecimal(amountAsWallet);
+                }
+                else
+                {
+                      amountToWallet = amountFromGoal;
+                    amountSYR = amountFromGoal;
+                }
             }
-            else
+            catch (Exception)
             {
+                if (wallet.CurrencyId == CurrentSavingGoal.CurrencyId)
+                {
+                    amountToWallet = amountFromGoal;
+                    amountSYR = amountFromGoal * 15000; 
+                }
+                else
+                {
+                    return false; 
+                }
+            }
 
-                wallet.Balance += Convert.ToDecimal(amount);
-                     }
 
-            if (await _walletRepo.UpdateWalletAsync(wallet))
+             if (await _goalRepo.WithdrawAmountFromSavingGoalTransactionAsync(savingGoalId, walletId, userId, amountFromGoal, amountToWallet, amountSYR))
+            {
                 return true;
-
+            }
             else
             {
-                CurrentSavingGoal.CurrentAmount += Convert.ToDecimal(amount);
-                await _goalRepo.UpdateGoalAsync(CurrentSavingGoal);
-
                 return false;
             }
-
-
-
-
         }
         public async Task<PagedResponse<SavingGoalResponse>> GetAllUserGoalsAsync(int userId, PageDTO pageDto)
         {
@@ -210,9 +216,13 @@ namespace SpendWise.Application.Services
 
             
             var savinggoal =new SavingGoal(-1,userID,savingGoal.Title,savingGoal.TargetAmount,savingGoal.CurrentAmount,savingGoal.DeadlineDate,savingGoal.CurrencyId,savingGoal.IsActive);
-            
-            return await _goalRepo.AddGoalAsync(savinggoal);
-            
+             
+            int id = await _goalRepo.AddGoalAsync(savinggoal);
+            if (id == -1)
+            {
+                return -1;
+            }
+            return id;
         }
         public async Task<bool> UpdateGoalAsync(int savingGoalId,SavingGoalDTO savingGoal)
         {

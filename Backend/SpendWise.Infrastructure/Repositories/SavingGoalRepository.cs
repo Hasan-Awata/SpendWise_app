@@ -19,6 +19,43 @@ namespace SpendWise.Infrastructure.Repositories
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                                 ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings.");
         }
+        public async Task<bool> WithdrawAmountFromSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromSavingGoal, decimal amountToWallet, decimal amountInSp)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var command = new SqlCommand("[Planning].[sp_WithdrawAmountFromSavingGoalWithTransaction]", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+
+                     command.Parameters.AddWithValue("@GoalId", goalId);
+                    command.Parameters.AddWithValue("@WalletId", walletId);
+                    command.Parameters.AddWithValue("@UserId", userId);
+                    command.Parameters.AddWithValue("@AmountFromSavingGoal", amountFromSavingGoal);
+                    command.Parameters.AddWithValue("@AmountToWallet", amountToWallet);
+                    command.Parameters.AddWithValue("@AmountInSp", amountInSp);
+                     command.Parameters.AddWithValue("@TransactionTitle", "Withdrawal from Saving Goal");
+                    command.Parameters.AddWithValue("@TransactionType", 2); 
+                    try
+                    {
+                        await connection.OpenAsync();
+
+                         var result = await command.ExecuteScalarAsync();
+
+                        if (result != null && Convert.ToInt32(result) == 1)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                         return false;
+                    }
+                }
+            }
+        }
+
         public async Task<bool> AddAmountToSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromWallet, decimal amountToSavingGoal, decimal amountInSp)
         {
             try
@@ -59,38 +96,42 @@ namespace SpendWise.Infrastructure.Repositories
                 {
                     CommandType = CommandType.StoredProcedure
                 };
+
                 command.Parameters.AddWithValue("@UserId", goal.UserID);
                 command.Parameters.AddWithValue("@Title", goal.Title);
                 command.Parameters.AddWithValue("@TargetAmount", goal.TargetAmount);
                 command.Parameters.AddWithValue("@CurrentAmount", goal.CurrentAmount);
                 command.Parameters.AddWithValue("@DeadlineDate", (object)goal.DeadlineDate ?? DBNull.Value);
                 command.Parameters.AddWithValue("@CurrencyId", goal.CurrencyId);
-
-                // عند إضافة هدف جديد، تكون حالته الافتراضية غير محقق بعد (False)
                 command.Parameters.AddWithValue("@IsAchieved", false);
 
-                // 3. تعريف بارامتر الـ OUTPUT لاستقبال المعرّف الجديد
-                var outputParam = new SqlParameter("@NewGoalID", SqlDbType.Int)
+                 var outputParam = new SqlParameter("@NewGoalID", SqlDbType.Int)
                 {
                     Direction = ParameterDirection.Output
                 };
                 command.Parameters.Add(outputParam);
 
                 await connection.OpenAsync();
-                await command.ExecuteNonQueryAsync();
 
-                 if (outputParam.Value != null && outputParam.Value != DBNull.Value)
+                  await command.ExecuteNonQueryAsync();
+
+                  if (outputParam.Value != null && outputParam.Value != DBNull.Value)
                 {
                     return (int)outputParam.Value;
                 }
 
-                return -1;
+                      return -1;
             }
             catch (SqlException ex)
             {
-                SqlExceptionHandler.Handle(ex);
-                throw;
+                
+                return -1;
             }
+            catch (Exception ex)
+            {
+                        return -1;
+            }
+         
         }
 
         public async Task<bool> UpdateGoalAsync(SavingGoal updatedGoal)

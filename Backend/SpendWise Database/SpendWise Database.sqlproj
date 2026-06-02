@@ -153,6 +153,7 @@
     <Build Include="Planning\Stored Procedures\sp_AcceptSharedDebt.sql" />
     <Build Include="Planning\Stored Procedures\sp_RefuseSharedDebt.sql" />
     <Build Include="Planning\Triggers\trg_PaidAmountChangedForDebt.sql" />
+    <Build Include="Planning\Stored Procedures\sp_WithdrawAmountFromSavingGoalWithTransaction.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />
