@@ -188,8 +188,7 @@ namespace SpendWise.Application.Tests.Services
 
             Assert.True(res.IsSuccess);
             Assert.Equal(42, res.Value!.ExpenseId);
-            Assert.False(res.Value.IsOverLimit);
-            Assert.Equal(1, res.Value.CurrencyId);
+            Assert.False(res.Value!.IsOverLimit);
         }
 
         [Fact]

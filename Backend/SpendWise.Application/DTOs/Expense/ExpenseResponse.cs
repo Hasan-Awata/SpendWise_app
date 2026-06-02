@@ -24,7 +24,6 @@ namespace SpendWise.Application.DTOs.Expense
 
         // Additional data (often assigned after initialization)
         public bool IsOverLimit { get; set; }
-        public int CurrencyId { get; set; }
 
         public ExpenseResponse(SpendWise.Domain.Entities.Expense expense)
         {
