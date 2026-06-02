@@ -70,7 +70,10 @@ namespace SpendWise.Application.Services
             if (budgetDto.PercentageLimit <= 0)
                 return Result<CategoryBudgetResponse>.Failure("Budget percentage limit must be greater than zero.", enErrorType.Validation);
 
-            if (budgetDto.StartDate < budgetDto.EndDate)
+            if (budgetDto.StartDate.CompareTo(budgetDto.EndDate) > 0)
+                // result < 0: StartDate is earlier
+                // result == 0: dates are equal
+                // result > 0: StartDate is later
                 return Result<CategoryBudgetResponse>.Failure("The start date must occur prior to the end date.", enErrorType.Validation);
 
             budgetDto.CategoryBudgetId = -1; // Make sure to send -1 to database (safe practice)
@@ -108,7 +111,10 @@ namespace SpendWise.Application.Services
             if (budgetDto.PercentageLimit <= 0)
                 return Result<CategoryBudgetResponse>.Failure("Budget percentage limit must be greater than zero.", enErrorType.Validation);
 
-            if (budgetDto.StartDate < budgetDto.EndDate)
+            if (budgetDto.StartDate.CompareTo(budgetDto.EndDate) > 0)
+                // result < 0: StartDate is earlier
+                // result == 0: dates are equal
+                // result > 0: StartDate is later
                 return Result<CategoryBudgetResponse>.Failure("The start date must occur prior to the end date.", enErrorType.Validation);
 
             // Verify budget existence before trying to update

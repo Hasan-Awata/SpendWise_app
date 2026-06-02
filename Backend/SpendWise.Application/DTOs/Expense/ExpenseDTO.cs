@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace SpendWise.Application.DTOs.Income
+namespace SpendWise.Application.DTOs.Expense
 {
     public class ExpenseDTO
     {
