@@ -3,14 +3,16 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.SharedDebts;
 using SpendWise.Application.Interfaces.SharedDebts;
-using System.Security.Claims;
+using SpendWise.Domain.Common;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SpendWise.Controllers
 {
     [Authorize]
     [ApiController]
     [Route("api/Shared_Debt")]
-    public class SharedDebtController : ControllerBase
+    public class SharedDebtController : BaseApiController
     {
         private readonly ISharedDebtService _sharedDebtService;
 
@@ -19,194 +21,190 @@ namespace SpendWise.Controllers
             _sharedDebtService = sharedDebtService;
         }
 
-        private int CurrentUserId
-        {
-            get
-            {
-                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (int.TryParse(userIdString, out int userId))
-                {
-                    return userId;
-                }
-                throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
-            }
-        }
-
         [HttpGet("GetDebtByID/{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetDebtByID([FromRoute] int id)
         {
             if (id <= 0) return BadRequest("Please enter a correct ID.");
 
-            var debt = await _sharedDebtService.GetDebtByIdAsync(id);
-            if (debt == null) return NotFound();
+            var result = await _sharedDebtService.GetDebtByIdAsync(id);
 
-            return Ok(debt);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(result.Value);
         }
+
         [HttpGet("GetDebtByTitle/{title}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetDebtByTitle([FromRoute] string title)
         {
-            // 1. Validation: Ensure the title is not empty or just whitespace
             if (string.IsNullOrWhiteSpace(title))
             {
                 return BadRequest("Please enter a valid debt title.");
             }
 
-            // 2. Service Call
-            var debt = await _sharedDebtService.GetDebtByTitleAsync(title);
+            var result = await _sharedDebtService.GetDebtByTitleAsync(title);
 
-            // 3. Handle Not Found
-            if (debt == null)
+            if (!result.IsSuccess)
             {
-                return NotFound($"No debt found with the title: {title}");
+                return HandleResultOnError(result);
             }
 
-            // 4. Return result
-            return Ok(debt);
+            return Ok(result.Value);
         }
 
         [HttpGet("GetDebtsOwedToUser")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetDebtsOwedToUser()
         {
-            int userId = CurrentUserId;
-            var debts = await _sharedDebtService.GetDebtsOwedToUserAsync(userId);
-            if (debts == null) return NotFound();
+            var result = await _sharedDebtService.GetDebtsOwedToUserAsync(CurrentUserId);
 
-            return Ok(debts);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(result.Value);
         }
 
         [HttpGet("GetDebtsIHaveToPay")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetDebtsIHaveToPay()
         {
-            int userId = CurrentUserId;
-            var debts = await _sharedDebtService.GetTheDebtsIHaveToPayAsync(userId);
-            if (debts == null) return NotFound();
+            var result = await _sharedDebtService.GetTheDebtsIHaveToPayAsync(CurrentUserId);
 
-            return Ok(debts);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(result.Value);
         }
 
         [HttpGet("GetAllDebtsForUser")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetAllDebtsForUser()
         {
-            int userId = CurrentUserId;
-            var debts = await _sharedDebtService.GetSharedDebtsForUserAsync(userId);
-            if (debts == null) return NotFound();
+            var result = await _sharedDebtService.GetSharedDebtsForUserAsync(CurrentUserId);
 
-            return Ok(debts);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(result.Value);
         }
+
         [HttpPost("AddDebt")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddDebt([FromBody] SharedDebtDTO debtDto)
         {
-            var debtId = await _sharedDebtService.AddDebtAsync(debtDto);
-            if (debtId == -1) return BadRequest();
+            var result = await _sharedDebtService.AddDebtAsync(debtDto);
 
-            return Ok(debtId);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return CreatedAtAction(nameof(GetDebtByID), new { id = result.Value }, result.Value);
         }
 
         [HttpPatch("UpdateDebt/{debtID}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateDebt([FromRoute] int debtID, [FromBody] SharedDebtDTO updatedDebt)
         {
-            if (debtID <= 0) return BadRequest();
+            if (debtID <= 0) return BadRequest("Invalid Debt ID.");
 
-            var isDone = await _sharedDebtService.UpdateDebtAsync(debtID, updatedDebt);
-            if (!isDone) return NotFound();
+            var result = await _sharedDebtService.UpdateDebtAsync(debtID, updatedDebt);
 
-            return Ok(isDone);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok();
         }
 
         [HttpDelete("DeleteDebt/{debtId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteDebtById([FromRoute] int debtId)
         {
-            if (debtId <= 0) return BadRequest();
+            if (debtId <= 0) return BadRequest("Invalid Debt ID.");
 
-            var isDone = await _sharedDebtService.DeleteDebtByIdAsync(debtId);
-            if (!isDone) return NotFound();
+            var result = await _sharedDebtService.DeleteDebtByIdAsync(debtId);
 
-            return Ok(isDone);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return NoContent();
         }
-        [HttpDelete("DeleteDebtByTitle/{Title}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
 
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpDelete("DeleteDebtByTitle/{Title}")]
         public async Task<IActionResult> DeleteDebtByTitle([FromRoute] string Title)
         {
+            if (string.IsNullOrWhiteSpace(Title)) return BadRequest("Title cannot be empty.");
 
+            var result = await _sharedDebtService.DeletDebtByTitleAsync(Title);
 
-            var isDone = await _sharedDebtService.DeletDebtByTitleAsync(Title);
-            if (!isDone) return NotFound();
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
 
-            return Ok(isDone);
+            return NoContent();
         }
+
         [HttpGet("CheckDebtExists/{debtId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> CheckDebtExists([FromRoute] int debtId)
         {
-            if (debtId <= 0) return BadRequest();
+            if (debtId <= 0) return BadRequest("Invalid Debt ID.");
 
             var isExist = await _sharedDebtService.DebtExistsAsyns(debtId);
-            if (!isExist) return NotFound();
+            if (!isExist) return NotFound(false);
 
-            return Ok(isExist);
+            return Ok(true);
         }
+
         [HttpPost("ReturnDebtAmount/{debtId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> ReturnDebtAmount([FromRoute] int debtId, [FromBody] ReturnDebtDTO returnDebtDTO)
         {
-            if (debtId <= 0) return BadRequest();
+            if (debtId <= 0) return BadRequest("Invalid Debt ID.");
 
-            var isDone = await _sharedDebtService.ReturnDebtAmountAsync(debtId, returnDebtDTO);
-            if (!isDone) return NotFound();
+            var result = await _sharedDebtService.ReturnDebtAmountAsync(debtId, returnDebtDTO);
 
-            return Ok(isDone);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok();
         }
+
         [HttpPut("AcceptDebt/{debtId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> AcceptDebt([FromRoute] int debtId, [FromBody] ReturnDebtDTO returnDebtDTO)
         {
-            if (debtId <= 0) return BadRequest();
+            if (debtId <= 0) return BadRequest("Invalid Debt ID.");
 
-            var isDone = await _sharedDebtService.AcceptSharedDebtAsync(debtId, returnDebtDTO);
-            if (!isDone) return NotFound();
+            var result = await _sharedDebtService.AcceptSharedDebtAsync(debtId, returnDebtDTO);
 
-            return Ok(isDone);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok();
         }
+
         [HttpPatch("RefuseDebt/{debtId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> RefuseDebt([FromRoute] int debtId)
         {
-            if (debtId <= 0) return BadRequest();
+            if (debtId <= 0) return BadRequest("Invalid Debt ID.");
 
-            var isDone = await _sharedDebtService.RefuseDebtAsync(debtId);
-            if (!isDone) return NotFound();
+            var result = await _sharedDebtService.RefuseDebtAsync(debtId);
 
-            return Ok(isDone);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok();
         }
     }
 }
