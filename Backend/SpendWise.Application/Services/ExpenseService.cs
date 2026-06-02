@@ -155,8 +155,8 @@ namespace SpendWise.Application.Services
             var expensesWallet = walletPair.FirstOrDefault(w => !w.IsSaved);
             var savingWallet = walletPair.FirstOrDefault(w => w.IsSaved);
 
-            if (expensesWallet == null || savingWallet == null)
-                return Result<ExpenseResponse>.Failure("Wallet pairing infrastructure not found.", enErrorType.NotFound);
+            if (expensesWallet == null)
+                return Result<ExpenseResponse>.Failure("No expense wallet found.", enErrorType.NotFound);
 
             // Calculate precise splits based on primary wallet cash availability
             decimal amountFromPrimary;
@@ -169,13 +169,19 @@ namespace SpendWise.Application.Services
             }
             else
             {
+                // If primary doesn't have enough, ensure we have a non-null saving wallet and enough combined balance
+                if (savingWallet == null)
+                {
+                    return Result<ExpenseResponse>.Failure("Not enough money in your wallet to complete this expense.", enErrorType.BalanceViolation);
+                }
+
                 if (expensesWallet.Balance + savingWallet.Balance < expenseDto.Amount)
                 {
                     return Result<ExpenseResponse>.Failure("Not enough combined money across your wallets to complete this expense.", enErrorType.BalanceViolation);
                 }
 
                 amountFromPrimary = expensesWallet.Balance;
-                amountFromSavings = expenseDto.Amount - expensesWallet.Balance; 
+                amountFromSavings = expenseDto.Amount - expensesWallet.Balance;
             }
 
             // Calculate SP normalization using total expense cost, not just the remainder
@@ -200,6 +206,9 @@ namespace SpendWise.Application.Services
             }
             else
             {
+                if (expensesWallet == null || savingWallet == null)
+                    return Result<ExpenseResponse>.Failure("No expense or saving wallet found.", enErrorType.NotFound);
+
                 (newExpenseId, isOverLimit) = await _expenseRepo.AddExpenseUsingBothWalletsAsync(
                     newExpense,
                     expensesWallet.WalletId,
@@ -235,13 +244,39 @@ namespace SpendWise.Application.Services
             if (expenseDto.Products.Sum(p => p.Price) != expenseDto.Amount)
                 return Result<ExpenseResponse>.Failure("The total amount doesn't match with total products prices", enErrorType.BalanceViolation);
 
-            // Fetch the wallet pairings
+            // Fetch the unique Currency Wallet Pair
             var walletPair = await _walletRepo.GetUserWalletsPairAsync(expenseDto.UserId, expenseDto.WalletId);
             var expensesWallet = walletPair.FirstOrDefault(w => !w.IsSaved);
             var savingWallet = walletPair.FirstOrDefault(w => w.IsSaved);
 
-            if (expensesWallet == null || savingWallet == null)
-                return Result<ExpenseResponse>.Failure("Wallet pairing infrastructure not found.", enErrorType.NotFound);
+            if (expensesWallet == null)
+                return Result<ExpenseResponse>.Failure("No expense wallet found.", enErrorType.NotFound);
+
+            // Calculate precise splits based on primary wallet cash availability
+            decimal amountFromPrimary;
+            decimal amountFromSavings;
+
+            if (expensesWallet.Balance >= expenseDto.Amount)
+            {
+                amountFromPrimary = expenseDto.Amount;
+                amountFromSavings = 0.0m;
+            }
+            else
+            {
+                // If primary doesn't have enough, ensure we have a non-null saving wallet and enough combined balance
+                if (savingWallet == null)
+                {
+                    return Result<ExpenseResponse>.Failure("Not enough money in your wallet to complete this expense.", enErrorType.BalanceViolation);
+                }
+
+                if (expensesWallet.Balance + savingWallet.Balance < expenseDto.Amount)
+                {
+                    return Result<ExpenseResponse>.Failure("Not enough combined money across your wallets to complete this expense.", enErrorType.BalanceViolation);
+                }
+
+                amountFromPrimary = expensesWallet.Balance;
+                amountFromSavings = expenseDto.Amount - expensesWallet.Balance;
+            }
 
             // Calculate complete exchange normalization metrics
             decimal totalAmountInSp = await CalcAmountInSp(expensesWallet.CurrencyId, expenseDto.Amount);
@@ -254,12 +289,26 @@ namespace SpendWise.Application.Services
             var updatedExpense = MapExpenseDTOtoExpenseObject(expenseDto, productsJson);
             updatedExpense.LinkedTransaction.AmountInSp = totalAmountInSp;
 
-            var (success, isOverLimit) = await _expenseRepo.UpdateExpenseUsingBothWalletsAsync(
-                updatedExpense,
-                expensesWallet.WalletId,
-                expenseDto.Amount > expensesWallet.Balance ? expensesWallet.Balance : expenseDto.Amount,
-                expenseDto.Amount > expensesWallet.Balance ? expenseDto.Amount - expensesWallet.Balance : 0.0m
-            );
+            bool success;
+            bool isOverLimit;
+
+            if (amountFromSavings == 0.0m)
+            {
+                // Matches the Add pattern assuming your repo has a single-wallet update method
+                (success, isOverLimit) = await _expenseRepo.UpdateExpenseAsync(updatedExpense);
+            }
+            else
+            {
+                if (expensesWallet == null || savingWallet == null)
+                    return Result<ExpenseResponse>.Failure("No expense or saving wallet found.", enErrorType.NotFound);
+
+                (success, isOverLimit) = await _expenseRepo.UpdateExpenseUsingBothWalletsAsync(
+                    updatedExpense,
+                    expensesWallet.WalletId,
+                    amountFromPrimary,
+                    amountFromSavings
+                );
+            }
 
             if (!success)
                 return Result<ExpenseResponse>.Failure("Failed to update the expense in the database.", enErrorType.Failure);

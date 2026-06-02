@@ -25,9 +25,6 @@ BEGIN
         
         DECLARE @NewWalletID INT = SCOPE_IDENTITY();
 
-        INSERT INTO [Banking].Wallets (UserID, CurrencyID, Balance, IsSaved)
-        VALUES (@UserId, @CurrencyId, 0, ~@IsSaved);
-
         COMMIT TRAN; -- Lock Released: Operation succeeded
         
         -- Return the new WalletID to C#
