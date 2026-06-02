@@ -10,196 +10,92 @@ using System.Threading.Tasks;
 
 namespace SpendWise.Infrastructure.Repositories
 {
-    public class FixedObligationRepository : IFixedObligationRepository
+    public class FixedObligationRepository : BaseRepository, IFixedObligationRepository
     {
-        private readonly string _connectionString;
-
         public FixedObligationRepository(IConfiguration configuration)
+            : base(configuration.GetConnectionString("DefaultConnection")
+                  ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings."))
+        { }
+
+        public async Task<FixedObligation?> GetFixedObligationAsync(int obligationId, int userId)
         {
-            _connectionString = configuration.GetConnectionString("DefaultConnection")
-                                ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+            return await ExecuteReaderSingleAsync("[Planning].[sp_GetFixedObligation]", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@ObligationId", obligationId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+            }, MapToFixedObligation);
         }
 
-        public async Task<FixedObligation> GetFixedObligationAsync(int obligationId, int userId)
+        public async Task<IEnumerable<FixedObligation>> GetFixedObligationsByUserIdAsync(int userId)
         {
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_GetFixedObligation]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@ObligationId", obligationId);
-                command.Parameters.AddWithValue("@UserId", userId);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
-                {
-                    return new FixedObligation(
-                        id: Convert.ToInt32(reader["FixedExpenseID"]),
-                        ownerId: Convert.ToInt32(reader["UserID"]),
-                        title: reader["Title"].ToString()!,
-                        amount: Convert.ToDecimal(reader["Amount"]),
-                        dueDate: Convert.ToDateTime(reader["DueDate"]),
-                        isActive: Convert.ToBoolean(reader["IsActive"])
-                    );
-                }
-
-                return null!;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
-        }
-
-        public async Task<IEnumerable<FixedObligation?>> GetFixedObligationsByUserIdAsync(int userId)
-        {
-            var obligations = new List<FixedObligation>();
-
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_GetFixedObligationsByUserId]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@UserId", userId);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
-                {
-                    obligations.Add(new FixedObligation(
-                        id: Convert.ToInt32(reader["FixedExpenseID"]),
-                        ownerId: Convert.ToInt32(reader["UserID"]),
-                        title: reader["Title"].ToString()!,
-                        amount: Convert.ToDecimal(reader["Amount"]),
-                        dueDate: Convert.ToDateTime(reader["DueDate"]),
-                        isActive: Convert.ToBoolean(reader["IsActive"])
-                    ));
-                }
-
-                return obligations;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return await ExecuteReaderAsync("[Planning].[sp_GetFixedObligationsByUserId]",
+                cmd => cmd.Parameters.AddWithValue("@UserId", userId), MapToFixedObligation);
         }
 
         public async Task<int> CreateFixedObligationAsync(FixedObligation fixedObligation)
         {
-            try
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_CreateFixedObligation]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_CreateFixedObligation]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@OwnerId", fixedObligation.OwnerId);
+                cmd.Parameters.AddWithValue("@Title", fixedObligation.Title);
+                cmd.Parameters.AddWithValue("@Amount", fixedObligation.Amount);
+                cmd.Parameters.AddWithValue("@DueDate", fixedObligation.DueDate);
+                cmd.Parameters.AddWithValue("@IsActive", fixedObligation.IsActive);
+            });
 
-                command.Parameters.AddWithValue("@OwnerId", fixedObligation.OwnerId);
-                command.Parameters.AddWithValue("@Title", fixedObligation.Title);
-                command.Parameters.AddWithValue("@Amount", fixedObligation.Amount);
-                command.Parameters.AddWithValue("@DueDate", fixedObligation.DueDate);
-                command.Parameters.AddWithValue("@IsActive", fixedObligation.IsActive);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return result > 0 ? result : -1;
         }
 
         public async Task<bool> UpdateFixedObligationAsync(FixedObligation fixedObligation)
         {
-            try
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_UpdateFixedObligation]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_UpdateFixedObligation]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@Id", fixedObligation.Id);
+                cmd.Parameters.AddWithValue("@OwnerId", fixedObligation.OwnerId);
+                cmd.Parameters.AddWithValue("@Title", fixedObligation.Title);
+                cmd.Parameters.AddWithValue("@Amount", fixedObligation.Amount);
+                cmd.Parameters.AddWithValue("@DueDate", fixedObligation.DueDate);
+                cmd.Parameters.AddWithValue("@IsActive", fixedObligation.IsActive);
+            });
 
-                command.Parameters.AddWithValue("@Id", fixedObligation.Id);
-                command.Parameters.AddWithValue("@OwnerId", fixedObligation.OwnerId);
-                command.Parameters.AddWithValue("@Title", fixedObligation.Title);
-                command.Parameters.AddWithValue("@Amount", fixedObligation.Amount);
-                command.Parameters.AddWithValue("@DueDate", fixedObligation.DueDate);
-                command.Parameters.AddWithValue("@IsActive", fixedObligation.IsActive);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return rowsAffected > 0;
         }
 
         public async Task<bool> DeleteFixedObligationAsync(int obligationId, int userId)
         {
-            try
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_DeleteFixedObligation]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_DeleteFixedObligation]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@Id", obligationId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+            });
 
-                command.Parameters.AddWithValue("@Id", obligationId);
-                command.Parameters.AddWithValue("@UserId", userId);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return rowsAffected > 0;
         }
 
         public async Task<bool> IsObligationActive(int obligationId, int userId)
         {
-            try
+            var result = await ExecuteScalarAsync<object>("[Planning].[sp_CheckFixedObligationActive]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_CheckFixedObligationActive]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@ObligationId", obligationId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+            });
 
-                command.Parameters.AddWithValue("@ObligationId", obligationId);
-                command.Parameters.AddWithValue("@UserId", userId);
+            return result != null && Convert.ToBoolean(result);
+        }
 
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && Convert.ToBoolean(result);
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+        // =========================================================================
+        // REUSABLE HELPER METHODS & MAPPERS
+        // =========================================================================
+        private static FixedObligation MapToFixedObligation(SqlDataReader reader)
+        {
+            return new FixedObligation(
+                id: EmptyValuesHandler.GetInt32OrDefault(reader, "FixedExpenseID"),
+                ownerId: EmptyValuesHandler.GetInt32OrDefault(reader, "UserID"),
+                title: EmptyValuesHandler.GetStringOrDefault(reader, "Title"),
+                amount: EmptyValuesHandler.GetDecimalOrDefault(reader, "Amount"),
+                dueDate: EmptyValuesHandler.GetDateTimeOrDefault(reader, "DueDate"),
+                isActive: EmptyValuesHandler.GetBooleanOrDefault(reader, "IsActive")
+            );
         }
     }
 }

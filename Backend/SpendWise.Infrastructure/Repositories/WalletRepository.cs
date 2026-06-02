@@ -8,232 +8,103 @@ using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
 
-public class WalletRepository : IWalletRepository
+namespace SpendWise.Infrastructure.Repositories
 {
-    private readonly string _connectionString;
-
-    public WalletRepository(IConfiguration configuration)
+    public class WalletRepository : BaseRepository, IWalletRepository
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection")
-                                        ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
-    }
+        public WalletRepository(IConfiguration configuration)
+            : base(configuration.GetConnectionString("DefaultConnection")
+                  ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings."))
+        { }
 
-    public async Task<Wallet?> GetWalletByIdAsync(int walletId, int userId)
-    {
-        try
+        public async Task<Wallet?> GetWalletByIdAsync(int walletId, int userId)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Banking].[sp_GetWalletById]", connection)
+            return await ExecuteReaderSingleAsync("[Banking].[sp_GetWalletById]", cmd =>
             {
-                CommandType = CommandType.StoredProcedure
-            };
+                cmd.Parameters.AddWithValue("@WalletId", walletId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+            }, MapWalletFromReader);
+        }
 
-            command.Parameters.AddWithValue("@WalletId", walletId);
-            command.Parameters.AddWithValue("@UserId", userId);
+        public async Task<IEnumerable<Wallet>> GetUserWalletsAsync(int userId)
+        {
+            return await ExecuteReaderAsync("[Banking].[sp_GetUserWallets]",
+                cmd => cmd.Parameters.AddWithValue("@UserId", userId), MapWalletFromReader);
+        }
 
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+        public async Task<IEnumerable<Wallet>> GetWalletsByCurrencyIdAsync(int userId, int currencyId)
+        {
+            return await ExecuteReaderAsync("[Banking].[sp_GetWalletsByCurrencyId]", cmd =>
             {
-                return MapWalletFromReader(reader);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@CurrencyId", currencyId);
+            }, MapWalletFromReader);
+        }
+
+        public async Task<IEnumerable<Wallet>> GetUserWalletsPairAsync(int userId, int walletId)
+        {
+            return await ExecuteReaderAsync("[Banking].[sp_GetUserWalletsPair]", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@WalletId", walletId);
+            }, MapWalletFromReader);
+        }
+
+        public async Task<int> AddWalletAsync(Wallet wallet)
+        {
+            var insertedId = await ExecuteScalarAsync<int>("[Banking].[sp_AddWallet]", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@UserId", wallet.UserId);
+                cmd.Parameters.AddWithValue("@Balance", wallet.Balance);
+                cmd.Parameters.AddWithValue("@IsSaved", wallet.IsSaved);
+                cmd.Parameters.AddWithValue("@CurrencyID", wallet.CurrencyId);
+            });
+
+            if (insertedId > 0)
+            {
+                wallet.WalletId = insertedId;
             }
 
-            return null;
+            return wallet.WalletId;
         }
-        catch (SqlException ex)
-        {
-            SqlExceptionHandler.Handle(ex);
-            throw;
-        }
-    }
 
-    public async Task<IEnumerable<Wallet>> GetUserWalletsAsync(int userId)
-    {
-        var wallets = new List<Wallet>();
-
-        try
+        public async Task<bool> UpdateWalletAsync(Wallet wallet)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Banking].[sp_GetUserWallets]", connection)
+            var rowsAffected = await ExecuteScalarAsync<int>("[Banking].[sp_UpdateWallet]", cmd =>
             {
-                CommandType = CommandType.StoredProcedure
-            };
+                cmd.Parameters.AddWithValue("@WalletId", wallet.WalletId);
+                cmd.Parameters.AddWithValue("@UserId", wallet.UserId);
+                cmd.Parameters.AddWithValue("@CurrencyId", wallet.CurrencyId);
+                cmd.Parameters.AddWithValue("@Balance", wallet.Balance);
+                cmd.Parameters.AddWithValue("@IsSaved", wallet.IsSaved);
+            });
 
-            command.Parameters.AddWithValue("@UserId", userId);
+            return rowsAffected > 0;
+        }
 
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
+        public async Task<bool> DeleteWalletAsync(int walletId, int userId)
+        {
+            var rowsAffected = await ExecuteScalarAsync<int>("[Banking].[sp_DeleteWallet]", cmd =>
             {
-                wallets.Add(MapWalletFromReader(reader));
-            }
+                cmd.Parameters.AddWithValue("@WalletId", walletId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+            });
 
-            return wallets;
+            return rowsAffected > 0;
         }
-        catch (SqlException ex)
+
+        // =========================================================================
+        // REUSABLE HELPER METHODS & MAPPERS
+        // =========================================================================
+        private static Wallet MapWalletFromReader(SqlDataReader reader)
         {
-            SqlExceptionHandler.Handle(ex);
-            throw;
+            return new Wallet(
+                walletId: EmptyValuesHandler.GetInt32OrDefault(reader, "WalletID"),
+                currencyId: EmptyValuesHandler.GetInt32OrDefault(reader, "CurrencyID"),
+                balance: EmptyValuesHandler.GetDecimalOrDefault(reader, "Balance"),
+                userId: EmptyValuesHandler.GetInt32OrDefault(reader, "UserID"),
+                isSaved: EmptyValuesHandler.GetBooleanOrDefault(reader, "IsSaved")
+            );
         }
-    }
-
-    public async Task<IEnumerable<Wallet>> GetWalletsByCurrencyIdAsync(int userId, int currencyId)
-    {
-        var wallets = new List<Wallet>();
-
-        try
-        {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Banking].[sp_GetWalletsByCurrencyId]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@UserId", userId);
-            command.Parameters.AddWithValue("@CurrencyId", currencyId);
-
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                wallets.Add(MapWalletFromReader(reader));
-            }
-
-            return wallets;
-        }
-        catch (SqlException ex)
-        {
-            SqlExceptionHandler.Handle(ex);
-            throw;
-        }
-    }
-
-    public async Task<IEnumerable<Wallet>> GetUserWalletsPairAsync(int userId, int walletId)
-    {
-        var wallets = new List<Wallet>();
-
-        try
-        {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Banking].[sp_GetUserWalletsPair]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@UserId", userId);
-            command.Parameters.AddWithValue("@WalletId", walletId);
-
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                wallets.Add(MapWalletFromReader(reader));
-            }
-
-            return wallets;
-        }
-        catch (SqlException ex)
-        {
-            SqlExceptionHandler.Handle(ex);
-            throw;
-        }
-    }
-
-    public async Task<int> AddWalletAsync(Wallet wallet)
-    {
-        try
-        {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Banking].[sp_AddWallet]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@UserId", wallet.UserId);
-            command.Parameters.AddWithValue("@Balance", wallet.Balance);
-            command.Parameters.AddWithValue("@IsSaved", wallet.IsSaved);
-            command.Parameters.AddWithValue("@CurrencyID", wallet.CurrencyId);
-
-            await connection.OpenAsync();
-            object? result = await command.ExecuteScalarAsync();
-
-            if (result != null && int.TryParse(result.ToString(), out int insertedID))
-            {
-                wallet.WalletId = insertedID;
-            }
-        }
-        catch (SqlException ex)
-        {
-            SqlExceptionHandler.Handle(ex);
-            throw;
-        }
-        return wallet.WalletId;
-    }
-
-    public async Task<bool> UpdateWalletAsync(Wallet wallet)
-    {
-        try
-        {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Banking].[sp_UpdateWallet]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@WalletId", wallet.WalletId);
-            command.Parameters.AddWithValue("@UserId", wallet.UserId);
-            command.Parameters.AddWithValue("@CurrencyId", wallet.CurrencyId); 
-            command.Parameters.AddWithValue("@Balance", wallet.Balance);
-            command.Parameters.AddWithValue("@IsSaved", wallet.IsSaved);
-
-            await connection.OpenAsync();
-            object? result = await command.ExecuteScalarAsync();
-
-            return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-        }
-        catch (SqlException ex)
-        {
-            SqlExceptionHandler.Handle(ex);
-            throw;
-        }
-    }
-
-    public async Task<bool> DeleteWalletAsync(int walletId, int userId)
-    {
-        try
-        {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("[Banking].[sp_DeleteWallet]", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.AddWithValue("@WalletId", walletId);
-            command.Parameters.AddWithValue("@UserId", userId);
-
-            await connection.OpenAsync();
-            object? result = await command.ExecuteScalarAsync();
-            return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-        }
-        catch (SqlException ex)
-        {
-            SqlExceptionHandler.Handle(ex);
-            throw;
-        }
-    }
-
-    private static Wallet MapWalletFromReader(SqlDataReader reader)
-    {
-        return new Wallet(
-            walletId: Convert.ToInt32(reader["WalletID"]),
-            currencyId: Convert.ToInt32(reader["CurrencyID"]),
-            balance: Convert.ToDecimal(reader["Balance"]),
-            userId: Convert.ToInt32(reader["UserID"]),
-            isSaved: Convert.ToBoolean(reader["IsSaved"])
-        );
     }
 }

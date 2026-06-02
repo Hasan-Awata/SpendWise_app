@@ -7,44 +7,80 @@ using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace SpendWise.Infrastructure.Repositories
 {
-    public class TransactionRepository: ITransactionRepository
+    public class TransactionRepository : BaseRepository, ITransactionRepository
     {
-        private readonly string _connectionString;
         public TransactionRepository(IConfiguration configuration)
+            : base(configuration.GetConnectionString("DefaultConnection")
+                  ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings."))
+        { }
+
+        public async Task<(IEnumerable<Transaction> transactions, int totalCount)> GetTransactionsByUserAsync(int userId, int pageNumber, int pageSize)
         {
-            _connectionString = configuration.GetConnectionString("DefaultConnection")
-                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+            var transactions = new List<Transaction>();
+            int totalCount = 0;
+
+            // Sequential execution across multi-result sets via Grid Reader delegate pattern
+            await ExecuteReaderAsync("[Ledger].[sp_GetTransactionsByUserPaged]",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("@UserId", userId);
+                    cmd.Parameters.AddWithValue("@PageNumber", pageNumber);
+                    cmd.Parameters.AddWithValue("@PageSize", pageSize);
+                },
+                async reader =>
+                {
+                    // Result Set 1: Total Row Count
+                    if (await reader.ReadAsync())
+                    {
+                        totalCount = EmptyValuesHandler.GetInt32OrDefault(reader, "TotalCount");
+                    }
+
+                    // Result Set 2: Paged Transactions List
+                    if (await reader.NextResultAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            transactions.Add(MapToTransaction(reader));
+                        }
+                    }
+                    return default(object); // Dummy return to satisfy core functional signatures
+                });
+
+            return (transactions, totalCount);
         }
 
+        // =========================================================================
+        // REUSABLE HELPER METHODS & MAPPERS
+        // =========================================================================
         private static Transaction MapToTransaction(SqlDataReader reader)
         {
-
             var transaction = new Transaction(
-                Convert.ToInt32(reader["TransactionID"]),
-                Convert.ToInt32(reader["UserID"]),
-                reader["Title"].ToString()!,
-                reader["Description"].ToString()!,
-                Convert.ToInt32(reader["WalletID"]),
-                Convert.ToDecimal(reader["Amount"]),
-                Convert.ToDecimal(reader["AmountInSp"]),
-                Convert.ToDateTime(reader["TransactionDate"]),
-                Convert.ToInt32(reader["TransactionType"]) == 0 ? enTransactionType.Addition : enTransactionType.Dedduction,
-                reader["GoalID"] != DBNull.Value ? Convert.ToInt32(reader["GoalID"]) : -1,
-                reader["FixedExpenseID"] != DBNull.Value ? Convert.ToInt32(reader["FixedExpenseID"]) : -1,
-                reader["FixedIncomeID"] != DBNull.Value ? Convert.ToInt32(reader["FixedIncomeID"]) : -1,
-                reader["DebtID"] != DBNull.Value ? Convert.ToInt32(reader["DebtID"]) : -1
+                EmptyValuesHandler.GetInt32OrDefault(reader, "TransactionID"),
+                EmptyValuesHandler.GetInt32OrDefault(reader, "UserID"),
+                EmptyValuesHandler.GetStringOrDefault(reader, "Title"),
+                EmptyValuesHandler.GetStringOrDefault(reader, "Description"),
+                EmptyValuesHandler.GetInt32OrDefault(reader, "WalletID"),
+                EmptyValuesHandler.GetDecimalOrDefault(reader, "Amount"),
+                EmptyValuesHandler.GetDecimalOrDefault(reader, "AmountInSp"),
+                EmptyValuesHandler.GetDateTimeOrDefault(reader, "TransactionDate"),
+                EmptyValuesHandler.GetInt32OrDefault(reader, "TransactionType") == 0 ? enTransactionType.Addition : enTransactionType.Dedduction,
+                reader.IsDBNull(reader.GetOrdinal("GoalID")) ? -1 : Convert.ToInt32(reader["GoalID"]),
+                reader.IsDBNull(reader.GetOrdinal("FixedExpenseID")) ? -1 : Convert.ToInt32(reader["FixedExpenseID"]),
+                reader.IsDBNull(reader.GetOrdinal("FixedIncomeID")) ? -1 : Convert.ToInt32(reader["FixedIncomeID"]),
+                reader.IsDBNull(reader.GetOrdinal("DebtID")) ? -1 : Convert.ToInt32(reader["DebtID"])
             );
 
-            bool check = transaction.SavingGoalId == -1
+            // Context-driven polymorphism check to link tracking properties inside domain boundaries
+            bool isCoreTransaction = transaction.SavingGoalId == -1
                 && transaction.DebtId == -1
                 && transaction.FixedExpenseId == -1
                 && transaction.FixedIncomeId == -1;
 
-            if (check && transaction.TransactionType == enTransactionType.Addition)
+            if (isCoreTransaction && transaction.TransactionType == enTransactionType.Addition)
             {
                 transaction.IncomeId = transaction.TransactionId;
             }
@@ -54,47 +90,6 @@ namespace SpendWise.Infrastructure.Repositories
             }
 
             return transaction;
-        }
-        public async Task<(IEnumerable<Transaction> transactions, int totalCount)> GetTransactionsByUserAsync(int userId, int pageNumber, int pageSize)
-        {
-            var transactions = new List<Transaction>();
-            int totalCount = 0;
-
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetTransactionsByUserPaged]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@UserId", userId);
-                command.Parameters.AddWithValue("@PageNumber", pageNumber);
-                command.Parameters.AddWithValue("@PageSize", pageSize);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
-                {
-                    totalCount = Convert.ToInt32(reader["TotalCount"]);
-                }
-
-                if (await reader.NextResultAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        transactions.Add(MapToTransaction(reader));
-                    }
-                }
-
-                return (transactions, totalCount);
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
         }
     }
 }

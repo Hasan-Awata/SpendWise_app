@@ -11,174 +11,89 @@ using System.Threading.Tasks;
 
 namespace SpendWise.Infrastructure.Repositories
 {
-    public class CategoryBudgetRepository : ICategoryBudgetRepository
+    public class CategoryBudgetRepository : BaseRepository, ICategoryBudgetRepository
     {
-        private readonly string _connectionString;
-
         public CategoryBudgetRepository(IConfiguration configuration)
-        {
-            _connectionString = configuration.GetConnectionString("DefaultConnection")
-                                ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
-        }
+            : base(configuration.GetConnectionString("DefaultConnection")
+                  ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings.")) { }
 
         public async Task<int> SetCategoryBudgetAsync(int userId, CategoryBudget categoryBudget)
         {
-            try
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_AddCategoryBudget]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_AddCategoryBudget]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@UserID", userId);
+                cmd.Parameters.AddWithValue("@CategoryID", categoryBudget.CategoryId);
+                cmd.Parameters.AddWithValue("@PercentageLimit", categoryBudget.PercentageLimit);
+                cmd.Parameters.AddWithValue("@StartDate", categoryBudget.StartDate);
+                cmd.Parameters.AddWithValue("@EndDate", categoryBudget.EndDate);
+                cmd.Parameters.AddWithValue("@IsActive", categoryBudget.IsActive);
+            });
 
-                command.Parameters.AddWithValue("@UserID", userId);
-                command.Parameters.AddWithValue("@CategoryID", categoryBudget.CategoryId);
-                command.Parameters.AddWithValue("@PercentageLimit", categoryBudget.PercentageLimit);
-                command.Parameters.AddWithValue("@StartDate", categoryBudget.StartDate);
-                command.Parameters.AddWithValue("@EndDate", categoryBudget.EndDate);
-                command.Parameters.AddWithValue("@IsActive", categoryBudget.IsActive);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                // Safely handle potential DBNull or null returns from scalar execution
-                return result != null && result != DBNull.Value && int.TryParse(result.ToString(), out int insertedID) ? insertedID : -1;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return result > 0 ? result : -1;
         }
 
         public async Task<bool> UpdateCategoryBudgetAsync(CategoryBudget categoryBudget)
         {
-            try
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_UpdateCategoryBudget]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_UpdateCategoryBudget]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@BudgetID", categoryBudget.CategoryBudgetId);
+                cmd.Parameters.AddWithValue("@UserID", categoryBudget.UserId);
+                cmd.Parameters.AddWithValue("@CategoryID", categoryBudget.CategoryId);
+                cmd.Parameters.AddWithValue("@PercentageLimit", categoryBudget.PercentageLimit);
+                cmd.Parameters.AddWithValue("@StartDate", categoryBudget.StartDate);
+                cmd.Parameters.AddWithValue("@EndDate", categoryBudget.EndDate);
+                cmd.Parameters.AddWithValue("@IsActive", categoryBudget.IsActive);
+            });
 
-                command.Parameters.AddWithValue("@BudgetID", categoryBudget.CategoryBudgetId);
-                command.Parameters.AddWithValue("@UserID", categoryBudget.UserId);
-                command.Parameters.AddWithValue("@CategoryID", categoryBudget.CategoryId);
-                command.Parameters.AddWithValue("@PercentageLimit", categoryBudget.PercentageLimit);
-                command.Parameters.AddWithValue("@StartDate", categoryBudget.StartDate);
-                command.Parameters.AddWithValue("@EndDate", categoryBudget.EndDate);
-                command.Parameters.AddWithValue("@IsActive", categoryBudget.IsActive);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && result != DBNull.Value && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return rowsAffected > 0;
         }
 
         public async Task<bool> DeleteCategoryBudgetAsync(int userId, int categoryId)
         {
-            try
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_DeleteCategoryBudget]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_DeleteCategoryBudget]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@UserID", userId);
+                cmd.Parameters.AddWithValue("@CategoryID", categoryId);
+            });
 
-                command.Parameters.AddWithValue("@UserID", userId);
-                command.Parameters.AddWithValue("@CategoryID", categoryId);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && result != DBNull.Value && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return rowsAffected > 0;
         }
 
         public async Task<IEnumerable<CategoryBudget>> GetAllUserBudgetsAsync(int userId)
         {
-            var budgets = new List<CategoryBudget>();
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_GetAllUserBudgets]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-                command.Parameters.AddWithValue("@UserID", userId);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
-                {
-                    budgets.Add(MapReaderToCategoryBudget(reader));
-                }
-            }
-            catch (SqlException ex) { SqlExceptionHandler.Handle(ex); throw; }
-            return budgets;
+            return await ExecuteReaderAsync("[Planning].[sp_GetAllUserBudgets]",
+                cmd => cmd.Parameters.AddWithValue("@UserID", userId), MapReaderToCategoryBudget);
         }
 
-        public async Task<CategoryBudget> GetCategoryBudgetAsync(int userId, int categoryId)
+        public async Task<CategoryBudget?> GetCategoryBudgetAsync(int userId, int categoryId)
         {
-            try
+            return await ExecuteReaderSingleAsync("[Planning].[sp_GetCategoryBudget]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Planning].[sp_GetCategoryBudget]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@CategoryID", categoryId);
-                command.Parameters.AddWithValue("@UserID", userId);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
-                {
-                    return MapReaderToCategoryBudget(reader);
-                }
-                return null!;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+                cmd.Parameters.AddWithValue("@CategoryID", categoryId);
+                cmd.Parameters.AddWithValue("@UserID", userId);
+            }, MapReaderToCategoryBudget);
         }
 
-        /// <summary>
-        /// Helper method to cleanly map a SqlDataReader to a CategoryBudget object while checking for DBNull values.
-        /// </summary>
+        // =========================================================================
+        // REUSABLE HELPER METHODS & MAPPERS
+        // =========================================================================
         private static CategoryBudget MapReaderToCategoryBudget(SqlDataReader reader)
         {
             return new CategoryBudget
             {
-                CategoryBudgetId = reader["BudgetID"] != DBNull.Value ? (int)reader["BudgetID"] : 0,
-                UserId = reader["UserID"] != DBNull.Value ? (int)reader["UserID"] : 0,
-                CategoryId = reader["CategoryID"] != DBNull.Value ? (int)reader["CategoryID"] : 0,
+                CategoryBudgetId = EmptyValuesHandler.GetInt32OrDefault(reader, "BudgetID"),
+                UserId = EmptyValuesHandler.GetInt32OrDefault(reader, "UserID"),
+                CategoryId = EmptyValuesHandler.GetInt32OrDefault(reader, "CategoryID"),
 
-                // Calculated metrics / limits often prone to being null if no transactions exist yet
-                PercentageLimit = reader["PercentageLimit"] != DBNull.Value ? (decimal)reader["PercentageLimit"] : 0m,
-                PercentageProgress = reader["PercentageProgress"] != DBNull.Value ? (decimal)reader["PercentageProgress"] : 0m,
-                SpendingProgress = reader["SpendingProgress"] != DBNull.Value ? (decimal)reader["SpendingProgress"] : 0m,
-                MoneyLimit = reader["MoneyLimit"] != DBNull.Value ? (decimal)reader["MoneyLimit"] : 0m,
+                // Calculated metrics / limits cleanly handled via your global handler
+                PercentageLimit = EmptyValuesHandler.GetDecimalOrDefault(reader, "PercentageLimit"),
+                PercentageProgress = EmptyValuesHandler.GetDecimalOrDefault(reader, "PercentageProgress"),
+                SpendingProgress = EmptyValuesHandler.GetDecimalOrDefault(reader, "SpendingProgress"),
+                MoneyLimit = EmptyValuesHandler.GetDecimalOrDefault(reader, "MoneyLimit"),
 
-                StartDate = reader["StartDate"] != DBNull.Value ? (DateTime)reader["StartDate"] : DateTime.MinValue,
-                EndDate = reader["EndDate"] != DBNull.Value ? (DateTime)reader["EndDate"] : DateTime.MinValue,
-                IsActive = reader["IsActive"] != DBNull.Value && (bool)reader["IsActive"]
+                StartDate = EmptyValuesHandler.GetDateTimeOrDefault(reader, "StartDate"),
+                EndDate = EmptyValuesHandler.GetDateTimeOrDefault(reader, "EndDate"),
+                IsActive = EmptyValuesHandler.GetBooleanOrDefault(reader, "IsActive")
             };
         }
     }

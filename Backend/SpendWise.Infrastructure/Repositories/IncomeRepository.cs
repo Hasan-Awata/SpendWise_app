@@ -11,187 +11,86 @@ using System.Threading.Tasks;
 
 namespace SpendWise.Infrastructure.Repositories
 {
-    public class IncomeRepository : IIncomeRepository
+    public class IncomeRepository : BaseRepository, IIncomeRepository
     {
-        private readonly string _connectionString;
-
         public IncomeRepository(IConfiguration configuration)
-        {
-            _connectionString = configuration.GetConnectionString("DefaultConnection")
-                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
-        }
-
-        private static Income MapToIncome(SqlDataReader reader)
-        {
-            var income = new Income
-            {
-                Id = Convert.ToInt32(reader["IncomeID"]),
-                UserId = Convert.ToInt32(reader["UserID"]),
-                Title = reader["Title"].ToString()!,
-                Amount = Convert.ToDecimal(reader["Amount"]),
-                Date = Convert.ToDateTime(reader["Date"]),
-                WalletId = Convert.ToInt32(reader["WalletID"]),
-                IncomeTagId = reader["TagID"] != DBNull.Value ? Convert.ToInt32(reader["TagID"]) : -1,
-            };
-
-            income.LinkedTransaction = new Transaction(
-                income.Id,
-                income.UserId,
-                income.Title,
-                reader["Description"] != DBNull.Value ? reader["Description"].ToString()! : string.Empty,
-                income.WalletId,
-                income.Amount,
-                Convert.ToDecimal(reader["AmountInSp"]),
-                income.Date,
-                enTransactionType.Addition,
-                -1,
-                -1,
-                -1,
-                -1
-            );
-
-            return income;
-        }
+            : base(configuration.GetConnectionString("DefaultConnection")
+                  ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings."))
+        { }
 
         public async Task<int> AddIncomeAsync(Income newIncome)
         {
-            try
+            SqlParameter? outputId = null;
+
+            // Execute using base runner while capturing output parameter via closure
+            await ExecuteScalarAsync<object>("[Ledger].[sp_AddIncomeWithTransaction]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_AddIncomeWithTransaction]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                // Shared parameters
+                cmd.Parameters.AddWithValue("@UserId", newIncome.UserId);
+                cmd.Parameters.AddWithValue("@WalletId", newIncome.WalletId);
+                cmd.Parameters.AddWithValue("@Amount", newIncome.Amount);
+                cmd.Parameters.AddWithValue("@IncomeDate", newIncome.Date);
+                cmd.Parameters.AddWithValue("@Title", newIncome.Title);
 
-                // shared parameters
-                command.Parameters.AddWithValue("@UserId", newIncome.UserId);
-                command.Parameters.AddWithValue("@WalletId", newIncome.WalletId);
-                command.Parameters.AddWithValue("@Amount", newIncome.Amount);
-                command.Parameters.AddWithValue("@IncomeDate", newIncome.Date);
-                command.Parameters.AddWithValue("@Title", newIncome.Title);
-
-                // optional parameters
-                command.Parameters.AddWithValue("@Description", (object)newIncome.LinkedTransaction.Description ?? DBNull.Value);
-                command.Parameters.AddWithValue("@TagId", newIncome.IncomeTagId > 0 ? (object)newIncome.IncomeTagId : DBNull.Value);
+                // Optional parameters
+                cmd.Parameters.AddWithValue("@Description", (object?)newIncome.LinkedTransaction.Description ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@TagId", newIncome.IncomeTagId > 0 ? newIncome.IncomeTagId : DBNull.Value);
 
                 // Transaction Details
-                command.Parameters.AddWithValue("@AmountInSp", newIncome.LinkedTransaction.AmountInSp);
-                command.Parameters.AddWithValue("@TransactionType", (int)newIncome.LinkedTransaction.TransactionType);
+                cmd.Parameters.AddWithValue("@AmountInSp", newIncome.LinkedTransaction.AmountInSp);
+                cmd.Parameters.AddWithValue("@TransactionType", (int)newIncome.LinkedTransaction.TransactionType);
 
                 // Output parameter setup
-                var outputId = new SqlParameter("@NewIncomeID", SqlDbType.Int) { Direction = ParameterDirection.Output };
-                command.Parameters.Add(outputId);
+                outputId = new SqlParameter("@NewIncomeID", SqlDbType.Int) { Direction = ParameterDirection.Output };
+                cmd.Parameters.Add(outputId);
+            });
 
-                await connection.OpenAsync();
-
-                // Execute the procedure
-                await command.ExecuteNonQueryAsync();
-
-                // Retrieve the ID from the Output parameter
-                return (int)outputId.Value;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return (int)(outputId?.Value ?? -1);
         }
 
         public async Task<bool> UpdateIncomeAsync(Income newIncome)
         {
-            try
+            // Using ExecuteScalar because the procedure returns an explicit status value via SELECT
+            var rowsAffected = await ExecuteScalarAsync<int>("[Ledger].[sp_UpdateIncomeWithTransaction]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_UpdateIncomeWithTransaction]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
                 // 1. Core ID and Identity
-                command.Parameters.AddWithValue("@IncomeId", newIncome.Id);
-                command.Parameters.AddWithValue("@UserId", newIncome.UserId);
+                cmd.Parameters.AddWithValue("@IncomeId", newIncome.Id);
+                cmd.Parameters.AddWithValue("@UserId", newIncome.UserId);
 
                 // 2. Income Table Data
-                command.Parameters.AddWithValue("@WalletId", newIncome.WalletId);
-                command.Parameters.AddWithValue("@TagId", newIncome.IncomeTagId > 0 ? (object)newIncome.IncomeTagId : DBNull.Value);
-                command.Parameters.AddWithValue("@Amount", newIncome.Amount);
-                command.Parameters.AddWithValue("@IncomeDate", newIncome.Date);
+                cmd.Parameters.AddWithValue("@WalletId", newIncome.WalletId);
+                cmd.Parameters.AddWithValue("@TagId", newIncome.IncomeTagId > 0 ? newIncome.IncomeTagId : DBNull.Value);
+                cmd.Parameters.AddWithValue("@Amount", newIncome.Amount);
+                cmd.Parameters.AddWithValue("@IncomeDate", newIncome.Date);
 
                 // 3. Transaction/Shared Data
-                command.Parameters.AddWithValue("@Title", newIncome.LinkedTransaction.Title);
-                command.Parameters.AddWithValue("@Description", (object)newIncome.LinkedTransaction.Description ?? DBNull.Value);
-                command.Parameters.AddWithValue("@TransactionType", (int)newIncome.LinkedTransaction.TransactionType);
-                command.Parameters.AddWithValue("@AmountInSp", newIncome.LinkedTransaction.AmountInSp);
+                cmd.Parameters.AddWithValue("@Title", newIncome.LinkedTransaction.Title);
+                cmd.Parameters.AddWithValue("@Description", (object?)newIncome.LinkedTransaction.Description ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@TransactionType", (int)newIncome.LinkedTransaction.TransactionType);
+                cmd.Parameters.AddWithValue("@AmountInSp", newIncome.LinkedTransaction.AmountInSp);
+            });
 
-                await connection.OpenAsync();
-
-                // Using ExecuteScalar because the procedure ends with 'SELECT 1 AS RowsAffected'
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return rowsAffected > 0;
         }
 
         public async Task<bool> DeleteIncomeAsync(int incomeId, int userId)
         {
-            try
+            var rowsAffected = await ExecuteScalarAsync<int>("[Ledger].[sp_DeleteIncome]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_DeleteIncome]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@IncomeId", incomeId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+            });
 
-                command.Parameters.AddWithValue("@IncomeId", incomeId);
-                command.Parameters.AddWithValue("@UserId", userId);
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return rowsAffected > 0;
         }
 
-        public async Task<Income> GetIncomeAsync(int incomeId, int userId)
+        public async Task<Income?> GetIncomeAsync(int incomeId, int userId)
         {
-            try
+            return await ExecuteReaderSingleAsync("[Ledger].[sp_GetIncome]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetIncome]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@IncomeID", incomeId);
-                command.Parameters.AddWithValue("@UserID", userId);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
-                {
-                    var income = MapToIncome(reader);
-
-                    return income;
-                }
-
-                return null!;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+                cmd.Parameters.AddWithValue("@IncomeID", incomeId);
+                cmd.Parameters.AddWithValue("@UserID", userId);
+            }, MapToIncome);
         }
 
         public async Task<(IEnumerable<Income> incomes, int totalCount)> GetIncomeByUserAsync(int userId, int pageNumber, int pageSize)
@@ -199,43 +98,66 @@ namespace SpendWise.Infrastructure.Repositories
             var incomes = new List<Income>();
             int totalCount = 0;
 
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetIncomesByUserPaged]", connection)
+            // Multi-result sets handled sequentially through the custom grid reader delegate
+            await ExecuteReaderAsync("[Ledger].[sp_GetIncomesByUserPaged]",
+                cmd =>
                 {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@UserId", userId);
-                command.Parameters.AddWithValue("@PageNumber", pageNumber);
-                command.Parameters.AddWithValue("@PageSize", pageSize);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                // Result Set 1: Total Count
-                if (await reader.ReadAsync())
+                    cmd.Parameters.AddWithValue("@UserId", userId);
+                    cmd.Parameters.AddWithValue("@PageNumber", pageNumber);
+                    cmd.Parameters.AddWithValue("@PageSize", pageSize);
+                },
+                async reader =>
                 {
-                    totalCount = Convert.ToInt32(reader["TotalCount"]);
-                }
-
-                // Result Set 2: Paged Incomes
-                if (await reader.NextResultAsync())
-                {
-                    while (await reader.ReadAsync())
+                    // Result Set 1: Total Count
+                    if (await reader.ReadAsync())
                     {
-                        incomes.Add(MapToIncome(reader));
+                        totalCount = EmptyValuesHandler.GetInt32OrDefault(reader, "TotalCount");
                     }
-                }
 
-                return (incomes, totalCount);
-            }
-            catch (SqlException ex)
+                    // Result Set 2: Paged Incomes List
+                    if (await reader.NextResultAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            incomes.Add(MapToIncome(reader));
+                        }
+                    }
+                    return default(object); // Dummy return to fulfill functional signature mapping constraint
+                });
+
+            return (incomes, totalCount);
+        }
+
+        // =========================================================================
+        // REUSABLE HELPER METHODS & MAPPERS
+        // =========================================================================
+        private static Income MapToIncome(SqlDataReader reader)
+        {
+            var income = new Income
             {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+                Id = EmptyValuesHandler.GetInt32OrDefault(reader, "IncomeID"),
+                UserId = EmptyValuesHandler.GetInt32OrDefault(reader, "UserID"),
+                Title = EmptyValuesHandler.GetStringOrDefault(reader, "Title"),
+                Amount = EmptyValuesHandler.GetDecimalOrDefault(reader, "Amount"),
+                Date = EmptyValuesHandler.GetDateTimeOrDefault(reader, "Date"),
+                WalletId = EmptyValuesHandler.GetInt32OrDefault(reader, "WalletID"),
+                IncomeTagId = reader.IsDBNull(reader.GetOrdinal("TagID")) ? -1 : Convert.ToInt32(reader["TagID"])
+            };
+
+            income.LinkedTransaction = new Transaction(
+                income.Id,
+                income.UserId,
+                income.Title,
+                EmptyValuesHandler.GetStringOrDefault(reader, "Description"),
+                income.WalletId,
+                income.Amount,
+                EmptyValuesHandler.GetDecimalOrDefault(reader, "AmountInSp"),
+                income.Date,
+                enTransactionType.Addition,
+                -1, -1, -1, -1
+            );
+
+            return income;
         }
     }
 }
