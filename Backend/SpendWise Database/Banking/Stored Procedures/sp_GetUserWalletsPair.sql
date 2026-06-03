@@ -7,11 +7,11 @@ SET NOCOUNT ON;
 
     SELECT 
         w2.WalletID,
-        w2.UserId,
+        w2.UserID,
         w2.CurrencyID,
         w2.Balance,
         w2.IsSaved
     FROM [Banking].Wallets w1
-    INNER JOIN [Banking].Wallets w2 ON w1.UserId = w2.UserId AND w1.CurrencyId = w2.CurrencyId
+    INNER JOIN [Banking].Wallets w2 ON w1.UserID = w2.UserID AND w1.CurrencyID = w2.CurrencyID
     WHERE w1.WalletID = @WalletId;
 END;

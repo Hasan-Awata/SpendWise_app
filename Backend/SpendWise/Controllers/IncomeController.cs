@@ -40,6 +40,11 @@ namespace SpendWise.Controllers
         [HttpGet]
         public async Task<IActionResult> GetIncomeByUser([FromQuery] PageDTO pageDTO)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var result = await _incomeService.GetIncomeByUserAsync(CurrentUserId, pageDTO);
 
             if (!result.IsSuccess)

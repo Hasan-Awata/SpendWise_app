@@ -93,7 +93,7 @@ namespace SpendWise.Infrastructure.Repositories
             }, MapToIncome);
         }
 
-        public async Task<(IEnumerable<Income> incomes, int totalCount)> GetIncomeByUserAsync(int userId, int pageNumber, int pageSize)
+        public async Task<(IEnumerable<Income> incomes, int totalCount)> GetIncomeByUserAsync(int userId, int pageNumber, int pageSize, int? tagId = null, int? transactionType = null)
         {
             var incomes = new List<Income>();
             int totalCount = 0;
@@ -105,6 +105,8 @@ namespace SpendWise.Infrastructure.Repositories
                     cmd.Parameters.AddWithValue("@UserId", userId);
                     cmd.Parameters.AddWithValue("@PageNumber", pageNumber);
                     cmd.Parameters.AddWithValue("@PageSize", pageSize);
+                    cmd.Parameters.AddWithValue("@TagId", tagId.HasValue ? (object)tagId.Value : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@TransactionType", transactionType.HasValue ? (object)transactionType.Value : DBNull.Value);
                 },
                 async reader =>
                 {

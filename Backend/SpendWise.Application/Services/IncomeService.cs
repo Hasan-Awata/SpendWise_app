@@ -103,7 +103,13 @@ namespace SpendWise.Application.Services
 
         public async Task<Result<PagedResponse<IncomeResponse>>> GetIncomeByUserAsync(int userId, PageDTO pageDto)
         {
-            var (incomeList, totalCount) = await _incomeRepo.GetIncomeByUserAsync(userId, pageDto.PageNumber, pageDto.PageSize);
+            // Validate transaction type filter if provided
+            if (pageDto.TransactionType.HasValue && pageDto.TransactionType.Value != (int)enTransactionType.Addition && pageDto.TransactionType.Value != (int)enTransactionType.Dedduction)
+            {
+                return Result<PagedResponse<IncomeResponse>>.Failure("TransactionType filter is invalid.", enErrorType.Validation);
+            }
+
+            var (incomeList, totalCount) = await _incomeRepo.GetIncomeByUserAsync(userId, pageDto.PageNumber, pageDto.PageSize, pageDto.TagId, pageDto.TransactionType);
             var incomesResponse = incomeList.Select(item => new IncomeResponse(item)).ToList();
 
             var data = new PagedResponse<IncomeResponse>(incomesResponse, pageDto.PageNumber, pageDto.PageSize, totalCount);
