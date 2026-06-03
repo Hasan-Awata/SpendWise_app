@@ -81,6 +81,15 @@ namespace SpendWise.Application.Services
             string fromCurrencyKey = fromCurrencySymbol.ToUpper() + ":" + fromRegion.ToLower();
             string toCurrencyKey = toCurrencySymbol.ToUpper() + ":" + toRegion.ToLower();
 
+            if (fromCurrencyKey == "SYP")
+            {
+                return await NormalizeFromSyrianPound(toCurrencySymbol, toRegion, rateType, amount);
+            }
+            if (toCurrencyKey == "SYP")
+            {
+                return await NormalizeToSyrianPound(fromCurrencySymbol, fromRegion, rateType, amount);
+            }
+
             decimal fromExchangeRate = await GetExchangeRateAsync(fromCurrencyKey, rateType);
             decimal toExchangeRate = await GetExchangeRateAsync(toCurrencyKey, rateType);
 
