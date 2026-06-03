@@ -154,6 +154,9 @@
     <Build Include="Planning\Stored Procedures\sp_RefuseSharedDebt.sql" />
     <Build Include="Planning\Triggers\trg_PaidAmountChangedForDebt.sql" />
     <Build Include="Planning\Stored Procedures\sp_WithdrawAmountFromSavingGoalWithTransaction.sql" />
+    <Build Include="Identity\Stored Procedures\sp_UpdateUserFcmToken.sql" />
+    <Build Include="Planning\Stored Procedures\sp_ResetExpiredBudgets.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetUpcomingDebtReminders.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />
@@ -162,5 +165,8 @@
     <None Include="Config\SeedCategories.sql" />
     <None Include="Planning\Stored Procedures\sp_DeleteSavingGoal.sql" />
     <None Include="Planning\Stored Procedures\sp_GetSavingGoal.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <RefactorLog Include="SpendWise Database.refactorlog" />
   </ItemGroup>
 </Project>

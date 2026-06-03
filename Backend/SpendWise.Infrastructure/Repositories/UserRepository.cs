@@ -67,6 +67,20 @@ namespace SpendWise.Infrastructure.Repositories
             return rowsAffected > 0;
         }
 
+        public async Task<bool> UpdateFcmTokenAsync(int userId, string fcmToken)
+        {
+            var reader = ExecuteReaderSingleAsync("[Identity].[sp_UpdateUserFcmToken]", cmd =>
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@UserID", userId);
+                cmd.Parameters.AddWithValue("@FcmToken", fcmToken);
+            }, r =>
+            {
+                return r.GetBoolean(r.GetOrdinal("IsSuccess"));
+            });
+            return false;
+        }
+
         // =========================================================================
         // REUSABLE HELPER METHODS & MAPPERS
         // =========================================================================

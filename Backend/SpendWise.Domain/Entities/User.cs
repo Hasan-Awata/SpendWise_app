@@ -9,6 +9,7 @@
         public string LastName { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
         public DateTime RefreshTokenExpiryTime { get; set; }
+        public string FcmToken { get; set; } = string.Empty;
         public User(int id, string userName)
         {
             Id = id;

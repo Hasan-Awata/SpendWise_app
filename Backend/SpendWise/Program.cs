@@ -150,6 +150,8 @@ builder.Services.AddProblemDetails(); // Required to standardize the JSON output
 // ── Register Schedulers ─────────────────────────────────────
 builder.Services.AddHostedService<FixedIncomeScheduler>();
 builder.Services.AddHostedService<FixedExpenseScheduler>();
+builder.Services.AddHostedService<BudgetScheduler>();
+builder.Services.AddHostedService<DebtReminderScheduler>();
 
 // ─────────────────────────────────────────────────────────────────────────
 var app = builder.Build();

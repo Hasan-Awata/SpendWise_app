@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SpendWise.Application.DTOs.Authentication;
+using SpendWise.Application.DTOs.User;
 using SpendWise.Application.Interfaces.Authentication;
 using SpendWise.Application.Interfaces.Users;
 using SpendWise.Domain.Entities;
@@ -191,6 +192,21 @@ namespace SpendWise.Application.Services
             catch (Exception)
             {
                 return null; // Catch parsing or validation exceptions gracefully
+            }
+        }
+        public async Task<bool> UpdateFcmTokenAsync(UpdateTokenRequest request)
+        {
+            try
+            {
+                var user = await _userRepo.GetByIdAsync(request.UserId);
+                if (user == null) return false;
+                user.FcmToken = request.FcmToken;
+                await _userRepo.UpdateFcmTokenAsync(request.UserId, request.FcmToken);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
     }

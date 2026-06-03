@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.Authentication;
+using SpendWise.Application.DTOs.User;
 using SpendWise.Application.Interfaces.Authentication;
 
 namespace SpendWise.Controllers
@@ -53,6 +54,18 @@ namespace SpendWise.Controllers
                 return Unauthorized("Invalid access token or refresh token.");
 
             return Ok(response);
+        }
+        [HttpPost("update-fcm-token")]
+        public async Task<IActionResult> UpdateFcmToken([FromBody] UpdateTokenRequest request)
+        {
+            var result = await _authService.UpdateFcmTokenAsync(request);
+
+            if (result)
+            {
+                return Ok(result);
+            }
+
+            return BadRequest(result);
         }
     }
 
