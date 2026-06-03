@@ -117,3 +117,4 @@ build/
 
 ## User-specific files
 *.sqlproj.user
+/Backend/SpendWise/firebase-adminsdk.json
