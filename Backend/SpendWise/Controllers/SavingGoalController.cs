@@ -24,6 +24,7 @@ namespace SpendWise.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetGoalByID([FromRoute] int id)
         {
+            
             var result = await _savingGoalService.GetGoalByIdAsync(id);
 
             if (!result.IsSuccess)
