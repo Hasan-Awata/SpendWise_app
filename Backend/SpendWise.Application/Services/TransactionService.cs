@@ -35,7 +35,13 @@ namespace SpendWise.Application.Services
                 return Result<PagedResponse<TransactionResponse>>.Failure("Pagination configuration parameters cannot be null.", enErrorType.Validation);
             }
 
-            var (transactions, totalCount) = await _transactionRepo.GetTransactionsByUserAsync(userId, pageDTO.PageNumber, pageDTO.PageSize);
+            // Validate transaction type if provided
+            if (pageDTO.TransactionType.HasValue && pageDTO.TransactionType.Value != 0 && pageDTO.TransactionType.Value != 1)
+            {
+                return Result<PagedResponse<TransactionResponse>>.Failure("TransactionType filter is invalid.", enErrorType.Validation);
+            }
+
+            var (transactions, totalCount) = await _transactionRepo.GetTransactionsByUserAsync(userId, pageDTO.PageNumber, pageDTO.PageSize, pageDTO.TagId, pageDTO.CategoryId, pageDTO.TransactionType);
 
             // Handle Empty Dataset Smoothly without throwing downstream errors
             if (transactions == null || !transactions.Any())

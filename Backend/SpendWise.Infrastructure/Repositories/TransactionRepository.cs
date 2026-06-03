@@ -18,7 +18,7 @@ namespace SpendWise.Infrastructure.Repositories
                   ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings."))
         { }
 
-        public async Task<(IEnumerable<Transaction> transactions, int totalCount)> GetTransactionsByUserAsync(int userId, int pageNumber, int pageSize)
+        public async Task<(IEnumerable<Transaction> transactions, int totalCount)> GetTransactionsByUserAsync(int userId, int pageNumber, int pageSize, int? tagId = null, int? categoryId = null, int? transactionType = null)
         {
             var transactions = new List<Transaction>();
             int totalCount = 0;
@@ -30,6 +30,9 @@ namespace SpendWise.Infrastructure.Repositories
                     cmd.Parameters.AddWithValue("@UserId", userId);
                     cmd.Parameters.AddWithValue("@PageNumber", pageNumber);
                     cmd.Parameters.AddWithValue("@PageSize", pageSize);
+                    cmd.Parameters.AddWithValue("@TagId", tagId.HasValue ? (object)tagId.Value : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@CategoryId", categoryId.HasValue ? (object)categoryId.Value : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@TransactionType", transactionType.HasValue ? (object)transactionType.Value : DBNull.Value);
                 },
                 async reader =>
                 {

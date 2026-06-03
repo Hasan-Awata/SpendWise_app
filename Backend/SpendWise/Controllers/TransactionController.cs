@@ -21,6 +21,10 @@ namespace SpendWise.Controllers
         [HttpGet]
         public async Task<IActionResult> GetTransactionsByUser([FromQuery] PageDTO pageDTO)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
             var result = await _transactionService.GetTransactionsByUserAsync(CurrentUserId, pageDTO);
 
             if (!result.IsSuccess)

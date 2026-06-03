@@ -7,7 +7,8 @@ namespace SpendWise.Application.Interfaces.Transactions
 {
     public interface ITransactionRepository
     {
-        public Task<(IEnumerable<Transaction> transactions, int totalCount)> GetTransactionsByUserAsync(int userId, int pageNumber, int pageSize);
+        // Backwards compatible signature with optional filters
+        public Task<(IEnumerable<Transaction> transactions, int totalCount)> GetTransactionsByUserAsync(int userId, int pageNumber, int pageSize, int? tagId = null, int? categoryId = null, int? transactionType = null);
 
     }
 }
