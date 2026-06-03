@@ -109,7 +109,7 @@ class NetworkService extends GetxService {
       };
 
       http.Response response = await _sendRequest(method, uri, headers, body);
-
+      print(headers);
       if (kDebugMode) {
         print("📥 [API RESPONSE] ${response.statusCode}");
         print("📝 [DATA]: ${response.body}");

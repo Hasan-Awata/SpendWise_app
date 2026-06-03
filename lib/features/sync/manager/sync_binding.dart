@@ -10,6 +10,12 @@ import 'package:spendwise/features/budget/presentation/bindings/category_budget_
 import 'package:spendwise/features/expense/data/datasources/expense_local_datasource.dart';
 import 'package:spendwise/features/expense/data/datasources/expense_remote_datasource.dart';
 import 'package:spendwise/features/expense/presentation/bindings/expense_binding.dart';
+import 'package:spendwise/features/fixed_incomes/data/datasources/fixed_income_local_datasource.dart';
+import 'package:spendwise/features/fixed_incomes/data/datasources/fixed_income_remote_datasource.dart';
+import 'package:spendwise/features/fixed_incomes/presentation/bindings/fixed_income_binding.dart';
+import 'package:spendwise/features/fixed_obligations/data/datasources/fixed_obligation_local_datasource.dart';
+import 'package:spendwise/features/fixed_obligations/data/datasources/fixed_obligation_remote_datasource.dart';
+import 'package:spendwise/features/fixed_obligations/presentation/bindings/fixed_obligation_binding.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasource.dart';
 import 'package:spendwise/features/income/data/datasources/income_remote_datasource.dart';
 import 'package:spendwise/features/income/presentation/bindings/income_binding.dart';
@@ -21,6 +27,8 @@ import 'package:spendwise/features/sync/manager/sync_manager.dart';
 import 'package:spendwise/features/sync/queue/sync_queue_repository.dart';
 import 'package:spendwise/features/sync/repository/category_budget_sync_repository.dart';
 import 'package:spendwise/features/sync/repository/expense_sync_reposiory.dart';
+import 'package:spendwise/features/sync/repository/fixed_income_sync_repository.dart';
+import 'package:spendwise/features/sync/repository/fixed_obligation_sync_repository.dart';
 import 'package:spendwise/features/sync/repository/income_sync_repository.dart';
 import 'package:spendwise/features/sync/repository/saving_goal_sync_repository.dart';
 import 'package:spendwise/features/sync/repository/tag_sync_repository.dart';
@@ -77,6 +85,14 @@ class SyncBinding extends Bindings {
       ),
       permanent: true,
     );
+    FixedObligationBinding().dependencies();
+    Get.put(
+      FixedObligationSyncRepository(
+        local: Get.find<FixedObligationLocalDataSource>(),
+        remote: Get.find<FixedObligationRemoteDataSource>(),
+      ),
+      permanent: true,
+    );
 
     CategoryBudgetBinding().dependencies();
     Get.put(
@@ -95,6 +111,14 @@ class SyncBinding extends Bindings {
       permanent: true,
     );
 
+    FixedIncomeBinding().dependencies();
+    Get.put(
+      FixedIncomeSyncRepository(
+        local: Get.find<FixedIncomeLocalDataSource>(),
+        remote: Get.find<FixedIncomeRemoteDataSource>(),
+      ),
+      permanent: true,
+    );
     // =========================================================
     // Engines
     // =========================================================
@@ -126,6 +150,13 @@ class SyncBinding extends Bindings {
         queueRepository: queueRepo,
         table: "expense",
       ),
+
+      SyncEngine(
+        repository: Get.find<FixedObligationSyncRepository>(),
+        network: networkService,
+        queueRepository: queueRepo,
+        table: "fixed_obligation",
+      ),
       SyncEngine(
         repository: Get.find<CategoryBudgetSyncRepository>(),
         network: networkService,
@@ -137,6 +168,12 @@ class SyncBinding extends Bindings {
         network: networkService,
         queueRepository: queueRepo,
         table: "saving_goal",
+      ),
+      SyncEngine(
+        repository: Get.find<SavingGoalSyncRepository>(),
+        network: networkService,
+        queueRepository: queueRepo,
+        table: "fixed_income",
       ),
     ]);
 

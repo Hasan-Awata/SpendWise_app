@@ -17,6 +17,14 @@ import 'package:spendwise/features/debts/presentation/pages/show_debt.dart';
 import 'package:spendwise/features/expense/presentation/bindings/expense_binding.dart';
 import 'package:spendwise/features/expense/presentation/pages/add_expense_view.dart';
 import 'package:spendwise/features/expense/presentation/pages/expense_list_view.dart';
+import 'package:spendwise/features/fixed_incomes/presentation/bindings/fixed_income_binding.dart';
+import 'package:spendwise/features/fixed_incomes/presentation/pages/add_fixed_income_view.dart'
+    show AddFixedIncomeView;
+import 'package:spendwise/features/fixed_incomes/presentation/pages/fixed_income_list_view.dart';
+import 'package:spendwise/features/fixed_obligations/presentation/bindings/fixed_obligation_binding.dart';
+import 'package:spendwise/features/fixed_obligations/presentation/pages/add_fixed_obligation_view.dart';
+import 'package:spendwise/features/fixed_obligations/presentation/pages/fixed_obligations_list_view.dart'
+    show FixedObligationListView;
 // ================= Main =================
 import 'package:spendwise/features/home/presentation/bindings/main_binding.dart';
 import 'package:spendwise/features/home/presentation/pages/main_screen.dart';
@@ -61,6 +69,10 @@ abstract class Routes {
   static const LIST_EXPENSE = '/list-expense';
   static const ADD_EXPENSE = '/add-expense';
 
+  static const ADD_FIXEDOBLIGATION = '/add-fixed-obligation';
+
+  static const FIXEDOBLIGATIONS = '/fixed-obligations';
+
   // Income
   static const LIST_INCOME = '/list-income';
   static const ADD_INCOME = '/add-income';
@@ -75,6 +87,9 @@ abstract class Routes {
 
   static const SHARED_DEBTS = "/shared-debts";
   static const ADD_SHARED_DEBTS = "/add-shared-debts";
+
+  static const LIST_FIXED_INCOME = '/list-fixed-income';
+  static const ADD_FIXED_INCOME = '/add-fixed-income';
 }
 
 class AppPages {
@@ -166,6 +181,16 @@ class AppPages {
       page: () => AddExpenseView(),
       bindings: [CategoryBudgetBinding(), ExpenseBinding()],
     ),
+    GetPage(
+      name: Routes.ADD_FIXEDOBLIGATION,
+      page: () => AddFixedObligationView(),
+      bindings: [FixedObligationBinding()],
+    ),
+    GetPage(
+      name: Routes.FIXEDOBLIGATIONS,
+      page: () => FixedObligationListView(),
+      bindings: [FixedObligationBinding()],
+    ),
 
     // =====================================================
     // INCOME
@@ -180,6 +205,21 @@ class AppPages {
       name: Routes.ADD_INCOME,
       page: () => AddIncomeView(),
       binding: IncomeBinding(),
+    ),
+
+    // =====================================================
+    // INCOME
+    // =====================================================
+    GetPage(
+      name: Routes.LIST_FIXED_INCOME,
+      page: () => FixedIncomeListView(),
+      binding: FixedIncomeBinding(),
+    ),
+
+    GetPage(
+      name: Routes.ADD_FIXED_INCOME,
+      page: () => AddFixedIncomeView(),
+      binding: FixedIncomeBinding(),
     ),
 
     // =====================================================

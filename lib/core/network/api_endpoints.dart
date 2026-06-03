@@ -51,6 +51,9 @@ class ApiEndpoints {
   static const String transactions = "transactions";
   static const String refreshToken = "Authentication/refresh";
 
+  static const String fixedObligations = "fixed-obligations";
+  static const String fixedIncomes = "fixed-incomes";
+
   Future<Map<String, String>?> getHeaders() async {
     try {
       final userSource = Get.find<AppUserLocalDatasource>();

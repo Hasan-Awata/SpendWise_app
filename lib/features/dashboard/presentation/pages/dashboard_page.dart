@@ -86,6 +86,34 @@ class DashboardPage extends StatelessWidget {
               Routes.ADD_SHARED_DEBTS,
             ), // تأكد من مطابقة اسم المسار عندك
           ),
+          _DashboardTile(
+            icon: Icons.trending_down, // أيقونة مناسبة للديون المشتركة (مشاركة)
+            title: 'التزامات ثابتة', // Fixed Obligations
+            subtitle: 'إدارة الالتزامات الثابتة',
+            color: const Color.fromARGB(
+              255,
+              90,
+              0,
+              0,
+            ), // لون برتقالي (Amber) لتمييز الديون عن الميزانية
+            onTap: () => Get.toNamed(
+              Routes.ADD_FIXEDOBLIGATION,
+            ), // تأكد من مطابقة اسم المسار عندك
+          ),
+          _DashboardTile(
+            icon: Icons.trending_down, // أيقونة مناسبة للديون المشتركة (مشاركة)
+            title: 'دخل ثابت', // Fixed Income
+            subtitle: 'إدارة الدخل الثابت',
+            color: const Color.fromARGB(
+              255,
+              1,
+              141,
+              87,
+            ), // لون برتقالي (Amber) لتمييز الديون عن الميزانية
+            onTap: () => Get.toNamed(
+              Routes.ADD_FIXED_INCOME,
+            ), // تأكد من مطابقة اسم المسار عندك
+          ),
         ],
       ),
     );

@@ -39,25 +39,47 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('الكاميرا'),
-              onTap: () {
-                _pickImage(ImageSource.camera);
-                Navigator.of(context).pop();
-              },
+        child: SizedBox(
+          height: 130,
+          child: Material(
+            color: SpColor.surfaceNavy,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('المعرض'),
-              onTap: () {
-                _pickImage(ImageSource.gallery);
-                Navigator.of(context).pop();
-              },
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(
+                    Icons.camera_alt,
+                    color: SpColor.accentBlue,
+                  ),
+                  title: const Text(
+                    'الكاميرا',
+                    style: TextStyle(color: SpColor.accentBlue),
+                  ),
+                  onTap: () {
+                    _pickImage(ImageSource.camera);
+                    Navigator.of(context).pop();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.photo_library,
+                    color: SpColor.accentBlue,
+                  ),
+                  title: const Text(
+                    'المعرض',
+                    style: TextStyle(color: SpColor.accentBlue),
+                  ),
+                  onTap: () {
+                    _pickImage(ImageSource.gallery);
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -72,6 +94,8 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
       ),
       // // زر عائم يفتح خيارات الاختيار عند الضغط عليه
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: SpColor.accentBlue,
+        foregroundColor: SpColor.offWhite,
         onPressed: _showPickerOptions,
         label: const Text("اختيار صورة"),
         icon: const Icon(Icons.add_a_photo),
@@ -101,29 +125,84 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
             ),
           ),
         ),
-        ElevatedButton.icon(
-          onPressed: () async {
-            final result = await _networkService.upload(
-              endpoint: "ocr",
-              file: _selectedImage!,
-            );
+        SizedBox(
+          height: 50,
+          child: ElevatedButton.icon(
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.all(SpColor.accentBlue),
+              foregroundColor: WidgetStateProperty.all(SpColor.offWhite),
+              padding: WidgetStateProperty.all(
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+            onPressed: () async {
+              // 1. إظهار نافذة الانتظار
+              Get.dialog(
+                PopScope(
+                  canPop:
+                      false, // منع المستخدم من الخروج عبر زر الرجوع في الهاتف
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: SpColor.surfaceNavy,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(
+                            color: SpColor.accentBlue,
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            "جاري تحليل الإيصال...",
+                            style: TextStyle(
+                              color: SpColor.offWhite,
+                              decoration: TextDecoration.none,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                barrierDismissible: false, // لا يمكن الخروج بالضغط خارج النافذة
+              );
 
-            if (result != null) {
-              final ocrData = OcrResult.fromJson(result);
+              try {
+                // 2. عملية التحليل (الرفع)
+                final result = await _networkService.upload(
+                  endpoint: "ocr",
+                  file: _selectedImage!,
+                );
 
-              // الحصول على الـ Controller وتعبئة البيانات
-              final AddExpenseController addExpenseController =
-                  Get.find<AddExpenseController>();
-              addExpenseController.populateFromOcr(ocrData);
+                if (result != null) {
+                  final ocrData = OcrResult.fromJson(result);
+                  final AddExpenseController addExpenseController =
+                      Get.find<AddExpenseController>();
+                  addExpenseController.populateFromOcr(ocrData);
 
-              // الانتقال مباشرة إلى صفحة إضافة المصروف
-              Get.toNamed(Routes.ADD_EXPENSE);
-            }
-
-            // Get.snackbar("خطأ", "فشل تحليل الإيصال");
-          },
-          icon: const Icon(Icons.upload_file),
-          label: const Text("إرسال للتحليل"),
+                  // إغلاق نافذة الانتظار قبل الانتقال
+                  Get.back();
+                  Get.toNamed(Routes.ADD_EXPENSE);
+                }
+              } catch (e) {
+                // إغلاق نافذة الانتظار في حال حدوث خطأ
+                Get.back();
+                // تعليق: إظهار رسالة خطأ للمستخدم في حال فشل عملية الرفع أو المعالجة
+                Get.snackbar(
+                  "خطأ",
+                  "فشل تحليل الإيصال: ${e.toString()}",
+                  backgroundColor: Colors.redAccent,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            icon: const Icon(Icons.upload_file),
+            label: const Text("إرسال للتحليل"),
+          ),
         ),
         SizedBox(height: 20),
       ],
@@ -131,157 +210,156 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
   }
 }
 
-class EditReceiptScreen extends StatefulWidget {
-  final OcrResult result;
-  const EditReceiptScreen({super.key, required this.result});
+// class EditReceiptScreen extends StatefulWidget {
+//   final OcrResult result;
+//   const EditReceiptScreen({super.key, required this.result});
 
-  @override
-  State<EditReceiptScreen> createState() => _EditReceiptScreenState();
-}
+//   @override
+//   State<EditReceiptScreen> createState() => _EditReceiptScreenState();
+// }
 
-class _EditReceiptScreenState extends State<EditReceiptScreen> {
-  late TextEditingController _titleController;
-  late TextEditingController _totalController;
-  late TextEditingController _taxController;
+// class _EditReceiptScreenState extends State<EditReceiptScreen> {
+//   late TextEditingController _titleController;
+//   late TextEditingController _totalController;
+//   late TextEditingController _taxController;
 
-  // قائمة للمنتجات لتكون قابلة للتعديل
-  late List<TextEditingController> _productControllers;
+//   // قائمة للمنتجات لتكون قابلة للتعديل
+//   late List<TextEditingController> _productControllers;
 
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController(text: widget.result.title);
-    _totalController = TextEditingController(
-      text: widget.result.total.toString(),
-    );
-    _taxController = TextEditingController(text: widget.result.tax.toString());
+//   @override
+//   void initState() {
+//     super.initState();
+//     _titleController = TextEditingController(text: widget.result.title);
+//     _totalController = TextEditingController(
+//       text: widget.result.total.toString(),
+//     );
+//     _taxController = TextEditingController(text: widget.result.tax.toString());
 
-    _productControllers = widget.result.products
-        .map((p) => TextEditingController(text: p.toString()))
-        .toList();
-  }
+//     _productControllers = widget.result.products
+//         .map((p) => TextEditingController(text: p.toString()))
+//         .toList();
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("مراجعة البيانات"), elevation: 0),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // القسم الأساسي
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  _buildTextField(
-                    _titleController,
-                    "اسم المتجر",
-                    Icons.storefront,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          _totalController,
-                          "الإجمالي",
-                          Icons.attach_money,
-                          isNumber: true,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _buildTextField(
-                          _taxController,
-                          "الضريبة",
-                          Icons.percent,
-                          isNumber: true,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: const Text("مراجعة البيانات"), elevation: 0),
+//       body: ListView(
+//         padding: const EdgeInsets.all(16.0),
+//         children: [
+//           // القسم الأساسي
+//           Card(
+//             shape: RoundedRectangleBorder(
+//               borderRadius: BorderRadius.circular(16),
+//             ),
+//             child: Padding(
+//               padding: const EdgeInsets.all(16.0),
+//               child: Column(
+//                 children: [
+//                   _buildTextField(
+//                     _titleController,
+//                     "اسم المتجر",
+//                     Icons.storefront,
+//                   ),
+//                   const SizedBox(height: 16),
+//                   Row(
+//                     children: [
+//                       Expanded(
+//                         child: _buildTextField(
+//                           _totalController,
+//                           "الإجمالي",
+//                           Icons.attach_money,
+//                           isNumber: true,
+//                         ),
+//                       ),
+//                       const SizedBox(width: 10),
+//                       Expanded(
+//                         child: _buildTextField(
+//                           _taxController,
+//                           "الضريبة",
+//                           Icons.percent,
+//                           isNumber: true,
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ],
+//               ),
+//             ),
+//           ),
 
-          const SizedBox(height: 24),
-          const Text(
-            " المنتجات المستخرجة:",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
+//           const SizedBox(height: 24),
+//           const Text(
+//             " المنتجات المستخرجة:",
+//             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//           ),
+//           const SizedBox(height: 10),
 
-          // قائمة المنتجات القابلة للتعديل
-          ..._productControllers.asMap().entries.map((entry) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: TextField(
-                controller: entry.value,
-                decoration: InputDecoration(
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: SpColor.surfaceNavy),
-                  ),
-                  fillColor: SpColor.mutedGrey,
-                  filled: true,
-                  labelText: "منتج ${entry.key + 1}",
-                  prefixIcon: const Icon(
-                    Icons.shopping_bag_outlined,
-                    color: SpColor.expenseRed,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            );
-          }),
+//           // قائمة المنتجات القابلة للتعديل
+//           ..._productControllers.asMap().entries.map((entry) {
+//             return Padding(
+//               padding: const EdgeInsets.only(bottom: 8.0),
+//               child: TextField(
+//                 controller: entry.value,
+//                 decoration: InputDecoration(
+//                   enabledBorder: OutlineInputBorder(
+//                     borderRadius: BorderRadius.circular(12),
+//                     borderSide: BorderSide(color: SpColor.surfaceNavy),
+//                   ),
+//                   fillColor: SpColor.mutedGrey,
+//                   filled: true,
+//                   labelText: "منتج ${entry.key + 1}",
+//                   prefixIcon: const Icon(
+//                     Icons.shopping_bag_outlined,
+//                     color: SpColor.expenseRed,
+//                   ),
+//                   border: OutlineInputBorder(
+//                     borderRadius: BorderRadius.circular(12),
+//                   ),
+//                 ),
+//               ),
+//             );
+//           }),
 
-          const SizedBox(height: 40),
-          SizedBox(
-            height: 55,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // منطق الحفظ هنا
-              },
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              icon: const Icon(Icons.save_rounded),
-              label: const Text(
-                "حفظ الإيصال النهائي",
-                style: TextStyle(fontSize: 16),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon, {
-    bool isNumber = false,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      decoration: InputDecoration(
-        fillColor: SpColor.mutedGrey,
-        labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        filled: true,
-      ),
-    );
-  }
-}
+//           const SizedBox(height: 40),
+//           SizedBox(
+//             height: 55,
+//             child: ElevatedButton.icon(
+//               onPressed: () {
+//                 // منطق الحفظ هنا
+//               },
+//               style: ElevatedButton.styleFrom(
+//                 shape: RoundedRectangleBorder(
+//                   borderRadius: BorderRadius.circular(12),
+//                 ),
+//               ),
+//               icon: const Icon(Icons.save_rounded),
+//               label: const Text(
+//                 "حفظ الإيصال النهائي",
+//                 style: TextStyle(fontSize: 16),
+//               ),
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+//   Widget _buildTextField(
+//     TextEditingController controller,
+//     String label,
+//     IconData icon, {
+//     bool isNumber = false,
+//   }) {
+//     return TextField(
+//       controller: controller,
+//       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+//       decoration: InputDecoration(
+//         fillColor: SpColor.mutedGrey,
+//         labelText: label,
+//         prefixIcon: Icon(icon),
+//         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+//         filled: true,
+//       ),
+//     );
+//   }
+// }

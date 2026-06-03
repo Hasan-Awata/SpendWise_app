@@ -5,6 +5,8 @@ import 'package:spendwise/features/auth/data/models/user_model.dart';
 import 'package:spendwise/features/budget/data/model/category_budget_model.dart';
 import 'package:spendwise/features/category/data/models/category_model.dart';
 import 'package:spendwise/features/expense/data/models/expense_model.dart';
+import 'package:spendwise/features/fixed_incomes/data/models/fixedIncome_model.dart';
+import 'package:spendwise/features/fixed_obligations/data/models/fixed_obligation_model.dart';
 import 'package:spendwise/features/income/data/models/income_model.dart';
 import 'package:spendwise/features/savings_goals/data/models/saving_goal_model.dart';
 import 'package:spendwise/features/sync/queue/sync_queue_model.dart';
@@ -37,6 +39,8 @@ class InitIsar {
         CategoryModelSchema,
         CategoryBudgetModelSchema,
         TransactionModelSchema,
+        FixedObligationModelSchema,
+        FixedIncomeModelSchema,
       ],
       directory: dir.path,
       inspector: true,
