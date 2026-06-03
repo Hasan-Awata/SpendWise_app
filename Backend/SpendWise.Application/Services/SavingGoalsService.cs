@@ -86,8 +86,8 @@ namespace SpendWise.Application.Services
                     goalCurrency == null || string.IsNullOrEmpty(goalCurrency.Code))
                     return false;
 
-                amountSYR = await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "Damascus", "sell", amountFromWallet);
-                 decimal amountAsSavingGoal = await _exchangeRateService.NormalizeFromSyrianPund(goalCurrency.Code, "Damascus", amountSYR);
+                amountSYR = await _exchangeRateService.NormalizeToSyrianPound(walletCurrency.Code, "Damascus", "black_market", amountFromWallet);
+                 decimal amountAsSavingGoal = await _exchangeRateService.NormalizeFromSyrianPound(goalCurrency.Code, "black_market", amountSYR);
                 amountToSavingGoal = Convert.ToDecimal(amountAsSavingGoal);
             }
             else
@@ -151,26 +151,15 @@ namespace SpendWise.Application.Services
                       decimal amountAsWallet = await _exchangeRateService.NormalizeFromSyrianPund(
                         walletCurrency.Code, "Damascus", amountSYR);
 
-                    amountToWallet = Convert.ToDecimal(amountAsWallet);
-                }
-                else
-                {
-                      amountToWallet = amountFromGoal;
-                    amountSYR = amountFromGoal;
-                }
+
+                decimal amountAsSavingGoal = await _exchangeRateService.NormalizeFromSyrianPound(SupportedCurrencies.GetById(wallet.CurrencyId).Code, "black_market", amountSYR);
+
+
+
+                wallet.Balance += Convert.ToDecimal(amountAsSavingGoal);
             }
-            catch (Exception)
+            else
             {
-                if (wallet.CurrencyId == CurrentSavingGoal.CurrencyId)
-                {
-                    amountToWallet = amountFromGoal;
-                    amountSYR = amountFromGoal * 15000; 
-                }
-                else
-                {
-                    return false; 
-                }
-            }
 
 
              if (await _goalRepo.WithdrawAmountFromSavingGoalTransactionAsync(savingGoalId, walletId, userId, amountFromGoal, amountToWallet, amountSYR))

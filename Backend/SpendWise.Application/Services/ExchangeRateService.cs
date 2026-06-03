@@ -65,10 +65,29 @@ namespace SpendWise.Application.Services
 
             return Math.Round(amountInSP / 5, MidpointRounding.AwayFromZero) * 5;
         }
-        //implementation this fun *_*
-        public async Task<decimal> NormalizeFromSyrianPund(string CurrencySymploy,string rateType ,decimal amount) {
-            return Convert.ToDecimal(-1);
-        
+        public async Task<decimal> NormalizeFromSyrianPound(string currencySymbol, string region, string rateType, decimal amountInSp) 
+        {
+            string currencyKey = currencySymbol.ToUpper() + ":" + region.ToLower();
+
+            decimal exchangeRate = await GetExchangeRateAsync(currencyKey, rateType);
+
+            decimal amount = amountInSp / exchangeRate;
+
+            return amount;
+        }
+
+        public async Task<decimal> NormaliezTwoCurrencies(string fromCurrencySymbol, string fromRegion, string toCurrencySymbol, string toRegion, string rateType, decimal amount)
+        {
+            string fromCurrencyKey = fromCurrencySymbol.ToUpper() + ":" + fromRegion.ToLower();
+            string toCurrencyKey = toCurrencySymbol.ToUpper() + ":" + toRegion.ToLower();
+
+            decimal fromExchangeRate = await GetExchangeRateAsync(fromCurrencyKey, rateType);
+            decimal toExchangeRate = await GetExchangeRateAsync(toCurrencyKey, rateType);
+
+            decimal amountInSP = fromExchangeRate * amount;
+            decimal normalizedAmount = amountInSP / toExchangeRate;
+            
+            return normalizedAmount;
         }
     }
 }
