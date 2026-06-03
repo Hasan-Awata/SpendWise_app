@@ -16,7 +16,7 @@ public class FixedExpenseScheduler : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Set the timer to run every 12 hours (adjust as needed)
+        // Set the timer to run every 24 hours (adjust as needed)
         using var timer = new PeriodicTimer(TimeSpan.FromDays(1));
 
         while (await timer.WaitForNextTickAsync(stoppingToken))
