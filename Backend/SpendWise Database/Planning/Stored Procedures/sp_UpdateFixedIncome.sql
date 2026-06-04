@@ -10,26 +10,22 @@
     @LastTime DATETIME = NULL
 AS
 BEGIN
-    -- استخدم SET NOCOUNT ON ولكن احرص على استخدام @@ROWCOUNT في نهاية الاستعلام
-    SET NOCOUNT ON;
+     SET NOCOUNT ON;
 
     BEGIN TRY
-        -- 1. التحقق من وجود السجل والملكية (أمني)
-        IF NOT EXISTS (SELECT 1 FROM [Planning].[FixedIncomes] 
+         IF NOT EXISTS (SELECT 1 FROM [Planning].[FixedIncomes] 
                        WHERE FixedIncomeId = @FixedIncomeId 
                          AND UserID = @UserId)
         BEGIN
             ;THROW 50012, 'The specified fixed income record was not found or access denied.', 1;
         END
 
-        -- 2. التحقق من صحة القيم (Business Validation)
         IF @Amount <= 0
         BEGIN
             ;THROW 50013, 'The amount must be greater than zero.', 1;
         END
 
-        -- التحقق من عدم تكرار العنوان لنفس المستخدم في نفس المحفظة
-        IF EXISTS (SELECT 1 FROM [Planning].[FixedIncomes] 
+         IF EXISTS (SELECT 1 FROM [Planning].[FixedIncomes] 
                    WHERE UserID = @UserId 
                      AND WalletId = @WalletId 
                      AND Title = @Title 
@@ -38,7 +34,6 @@ BEGIN
             ;THROW 50011, 'A fixed income with this title already exists in the selected wallet.', 1;
         END
 
-        -- 3. تنفيذ التحديث
         UPDATE [Planning].[FixedIncomes]
         SET Title = @Title,
             Amount = @Amount,

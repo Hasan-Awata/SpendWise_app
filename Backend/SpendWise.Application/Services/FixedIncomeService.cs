@@ -16,13 +16,7 @@ namespace SpendWise.Application.Services
         {
             _fixedIncomeRepo = fixedIncomeRepo;
         }
-
-        // =========================================================================
-        // Centralized Mapping Helpers
-        // =========================================================================
-
-        // تمت إضافة fixedIncomeId كبارامتر لأن الـ DTO لم يعد يحتويه
-        private FixedIncome MapDTOToIncomeObject(int fixedIncomeId, FixedIncomeDTO dto)
+  private FixedIncome MapDTOToIncomeObject(int fixedIncomeId, FixedIncomeDTO dto)
         {
             return new FixedIncome(
                 fixedIncomeId,
@@ -53,10 +47,6 @@ namespace SpendWise.Application.Services
             };
         }
 
-        // =========================================================================
-        // Centralized Validations
-        // =========================================================================
-
         private bool ValidateFixedIncomeDTO(FixedIncomeDTO dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Title))
@@ -70,10 +60,6 @@ namespace SpendWise.Application.Services
 
             return true;
         }
-
-        // =========================================================================
-        // Reading Methods
-        // =========================================================================
 
         public async Task<FixedIncomeResponse?> GetFixedIncomeAsync(int fixedIncomeId, int userId)
         {
@@ -109,22 +95,16 @@ namespace SpendWise.Application.Services
             return await _fixedIncomeRepo.IsIncomeActive(fixedIncomeId, userId);
         }
 
-        // =========================================================================
-        // Writing Methods
-        // =========================================================================
-
+     
         public async Task<int> CreateFixedIncomeAsync(FixedIncomeDTO fixedIncomeDTO)
         {
             if (!ValidateFixedIncomeDTO(fixedIncomeDTO))
                 return -1;
-
-            // نمرر -1 لأن هذا سجل جديد لا يملك ID بعد
-            var newIncome = MapDTOToIncomeObject(-1, fixedIncomeDTO);
+         var newIncome = MapDTOToIncomeObject(-1, fixedIncomeDTO);
 
             return await _fixedIncomeRepo.CreateFixedIncomeAsync(newIncome);
         }
 
-        // تم إضافة fixedIncomeId كبارامتر لتحديد السجل المراد تعديله
         public async Task<bool> UpdateFixedIncomeAsync(int fixedIncomeId, FixedIncomeDTO fixedIncomeDTO)
         {
             if (fixedIncomeId <= 0)
