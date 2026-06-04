@@ -22,7 +22,7 @@ namespace SpendWise.Application.Interfaces.SharedDebts
         Task<Result<SharedDebtResponse>> GetDebtByTitleAsync(string title);
 
         // Create a new debt (Returns the new record ID inside Result)
-        Task<Result<int>> AddDebtAsync(SharedDebtDTO debtDto);
+        Task<Result<SharedDebtResponse>> AddDebtAsync(SharedDebtDTO debtDto);
 
         // Update an existing debt
         Task<Result> UpdateDebtAsync(int debtId, SharedDebtDTO debtDto);

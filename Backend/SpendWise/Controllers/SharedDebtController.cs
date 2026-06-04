@@ -103,7 +103,9 @@ namespace SpendWise.Controllers
                 return HandleResultOnError(result);
             }
 
-            return CreatedAtAction(nameof(GetDebtByID), new { id = result.Value }, result.Value);
+            var createdDebt = result.Value;
+
+            return CreatedAtAction(nameof(GetDebtByID), new { id = createdDebt!.DebtID }, createdDebt);
         }
 
         [HttpPatch("UpdateDebt/{debtID}")]

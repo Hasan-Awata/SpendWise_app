@@ -129,20 +129,21 @@ namespace SpendWise.Application.Services
 
         // Writing methods --------------------------------------------------
 
-        public async Task<Result<int>> AddDebtAsync(SharedDebtDTO debtDto)
+        public async Task<Result<SharedDebtResponse>> AddDebtAsync(SharedDebtDTO debtDto)
         {
             var validationResult = ValidateDebtDTO(debtDto);
             if (!validationResult.IsSuccess)
-                return Result<int>.Failure(validationResult.ErrorMessage!, enErrorType.Validation);
+                return Result<SharedDebtResponse>.Failure(validationResult.ErrorMessage!, enErrorType.Validation);
 
             debtDto.PaidAmount = 0.0m; // Forced sanity setup
             var debt = MapDTOToDebtObject(debtDto, -1);
 
             int newDebtId = await _debtRepo.AddDebtAsync(debt);
             if (newDebtId == -1)
-                return Result<int>.Failure("Failed to add the debt record to the database.", enErrorType.Failure);
+                return Result<SharedDebtResponse>.Failure("Failed to add the debt record to the database.", enErrorType.Failure);
 
-            return Result<int>.Success(newDebtId);
+            var newDebt = MapDTOToDebtObject(debtDto, newDebtId);
+            return Result<SharedDebtResponse>.Success(new SharedDebtResponse(newDebt));
         }
 
         public async Task<Result> UpdateDebtAsync(int debtId, SharedDebtDTO debtDto)
