@@ -72,13 +72,15 @@ namespace SpendWise.Controllers
         [HttpPatch("{goalId}")]
         public async Task<IActionResult> UpdateGoal([FromRoute] int goalId, [FromBody] SavingGoalDTO updatedGoal)
         {
-            var result = await _savingGoalService.UpdateGoalAsync(goalId, updatedGoal);
+            // نمرر الـ CurrentUserId كبارامتر ثالث للخدمة
+            var result = await _savingGoalService.UpdateGoalAsync(goalId, updatedGoal, CurrentUserId);
 
             if (!result.IsSuccess)
             {
                 return HandleResultOnError(result);
             }
 
+            // لتوفير كويري إضافي، يمكنك تمرير الـ CurrentUserId هنا أيضاً لحماية الجلب
             var updatedGoalDataResult = await _savingGoalService.GetGoalByIdAsync(goalId);
 
             if (!updatedGoalDataResult.IsSuccess)

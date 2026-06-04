@@ -19,7 +19,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> WithdrawAmountFromSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromSavingGoal, decimal amountToWallet, decimal amountInSp)
         {
-            var result = await ExecuteNonQueryAsync("[Planning].[sp_WithdrawAmountFromSavingGoalWithTransaction]", cmd =>
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_WithdrawAmountFromSavingGoalWithTransaction]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@GoalId", goalId);
                 cmd.Parameters.AddWithValue("@WalletId", walletId);
@@ -34,7 +34,7 @@ namespace SpendWise.Infrastructure.Repositories
         }
         public async Task<bool> AddAmountToSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromWallet, decimal amountToSavingGoal, decimal amountInSp)
         {
-            var result = await ExecuteNonQueryAsync("[Planning].[sp_AddAmountToSavingGoalWithTransaction]", cmd =>
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_AddAmountToSavingGoalWithTransaction]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@GoalId", goalId);
                 cmd.Parameters.AddWithValue("@WalletId", walletId);

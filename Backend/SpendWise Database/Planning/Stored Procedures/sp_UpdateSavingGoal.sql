@@ -7,7 +7,7 @@
     @DeadlineDate DATE
 AS
 BEGIN
-    SET NOCOUNT ON;
+
     
     BEGIN TRY
         -- التحقق الأمني

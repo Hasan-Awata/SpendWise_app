@@ -21,7 +21,7 @@ namespace SpendWise.Application.Interfaces.SavingGoals
         public Task<Result<int>> AddGoalAsync(int userID,SavingGoalDTO goalDto);
 
         // Update an existing goal
-        public Task<Result> UpdateGoalAsync(int goalId, SavingGoalDTO goalDto);
+        public Task<Result> UpdateGoalAsync(int goalId, SavingGoalDTO goalDto,int userID);
 
         // Delete a goal
         public Task<Result> DeleteGoalAsync(int goalId);

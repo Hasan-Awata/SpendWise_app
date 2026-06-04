@@ -12,8 +12,7 @@ BEGIN
          DELETE FROM [Planning].[SavingsGoals] 
         WHERE GoalID = @GoalId;
         
-        SELECT @@ROWCOUNT AS RowsAffected;
-
+        
     END TRY
     BEGIN CATCH
         THROW;

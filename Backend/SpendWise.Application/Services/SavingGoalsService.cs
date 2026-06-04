@@ -140,8 +140,11 @@ namespace SpendWise.Application.Services
             return Result<int>.Success(id);
         }
 
-        public async Task<Result> UpdateGoalAsync(int savingGoalId, SavingGoalDTO savingGoalDto)
+        public async Task<Result> UpdateGoalAsync(int savingGoalId, SavingGoalDTO savingGoalDto,int userId)
         {
+            if (userId<=-0)
+                return Result.Failure("Invalid user identifier.", enErrorType.Validation);
+
             if (savingGoalId <= 0)
                 return Result.Failure("Invalid goal identifier.", enErrorType.Validation);
 
@@ -152,7 +155,7 @@ namespace SpendWise.Application.Services
             if (!validationResult.IsSuccess)
                 return Result.Failure(validationResult.ErrorMessage!, enErrorType.Validation);
 
-            var goal = MapDTOToGoalObject(savingGoalDto, savingGoalDto.UserId, savingGoalId);
+            var goal = MapDTOToGoalObject(savingGoalDto, userId, savingGoalId);
 
             if (!await _goalRepo.UpdateGoalAsync(goal))
                 return Result.Failure("Failed to modify the saving goal details.", enErrorType.Failure);
