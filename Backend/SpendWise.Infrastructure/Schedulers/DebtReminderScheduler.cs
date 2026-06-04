@@ -30,32 +30,36 @@ namespace SpendWise.Infrastructure.ExternalServices
             // Run this validation check once every 24 hours
             using var timer = new PeriodicTimer(TimeSpan.FromDays(1));
 
-            while (await timer.WaitForNextTickAsync(stoppingToken))
+            try
             {
-                try
+                while (await timer.WaitForNextTickAsync(stoppingToken))
                 {
-                    string connectionString = _configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentNullException(nameof(_configuration), "Connection string is missing in appsettings.");
-                    using var connection = new SqlConnection(connectionString);
-                    using var command = new SqlCommand("sp_GetUpcomingDebtReminders", connection);
-                    command.CommandType = CommandType.StoredProcedure;
-
-                    await connection.OpenAsync(stoppingToken);
-                    using var reader = await command.ExecuteReaderAsync(stoppingToken);
-
-                    while (await reader.ReadAsync(stoppingToken))
+                    try
                     {
-                        string title = reader.GetString(reader.GetOrdinal("Title"));
-                        decimal remainingAmount = reader.GetDecimal(reader.GetOrdinal("RemainingAmount"));
-                        string fcmToken = reader.GetString(reader.GetOrdinal("FcmToken"));
+                        string connectionString = _configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentNullException(nameof(_configuration), "Connection string is missing in appsettings.");
+                        using var connection = new SqlConnection(connectionString);
+                        using var command = new SqlCommand("sp_GetUpcomingDebtReminders", connection);
+                        command.CommandType = CommandType.StoredProcedure;
 
-                        await DispatchDebtReminderNotification(fcmToken, title, remainingAmount);
+                        await connection.OpenAsync(stoppingToken);
+                        using var reader = await command.ExecuteReaderAsync(stoppingToken);
+
+                        while (await reader.ReadAsync(stoppingToken))
+                        {
+                            string title = reader.GetString(reader.GetOrdinal("Title"));
+                            decimal remainingAmount = reader.GetDecimal(reader.GetOrdinal("RemainingAmount"));
+                            string fcmToken = reader.GetString(reader.GetOrdinal("FcmToken"));
+
+                            await DispatchDebtReminderNotification(fcmToken, title, remainingAmount);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[DebtReminderScheduler] Error running background reminders: {ex.Message}");
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[DebtReminderScheduler] Error running background reminders: {ex.Message}");
-                }
             }
+            catch(OperationCanceledException) { }
         }
 
         private async Task DispatchDebtReminderNotification(string deviceToken, string debtTitle, decimal amount)

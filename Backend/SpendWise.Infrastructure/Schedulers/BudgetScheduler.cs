@@ -29,32 +29,36 @@ namespace SpendWise.Infrastructure.ExternalServices
         {
             using var timer = new PeriodicTimer(TimeSpan.FromDays(1));
 
-            while (await timer.WaitForNextTickAsync(stoppingToken))
+            try
             {
-                try
+                while (await timer.WaitForNextTickAsync(stoppingToken))
                 {
-                    string connectionString = _configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentNullException(nameof(_configuration), "Connection string is missing in appsettings.");
-                    using var connection = new SqlConnection(connectionString);
-                    using var command = new SqlCommand("sp_ResetExpiredBudgets", connection);
-                    command.CommandType = CommandType.StoredProcedure;
-
-                    await connection.OpenAsync(stoppingToken);
-                    using var reader = await command.ExecuteReaderAsync(stoppingToken);
-
-                    // Loop through all budgets that rolled over and alert their owners
-                    while (await reader.ReadAsync(stoppingToken))
+                    try
                     {
-                        decimal limit = reader.GetDecimal(reader.GetOrdinal("PercentageLimit"));
-                        string fcmToken = reader.GetString(reader.GetOrdinal("FcmToken"));
+                        string connectionString = _configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentNullException(nameof(_configuration), "Connection string is missing in appsettings.");
+                        using var connection = new SqlConnection(connectionString);
+                        using var command = new SqlCommand("sp_ResetExpiredBudgets", connection);
+                        command.CommandType = CommandType.StoredProcedure;
 
-                        await DispatchBudgetResetNotification(fcmToken, limit);
+                        await connection.OpenAsync(stoppingToken);
+                        using var reader = await command.ExecuteReaderAsync(stoppingToken);
+
+                        // Loop through all budgets that rolled over and alert their owners
+                        while (await reader.ReadAsync(stoppingToken))
+                        {
+                            decimal limit = reader.GetDecimal(reader.GetOrdinal("PercentageLimit"));
+                            string fcmToken = reader.GetString(reader.GetOrdinal("FcmToken"));
+
+                            await DispatchBudgetResetNotification(fcmToken, limit);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[BudgetScheduler] Error: {ex.Message}");
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[BudgetScheduler] Error: {ex.Message}");
-                }
             }
+            catch(OperationCanceledException) { }
         }
 
         private async Task DispatchBudgetResetNotification(string deviceToken, decimal limit)

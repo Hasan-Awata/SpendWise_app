@@ -28,34 +28,38 @@ public class FixedIncomeScheduler : BackgroundService
     {
         using var timer = new PeriodicTimer(TimeSpan.FromDays(1));
 
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+        try
         {
-            try
+            while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                string connectionString = _configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentNullException(nameof(_configuration), "Connection string is missing in appsettings.");
-                using var connection = new SqlConnection(connectionString);
-                using var command = new SqlCommand("sp_ProcessDueFixedIncomes", connection);
-                command.CommandType = CommandType.StoredProcedure;
-
-                await connection.OpenAsync(stoppingToken);
-
-                // Read the tokens returned by the modified stored procedure
-                using var reader = await command.ExecuteReaderAsync(stoppingToken);
-
-                while (await reader.ReadAsync(stoppingToken))
+                try
                 {
-                    decimal amount = reader.GetDecimal(reader.GetOrdinal("Amount"));
-                    string fcmToken = reader.GetString(reader.GetOrdinal("FcmToken"));
+                    string connectionString = _configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentNullException(nameof(_configuration), "Connection string is missing in appsettings.");
+                    using var connection = new SqlConnection(connectionString);
+                    using var command = new SqlCommand("sp_ProcessDueFixedIncomes", connection);
+                    command.CommandType = CommandType.StoredProcedure;
 
-                    // Dispatch notification to Firebase asynchronously
-                    await DispatchPushNotification(fcmToken, amount);
+                    await connection.OpenAsync(stoppingToken);
+
+                    // Read the tokens returned by the modified stored procedure
+                    using var reader = await command.ExecuteReaderAsync(stoppingToken);
+
+                    while (await reader.ReadAsync(stoppingToken))
+                    {
+                        decimal amount = reader.GetDecimal(reader.GetOrdinal("Amount"));
+                        string fcmToken = reader.GetString(reader.GetOrdinal("FcmToken"));
+
+                        // Dispatch notification to Firebase asynchronously
+                        await DispatchPushNotification(fcmToken, amount);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error running execution loop: {ex.Message}");
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error running execution loop: {ex.Message}");
-            }
         }
+        catch (OperationCanceledException) { }
     }
 
     private async Task DispatchPushNotification(string deviceToken, decimal amount)
