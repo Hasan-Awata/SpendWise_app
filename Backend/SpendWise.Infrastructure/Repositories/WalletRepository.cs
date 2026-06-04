@@ -52,7 +52,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> AddWalletAsync(Wallet wallet)
         {
-            var insertedId = await ExecuteNonQueryAsync("[Banking].[sp_AddWallet]", cmd =>
+            var insertedId = await ExecuteScalarAsync<int>("[Banking].[sp_AddWallet]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserId", wallet.UserId);
                 cmd.Parameters.AddWithValue("@Balance", wallet.Balance);

@@ -21,7 +21,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> AddDebtAsync(SharedDebt debt)
         {
-            var result = await ExecuteNonQueryAsync("[Planning].[sp_AddSharedDebt]", cmd =>
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_AddSharedDebt]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
                 cmd.Parameters.AddWithValue("@DebtorID", debt.DebtorID);

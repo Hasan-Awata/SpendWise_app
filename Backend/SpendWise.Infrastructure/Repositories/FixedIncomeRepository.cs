@@ -33,7 +33,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> CreateFixedIncomeAsync(FixedIncome fixedIncome)
         {
-            var result = await ExecuteNonQueryAsync("[Planning].[sp_CreateFixedIncome]", cmd =>
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_CreateFixedIncome]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserId", fixedIncome.UserId);
                 cmd.Parameters.AddWithValue("@WalletId", fixedIncome.WalletId); 
@@ -51,7 +51,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> UpdateFixedIncomeAsync(FixedIncome fixedIncome)
         {
-            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_UpdateFixedIncome]", cmd =>
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_UpdateFixedIncome]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@FixedIncomeId", fixedIncome.FixedIncomeId);
                 cmd.Parameters.AddWithValue("@UserId", fixedIncome.UserId);
@@ -69,7 +69,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> DeleteFixedIncomeAsync(int fixedIncomeId, int userId)
         {
-            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_DeleteFixedIncome]", cmd =>
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_DeleteFixedIncome]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@FixedIncomeId", fixedIncomeId);
                 cmd.Parameters.AddWithValue("@UserId", userId);

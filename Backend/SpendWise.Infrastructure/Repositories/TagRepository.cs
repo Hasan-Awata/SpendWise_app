@@ -19,7 +19,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> AddTagAsync(Tag newTag)
         {
-            var result = await ExecuteNonQueryAsync("[Config].[sp_CreateTag]", cmd =>
+            var result = await ExecuteScalarAsync<int>("[Config].[sp_CreateTag]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserID", newTag.OwnerId);
                 cmd.Parameters.AddWithValue("@Name", newTag.Label);

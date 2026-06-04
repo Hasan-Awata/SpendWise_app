@@ -24,7 +24,7 @@ namespace SpendWise.Infrastructure.Repositories
             SqlParameter? outputLimit = null;
 
             // Using ExecuteScalarAsync while capturing output parameters via lambda closure
-            await ExecuteNonQueryAsync("[Ledger].[sp_AddExpenseWithTransaction]", cmd =>
+            await ExecuteScalarAsync<int>("[Ledger].[sp_AddExpenseWithTransaction]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserId", newExpense.UserId);
                 cmd.Parameters.AddWithValue("@WalletId", newExpense.WalletId);
@@ -59,7 +59,7 @@ namespace SpendWise.Infrastructure.Repositories
             SqlParameter? outputId = null;
             SqlParameter? outputLimit = null;
 
-            await ExecuteNonQueryAsync("[Ledger].[sp_AddExpenseUsingBothWallets]", cmd =>
+            await ExecuteScalarAsync<int>("[Ledger].[sp_AddExpenseUsingBothWallets]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserId", newExpense.UserId);
                 cmd.Parameters.AddWithValue("@CategoryId", newExpense.CategoryId);

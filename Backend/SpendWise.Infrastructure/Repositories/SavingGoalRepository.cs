@@ -53,7 +53,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             SqlParameter? outputId = null;
 
-            await ExecuteNonQueryAsync("[Planning].[sp_AddSavingGoal]", cmd =>
+            await ExecuteScalarAsync<int>("[Planning].[sp_AddSavingGoal]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserId", goal.UserID);
                 cmd.Parameters.AddWithValue("@Title", goal.Title);
@@ -99,7 +99,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<SavingGoal?> GetGoalByIdAsync(int goalId)
         {
             return await ExecuteReaderSingleAsync("[Planning].[sp_GetSavingGoalById]",
-                cmd => cmd.Parameters.AddWithValue("@GoalID", goalId), MapToSavingGoal);
+                cmd => cmd.Parameters.AddWithValue("@GoalId", goalId), MapToSavingGoal);
         }
 
         public async Task<(IEnumerable<SavingGoal> goals, int totalCount)> GetAllUserGoalsAsync(int userId, int pageNumber, int pageSize)

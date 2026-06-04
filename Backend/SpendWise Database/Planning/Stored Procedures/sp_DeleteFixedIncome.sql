@@ -3,7 +3,6 @@
     @UserId INT 
 AS
 BEGIN
-    SET NOCOUNT ON;
 
     BEGIN TRY
         DECLARE @ActualOwnerId INT;

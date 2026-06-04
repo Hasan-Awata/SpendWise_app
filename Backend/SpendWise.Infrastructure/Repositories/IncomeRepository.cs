@@ -23,7 +23,7 @@ namespace SpendWise.Infrastructure.Repositories
             SqlParameter? outputId = null;
 
             // Execute using base runner while capturing output parameter via closure
-            await ExecuteNonQueryAsync("[Ledger].[sp_AddIncomeWithTransaction]", cmd =>
+            await ExecuteScalarAsync<int>("[Ledger].[sp_AddIncomeWithTransaction]", cmd =>
             {
                 // Shared parameters
                 cmd.Parameters.AddWithValue("@UserId", newIncome.UserId);
