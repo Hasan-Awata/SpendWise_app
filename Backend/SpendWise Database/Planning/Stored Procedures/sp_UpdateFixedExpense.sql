@@ -1,11 +1,13 @@
 ﻿CREATE PROCEDURE [Planning].[sp_UpdateFixedExpense]
-    @Id INT,
-    @OwnerId INT,
+    @FixedExpenseID INT, 
+    @UserId INT,
+    @WalletId INT,
     @Title NVARCHAR(200),
     @Amount DECIMAL(18,2),
-    @DueDate DATE,
+    @IsMonthly BIT,
     @IsActive BIT,
-    @CategoryId INT = NULL
+    @Days INT = NULL,
+    @LastTime DATETIME = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -15,14 +17,14 @@ BEGIN
 
         SELECT @ActualOwnerId = UserID 
         FROM [Planning].[FixedExpenses] 
-        WHERE FixedExpenseID = @Id;
+        WHERE FixedExpenseID = @FixedExpenseID;
 
         IF @ActualOwnerId IS NULL 
         BEGIN
             ;THROW 50022, 'The specified fixed expense record was not found.', 1;
         END
         
-        IF @ActualOwnerId <> @OwnerId
+        IF @ActualOwnerId <> @UserId
         BEGIN
             ;THROW 50023, 'Access denied. You do not own this fixed expense record.', 1;
         END
@@ -32,9 +34,10 @@ BEGIN
             ;THROW 50020, 'The expense amount must be greater than zero.', 1;
         END
 
-        IF EXISTS (SELECT 1 FROM [Planning].[FixedExpenses] WHERE UserID = @OwnerId AND Title = @Title AND FixedExpenseID <> @Id)
+        -- التحقق من عدم التكرار مع استثناء السجل الحالي أثناء التعديل
+        IF EXISTS (SELECT 1 FROM [Planning].[FixedExpenses] WHERE UserID = @UserId AND WalletId = @WalletId AND Title = @Title AND FixedExpenseID <> @FixedExpenseID)
         BEGIN
-            ;THROW 50021, 'A fixed expense with this title already exists for the user.', 1;
+            ;THROW 50021, 'A fixed expense with this title already exists for the user in this wallet.', 1;
         END
 
         BEGIN TRAN;
@@ -42,10 +45,12 @@ BEGIN
         UPDATE [Planning].[FixedExpenses]
         SET Title = @Title,
             Amount = @Amount,
-            DueDate = @DueDate,
+            IsMonthly = @IsMonthly,
             IsActive = @IsActive,
-            CategoryID = ISNULL(@CategoryId, CategoryID)
-        WHERE FixedExpenseID = @Id AND UserID = @OwnerId;
+            Days = @Days,
+            LastTime = ISNULL(@LastTime, LastTime),
+            WalletId = @WalletId
+        WHERE FixedExpenseID = @FixedExpenseID AND UserID = @UserId;
 
         DECLARE @RowsAffected INT = @@ROWCOUNT;
 
@@ -59,3 +64,4 @@ BEGIN
         THROW;
     END CATCH
 END
+GO

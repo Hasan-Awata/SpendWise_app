@@ -55,7 +55,7 @@ namespace SpendWise.Application.Services
             if (dto.Amount <= 0)
                 return false;
 
-            if (dto.UserId < 0 || dto.WalletId < 0)
+            if (dto.UserId <= 0 || dto.WalletId <= 0)
                 return false;
 
             return true;

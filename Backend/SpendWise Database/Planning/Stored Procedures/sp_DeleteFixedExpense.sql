@@ -1,5 +1,5 @@
 ﻿CREATE PROCEDURE [Planning].[sp_DeleteFixedExpense]
-    @Id INT,
+    @FixedExpenseID INT,
     @UserId INT
 AS
 BEGIN
@@ -10,7 +10,7 @@ BEGIN
 
         SELECT @ActualOwnerId = UserID 
         FROM [Planning].[FixedExpenses] 
-        WHERE FixedExpenseID = @Id;
+        WHERE FixedExpenseID = @FixedExpenseID;
 
         IF @ActualOwnerId IS NULL 
         BEGIN
@@ -25,7 +25,7 @@ BEGIN
         BEGIN TRAN;
 
         DELETE FROM [Planning].[FixedExpenses]
-        WHERE FixedExpenseID = @Id AND UserID = @UserId;
+        WHERE FixedExpenseID = @FixedExpenseID AND UserID = @UserId;
 
         DECLARE @RowsAffected INT = @@ROWCOUNT;
 
@@ -39,3 +39,4 @@ BEGIN
         THROW;
     END CATCH
 END
+GO

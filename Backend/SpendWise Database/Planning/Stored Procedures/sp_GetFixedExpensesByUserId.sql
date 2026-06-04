@@ -3,16 +3,8 @@
 AS
 BEGIN
     SET NOCOUNT ON;
-
-    SELECT 
-        FixedExpenseID,
-        UserID,
-        CategoryID,
-        Title, 
-        Amount, 
-        DueDate, 
-        IsActive
+    SELECT FixedExpenseID, UserId, WalletId, Title, Amount, IsMonthly, IsActive, Days, LastTime
     FROM [Planning].[FixedExpenses]
-    WHERE UserID = @UserId
-    ORDER BY FixedExpenseID DESC;
+    WHERE UserID = @UserId;
 END
+GO

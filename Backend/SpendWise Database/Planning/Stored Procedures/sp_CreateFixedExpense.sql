@@ -1,37 +1,37 @@
 ﻿CREATE PROCEDURE [Planning].[sp_CreateFixedExpense]
-    @OwnerId INT,
+    @UserId INT,
+    @WalletId INT,
     @Title NVARCHAR(200),
     @Amount DECIMAL(18,2),
-    @DueDate DATE,
+    @IsMonthly BIT,
     @IsActive BIT,
-    @CategoryId INT = 1
+    @Days INT = NULL,
+    @LastTime DATETIME = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
-        IF @Amount <= 0
+         IF @Amount <= 0
         BEGIN
             ;THROW 50020, 'The expense amount must be greater than zero.', 1;
         END
 
-        IF EXISTS (SELECT 1 FROM [Planning].[FixedExpenses] WHERE UserID = @OwnerId AND Title = @Title)
+        IF EXISTS (SELECT 1 FROM [Planning].[FixedExpenses] WHERE UserID = @UserId AND WalletId = @WalletId AND Title = @Title)
         BEGIN
-            ;THROW 50021, 'A fixed expense with this title already exists for the user.', 1;
+            ;THROW 50021, 'A fixed expense with this title already exists for the user in this wallet.', 1;
         END
 
         BEGIN TRAN;
 
-        INSERT INTO [Planning].[FixedExpenses] 
-            (UserID, CategoryID, Title, Amount, DueDate, IsActive)
-        VALUES 
-            (@OwnerId, @CategoryId, @Title, @Amount, @DueDate, @IsActive);
-        
-        DECLARE @NewID INT = CAST(SCOPE_IDENTITY() AS INT);
+        INSERT INTO [Planning].[FixedExpenses] (UserID, WalletId, Title, Amount, IsMonthly, IsActive, Days, LastTime)
+        VALUES (@UserId, @WalletId, @Title, @Amount, @IsMonthly, @IsActive, @Days, @LastTime);
+
+        DECLARE @NewId INT = SCOPE_IDENTITY();
 
         COMMIT TRAN;
 
-        SELECT @NewID AS NewID;
+        SELECT @NewId AS NewId;
 
     END TRY
     BEGIN CATCH
@@ -39,3 +39,4 @@ BEGIN
         THROW;
     END CATCH
 END
+GO

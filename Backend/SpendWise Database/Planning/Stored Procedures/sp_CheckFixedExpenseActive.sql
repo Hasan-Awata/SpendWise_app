@@ -1,11 +1,11 @@
 ﻿CREATE PROCEDURE [Planning].[sp_CheckFixedExpenseActive]
-    @ExpenseId INT,
+    @FixedExpenseID INT,
     @UserId INT
 AS
 BEGIN
     SET NOCOUNT ON;
-
     SELECT IsActive 
     FROM [Planning].[FixedExpenses] 
-    WHERE FixedExpenseID = @ExpenseId AND UserID = @UserId;
+    WHERE FixedExpenseID = @FixedExpenseID AND UserID = @UserId;
 END
+GO

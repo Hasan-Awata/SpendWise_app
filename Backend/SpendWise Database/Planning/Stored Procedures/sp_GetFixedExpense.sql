@@ -1,18 +1,11 @@
 ﻿CREATE PROCEDURE [Planning].[sp_GetFixedExpense]
-    @ExpenseId INT,
+    @FixedExpenceId INT, 
     @UserId INT
 AS
 BEGIN
     SET NOCOUNT ON;
-
-    SELECT 
-        FixedExpenseID,
-        UserID,
-        CategoryID,
-        Title, 
-        Amount, 
-        DueDate, 
-        IsActive
+    SELECT FixedExpenseID, UserId, WalletId, Title, Amount, IsMonthly, IsActive, Days, LastTime
     FROM [Planning].[FixedExpenses]
-    WHERE FixedExpenseID = @ExpenseId AND UserID = @UserId;
+    WHERE FixedExpenseID = @FixedExpenceId AND UserID = @UserId;
 END
+GO

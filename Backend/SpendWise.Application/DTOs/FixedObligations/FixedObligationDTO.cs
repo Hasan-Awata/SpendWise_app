@@ -1,30 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Text;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace SpendWise.Application.DTOs.FixedObligations
 {
     public class FixedObligationDTO
     {
-        [Required(ErrorMessage = "Please enter the fixed obligation id")]
-        public int Id { get; set; } = -1;
+        public int UserId { get; set; }
 
-        [Required(ErrorMessage = "Please enter the fixed obligation owner id")]
-        public int OwnerId { get; set; } = -1;
+        [Required(ErrorMessage = "Wallet ID is required!")]
+        public int WalletId { get; set; }
 
-        [Required(ErrorMessage = "Please enter the fixed obligation title")]
+        [Required(ErrorMessage = "Please enter a title for this fixed obligation!")]
+        [StringLength(200, ErrorMessage = "Title cannot exceed 200 characters!")]
         public string Title { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Please enter the fixed obligation amount")]
-        [Range(1, Double.PositiveInfinity, ErrorMessage = "Amount must be greater than or equal to 1.")]
+        [Required(ErrorMessage = "Enter the amount of your obligation!")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero!")]
         public decimal Amount { get; set; }
 
-        [Required(ErrorMessage = "Please enter the fixed obligation due date")]
-        public DateTime DueDate { get; set; }
+        [Required(ErrorMessage = "Please specify if this is a monthly obligation.")]
+        public bool IsMonthly { get; set; }
 
-        [Required(ErrorMessage = "Please enter the fixed obligation state(boolean => Active:true, InActive:flase)")]
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
 
+        [Range(1, 31, ErrorMessage = "Days must be between 1 and 31!")]
+        public int? Days { get; set; }
+
+        public DateTime? LastTime { get; set; }
     }
 }

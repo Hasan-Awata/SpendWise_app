@@ -21,7 +21,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             return await ExecuteReaderSingleAsync("[Planning].[sp_GetFixedExpense]", cmd =>
             {
-                cmd.Parameters.AddWithValue("@ExpenseId", obligationId);
+                cmd.Parameters.AddWithValue("@FixedExpenceId", obligationId);
                 cmd.Parameters.AddWithValue("@UserId", userId);
             }, MapToFixedObligation);
         }
@@ -34,13 +34,16 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> CreateFixedObligationAsync(FixedObligation fixedObligation)
         {
-            var result = await ExecuteNonQueryAsync("[Planning].[sp_CreateFixedExpense]", cmd =>
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_CreateFixedExpense]", cmd =>
             {
-                cmd.Parameters.AddWithValue("@OwnerId", fixedObligation.OwnerId);
+                cmd.Parameters.AddWithValue("@UserId", fixedObligation.UserId);
+                cmd.Parameters.AddWithValue("@WalletId", fixedObligation.WalletId);
                 cmd.Parameters.AddWithValue("@Title", fixedObligation.Title);
                 cmd.Parameters.AddWithValue("@Amount", fixedObligation.Amount);
-                cmd.Parameters.AddWithValue("@DueDate", fixedObligation.DueDate);
+                cmd.Parameters.AddWithValue("@IsMonthly", fixedObligation.IsMonthly);
                 cmd.Parameters.AddWithValue("@IsActive", fixedObligation.IsActive);
+                cmd.Parameters.AddWithValue("@Days", (object?)fixedObligation.Days ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@LastTime", (object?)fixedObligation.LastTime ?? DBNull.Value);
             });
 
             return result > 0 ? result : -1;
@@ -48,14 +51,17 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> UpdateFixedObligationAsync(FixedObligation fixedObligation)
         {
-            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_UpdateFixedExpense]", cmd =>
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_UpdateFixedExpense]", cmd =>
             {
-                cmd.Parameters.AddWithValue("@Id", fixedObligation.Id);
-                cmd.Parameters.AddWithValue("@OwnerId", fixedObligation.OwnerId);
+                cmd.Parameters.AddWithValue("@FixedExpenseID", fixedObligation.FixedObligationId);
+                cmd.Parameters.AddWithValue("@UserId", fixedObligation.UserId);
+                cmd.Parameters.AddWithValue("@WalletId", fixedObligation.WalletId);
                 cmd.Parameters.AddWithValue("@Title", fixedObligation.Title);
                 cmd.Parameters.AddWithValue("@Amount", fixedObligation.Amount);
-                cmd.Parameters.AddWithValue("@DueDate", fixedObligation.DueDate);
+                cmd.Parameters.AddWithValue("@IsMonthly", fixedObligation.IsMonthly);
                 cmd.Parameters.AddWithValue("@IsActive", fixedObligation.IsActive);
+                cmd.Parameters.AddWithValue("@Days", (object?)fixedObligation.Days ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@LastTime", (object?)fixedObligation.LastTime ?? DBNull.Value);
             });
 
             return rowsAffected > 0;
@@ -63,9 +69,9 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> DeleteFixedObligationAsync(int obligationId, int userId)
         {
-            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_DeleteFixedExpense]", cmd =>
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_DeleteFixedExpense]", cmd =>
             {
-                cmd.Parameters.AddWithValue("@Id", obligationId);
+                cmd.Parameters.AddWithValue("@FixedExpenseID", obligationId);
                 cmd.Parameters.AddWithValue("@UserId", userId);
             });
 
@@ -76,7 +82,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             var result = await ExecuteScalarAsync<object>("[Planning].[sp_CheckFixedExpenseActive]", cmd =>
             {
-                cmd.Parameters.AddWithValue("@ExpenseId", obligationId);
+                cmd.Parameters.AddWithValue("@FixedExpenseID", obligationId);
                 cmd.Parameters.AddWithValue("@UserId", userId);
             });
 
@@ -89,13 +95,16 @@ namespace SpendWise.Infrastructure.Repositories
         private static FixedObligation MapToFixedObligation(SqlDataReader reader)
         {
             return new FixedObligation(
-                id: EmptyValuesHandler.GetInt32OrDefault(reader, "FixedExpenseID"),
-                ownerId: EmptyValuesHandler.GetInt32OrDefault(reader, "UserID"),
-                title: EmptyValuesHandler.GetStringOrDefault(reader, "Title"),
-                amount: EmptyValuesHandler.GetDecimalOrDefault(reader, "Amount"),
-                dueDate: EmptyValuesHandler.GetDateTimeOrDefault(reader, "DueDate"),
-                isActive: EmptyValuesHandler.GetBooleanOrDefault(reader, "IsActive")
-            );
+         EmptyValuesHandler.GetInt32OrDefault(reader, "FixedExpenseID"), 
+            EmptyValuesHandler.GetInt32OrDefault(reader, "UserId"),         
+            EmptyValuesHandler.GetInt32OrDefault(reader, "WalletId"),       
+             EmptyValuesHandler.GetStringOrDefault(reader, "Title"),         
+             EmptyValuesHandler.GetDecimalOrDefault(reader, "Amount"),       
+                EmptyValuesHandler.GetBooleanOrDefault(reader, "IsMonthly"),    
+             EmptyValuesHandler.GetBooleanOrDefault(reader, "IsActive"),     
+    reader.IsDBNull(reader.GetOrdinal("Days")) ? null : (int?)reader.GetInt32(reader.GetOrdinal("Days")), 
+    reader.IsDBNull(reader.GetOrdinal("LastTime")) ? null : (DateTime?)reader.GetDateTime(reader.GetOrdinal("LastTime")) 
+);
         }
     }
 }

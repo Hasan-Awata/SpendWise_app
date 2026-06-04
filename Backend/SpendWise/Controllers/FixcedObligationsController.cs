@@ -1,12 +1,7 @@
-﻿using Azure;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.FixedObligations;
 using SpendWise.Application.Interfaces.FixedObligations;
-using SpendWise.Application.Interfaces.Tags;
-using SpendWise.Application.Services;
-using SpendWise.Domain.Entities;
-using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace SpendWise.Controllers
@@ -14,109 +9,87 @@ namespace SpendWise.Controllers
     [Authorize]
     [ApiController]
     [Route("api/fixed-obligations")]
-    public class FixedObligationsController : ControllerBase
+    public class FixedObligationsController : BaseApiController
     {
-        private readonly IFixedObligationsService _fixedObligationService;
+        private readonly IFixedObligationsService _fixedObligationsService;
 
-        // Helper property to securely extract the user ID from the auth token
-        private int CurrentUserId
+        public FixedObligationsController(IFixedObligationsService fixedObligationsService)
         {
-            get
-            {
-                // 1. Get the string value from the claim
-                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                // 2. Safely attempt to parse it into an integer
-                if (int.TryParse(userIdString, out int userId))
-                {
-                    return userId;
-                }
-
-                // 3. Fallback/Safety Net: If the claim is missing or somehow isn't a valid number
-                throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
-            }
-        }
-        public FixedObligationsController(IFixedObligationsService fixedObligationService)
-        {
-            _fixedObligationService = fixedObligationService;
+            _fixedObligationsService = fixedObligationsService;
         }
 
-        [HttpGet("{fixedObligationId}")]
+        [HttpGet("{fixedObligationId:int}")]
         public async Task<IActionResult> GetFixedObligation([FromRoute] int fixedObligationId)
         {
-            int userId = CurrentUserId;
+            var response = await _fixedObligationsService.GetFixedObligationAsync(fixedObligationId, CurrentUserId);
 
-            var fixedObligation = _fixedObligationService.GetFixedObligationAsync(fixedObligationId, userId);
-
-            if (fixedObligation == null)
+            if (response == null)
             {
-                return NotFound();
+                return NotFound(new { message = "Fixed obligation not found." });
             }
 
-            return Ok(fixedObligation);
+            return Ok(response);
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetUserFixedObligations()
+        public async Task<IActionResult> GetFixedObligationsByUser()
         {
-            int userId = CurrentUserId;
-
-            var fixedObligationsList = _fixedObligationService.GetFixedObligationsByUserIdAsync(userId);
-            
-            return Ok(fixedObligationsList);
+            var fixedObligations = await _fixedObligationsService.GetFixedObligationsByUserIdAsync(CurrentUserId);
+            return Ok(fixedObligations);
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateFixedObligationAsync([FromBody] FixedObligationDTO fixedObligationDTO)
+        public async Task<IActionResult> CreateFixedObligation([FromBody] FixedObligationDTO fixedObligationDto)
         {
-            if (fixedObligationDTO.OwnerId == CurrentUserId)
-                return Unauthorized();
+            fixedObligationDto.UserId = CurrentUserId;
 
-            await _fixedObligationService.CreateFixedObligationAsync(fixedObligationDTO); // make this return boolean later
+            var createdId = await _fixedObligationsService.CreateFixedObligationAsync(fixedObligationDto);
 
-            // This generates a 201 status and a Location header like:
-            // Location: https://mydomain.com/api/fixed-obligations/5
-            return CreatedAtAction(
-                nameof(GetFixedObligation),                     // 1. Action Name
-                new { obligationId = fixedObligationDTO.Id },   // 2. Route Values
-                fixedObligationDTO                              // 3. Response Body
-            );
-        }
-
-        [HttpPatch("{fixedObligationId}")]
-        public async Task<IActionResult> UpdateFixedObligation([FromRoute] int fixedObligationId, 
-            [FromBody] FixedObligationDTO fixedObligationDTO)
-        {
-            if (fixedObligationDTO.OwnerId != CurrentUserId)
+            if (createdId == -1)
             {
-                return Unauthorized();
+                return BadRequest(new { message = "Failed to create fixed obligation." });
             }
 
-            int userId = CurrentUserId;
+            var createdObligation = await _fixedObligationsService.GetFixedObligationAsync(createdId, CurrentUserId);
 
-            // 1. Guard against mismatched IDs 
-            if (fixedObligationDTO.Id != 0 && fixedObligationDTO.Id != fixedObligationId)
-                return BadRequest("The tag ID in the body does not match the URL.");
-
-            // 2. Force the DTO to match the URL parameters
-            fixedObligationDTO.Id = fixedObligationId;
-            fixedObligationDTO.OwnerId = CurrentUserId;
-
-            await _fixedObligationService.UpdateFixedObligationAsync(fixedObligationDTO);
-
-            return NoContent();
+            return CreatedAtAction(nameof(GetFixedObligation), new { fixedObligationId = createdId }, createdObligation);
         }
 
-        [HttpDelete("{fixedObligationId}")]
-        public async Task<IActionResult> DeleteTag([FromRoute] int fixedObligationId)
+        [HttpPatch("{fixedObligationId:int}")]
+        public async Task<IActionResult> UpdateFixedObligation([FromRoute] int fixedObligationId, [FromBody] FixedObligationDTO fixedObligationDto)
         {
-            int userId = CurrentUserId;
+            fixedObligationDto.UserId = CurrentUserId;
 
-            await _fixedObligationService.DeleteFixedObligationAsync(fixedObligationId, userId);
+            var isUpdated = await _fixedObligationsService.UpdateFixedObligationAsync(fixedObligationId, fixedObligationDto);
+
+            if (!isUpdated)
+            {
+                return BadRequest(new { message = "Failed to update fixed obligation. It may not exist or validation failed." });
+            }
+
+            var updatedObligation = await _fixedObligationsService.GetFixedObligationAsync(fixedObligationId, CurrentUserId);
+
+            return Ok(updatedObligation);
+        }
+
+        [HttpDelete("{fixedObligationId:int}")]
+        public async Task<IActionResult> DeleteFixedObligation([FromRoute] int fixedObligationId)
+        {
+            var isDeleted = await _fixedObligationsService.DeleteFixedObligationAsync(fixedObligationId, CurrentUserId);
+
+            if (!isDeleted)
+            {
+                return BadRequest(new { message = "Failed to delete fixed obligation." });
+            }
 
             return NoContent();
         }
 
+        [HttpGet("{fixedObligationId:int}/status")]
+        public async Task<IActionResult> IsFixedObligationActive([FromRoute] int fixedObligationId)
+        {
+            var isActive = await _fixedObligationsService.IsFixedObligationActive(fixedObligationId, CurrentUserId);
+            return Ok(new { FixedObligationId = fixedObligationId, IsActive = isActive });
+        }
     }
 }
-

@@ -1,26 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SpendWise.Domain.Entities
+﻿namespace SpendWise.Domain.Entities
 {
     public class FixedObligation
     {
-        public int Id { get; set; } = -1;
-        public int OwnerId { get; set; } = -1;
-        public string Title { get; set; } = string.Empty;
-        public decimal Amount { get; set; }
-        public DateTime DueDate { get; set; }
-        public bool IsActive { get; set; }
-
-        public FixedObligation(int id, int ownerId, string title, decimal amount, DateTime dueDate, bool isActive) 
+        public FixedObligation(int fixedObligationId, int userId, int walletId, string title, decimal amount, bool isMonthly, bool isActive, int? days, DateTime? lastTime)
         {
-            Id = id;
-            OwnerId = ownerId;
+            FixedObligationId = fixedObligationId;
+            UserId = userId;
+            WalletId = walletId;
             Title = title;
             Amount = amount;
-            DueDate = dueDate;
+            IsMonthly = isMonthly;
             IsActive = isActive;
+            Days = days;
+            LastTime = lastTime;
         }
+
+        public int FixedObligationId { get; set; }
+        public int UserId { get; set; }
+        public int WalletId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public bool IsMonthly { get; set; }
+        public bool IsActive { get; set; } = true;
+        public int? Days { get; set; }
+        public DateTime? LastTime { get; set; }
     }
 }

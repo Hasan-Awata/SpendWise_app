@@ -12,7 +12,7 @@ namespace SpendWise.Application.Interfaces.FixedObligations
 
         public Task<int> CreateFixedObligationAsync(FixedObligationDTO fixedObligationDto);
 
-        public Task<bool> UpdateFixedObligationAsync(FixedObligationDTO fixedObligationDto);
+        public Task<bool> UpdateFixedObligationAsync(int fixedObligationId,FixedObligationDTO fixedObligationDto);
 
         public Task<bool> DeleteFixedObligationAsync(int fixedObligationId, int userId);
 
