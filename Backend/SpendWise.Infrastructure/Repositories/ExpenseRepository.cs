@@ -24,7 +24,7 @@ namespace SpendWise.Infrastructure.Repositories
             SqlParameter? outputLimit = null;
 
             // Using ExecuteScalarAsync while capturing output parameters via lambda closure
-            await ExecuteScalarAsync<object>("[Ledger].[sp_AddExpenseWithTransaction]", cmd =>
+            await ExecuteNonQueryAsync("[Ledger].[sp_AddExpenseWithTransaction]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserId", newExpense.UserId);
                 cmd.Parameters.AddWithValue("@WalletId", newExpense.WalletId);
@@ -59,7 +59,7 @@ namespace SpendWise.Infrastructure.Repositories
             SqlParameter? outputId = null;
             SqlParameter? outputLimit = null;
 
-            await ExecuteScalarAsync<object>("[Ledger].[sp_AddExpenseUsingBothWallets]", cmd =>
+            await ExecuteNonQueryAsync("[Ledger].[sp_AddExpenseUsingBothWallets]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserId", newExpense.UserId);
                 cmd.Parameters.AddWithValue("@CategoryId", newExpense.CategoryId);
@@ -92,7 +92,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             SqlParameter? outputLimit = null;
 
-            var rowsAffected = await ExecuteScalarAsync<int>("[Ledger].[sp_UpdateExpenseWithTransaction]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Ledger].[sp_UpdateExpenseWithTransaction]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@ExpenseId", newExpense.ExpenseId);
                 cmd.Parameters.AddWithValue("@UserId", newExpense.UserId);
@@ -123,7 +123,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             SqlParameter? outputLimit = null;
 
-            var rowsAffected = await ExecuteScalarAsync<int>("[Ledger].[sp_UpdateExpenseUsingBothWallets]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Ledger].[sp_UpdateExpenseUsingBothWallets]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@ExpenseId", newExpense.ExpenseId);
                 cmd.Parameters.AddWithValue("@UserId", newExpense.UserId);
@@ -152,7 +152,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Ledger].[sp_DeleteExpense]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Ledger].[sp_DeleteExpense]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@ExpenseId", expenseId);
                 cmd.Parameters.AddWithValue("@UserId", userId);
