@@ -75,6 +75,7 @@ builder.Services.AddSwaggerGen(options =>
 
 // ── Dependency Injections ──────────────────────────────────────────────────
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 
