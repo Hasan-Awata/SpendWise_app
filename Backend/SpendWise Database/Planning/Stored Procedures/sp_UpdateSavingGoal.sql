@@ -1,6 +1,6 @@
-﻿CREATE PROCEDURE [Planning].[sp_UpdateSavingGoal]
+﻿create PROCEDURE [Planning].[sp_UpdateSavingGoal]
     @GoalId INT,
-    @UserId INT, -- للتحقق الأمني
+    @UserId INT,
     @Title NVARCHAR(100),
     @TargetAmount DECIMAL(18,2),
     @CurrentAmount DECIMAL(18,2),
@@ -10,6 +10,7 @@ BEGIN
     SET NOCOUNT ON;
     
     BEGIN TRY
+        -- التحقق الأمني
         IF NOT EXISTS (SELECT 1 FROM [Planning].[SavingsGoals] WHERE GoalID = @GoalId AND UserID = @UserId)
         BEGIN
             ;THROW 50002, 'The specified saving goal was not found or access denied.', 1;
@@ -29,18 +30,19 @@ BEGIN
         BEGIN
             ;THROW 50006, 'A saving goal with this title already exists for the user.', 1;
         END
-  UPDATE [Planning].[SavingsGoals]
+
+        -- التحديث الفعلي
+        UPDATE [Planning].[SavingsGoals]
         SET Title = @Title,
             TargetAmount = @TargetAmount,
             CurrentAmount = @CurrentAmount,
             DeadlineDate = @DeadlineDate
         WHERE GoalID = @GoalId AND UserID = @UserId;
-        
-        SELECT @@ROWCOUNT AS RowsAffected;
+
+        -- حذفنا جملة الـ SELECT من هنا لسلامة الـ NonQuery
 
     END TRY
     BEGIN CATCH
         THROW;
     END CATCH
 END
-GO
