@@ -19,7 +19,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> AddTagAsync(Tag newTag)
         {
-            var result = await ExecuteScalarAsync<int>("[Config].[sp_CreateTag]", cmd =>
+            var result = await ExecuteNonQueryAsync("[Config].[sp_CreateTag]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserID", newTag.OwnerId);
                 cmd.Parameters.AddWithValue("@Name", newTag.Label);
@@ -30,7 +30,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> UpdateTagAsync(Tag updatedTag)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Config].[sp_UpdateTag]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Config].[sp_UpdateTag]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@Name", updatedTag.Label);
                 cmd.Parameters.AddWithValue("@TagID", updatedTag.Id);
@@ -42,7 +42,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> DeleteTagAsync(int tagId, int userId)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Config].[sp_DeleteTag]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Config].[sp_DeleteTag]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@TagID", tagId);
                 cmd.Parameters.AddWithValue("@UserID", userId);

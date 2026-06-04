@@ -19,7 +19,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> WithdrawAmountFromSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromSavingGoal, decimal amountToWallet, decimal amountInSp)
         {
-            var result = await ExecuteScalarAsync<int>("[Planning].[sp_WithdrawAmountFromSavingGoalWithTransaction]", cmd =>
+            var result = await ExecuteNonQueryAsync("[Planning].[sp_WithdrawAmountFromSavingGoalWithTransaction]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@GoalId", goalId);
                 cmd.Parameters.AddWithValue("@WalletId", walletId);
@@ -34,7 +34,7 @@ namespace SpendWise.Infrastructure.Repositories
         }
         public async Task<bool> AddAmountToSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromWallet, decimal amountToSavingGoal, decimal amountInSp)
         {
-            var result = await ExecuteScalarAsync<int>("[Planning].[sp_AddAmountToSavingGoalWithTransaction]", cmd =>
+            var result = await ExecuteNonQueryAsync("[Planning].[sp_AddAmountToSavingGoalWithTransaction]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@GoalId", goalId);
                 cmd.Parameters.AddWithValue("@WalletId", walletId);
@@ -53,7 +53,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             SqlParameter? outputId = null;
 
-            await ExecuteScalarAsync<object>("[Planning].[sp_AddSavingGoal]", cmd =>
+            await ExecuteNonQueryAsync("[Planning].[sp_AddSavingGoal]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserId", goal.UserID);
                 cmd.Parameters.AddWithValue("@Title", goal.Title);
@@ -73,7 +73,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> UpdateGoalAsync(SavingGoal updatedGoal)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_UpdateSavingGoal]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_UpdateSavingGoal]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@GoalId", updatedGoal.GoalID);
                 cmd.Parameters.AddWithValue("@UserId", updatedGoal.UserID);
@@ -88,7 +88,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> DeleteGoalAsync(int goalId)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_DeleteSavingGoal]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_DeleteSavingGoal]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@GoalId", goalId);
             });
@@ -145,7 +145,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> GoalExistsAsync(int goalId)
         {
-            var result = await ExecuteScalarAsync<int>("[Planning].[sp_CheckSavingGoalExists]",
+            var result = await ExecuteNonQueryAsync("[Planning].[sp_CheckSavingGoalExists]",
                 cmd => cmd.Parameters.AddWithValue("@GoalId", goalId));
 
             return result > 0;

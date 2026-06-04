@@ -38,7 +38,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> AddUserAsync(User user)
         {
-            var insertedId = await ExecuteScalarAsync<int>("[Identity].[sp_AddUser]", cmd =>
+            var insertedId = await ExecuteNonQueryAsync("[Identity].[sp_AddUser]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@Username", user.UserName);
                 cmd.Parameters.AddWithValue("@Password", user.HashedPassword);

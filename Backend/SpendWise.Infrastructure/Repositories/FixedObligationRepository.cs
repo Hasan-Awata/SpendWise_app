@@ -19,22 +19,22 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<FixedObligation?> GetFixedObligationAsync(int obligationId, int userId)
         {
-            return await ExecuteReaderSingleAsync("[Planning].[sp_GetFixedObligation]", cmd =>
+            return await ExecuteReaderSingleAsync("[Planning].[sp_GetFixedExpense]", cmd =>
             {
-                cmd.Parameters.AddWithValue("@ObligationId", obligationId);
+                cmd.Parameters.AddWithValue("@ExpenseId", obligationId);
                 cmd.Parameters.AddWithValue("@UserId", userId);
             }, MapToFixedObligation);
         }
 
         public async Task<IEnumerable<FixedObligation>> GetFixedObligationsByUserIdAsync(int userId)
         {
-            return await ExecuteReaderAsync("[Planning].[sp_GetFixedObligationsByUserId]",
+            return await ExecuteReaderAsync("[Planning].[sp_GetFixedExpensesByUserId]",
                 cmd => cmd.Parameters.AddWithValue("@UserId", userId), MapToFixedObligation);
         }
 
         public async Task<int> CreateFixedObligationAsync(FixedObligation fixedObligation)
         {
-            var result = await ExecuteScalarAsync<int>("[Planning].[sp_CreateFixedObligation]", cmd =>
+            var result = await ExecuteNonQueryAsync("[Planning].[sp_CreateFixedExpense]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@OwnerId", fixedObligation.OwnerId);
                 cmd.Parameters.AddWithValue("@Title", fixedObligation.Title);
@@ -48,7 +48,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> UpdateFixedObligationAsync(FixedObligation fixedObligation)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_UpdateFixedObligation]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_UpdateFixedExpense]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@Id", fixedObligation.Id);
                 cmd.Parameters.AddWithValue("@OwnerId", fixedObligation.OwnerId);
@@ -63,7 +63,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> DeleteFixedObligationAsync(int obligationId, int userId)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_DeleteFixedObligation]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_DeleteFixedExpense]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@Id", obligationId);
                 cmd.Parameters.AddWithValue("@UserId", userId);
@@ -74,9 +74,9 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> IsObligationActive(int obligationId, int userId)
         {
-            var result = await ExecuteScalarAsync<object>("[Planning].[sp_CheckFixedObligationActive]", cmd =>
+            var result = await ExecuteScalarAsync<object>("[Planning].[sp_CheckFixedExpenseActive]", cmd =>
             {
-                cmd.Parameters.AddWithValue("@ObligationId", obligationId);
+                cmd.Parameters.AddWithValue("@ExpenseId", obligationId);
                 cmd.Parameters.AddWithValue("@UserId", userId);
             });
 

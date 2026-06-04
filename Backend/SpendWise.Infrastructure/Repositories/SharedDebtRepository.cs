@@ -21,7 +21,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> AddDebtAsync(SharedDebt debt)
         {
-            var result = await ExecuteScalarAsync<int>("[Planning].[sp_AddSharedDebt]", cmd =>
+            var result = await ExecuteNonQueryAsync("[Planning].[sp_AddSharedDebt]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
                 cmd.Parameters.AddWithValue("@DebtorID", debt.DebtorID);
@@ -38,7 +38,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> UpdateDebtAsync(SharedDebt debt)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_UpdateSharedDebt]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_UpdateSharedDebt]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@DebtID", debt.DebtID);
                 cmd.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
@@ -55,14 +55,14 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> DeleteDebtByIdAsync(int debtId)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_DeleteSharedDebtById]",
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_DeleteSharedDebtById]",
                 cmd => cmd.Parameters.AddWithValue("@DebtID", debtId));
             return rowsAffected > 0;
         }
 
         public async Task<bool> DeleteDebtByTitleAsync(string title)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_DeleteSharedDebtByTitle]",
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_DeleteSharedDebtByTitle]",
                 cmd => cmd.Parameters.AddWithValue("@Title", title));
             return rowsAffected > 0;
         }
@@ -93,7 +93,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> DebtExistsAsync(int debtId)
         {
-            var result = await ExecuteScalarAsync<int>("[Planning].[sp_CheckSharedDebtExists]",
+            var result = await ExecuteNonQueryAsync("[Planning].[sp_CheckSharedDebtExists]",
                 cmd => cmd.Parameters.AddWithValue("@DebtID", debtId));
             return result > 0;
         }
@@ -106,7 +106,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> ReturnDebtAmountAsync(SharedDebt debt, decimal amount, string title, string description, decimal amountInSp)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_ReturnDebtAmount]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_ReturnDebtAmount]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@DebtID", debt.DebtID);
                 cmd.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
@@ -124,7 +124,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> AcceptDebtAsync(SharedDebt debt, decimal amount, string title, string description, decimal amountInSp)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_AcceptSharedDebt]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_AcceptSharedDebt]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@DebtID", debt.DebtID);
                 cmd.Parameters.AddWithValue("@CreditorID", debt.CreditorID);
@@ -142,7 +142,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> RefuseDebtAsync(int debtId)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_RefuseSharedDebt]",
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_RefuseSharedDebt]",
                 cmd => cmd.Parameters.AddWithValue("@DebtID", debtId));
             return rowsAffected > 0;
         }

@@ -52,7 +52,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> AddWalletAsync(Wallet wallet)
         {
-            var insertedId = await ExecuteScalarAsync<int>("[Banking].[sp_AddWallet]", cmd =>
+            var insertedId = await ExecuteNonQueryAsync("[Banking].[sp_AddWallet]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserId", wallet.UserId);
                 cmd.Parameters.AddWithValue("@Balance", wallet.Balance);
@@ -70,7 +70,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> UpdateWalletAsync(Wallet wallet)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Banking].[sp_UpdateWallet]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Banking].[sp_UpdateWallet]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@WalletId", wallet.WalletId);
                 cmd.Parameters.AddWithValue("@UserId", wallet.UserId);
@@ -84,7 +84,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> DeleteWalletAsync(int walletId, int userId)
         {
-            var rowsAffected = await ExecuteScalarAsync<int>("[Banking].[sp_DeleteWallet]", cmd =>
+            var rowsAffected = await ExecuteNonQueryAsync("[Banking].[sp_DeleteWallet]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@WalletId", walletId);
                 cmd.Parameters.AddWithValue("@UserId", userId);
