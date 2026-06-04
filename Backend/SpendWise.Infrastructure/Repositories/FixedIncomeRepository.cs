@@ -95,6 +95,7 @@ namespace SpendWise.Infrastructure.Repositories
             (
                 EmptyValuesHandler.GetInt32OrDefault(reader, "FixedIncomeId"),
                 EmptyValuesHandler.GetInt32OrDefault(reader, "UserId"),
+                -1,
                 EmptyValuesHandler.GetStringOrDefault(reader, "Title"),
                 EmptyValuesHandler.GetDecimalOrDefault(reader, "Amount"),
                 EmptyValuesHandler.GetBooleanOrDefault(reader, "IsMonthly"),
