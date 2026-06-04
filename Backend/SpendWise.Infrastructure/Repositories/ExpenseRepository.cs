@@ -92,7 +92,7 @@ namespace SpendWise.Infrastructure.Repositories
         {
             SqlParameter? outputLimit = null;
 
-            var rowsAffected = await ExecuteNonQueryAsync("[Ledger].[sp_UpdateExpenseWithTransaction]", cmd =>
+            var rowsAffected = await ExecuteScalarAsync<int>("[Ledger].[sp_UpdateExpenseWithTransaction]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@ExpenseId", newExpense.ExpenseId);
                 cmd.Parameters.AddWithValue("@UserId", newExpense.UserId);
@@ -152,7 +152,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
         {
-            var rowsAffected = await ExecuteNonQueryAsync("[Ledger].[sp_DeleteExpense]", cmd =>
+            var rowsAffected = await ExecuteScalarAsync<int>("[Ledger].[sp_DeleteExpense]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@ExpenseId", expenseId);
                 cmd.Parameters.AddWithValue("@UserId", userId);

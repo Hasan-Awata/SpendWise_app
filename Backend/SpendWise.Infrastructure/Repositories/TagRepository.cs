@@ -42,7 +42,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> DeleteTagAsync(int tagId, int userId)
         {
-            var rowsAffected = await ExecuteNonQueryAsync("[Config].[sp_DeleteTag]", cmd =>
+            var rowsAffected = await ExecuteScalarAsync<int>("[Config].[sp_DeleteTag]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@TagID", tagId);
                 cmd.Parameters.AddWithValue("@UserID", userId);

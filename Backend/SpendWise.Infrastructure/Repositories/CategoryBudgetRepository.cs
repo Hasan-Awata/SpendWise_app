@@ -19,7 +19,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<int> SetCategoryBudgetAsync(int userId, CategoryBudget categoryBudget)
         {
-            var result = await ExecuteNonQueryAsync("[Planning].[sp_AddCategoryBudget]", cmd =>
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_AddCategoryBudget]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@UserID", userId);
                 cmd.Parameters.AddWithValue("@CategoryID", categoryBudget.CategoryId);
@@ -34,7 +34,7 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> UpdateCategoryBudgetAsync(CategoryBudget categoryBudget)
         {
-            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_UpdateCategoryBudget]", cmd =>
+            var rowsAffected = await ExecuteScalarAsync<int>("[Planning].[sp_UpdateCategoryBudget]", cmd =>
             {
                 cmd.Parameters.AddWithValue("@BudgetID", categoryBudget.CategoryBudgetId);
                 cmd.Parameters.AddWithValue("@UserID", categoryBudget.UserId);

@@ -51,7 +51,7 @@ namespace SpendWise.Infrastructure.Repositories
         public async Task<bool> UpdateIncomeAsync(Income newIncome)
         {
             // Using ExecuteScalar because the procedure returns an explicit status value via SELECT
-            var rowsAffected = await ExecuteNonQueryAsync("[Ledger].[sp_UpdateIncomeWithTransaction]", cmd =>
+            var rowsAffected = await ExecuteScalarAsync<int>("[Ledger].[sp_UpdateIncomeWithTransaction]", cmd =>
             {
                 // 1. Core ID and Identity
                 cmd.Parameters.AddWithValue("@IncomeId", newIncome.Id);
