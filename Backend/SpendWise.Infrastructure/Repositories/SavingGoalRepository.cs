@@ -145,12 +145,11 @@ namespace SpendWise.Infrastructure.Repositories
 
         public async Task<bool> GoalExistsAsync(int goalId)
         {
-            var result = await ExecuteNonQueryAsync("[Planning].[sp_CheckSavingGoalExists]",
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_CheckSavingGoalExists]",
                 cmd => cmd.Parameters.AddWithValue("@GoalId", goalId));
 
-            return result > 0;
+            return result == 1;
         }
-
         // =========================================================================
         // REUSABLE HELPER METHODS & MAPPERS
         // =========================================================================

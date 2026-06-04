@@ -1,6 +1,4 @@
-﻿-- ==========================================
--- 8. Check Saving Goal Exists
--- ==========================================
+﻿
 CREATE PROCEDURE [Planning].[sp_CheckSavingGoalExists]
     @GoalId INT
 AS

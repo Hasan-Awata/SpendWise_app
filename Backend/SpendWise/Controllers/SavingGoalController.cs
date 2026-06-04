@@ -98,7 +98,7 @@ namespace SpendWise.Controllers
             {
                 return HandleResultOnError(result);
             }
-
+             
             return NoContent();
         }
 
