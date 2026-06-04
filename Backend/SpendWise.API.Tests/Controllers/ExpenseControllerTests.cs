@@ -38,12 +38,38 @@ namespace SpendWise.API.Tests.Controllers
                 UserName = "reg_48d426",
                 Password = "SecurePassword123!"
             };
-
             var loginResponse = await _client.PostAsJsonAsync("/api/Authentication/login", loginDto);
             if (!loginResponse.IsSuccessStatusCode)
             {
-                var errorContext = await loginResponse.Content.ReadAsStringAsync();
-                throw new HttpRequestException($"Test Suite Login Pre-condition Failed. Context: {errorContext}");
+                // Try to register the account if login failed (makes tests resilient to DB reset)
+                var registerDto = new RegisterDto
+                {
+                    UserName = loginDto.UserName,
+                    Password = loginDto.Password,
+                    FirstName = "Test",
+                    LastName = "Bot"
+                };
+
+                var registerResponse = await _client.PostAsJsonAsync("/api/Authentication/register", registerDto);
+                if (!registerResponse.IsSuccessStatusCode)
+                {
+                    var errorContext = await loginResponse.Content.ReadAsStringAsync();
+                    throw new HttpRequestException($"Test Suite Login Pre-condition Failed. Context: {errorContext}");
+                }
+
+                var loginRetry = await _client.PostAsJsonAsync("/api/Authentication/login", loginDto);
+                if (!loginRetry.IsSuccessStatusCode)
+                {
+                    var errorContext = await loginRetry.Content.ReadAsStringAsync();
+                    throw new HttpRequestException($"Test Suite Login Pre-condition Failed after register. Context: {errorContext}");
+                }
+
+                var authDataRetry = await loginRetry.Content.ReadFromJsonAsync<ResponseAuthDto>();
+                _cachedToken = authDataRetry!.Token;
+
+                _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _cachedToken);
+                _isAuthenticated = true;
+                return;
             }
 
             var authData = await loginResponse.Content.ReadFromJsonAsync<ResponseAuthDto>();

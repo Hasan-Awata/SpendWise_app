@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.RateLimiting; 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection; 
+using System.Linq;
 
 namespace SpendWise.API.Tests.Setup
 {
@@ -25,6 +26,14 @@ namespace SpendWise.API.Tests.Setup
             // FIX FOR THE RATE LIMITER DISABLING DURING TESTS
             builder.ConfigureServices(services =>
             {
+                // Remove any registered hosted services to avoid background work (Firebase, schedulers, etc.)
+                // that may require environment files or external resources and can cause tests to fail.
+                var hostedDescriptors = services.Where(d => d.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)).ToList();
+                foreach (var d in hostedDescriptors)
+                {
+                    services.Remove(d);
+                }
+
                 // Disable rate limiting by clearing out existing rate limits rules or over-riding them
                 services.Configure<RateLimiterOptions>(options =>
                 {
