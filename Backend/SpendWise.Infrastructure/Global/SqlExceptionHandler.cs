@@ -21,17 +21,17 @@ namespace SpendWise.Infrastructure.Global
                 switch (ex.Number)
                 {
                     case 50001:
-                        throw new InvalidReferenceException(fullMessage); // 400 Bad Request
+                        throw new InvalidReferenceException(fullMessage); 
                     case 50002:
-                        throw new ResourceNotFoundException(fullMessage); // 404 Not Found
+                        throw new ResourceNotFoundException(fullMessage); 
                     case 50003:
-                        throw new UnauthorizedAccessException(fullMessage); // 401 Unauthorized
+                        throw new UnauthorizedAccessException(fullMessage); 
                     case 50004:
-                        throw new DuplicateResourceException(fullMessage); // 409 Conflict
+                        throw new DuplicateResourceException(fullMessage); 
                     case 50005:
-                        throw new WrongOperation(fullMessage); // 404 Bad Request
+                        throw new WrongOperation(fullMessage); 
                     default:
-                        throw new Exception(fullMessage); // Fallback for future custom errors
+                        throw new Exception(fullMessage); 
                 }
             }
 
