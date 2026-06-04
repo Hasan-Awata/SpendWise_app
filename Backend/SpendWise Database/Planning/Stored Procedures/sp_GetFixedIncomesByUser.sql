@@ -1,5 +1,5 @@
 ﻿
-CREATE PROCEDURE [Planning].[sp_GetFixedIncomesByUser]
+ CREATE PROCEDURE [Planning].[sp_GetFixedIncomesByUser]
     @UserId INT
 AS
 BEGIN
@@ -8,6 +8,7 @@ BEGIN
     SELECT 
         FixedIncomeId, 
         UserID, 
+        WalletId,
         Title, 
         Amount, 
         IsMonthly, 
@@ -16,5 +17,5 @@ BEGIN
         LastTime
     FROM [Planning].[FixedIncomes]
     WHERE UserID = @UserId
-    ORDER BY FixedIncomeId DESC; -- يعرض الأحدث أولاً
+    ORDER BY FixedIncomeId DESC; 
 END

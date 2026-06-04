@@ -1,6 +1,7 @@
 ﻿CREATE TABLE [Planning].[FixedIncomes] (
     [FixedIncomeID] INT             IDENTITY (1, 1) NOT NULL,
     [UserID]        INT             NOT NULL,
+    [WalletId]      INT                 NOT NULL,
     [Title]         NVARCHAR (200)  NOT NULL,
     [Amount]        DECIMAL (18, 2) NOT NULL,
     [IsMonthly]     BIT             DEFAULT ((1)) NOT NULL,

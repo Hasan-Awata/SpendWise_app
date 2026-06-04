@@ -157,6 +157,19 @@
     <Build Include="Identity\Stored Procedures\sp_UpdateUserFcmToken.sql" />
     <Build Include="Planning\Stored Procedures\sp_ResetExpiredBudgets.sql" />
     <Build Include="Planning\Stored Procedures\sp_GetUpcomingDebtReminders.sql" />
+    <Build Include="Planning\Stored Procedures\sp_CheckFixedExpenseActive.sql" />
+    <Build Include="Planning\Stored Procedures\sp_CheckFixedIncomeActive.sql" />
+    <Build Include="Planning\Stored Procedures\sp_CreateFixedExpense.sql" />
+    <Build Include="Planning\Stored Procedures\sp_AddAmountToSavingGoalWithTransaction.sql" />
+    <Build Include="Planning\Stored Procedures\sp_CreateFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_DeleteFixedExpense.sql" />
+    <Build Include="Planning\Stored Procedures\sp_DeleteFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetFixedIncomesByUser.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_UpdateFixedIncome.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetFixedExpensesByUserId.sql" />
+    <Build Include="Planning\Stored Procedures\sp_GetFixedExpense.sql" />
+    <Build Include="Planning\Stored Procedures\sp_UpdateFixedExpense.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment1.sql" />

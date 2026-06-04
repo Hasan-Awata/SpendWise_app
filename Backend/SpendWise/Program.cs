@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using SpendWise.Application.Interfaces;
 using SpendWise.Application.Interfaces.Authentication;
 using SpendWise.Application.Interfaces.Categories;
 using SpendWise.Application.Interfaces.ExchangeRate;
@@ -109,7 +110,8 @@ builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
 
 builder.Services.AddSingleton<IOcrService, GeminiOcrService>();
 
-
+builder.Services.AddScoped<IFixedIncomeService, FixedIncomeService>();
+builder.Services.AddScoped<IFixedIncomeRepository, FixedIncomeRepository>();
 // ── JWT Authentication ────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"]!;

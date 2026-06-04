@@ -5,8 +5,9 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- الاستعلام يرجع القيمة مباشرة ليتوافق مع الـ ExecuteScalarAsync في الـ C#
-    SELECT IsActive 
-    FROM [Planning].[FixedIncomes] 
-    WHERE FixedIncomeId = @FixedIncomeId AND UserID = @UserId;
+    SELECT ISNULL((
+        SELECT CAST(IsActive AS BIT) 
+        FROM [Planning].[FixedIncomes] 
+        WHERE FixedIncomeId = @FixedIncomeId AND UserID = @UserId
+    ), 0); 
 END

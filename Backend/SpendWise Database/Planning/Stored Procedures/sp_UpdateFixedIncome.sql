@@ -1,6 +1,7 @@
 ﻿CREATE PROCEDURE [Planning].[sp_UpdateFixedIncome]
     @FixedIncomeId INT,
     @UserId INT, 
+    @WalletId INT, 
     @Title NVARCHAR(200),
     @Amount DECIMAL(18,2),
     @IsMonthly BIT,
@@ -9,50 +10,50 @@
     @LastTime DATETIME = NULL
 AS
 BEGIN
+    -- استخدم SET NOCOUNT ON ولكن احرص على استخدام @@ROWCOUNT في نهاية الاستعلام
     SET NOCOUNT ON;
 
     BEGIN TRY
-         DECLARE @ActualOwnerId INT;
-      SELECT @ActualOwnerId = UserID 
-        FROM [Planning].[FixedIncomes] 
-        WHERE FixedIncomeId = @FixedIncomeId;
-       IF @ActualOwnerId IS NULL 
+        -- 1. التحقق من وجود السجل والملكية (أمني)
+        IF NOT EXISTS (SELECT 1 FROM [Planning].[FixedIncomes] 
+                       WHERE FixedIncomeId = @FixedIncomeId 
+                         AND UserID = @UserId)
         BEGIN
-            ;THROW 50012, 'The specified fixed income record was not found.', 1;
+            ;THROW 50012, 'The specified fixed income record was not found or access denied.', 1;
         END
-          IF @ActualOwnerId <> @UserId
-        BEGIN
-            ;THROW 50013, 'Access denied. You do not own this fixed income record.', 1;
-        END
+
+        -- 2. التحقق من صحة القيم (Business Validation)
         IF @Amount <= 0
         BEGIN
-            ;THROW 50010, 'The income amount must be greater than zero.', 1;
+            ;THROW 50013, 'The amount must be greater than zero.', 1;
         END
-     IF EXISTS (SELECT 1 FROM [Planning].[FixedIncomes] WHERE UserID = @UserId AND Title = @Title AND FixedIncomeId <> @FixedIncomeId)
+
+        -- التحقق من عدم تكرار العنوان لنفس المستخدم في نفس المحفظة
+        IF EXISTS (SELECT 1 FROM [Planning].[FixedIncomes] 
+                   WHERE UserID = @UserId 
+                     AND WalletId = @WalletId 
+                     AND Title = @Title 
+                     AND FixedIncomeId <> @FixedIncomeId)
         BEGIN
-            ;THROW 50011, 'A fixed income with this title already exists for the user.', 1;
+            ;THROW 50011, 'A fixed income with this title already exists in the selected wallet.', 1;
         END
 
-        
-        BEGIN TRAN;
-
+        -- 3. تنفيذ التحديث
         UPDATE [Planning].[FixedIncomes]
         SET Title = @Title,
             Amount = @Amount,
             IsMonthly = @IsMonthly,
             IsActive = @IsActive,
             Days = @Days,
-            LastTime = ISNULL(@LastTime, GETDATE())
-        WHERE FixedIncomeId = @FixedIncomeId AND UserID = @UserId;
-     DECLARE @RowsAffected INT = @@ROWCOUNT;
-
-        COMMIT TRAN;
-
-         SELECT @RowsAffected AS RowsAffected;
+            LastTime = ISNULL(@LastTime, LastTime),
+            WalletId = @WalletId 
+        WHERE FixedIncomeId = @FixedIncomeId 
+          AND UserID = @UserId;
+        
+        SELECT @@ROWCOUNT AS RowsAffected;
 
     END TRY
     BEGIN CATCH
-          IF @@TRANCOUNT > 0 ROLLBACK TRAN;
         THROW;
     END CATCH
 END

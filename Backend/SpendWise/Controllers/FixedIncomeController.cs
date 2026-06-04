@@ -2,44 +2,30 @@
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs.FixedIncome;
 using SpendWise.Application.Interfaces;
-using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace SpendWise.Controllers
 {
     [Authorize]
     [ApiController]
     [Route("api/fixed-incomes")]
-    public class FixedIncomeController : ControllerBase
+    public class FixedIncomeController : BaseApiController
     {
         private readonly IFixedIncomeService _fixedIncomeService;
-
-        // Helper property to securely extract the user ID from the auth token
-        private int CurrentUserId
-        {
-            get
-            {
-                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (int.TryParse(userIdString, out int userId))
-                {
-                    return userId;
-                }
-                throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
-            }
-        }
 
         public FixedIncomeController(IFixedIncomeService fixedIncomeService)
         {
             _fixedIncomeService = fixedIncomeService;
         }
 
-        [HttpGet("{fixedIncomeId}")]
-        public async Task<IActionResult> GetFixedIncome([FromRoute] int fixedIncomeId)
+        [HttpGet("{FixedIncomeId:int}")]
+        public async Task<IActionResult> GetFixedIncome([FromRoute] int FixedIncomeId)
         {
-            var response = await _fixedIncomeService.GetFixedIncomeAsync(fixedIncomeId, CurrentUserId);
+            var response = await _fixedIncomeService.GetFixedIncomeAsync(FixedIncomeId, CurrentUserId);
 
             if (response == null)
             {
-                return NotFound();
+                return NotFound(new { message = "Fixed income not found." });
             }
 
             return Ok(response);
@@ -55,45 +41,54 @@ namespace SpendWise.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateFixedIncome([FromBody] FixedIncomeDTO fixedIncomeDTO)
         {
-            // Ensure the user is creating a record for themselves
             fixedIncomeDTO.UserId = CurrentUserId;
 
             var createdId = await _fixedIncomeService.CreateFixedIncomeAsync(fixedIncomeDTO);
 
             if (createdId == -1)
             {
-                return BadRequest("Failed to create fixed income.");
+                return BadRequest(new { message = "Failed to create fixed income." });
             }
 
-            // Return the created ID or the full object if your service returns it
-            return CreatedAtAction(nameof(GetFixedIncome), new { fixedIncomeId = createdId }, fixedIncomeDTO);
+            var createdIncome = await _fixedIncomeService.GetFixedIncomeAsync(createdId, CurrentUserId);
+
+            return CreatedAtAction(nameof(GetFixedIncome), new { fixedIncomeId = createdId }, createdIncome);
         }
 
-        [HttpPatch]
-        public async Task<IActionResult> UpdateFixedIncome([FromBody] FixedIncomeDTO fixedIncomeDTO)
+         [HttpPatch("{fixedIncomeId:int}")]
+        public async Task<IActionResult> UpdateFixedIncome([FromRoute] int fixedIncomeId, [FromBody] FixedIncomeDTO fixedIncomeDTO)
         {
             fixedIncomeDTO.UserId = CurrentUserId;
 
-            await _fixedIncomeService.UpdateFixedIncomeAsync(fixedIncomeDTO);
+            var isUpdated = await _fixedIncomeService.UpdateFixedIncomeAsync(fixedIncomeId, fixedIncomeDTO);
 
-            return Ok(new { message = "Fixed income updated successfully" });
+            if (!isUpdated)
+            {
+                return BadRequest(new { message = "Failed to update fixed income. It may not exist or validation failed." });
+            }
+
+             var updatedIncome = await _fixedIncomeService.GetFixedIncomeAsync(fixedIncomeId, CurrentUserId);
+
+            return Ok(updatedIncome);
         }
 
-        [HttpDelete("{fixedIncomeId}")]
+        [HttpDelete("{fixedIncomeId:int}")]
         public async Task<IActionResult> DeleteFixedIncome([FromRoute] int fixedIncomeId)
         {
-            // Note: Service returns void/Task in your example, but you can adjust 
-            // the service to return bool if you want to handle "NoContent" vs "BadRequest"
-            await _fixedIncomeService.DeleteFixedIncomeAsync(fixedIncomeId, CurrentUserId);
+            var isDeleted = await _fixedIncomeService.DeleteFixedIncomeAsync(fixedIncomeId, CurrentUserId);
+
+            if (!isDeleted)
+            {
+                return BadRequest(new { message = "Failed to delete fixed income." });
+            }
 
             return NoContent();
         }
 
-        [HttpGet("{fixedIncomeId}/status")]
+        [HttpGet("{fixedIncomeId:int}status")]
         public async Task<IActionResult> IsFixedIncomeActive([FromRoute] int fixedIncomeId)
         {
-
-            var isActive = await _fixedIncomeService.IsFixedIncomeActive(fixedIncomeId,CurrentUserId);
+            var isActive = await _fixedIncomeService.IsFixedIncomeActive(fixedIncomeId, CurrentUserId);
             return Ok(new { FixedIncomeId = fixedIncomeId, IsActive = isActive });
         }
     }

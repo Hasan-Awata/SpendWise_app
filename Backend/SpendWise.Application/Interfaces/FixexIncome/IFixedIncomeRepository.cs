@@ -8,7 +8,7 @@ namespace SpendWise.Application.Interfaces
     public interface IFixedIncomeRepository
     {
         
-      public  Task<FixedIncome> GetFixedIncomeAsync(int fixedIncomeId, int userId);
+      public  Task<FixedIncome?> GetFixedIncomeAsync(int fixedIncomeId, int userId);
       public  Task<IEnumerable<FixedIncome?>> GetFixedIncomesByUserIdAsync(int userId);
       
       public  Task<int> CreateFixedIncomeAsync(FixedIncome fixedIncome);

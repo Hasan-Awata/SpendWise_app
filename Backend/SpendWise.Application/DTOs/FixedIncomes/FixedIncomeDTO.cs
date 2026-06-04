@@ -5,16 +5,14 @@ namespace SpendWise.Application.DTOs.FixedIncome
 {
     public class FixedIncomeDTO
     {
-        public int FixedIncomeId { get; set; } = -1;
-
         [Required(ErrorMessage = "User ID is required!")]
         public int UserId { get; set; }
 
-        [Required(ErrorMessage = "Tag ID is required!")]
-        public int TagId { get; set; }
+        [Required(ErrorMessage = "Wallet ID is required!")]
+        public int WalletId { get; set; }
 
         [Required(ErrorMessage = "Please enter a title for this fixed income!")]
-        [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters!")]
+        [StringLength(200, ErrorMessage = "Title cannot exceed 200 characters!")]
         public string Title { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Enter the amount of your income")]
@@ -27,9 +25,8 @@ namespace SpendWise.Application.DTOs.FixedIncome
         public bool IsActive { get; set; } = true;
 
         [Range(1, 31, ErrorMessage = "Days must be between 1 and 31!")]
-        public int Days { get; set; }
+        public int? Days { get; set; }
 
-        [Required(ErrorMessage = "Please enter the last occurrence date")]
-        public DateTime LastTime { get; set; }
+        public DateTime? LastTime { get; set; }
     }
 }

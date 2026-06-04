@@ -17,108 +17,133 @@ namespace SpendWise.Application.Services
             _fixedIncomeRepo = fixedIncomeRepo;
         }
 
+        // =========================================================================
+        // Centralized Mapping Helpers
+        // =========================================================================
+
+        // تمت إضافة fixedIncomeId كبارامتر لأن الـ DTO لم يعد يحتويه
+        private FixedIncome MapDTOToIncomeObject(int fixedIncomeId, FixedIncomeDTO dto)
+        {
+            return new FixedIncome(
+                fixedIncomeId,
+                dto.UserId,
+                dto.WalletId,
+                dto.Title,
+                dto.Amount,
+                dto.IsMonthly,
+                dto.IsActive,
+                dto.Days,
+                dto.LastTime
+            );
+        }
+
+        private FixedIncomeResponse MapEntityToResponse(FixedIncome entity)
+        {
+            return new FixedIncomeResponse
+            {
+                FixedIncomeId = entity.FixedIncomeId,
+                UserId = entity.UserId,
+                WalletId = entity.WalletId,
+                Title = entity.Title,
+                Amount = entity.Amount,
+                IsMonthly = entity.IsMonthly,
+                IsActive = entity.IsActive,
+                Days = entity.Days,
+                LastTime = entity.LastTime
+            };
+        }
+
+        // =========================================================================
+        // Centralized Validations
+        // =========================================================================
+
+        private bool ValidateFixedIncomeDTO(FixedIncomeDTO dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Title))
+                return false;
+
+            if (dto.Amount <= 0)
+                return false;
+
+            if (dto.UserId < 0 || dto.WalletId < 0)
+                return false;
+
+            return true;
+        }
+
+        // =========================================================================
+        // Reading Methods
+        // =========================================================================
+
         public async Task<FixedIncomeResponse?> GetFixedIncomeAsync(int fixedIncomeId, int userId)
         {
-            if (fixedIncomeId <= 0)
+            if (fixedIncomeId <= 0 || userId <= 0)
                 return null;
 
-            if (userId <= 0)
-                return null;
             var fixedIncome = await _fixedIncomeRepo.GetFixedIncomeAsync(fixedIncomeId, userId);
 
-            if (fixedIncome == null) return null!;
+            if (fixedIncome == null)
+                return null;
 
-            //return new FixedIncomeResponse
-            //{
-            //    FixedIncomeId = fixedIncome.FixedIncomeId,
-            //    UserId = fixedIncome.UserId,
-
-            //    Title = fixedIncome.Title,
-            //    Amount = fixedIncome.Amount,
-            //    IsMonthly = fixedIncome.IsMonthly,
-            //    IsActive = fixedIncome.IsActive,
-            //    Days = fixedIncome.Days,
-            //    LastTime = fixedIncome.LastTime
-            //};
-            return null;
+            return MapEntityToResponse(fixedIncome);
         }
 
         public async Task<IEnumerable<FixedIncomeResponse>> GetFixedIncomesByUserIdAsync(int userId)
         {
             if (userId <= 0)
-                return Enumerable.Empty<FixedIncomeResponse>().ToList();
-            var fixedIncomesList = await _fixedIncomeRepo.GetFixedIncomesByUserIdAsync(userId);
-            return Enumerable.Empty<FixedIncomeResponse>().ToList();
+                return Enumerable.Empty<FixedIncomeResponse>();
 
-            //// Mapping the entity collection to the response DTO collection
-            //return fixedIncomesList.Select(item => new FixedIncomeResponse
-            //{
-            //    FixedIncomeId = item.FixedIncomeId,
-            //    UserId = item.UserId,
-            //    Title = item.Title,
-            //    Amount = item.Amount,
-            //    IsMonthly = item.IsMonthly,
-            //    IsActive = item.IsActive,
-            //    Days = item.Days,
-            //    LastTime = item.LastTime
-            //});
+            var fixedIncomesList = await _fixedIncomeRepo.GetFixedIncomesByUserIdAsync(userId);
+
+            if (fixedIncomesList == null || !fixedIncomesList.Any())
+                return Enumerable.Empty<FixedIncomeResponse>();
+
+            return fixedIncomesList.Select(MapEntityToResponse).ToList();
         }
+
+        public async Task<bool> IsFixedIncomeActive(int fixedIncomeId, int userId)
+        {
+            if (fixedIncomeId <= 0 || userId <= 0)
+                return false;
+
+            return await _fixedIncomeRepo.IsIncomeActive(fixedIncomeId, userId);
+        }
+
+        // =========================================================================
+        // Writing Methods
+        // =========================================================================
 
         public async Task<int> CreateFixedIncomeAsync(FixedIncomeDTO fixedIncomeDTO)
         {
+            if (!ValidateFixedIncomeDTO(fixedIncomeDTO))
+                return -1;
 
-            //var newIncome = new FixedIncome(
-            //    fixedIncomeDTO.FixedIncomeId,
-            //    fixedIncomeDTO.UserId,
-            //    fixedIncomeDTO.Title,
-            //    fixedIncomeDTO.Amount,
-            //    fixedIncomeDTO.IsMonthly,
-            //    fixedIncomeDTO.IsActive,
-            //    fixedIncomeDTO.Days,
-            //    fixedIncomeDTO.LastTime
-            //);
+            // نمرر -1 لأن هذا سجل جديد لا يملك ID بعد
+            var newIncome = MapDTOToIncomeObject(-1, fixedIncomeDTO);
 
-            return -1;//await _fixedIncomeRepo.CreateFixedIncomeAsync(newIncome);
+            return await _fixedIncomeRepo.CreateFixedIncomeAsync(newIncome);
         }
 
-        public async Task<bool> UpdateFixedIncomeAsync(FixedIncomeDTO fixedIncomeDTO)
+        // تم إضافة fixedIncomeId كبارامتر لتحديد السجل المراد تعديله
+        public async Task<bool> UpdateFixedIncomeAsync(int fixedIncomeId, FixedIncomeDTO fixedIncomeDTO)
         {
-            //var updatedIncome = new FixedIncome(
-            //    fixedIncomeDTO.FixedIncomeId,
-            //    fixedIncomeDTO.UserId,
+            if (fixedIncomeId <= 0)
+                return false;
 
-            //    fixedIncomeDTO.Title,
-            //    fixedIncomeDTO.Amount,
-            //    fixedIncomeDTO.IsMonthly,
-            //    fixedIncomeDTO.IsActive,
-            //    fixedIncomeDTO.Days,
-            //    fixedIncomeDTO.LastTime
-            //);
+            if (!ValidateFixedIncomeDTO(fixedIncomeDTO))
+                return false;
 
-            return true;//await _fixedIncomeRepo.UpdateFixedIncomeAsync(updatedIncome);
+         var updatedIncome = MapDTOToIncomeObject(fixedIncomeId, fixedIncomeDTO);
+
+            return await _fixedIncomeRepo.UpdateFixedIncomeAsync(updatedIncome);
         }
 
         public async Task<bool> DeleteFixedIncomeAsync(int fixedIncomeId, int userId)
         {
-            if (fixedIncomeId <= 0)
-                return false;
-
-            if (userId <= 0)
+            if (fixedIncomeId <= 0 || userId <= 0)
                 return false;
 
             return await _fixedIncomeRepo.DeleteFixedIncomeAsync(fixedIncomeId, userId);
         }
-        public async Task<bool> IsFixedIncomeActive(int fixedIncomeId, int userId)
-        {
-
-            if (fixedIncomeId <= 0)
-                return false;
-
-            if (userId <= 0)
-                return false;
-            return await _fixedIncomeRepo.IsIncomeActive(fixedIncomeId,userId);
-
-        }
-
     }
 }
