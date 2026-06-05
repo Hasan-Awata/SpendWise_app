@@ -21,7 +21,7 @@ class UserModel extends UserEntity {
   });
 
   factory UserModel.fromJson(Map<dynamic, dynamic> json) {
-    final dynamic userIdRaw = json["UserId"] ?? json["userId"];
+    final dynamic userIdRaw = json["UserId"] ?? json["userId"] ?? json["id"];
     int parsedUserId = -1;
     if (userIdRaw is int) {
       parsedUserId = userIdRaw;

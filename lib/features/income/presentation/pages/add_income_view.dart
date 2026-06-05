@@ -206,34 +206,56 @@ class _AddIncomeViewState extends State<AddIncomeView> {
   // =========================
 
   Widget _buildWalletDropdown() {
-    return Obx(
-      () => SPDropdownSearch(
-        themeColor: SpColor.incomeGreen,
+    return Obx(() {
+      final wallets = controller.isWalletsSaved.value
+          ? controller.walletsListController.savingsWallets
+          : controller.walletsListController.regularWallets;
+      return SPDropdownSearch(
+        suffixIcon: Row(
+          children: [
+            IconButton(
+              onPressed: () {
+                Get.toNamed(Routes.ADD_WALLET);
+              },
+              icon: Icon(Icons.wallet),
+            ),
+            IconButton(
+              onPressed: () {
+                controller.isWalletsSaved.value =
+                    !controller.isWalletsSaved.value;
+              },
+              icon: Icon(Icons.change_circle_sharp, color: SpColor.incomeGreen),
+            ),
+          ],
+        ),
+        themeColor: controller.isWalletsSaved.value
+            ? Colors.amberAccent
+            : SpColor.mutedGrey,
 
-        label: "المحفظة",
+        label: controller.isWalletsSaved.value
+            ? " المحافظ الادخارية"
+            : "المحافظ",
 
-        items: controller.walletsListController.regularWallets
+        items: wallets
             .map((w) => "${w.currency.currencyName} (${w.currency.code})")
             .toList(),
 
         onChanged: (value) {
-          final index = controller.walletsListController.regularWallets
-              .indexWhere(
-                (w) =>
-                    "${w.currency.currencyName} (${w.currency.code})"
-                        .toLowerCase()
-                        .trim() ==
-                    value?.toLowerCase().trim(),
-              );
+          final index = wallets.indexWhere(
+            (w) =>
+                "${w.currency.currencyName} (${w.currency.code})"
+                    .toLowerCase()
+                    .trim() ==
+                value?.toLowerCase().trim(),
+          );
           if (index != -1) {
-            controller.selectedWallet.value =
-                controller.walletsListController.regularWallets[index];
+            controller.selectedWallet.value = wallets[index];
           }
         },
 
         hint: 'اختر محفظة',
-      ),
-    );
+      );
+    });
   }
 
   // =========================

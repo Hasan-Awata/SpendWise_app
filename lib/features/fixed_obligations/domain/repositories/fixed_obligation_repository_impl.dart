@@ -1,5 +1,4 @@
 // lib/features/fixed_obligations/data/repositories/fixed_obligation_repository_impl.dart
-// FixedObligationRepositoryImpl: طبقة المستودع لإدارة الالتزامات المالية، تضمن تناسق البيانات بين التخزين المحلي (Isar) والسيرفر مع دعم المزامنة (Offline-first).
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
@@ -27,9 +26,12 @@ class FixedObligationRepositoryImpl implements FixedObligationRepository {
 
   @override
   Future<Either<Failure, String>> addFixedObligation(
-    FixedObligationModel model,
+    FixedObligationModel? model,
   ) async {
     try {
+      if (model == null) return Left(CacheFailure('Not found'));
+
+      // تمت إزالة التحقق من الرصيد لأنه التزام مستقبلي
       model.isSynced = false;
       model.isDeleted = false;
 
@@ -63,10 +65,11 @@ class FixedObligationRepositoryImpl implements FixedObligationRepository {
       );
       if (local == null) return Left(CacheFailure('Not found'));
 
+      // تم تحديث السجل فقط دون المساس برصيد المحفظة
       local
         ..title = model.title
         ..amount = model.amount
-        ..dueDate = model.dueDate
+        ..lastTime = model.lastTime
         ..isActive = model.isActive
         ..isSynced = false;
 
@@ -92,13 +95,11 @@ class FixedObligationRepositoryImpl implements FixedObligationRepository {
 
   @override
   Future<Either<Failure, Unit>> deleteFixedObligation(
-    FixedObligationModel model,
+    FixedObligationModel entity,
   ) async {
     try {
-      final local = await localDataSource.getFixedObligationByIsarId(
-        model.isarId,
-      );
-      if (local == null) return Left(CacheFailure('Not found'));
+      final local = await localDataSource.getById(entity.id);
+      if (local == null) return Left(CacheFailure("Not found"));
 
       local
         ..isDeleted = true
@@ -106,20 +107,30 @@ class FixedObligationRepositoryImpl implements FixedObligationRepository {
 
       await localDataSource.saveFixedObligation(local);
 
-      if (Get.find<NetworkService>().isOnline.value) {
+      final network = Get.find<NetworkService>();
+
+      if (network.isOnline.value) {
         try {
-          await remote.deleteFixedObligation(local.id);
-          await localDataSource.deleteFixedObligation(local.isarId);
-        } catch (_) {
+          final res = await remote.deleteFixedObligation(local.id);
+          if (res) {
+            await localDataSource.deleteFixedObligation(local.isarId);
+          } else {
+            return Left(ServerFailure("فشل الحذف من السيرفر"));
+          }
+        } catch (e) {
           await _addToQueue(local, SyncAction.delete);
         }
       } else {
         await _addToQueue(local, SyncAction.delete);
       }
+      if (local.id == -1) {
+        await localDataSource.deleteFixedObligation(local.isarId);
+        return const Right(unit);
+      }
 
       return const Right(unit);
     } catch (e) {
-      return Left(CacheFailure('Delete failed: $e'));
+      return Left(CacheFailure("Delete failed: $e"));
     }
   }
 
@@ -127,28 +138,39 @@ class FixedObligationRepositoryImpl implements FixedObligationRepository {
   Future<Either<Failure, List<FixedObligationModel>>>
   getFixedObligations() async {
     try {
-      if (Get.find<NetworkService>().isOnline.value) {
+      final network = Get.find<NetworkService>();
+      final isOnline = network.isOnline.value;
+
+      if (isOnline) {
         try {
-          final remoteData = await remote.getFixedObligations();
-          if (remoteData != null) {
-            // ملاحظة: يمكنك هنا تحديث الـ Local DB بذكاء بدلاً من المسح الكامل
-            for (final item in remoteData) {
-              item.isSynced = true;
-              await localDataSource.saveFixedObligation(item);
+          final remoteResponse = await remote.getFixedObligations();
+
+          if (remoteResponse != null) {
+            await localDataSource.clear();
+
+            for (final obligation in remoteResponse) {
+              obligation.isSynced = true;
+              obligation.isDeleted = false;
+              await localDataSource.saveFixedObligation(obligation);
             }
           }
         } catch (e) {
-          debugPrint("Remote sync failed, using local: $e");
+          if (kDebugMode) {
+            print("⚠️ Remote failed, fallback to local: $e");
+          }
         }
       }
 
       final localData = await localDataSource.getFixedObligations();
-      final filtered = localData.where((e) => !e.isDeleted).toList()
-        ..sort((a, b) => b.dueDate.compareTo(a.dueDate));
 
-      return Right(filtered);
+      final filtered = localData.where((e) => !e.isDeleted).toList()
+        ..sort((a, b) => b.lastTime.compareTo(a.lastTime));
+
+      final slice = filtered;
+
+      return Right(slice);
     } catch (e) {
-      return Left(CacheFailure("Error: $e"));
+      return Left(CacheFailure("Error loading Obligations: $e"));
     }
   }
 

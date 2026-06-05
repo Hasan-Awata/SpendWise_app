@@ -36,21 +36,21 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     try {
       final walletRepo = Get.find<WalletRepository>();
       final balanceResult = await walletRepo.getWalletBalance(
-        currencyId: expense.wallet!.currencyId,
+        walletId: expense.walletId!,
       );
 
-      // التحقق من كفاية الرصيد
-      final isSufficient = balanceResult.fold(
-        (l) => false,
-        (total) => total >= expense.amount,
-      );
-      if (!isSufficient) {
-        return Left(
-          ServerFailure(
-            'عذراً، الرصيد المتاح للعملة المختارة غير كافٍ لإتمام العملية.',
-          ),
-        );
-      }
+      // // التحقق من كفاية الرصيد
+      // final isSufficient = balanceResult.fold(
+      //   (l) => false,
+      //   (total) => total >= expense.amount,
+      // );
+      // if (!isSufficient) {
+      //   return Left(
+      //     ServerFailure(
+      //       'عذراً، الرصيد المتاح للعملة المختارة غير كافٍ لإتمام العملية.',
+      //     ),
+      //   );
+      // }
 
       final network = Get.find<NetworkService>();
 
@@ -122,8 +122,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       }
 
       final walletRepo = Get.find<WalletRepository>();
+      print("walllet is ----->${entity.walletId}");
       final balanceResult = await walletRepo.getWalletBalance(
-        currencyId: entity.wallet!.currencyId,
+        walletId: entity.walletId!,
       );
 
       final isSufficient = balanceResult.fold(
@@ -141,7 +142,6 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         ..title = entity.title
         ..date = entity.date
         ..description = entity.description
-        ..products = List.from(entity.products!)
         ..walletId = entity.walletId
         ..expenseTagId = entity.expenseTagId
         ..updatedAt = DateTime.now()
@@ -181,6 +181,19 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         return Left(CacheFailure('Expense not found'));
       }
 
+      // =========================
+      // 1. تحديث رصيد المحفظة قبل الحذف
+      // =========================
+      final walletRepo = Get.find<WalletRepository>();
+      await walletRepo.increaseBalance(
+        walletId: local.walletId!,
+        amountFromRegular: local.amount,
+        amountFromSavings: 0.0,
+      );
+
+      // =========================
+      // 2. تحديث حالة المصروف محلياً
+      // =========================
       local
         ..isDeleted = true
         ..isSynced = false
@@ -188,17 +201,22 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
 
       await localDataSource.updateExpense(local);
 
+      // =========================
+      // 3. المزامنة مع السيرفر
+      // =========================
       final network = Get.find<NetworkService>();
 
       if (network.isOnline.value) {
         try {
           await remote.deleteExpense(local);
-
+          // في حال نجاح الحذف من السيرفر، نحذف السجل نهائياً من الـ Local
           await localDataSource.deleteExpense(local);
         } catch (_) {
+          // في حال فشل السيرفر، نضيف العملية لطابور المزامنة
           await _addToQueue(local, SyncAction.delete);
         }
       } else {
+        // إذا كان الجهاز غير متصل، نضيف العملية لطابور المزامنة
         await _addToQueue(local, SyncAction.delete);
       }
 
@@ -207,7 +225,6 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       return Left(CacheFailure('Delete expense failed: $e'));
     }
   }
-
   // =========================
   // GET
   // =========================

@@ -42,6 +42,7 @@ class FixedIncomeBinding extends Bindings {
           localDataSource: Get.find<FixedIncomeLocalDataSource>(),
           remote: Get.find<FixedIncomeRemoteDataSource>(),
           syncQueueRepository: Get.find(),
+          walletRepo: Get.find(),
         ),
         permanent: true,
       );
@@ -90,10 +91,10 @@ class FixedIncomeBinding extends Bindings {
     // متحكم إضافة مصروف جديد
     Get.lazyPut<FixedIncomeController>(
       () => FixedIncomeController(
-        getUseCase: Get.find<GetFixedIncomesUseCase>(),
         addUseCase: Get.find<AddFixedIncomeUseCase>(),
         updateUseCase: Get.find<UpdateFixedIncomeUseCase>(),
         deleteUseCase: Get.find<DeleteFixedIncomeUseCase>(),
+        walletsListController: Get.find(),
       ),
       fenix: true,
     );

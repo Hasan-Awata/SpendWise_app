@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/helper_function.dart';
 import 'package:spendwise/features/savings_goals/presentation/manager/saving_goal_action_controller.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_text_field.dart';
@@ -94,6 +94,8 @@ class AddSavingGoalPage extends GetView<SavingGoalActionController> {
                     textEditingController: controller.currentAmountController,
                     textColor: Colors.white70,
                   ),
+                  const SizedBox(height: 20),
+                  _buildDatePicker(context),
                 ],
               ),
             ),
@@ -105,23 +107,15 @@ class AddSavingGoalPage extends GetView<SavingGoalActionController> {
               () => SizedBox(
                 width: double.infinity,
                 height: 52,
-                child: CustomButton(
-                  text: controller.isActionLoading.value
-                      ? "جاري الحفظ..."
-                      : "حفظ الهدف",
-                  onPressed: () {
-                    if (controller.selectedWallet.value == null) {
-                      HelperFunction.showSnackBar(
-                        "تنبيه",
-                        "يرجى اختيار محفظة أولاً",
-                        isError: true,
-                      );
-                      return;
-                    }
-                    controller.addSavingGoal();
-                  },
-                  color: SpColor.savinggoalColor,
-                ),
+                child: controller.isActionLoading.value
+                    ? Center(child: CircularProgressIndicator())
+                    : CustomButton(
+                        text: "حفظ الهدف",
+                        onPressed: () {
+                          controller.addSavingGoal();
+                        },
+                        color: SpColor.savinggoalColor,
+                      ),
               ),
             ),
 
@@ -159,6 +153,33 @@ class AddSavingGoalPage extends GetView<SavingGoalActionController> {
               },
               hint: 'اختر محفظة',
             ),
+    );
+  }
+
+  Widget _buildDatePicker(BuildContext context) {
+    return Obx(
+      () => Container(
+        padding: EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: SpColor.surfaceNavy,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text(
+            "تاريخ الانتهاء",
+            style: TextStyle(color: Colors.white70),
+          ), // تم التعديل لـ LastTime
+          trailing: Text(
+            DateFormat('yyyy-MM-dd').format(controller.deadlineDate.value),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          onTap: () => controller.fetchDate(context),
+        ),
+      ),
     );
   }
 }

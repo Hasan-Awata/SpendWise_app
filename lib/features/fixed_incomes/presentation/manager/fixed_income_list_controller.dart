@@ -20,12 +20,13 @@ class FixedIncomeListController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchIncomes();
+    fetchIncomes(isRefresh: true);
   }
 
   // =========================
   // FETCH
   // =========================
+  // استبدل fetchIncomes بهذه النسخة التي تضمن عدم وجود تكرار
   Future<void> fetchIncomes({bool isRefresh = false}) async {
     isLoading.value = true;
     errorMessage.value = '';
@@ -37,8 +38,11 @@ class FixedIncomeListController extends GetxController {
         errorMessage.value = failure.message;
       },
       (data) {
+        // بدلاً من التلاعب بالقائمة يدوياً، نحن دائماً نحدث القائمة بناءً على القاعدة
+        // وبما أننا نستخدم .assignAll، فهي تمسح القائمة القديمة وتضع الجديدة
+        // إذا استمر التكرار، فالمشكلة في الـ Repository (يعيد بيانات مكررة من الـ DB)
         incomesList.assignAll(data);
-        // ترتيب الالتزامات حسب تاريخ الاستحقاق (الأقرب أولاً)
+
         incomesList.sort((a, b) => a.lastTime.compareTo(b.lastTime));
         _updateTotals();
       },

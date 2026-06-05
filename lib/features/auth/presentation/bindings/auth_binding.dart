@@ -8,6 +8,7 @@ import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasour
 import 'package:spendwise/features/auth/data/datasource/app_user_remote_datasource_impl.dart';
 import 'package:spendwise/features/auth/data/repositories/user_repository_impl.dart';
 import 'package:spendwise/features/auth/domain/repositories/user_repository.dart';
+import 'package:spendwise/features/auth/domain/usecases/get_user_by_user_name_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_id_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/get_user_usecase.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_usecase.dart';
@@ -81,6 +82,12 @@ class AuthBinding extends Bindings {
     if (!Get.isRegistered<GetUserUsecase>()) {
       Get.lazyPut(
         () => GetUserUsecase(Get.find<UserRepository>()),
+        fenix: true,
+      );
+    }
+    if (!Get.isRegistered<GetUserByUsernameUseCase>()) {
+      Get.lazyPut(
+        () => GetUserByUsernameUseCase(Get.find<UserRepository>()),
         fenix: true,
       );
     }

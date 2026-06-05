@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:spendwise/features/wallet/presentation/manager/delete_wallet_controller.dart';
@@ -37,10 +38,10 @@ class WalletsView extends GetView<WalletsListController> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: SpColor.mutedGrey,
-        onPressed: () => Get.toNamed('/add-wallet'),
+        onPressed: () => Get.toNamed(Routes.ADD_INCOME),
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: const Text(
-          "إضافة محفظة",
+          "إضافة دخل",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),

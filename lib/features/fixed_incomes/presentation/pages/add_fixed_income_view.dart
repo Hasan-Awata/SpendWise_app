@@ -5,6 +5,7 @@ import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/fixed_incomes/presentation/manager/fixed_income_controller.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
+import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.dart';
 
 class AddFixedIncomeView extends GetView<FixedIncomeController> {
   const AddFixedIncomeView({super.key});
@@ -56,6 +57,8 @@ class AddFixedIncomeView extends GetView<FixedIncomeController> {
                     Icons.calendar_today_rounded,
                   ),
                   const SizedBox(height: 20),
+                  _buildWalletDropdown(),
+                  const SizedBox(height: 20),
                   _buildDatePicker(context),
                   const Divider(color: Colors.white10),
                   const SizedBox(height: 20),
@@ -64,7 +67,7 @@ class AddFixedIncomeView extends GetView<FixedIncomeController> {
               ),
               const SizedBox(height: 30),
               Obx(
-                () => controller.isLoading.value
+                () => controller.isActionLoading.value
                     ? const CircularProgressIndicator(
                         color: Color.fromARGB(255, 0, 90, 84),
                       )
@@ -185,6 +188,37 @@ class AddFixedIncomeView extends GetView<FixedIncomeController> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWalletDropdown() {
+    return Obx(
+      () => SPDropdownSearch(
+        themeColor: SpColor.incomeGreen,
+
+        label: "المحفظة",
+
+        items: controller.walletsListController.regularWallets
+            .map((w) => "${w.currency.currencyName} (${w.currency.code})")
+            .toList(),
+
+        onChanged: (value) {
+          final index = controller.walletsListController.regularWallets
+              .indexWhere(
+                (w) =>
+                    "${w.currency.currencyName} (${w.currency.code})"
+                        .toLowerCase()
+                        .trim() ==
+                    value?.toLowerCase().trim(),
+              );
+          if (index != -1) {
+            controller.selectedWallet.value =
+                controller.walletsListController.regularWallets[index];
+          }
+        },
+
+        hint: 'اختر محفظة',
       ),
     );
   }

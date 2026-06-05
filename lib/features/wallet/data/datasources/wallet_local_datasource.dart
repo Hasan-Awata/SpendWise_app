@@ -15,6 +15,9 @@ abstract class WalletLocalDatasource {
 
   Future<void> saveOrUpdateRemoteWallet(WalletModel remoteWallet);
 
+  WalletModel? getWalletByWalletId(int walletId);
+
+  Future<List<WalletModel>> getWalletsByCurrencyId(int currencyId);
   Future<void> clearWallets();
   WalletModel? getRegularWallet(int currencyId);
   WalletModel? getSavingsWallet(int currencyId);

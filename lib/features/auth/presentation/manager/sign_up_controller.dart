@@ -45,6 +45,7 @@ class SignUpController extends GetxController {
           );
         },
         (user) async {
+          print("id id ${user.userId}");
           Get.find<AuthSessionController>().currentUser.value = user;
 
           HelperFunction.showSnackBar(

@@ -54,7 +54,7 @@ class AddExpenseController extends GetxController {
   final selectedCategory = Rxn<CategoryModel>();
   final selectedDate = DateTime.now().obs;
   final isLoadingSave = false.obs;
-  final isFixed = false.obs;
+
   final totalCalculatedAmount = 0.0.obs;
 
   final RxList<CategoryModel> categories = <CategoryModel>[
@@ -67,6 +67,15 @@ class AddExpenseController extends GetxController {
   final RxList<ProductModel> tempProducts = <ProductModel>[].obs;
 
   // ... (إبقاء دوال addProductToList, removeProduct, _updateAmountBasedOnProducts كما هي)
+
+  @override
+  void onInit() {
+    super.onInit();
+    // التحقق إذا كانت هناك بيانات مرسلة من شاشة الـ OCR
+    if (Get.arguments is OcrResult) {
+      populateFromOcr(Get.arguments as OcrResult);
+    }
+  }
 
   // =========================
   // SAVE
@@ -142,7 +151,6 @@ class AddExpenseController extends GetxController {
         category: selectedCategory.value,
         isSynced: false.obs,
         isDeleted: false,
-        isFixed: isFixed.value,
       );
 
       final result = await addUseCase.call(expense);
@@ -327,7 +335,6 @@ class AddExpenseController extends GetxController {
     selectedWallet.value = null;
     selectedTag.value = null;
     selectedCategory.value = null;
-    isFixed.value = false;
   }
 
   // =========================

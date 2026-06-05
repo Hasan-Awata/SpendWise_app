@@ -69,4 +69,37 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
       return false;
     }
   }
+
+  // =========================
+  // GET WALLET BY ID
+  // =========================
+  @override
+  Future<WalletModel?> getWalletById(int walletId) async {
+    // // جلب محفظة واحدة بناءً على معرفها الخاص
+    final result = await network.request(
+      endpoint: "${ApiEndpoints.wallet}/$walletId",
+      method: "GET",
+    );
+
+    return WalletModel.fromJson(result);
+  }
+
+  // =========================
+  // GET WALLETS BY CURRENCY ID
+  // =========================
+  @override
+  Future<List<WalletModel>?> getWalletsByCurrencyId(int currencyId) async {
+    // // إرسال طلب جلب المحافظ مع تمرير العملة كـ Query Parameter
+    final result = await network.request(
+      endpoint: ApiEndpoints.wallet,
+      method: "GET",
+      queryParameters: {"currencyId": currencyId},
+    );
+
+    final List list = result is Map && result["data"] is List
+        ? result["data"]
+        : result;
+
+    return list.map((e) => WalletModel.fromJson(e)).toList();
+  }
 }

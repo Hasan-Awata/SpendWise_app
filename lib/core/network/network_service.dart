@@ -231,14 +231,16 @@ class NetworkService extends GetxService {
   // FILE UPLOAD
   // =========================
 
-  /// دالة لرفع ملف باستخدام تقنية multipart/form-data
+  /// دالة لرفع ملف باستخدام تقنية multipart/form-data مع مراقبة الأداء
   Future<dynamic> upload({
     required String endpoint,
     required File file,
     String fieldName = 'file',
     bool retry = true,
   }) async {
-    // 1. التحقق من الاتصال قبل البدء
+    // إنشاء مؤقت لقياس الوقت
+    final stopwatch = Stopwatch()..start();
+
     if (!isOnline.value) {
       throw Exception("User is offline. Upload blocked.");
     }
@@ -246,13 +248,9 @@ class NetworkService extends GetxService {
     final uri = Uri.parse("${ApiEndpoints.baseUrl}$endpoint");
 
     try {
-      // 2. إعداد الطلب
       var request = http.MultipartRequest('POST', uri);
-
-      // إضافة التوكن (Authorization)
       request.headers['Authorization'] = 'Bearer ${CurrentUser.token}';
 
-      // إضافة الملف
       var stream = http.ByteStream(file.openRead());
       var length = await file.length();
       var multipartFile = http.MultipartFile(
@@ -263,26 +261,30 @@ class NetworkService extends GetxService {
       );
       request.files.add(multipartFile);
 
-      // 3. إرسال الطلب
+      // إرسال الطلب مع قياس الوقت
       var streamedResponse = await request.send().timeout(
-        const Duration(seconds: 60),
+        const Duration(seconds: 30),
       );
       var response = await http.Response.fromStream(streamedResponse);
 
+      stopwatch.stop(); // إيقاف المؤقت بعد استلام الرد
+
       if (kDebugMode) {
-        print("📤 [API UPLOAD] ${response.statusCode} ${response.body} | $uri");
+        // طباعة سجلات توضح الوقت المستغرق
+        print("📤 [API UPLOAD] Success: ${response.statusCode}");
+        print(
+          "⏱️ [TIME TAKEN] ${stopwatch.elapsedMilliseconds} ms (${stopwatch.elapsed.inSeconds} seconds)",
+        );
+        print("🔗 [URL] $uri");
       }
 
-      // 4. معالجة النجاح
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return response.body.isEmpty ? null : jsonDecode(response.body);
       }
 
-      // 5. التعامل مع انتهاء صلاحية التوكن (401)
       if (response.statusCode == 401 && retry) {
         final refreshed = await _refreshToken();
         if (refreshed) {
-          // إعادة المحاولة مرة واحدة بعد تحديث التوكن
           return await upload(
             endpoint: endpoint,
             file: file,
@@ -296,8 +298,11 @@ class NetworkService extends GetxService {
 
       throw Exception("Upload failed with status: ${response.statusCode}");
     } catch (e) {
+      stopwatch.stop(); // إيقاف المؤقت حتى في حالة حدوث خطأ
       if (kDebugMode) {
-        print("❌ [API UPLOAD ERROR]: $e");
+        print(
+          "❌ [API UPLOAD ERROR] After ${stopwatch.elapsedMilliseconds} ms: $e",
+        );
       }
       rethrow;
     }

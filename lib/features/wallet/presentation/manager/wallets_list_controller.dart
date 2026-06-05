@@ -166,7 +166,6 @@ class WalletsListController extends GetxController {
 
     return result.fold(
       (failure) {
-        HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
         return false;
       },
       (success) {

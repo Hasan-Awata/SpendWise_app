@@ -29,6 +29,26 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
     });
   }
 
+  // جلب محفظة واحدة بناءً على الـ WalletId (الخاص بالسيرفر)
+  @override
+  WalletModel? getWalletByWalletId(int walletId) {
+    return isar.walletModels
+        .filter()
+        .walletIdEqualTo(walletId)
+        .isDeletedEqualTo(false) // نتجاهل المحذوفة
+        .findFirstSync();
+  }
+
+  // جلب قائمة محافظ بناءً على عملة محددة
+  @override
+  Future<List<WalletModel>> getWalletsByCurrencyId(int currencyId) async {
+    return await isar.walletModels
+        .filter()
+        .currencyIdEqualTo(currencyId)
+        .isDeletedEqualTo(false) // نتجاهل المحذوفة
+        .findAll();
+  }
+
   @override
   Future<void> updateWallet(WalletModel wallet) async {
     await isar.writeTxn(() async {
@@ -134,9 +154,13 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
           .isDeletedEqualTo(false)
           .findFirst();
 
+      if (savings != null) {
+        savings.balance += amount;
+        await isar.walletModels.put(savings);
+        return;
+      }
       if (regular == null) throw Exception("المحفظة الجارية غير موجودة");
 
-      // 1. التحقق من الرصيد الكلي المتاح
       double totalAvailable = regular.balance + (savings?.balance ?? 0.0);
       if (totalAvailable < amount) {
         throw Exception("الرصيد الكلي غير كافٍ");
@@ -182,14 +206,12 @@ class WalletLocalDatasourceImpl implements WalletLocalDatasource {
           .isDeletedEqualTo(false)
           .findFirst();
 
-      if (regular == null) throw Exception("المحفظة الجارية غير موجودة");
-
-      // إرجاع كل جزء إلى محفظته الأصلية
-      regular.balance += amountFromRegular;
-      regular.numberOfTransactions += 1;
-      await isar.walletModels.put(regular);
-
-      if (savings != null && amountFromSavings > 0) {
+      if (regular != null && amountFromRegular > 0.0) {
+        regular.balance += amountFromRegular;
+        regular.numberOfTransactions += 1;
+        await isar.walletModels.put(regular);
+      }
+      if (savings != null && amountFromSavings > 0.0) {
         savings.balance += amountFromSavings;
         await isar.walletModels.put(savings);
       }

@@ -38,6 +38,9 @@ class HelperFunction {
     bool confirmed = false;
 
     await Get.defaultDialog(
+      backgroundColor: SpColor.surfaceNavy,
+      middleTextStyle: TextStyle(color: SpColor.offWhite),
+      titleStyle: TextStyle(color: SpColor.offWhite),
       title: title,
       middleText: message,
       textConfirm: "متابعة",
@@ -45,11 +48,10 @@ class HelperFunction {
       confirmTextColor: Colors.white,
       onConfirm: () {
         confirmed = true;
-        Get.back(); // إغلاق الحوار
+        Get.back();
       },
       onCancel: () {
         confirmed = false;
-        Get.back(); // إغلاق الحوار
       },
     );
 

@@ -111,21 +111,20 @@ class WalletRepositoryImpl implements WalletRepository {
 
       // ✔️ أهم تعديل هنا
       final resultEntity = finalModel.toEntity();
-
-      final amount = wallet.balance;
-      print("AMOUNT IS IS ---->$amount");
-      final income = IncomeEntity(
-        userId: wallet.userId,
-        wallet: wallet,
-        walletId: resultEntity.walletId ?? -1, // ✔️ مهم جداً
-        description: "DEFAULT INCOME",
-        date: DateTime.now(),
-        title: "DEFAULT INCOME",
-
-        amount: amount,
-      );
-
-      await Get.find<IncomeRepository>().addIncome(income);
+      if (resultEntity.walletId != null && resultEntity.walletId != -1) {
+        final amount = wallet.balance;
+        print("AMOUNT IS IS ---->$amount");
+        final income = IncomeEntity(
+          userId: wallet.userId,
+          wallet: wallet,
+          walletId: resultEntity.walletId ?? -1, // ✔️ مهم جداً
+          description: "DEFAULT INCOME",
+          date: DateTime.now(),
+          title: "DEFAULT INCOME",
+          amount: amount,
+        );
+        await Get.find<IncomeRepository>().addIncome(income);
+      }
 
       return Right(resultEntity);
     } catch (e) {
@@ -195,10 +194,18 @@ class WalletRepositoryImpl implements WalletRepository {
 
       if (isOnline) {
         try {
-          await remote.deleteWallet(localWallet);
+          final res = await remote.deleteWallet(localWallet);
 
           // نجاح → حذف نهائي محلي
-          await local.deleteWallet(localWallet);
+          if (res) {
+            await local.deleteWallet(localWallet);
+          } else {
+            return Left(
+              ServerFailure(
+                "لا يمكن حذف المحفظة لانها قد تكون مرتبطة بعملية ما",
+              ),
+            );
+          }
         } catch (e) {
           // =========================
           // ❌ ROLLBACK
@@ -252,13 +259,13 @@ class WalletRepositoryImpl implements WalletRepository {
       );
       return const Right("تم استرجاع الرصيد بنجاح");
     } catch (e) {
-      return Left(CacheFailure("فشل استرجاع الرصيد: ${e.toString()}"));
+      return Left(CacheFailure("خطأ :${e.toString()}"));
     }
   }
 
   @override
   Future<Either<Failure, double>> getWalletBalance({
-    required int currencyId,
+    required int walletId,
   }) async {
     try {
       // جلب كل المحافظ من مصدر البيانات المحلي
@@ -266,12 +273,80 @@ class WalletRepositoryImpl implements WalletRepository {
 
       // حساب مجموع الأرصدة للمحافظ التي لها نفس العملة
       double total = allWallets
-          .where((w) => w.currencyId == currencyId)
+          .where((w) => w.walletId == w)
           .fold(0.0, (sum, w) => sum + w.balance);
 
       return Right(total);
     } catch (e) {
       return Left(CacheFailure("خطأ في حساب رصيد العملة: $e"));
+    }
+  }
+  // lib/features/wallet/data/repositories/wallet_repository_impl.dart
+
+  @override
+  Future<Either<Failure, WalletEntity>> getWalletById(int walletId) async {
+    try {
+      // محاولة الجلب من السيرفر إذا كان هناك اتصال
+      if (networkService.isOnline.value) {
+        try {
+          // نطلب من الـ Remote جلب المحفظة بالـ ID
+          final remoteWallet = await remote.getWalletById(walletId);
+          if (remoteWallet != null) {
+            remoteWallet.isSynced = true;
+            await local.updateWallet(remoteWallet);
+          }
+        } catch (e) {
+          if (kDebugMode) print("⚠️ Sync failed for wallet $walletId: $e");
+        }
+      }
+
+      // الجلب من Local (Isar)
+      final localWallet = local.getWalletByWalletId(walletId);
+      if (localWallet == null) return Left(CacheFailure("المحفظة غير موجودة"));
+
+      localWallet.currency = currencyRepository.getById(localWallet.currencyId);
+      return Right(localWallet.toEntity());
+    } catch (e) {
+      return Left(CacheFailure("فشل جلب المحفظة: $e"));
+    }
+  }
+
+  // lib/features/wallet/data/repositories/wallet_repository_impl.dart
+
+  @override
+  Future<Either<Failure, List<WalletEntity>>> getWalletsByCurrencyId(
+    int currencyId,
+  ) async {
+    try {
+      // مزامنة مع السيرفر إذا كان هناك اتصال
+      if (networkService.isOnline.value) {
+        try {
+          final remoteWallets = await remote.getWalletsByCurrencyId(currencyId);
+          if (remoteWallets != null) {
+            for (var wallet in remoteWallets) {
+              wallet.isSynced = true;
+              await local.updateWallet(wallet);
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) print("⚠️ Sync failed for currency $currencyId: $e");
+        }
+      }
+
+      // الجلب من Local (Isar) والفلترة حسب العملة
+      final allLocalWallets = await local.myWallets();
+      final filtered = allLocalWallets
+          .where((w) => !w.isDeleted && w.currencyId == currencyId)
+          .toList();
+
+      final entities = filtered.map((w) {
+        w.currency = currencyRepository.getById(w.currencyId);
+        return w.toEntity();
+      }).toList();
+
+      return Right(entities);
+    } catch (e) {
+      return Left(CacheFailure("فشل جلب المحافظ حسب العملة: $e"));
     }
   }
 

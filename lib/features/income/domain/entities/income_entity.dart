@@ -9,7 +9,7 @@ class IncomeEntity {
   int userId;
   String title;
   int? walletId;
-
+  int? fixedIncomeId;
   String? walletLocalId;
   double amount;
   DateTime date;
@@ -29,6 +29,7 @@ class IncomeEntity {
     String? localId,
     this.walletLocalId,
     this.id,
+    this.fixedIncomeId,
     required this.userId,
     required this.title,
     this.walletId,

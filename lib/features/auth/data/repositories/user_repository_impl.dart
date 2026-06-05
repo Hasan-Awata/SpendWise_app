@@ -97,6 +97,15 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   // --- Exception Handling (بديل لـ DioError) ---
+  @override
+  Future<Either<Failure, UserModel>> getUserByUsername(String username) async {
+    try {
+      final user = await appUserRemoteDatasource.getUserByUsername(username);
+      return Right(user);
+    } catch (e) {
+      return Left(_handleException(e));
+    }
+  }
 
   Failure _handleException(dynamic e) {
     print("❌ Auth Repository Exception: $e");

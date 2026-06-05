@@ -33,7 +33,7 @@ class TagViewController extends GetxController {
   void onInit() {
     super.onInit();
     scrollController.addListener(_scrollListener);
-    loadTags(isRefresh: true);
+    loadTags();
   }
 
   // =========================

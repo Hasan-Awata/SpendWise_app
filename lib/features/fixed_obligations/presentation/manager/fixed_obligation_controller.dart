@@ -11,18 +11,21 @@ import 'package:spendwise/features/fixed_obligations/domain/usecases/delete_fixe
 import 'package:spendwise/features/fixed_obligations/domain/usecases/get_fixed_obligation_usecase.dart';
 import 'package:spendwise/features/fixed_obligations/domain/usecases/update_fixed_obligation_usecases.dart';
 import 'package:spendwise/features/helper_function.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class FixedObligationController extends GetxController {
   final GetFixedObligationsUseCase getUseCase;
   final AddFixedObligationUseCase addUseCase;
   final UpdateFixedObligationUseCase updateUseCase;
   final DeleteFixedObligationUseCase deleteUseCase;
-
+  final WalletsListController walletsListController;
   FixedObligationController({
     required this.getUseCase,
     required this.addUseCase,
     required this.updateUseCase,
     required this.deleteUseCase,
+    required this.walletsListController,
   });
 
   // =========================
@@ -30,16 +33,17 @@ class FixedObligationController extends GetxController {
   // =========================
   final RxList<FixedObligationModel> obligations = <FixedObligationModel>[].obs;
   final RxBool isLoading = false.obs;
-
+  final RxBool isLoadingDelete = false.obs;
   // Controllers for Input
   final titleController = TextEditingController();
   final amountController = TextEditingController();
-  final dayOfMonthController = TextEditingController();
+  final daysController = TextEditingController();
 
   // أضف هذه المتغيرات في كلاس الـ Controller
   final Rx<DateTime> selectedDate = DateTime.now().obs;
   final RxBool isActive = true.obs;
 
+  final selectedWallet = Rxn<WalletEntity>();
   // أضف هذه الدالة لاختيار التاريخ
   Future<void> pickDate(BuildContext context) async {
     DateTime? picked = await showDatePicker(
@@ -51,25 +55,9 @@ class FixedObligationController extends GetxController {
     if (picked != null) selectedDate.value = picked;
   }
 
-  @override
-  void onInit() {
-    super.onInit();
-    fetchObligations();
-  }
-
   // =========================
   // OPERATIONS
   // =========================
-
-  Future<void> fetchObligations() async {
-    isLoading.value = true;
-    final result = await getUseCase.call();
-    result.fold((failure) => _handleError("خطأ", failure.message), (data) {
-      obligations.assignAll(data);
-      obligations.sort((a, b) => a.dueDate.compareTo(b.dueDate));
-    });
-    isLoading.value = false;
-  }
 
   Future<void> saveFixedObligation() async {
     if (titleController.text.trim().isEmpty || amountController.text.isEmpty) {
@@ -82,11 +70,14 @@ class FixedObligationController extends GetxController {
       ownerId: CurrentUser.userId!,
       title: titleController.text.trim(),
       amount: double.tryParse(amountController.text) ?? 0.0,
-      dueDate: selectedDate.value, // استخدام التاريخ المختار
+      lastTime: selectedDate.value, // استخدام التاريخ المختار
       isActive: isActive.value, // استخدام الحالة المختارة
       isDeleted: false,
       isSynced: false,
       syncAttempts: 0,
+      walletId: selectedWallet.value?.walletId ?? -1,
+      wallet: selectedWallet.value,
+      days: int.tryParse(daysController.text) ?? 1,
     );
     isLoading.value = true;
     final result = await addUseCase.call(model);
@@ -98,28 +89,42 @@ class FixedObligationController extends GetxController {
       // تنظيف الحقول
       titleController.clear();
       amountController.clear();
-      dayOfMonthController.clear();
+      daysController.clear();
 
       HelperFunction.showSnackBar(
         "نجاح",
         "تمت إضافة الالتزام وتجهيزه للمزامنة",
       );
-      Get.back();
     });
     isLoading.value = false;
   }
 
-  Future<void> deleteObligationLocally(int isarId) async {
-    final index = obligations.indexWhere((e) => e.isarId == isarId);
-    if (index != -1) {
-      final model = obligations[index];
-      obligations.removeAt(index);
+  Future<void> deleteObligationLocally(FixedObligationModel entity) async {
+    try {
+      isLoadingDelete.value = true;
 
-      final result = await deleteUseCase.call(model);
-      result.fold((failure) {
-        obligations.insert(index, model); // استرجاع في حال الفشل
-        _handleError("فشل الحذف", failure.message);
-      }, (_) => HelperFunction.showSnackBar("نجاح", "تم حذف الالتزام"));
+      // =====================
+      // OPTIMISTIC DELETE
+      // =====================
+
+      // =====================
+      // DELETE FROM DATABASE/API
+      // =====================
+
+      final result = await deleteUseCase.call(entity);
+
+      result.fold(
+        (failure) {
+          _handleError("فشل الحذف", failure.message);
+        },
+        (_) {
+          HelperFunction.showSnackBar("تم الحذف", "تم الحذف بنجاح");
+        },
+      );
+    } catch (e) {
+      _handleError("خطأ تقني", e.toString());
+    } finally {
+      isLoadingDelete.value = false;
     }
   }
 
@@ -141,7 +146,7 @@ class FixedObligationController extends GetxController {
   void onClose() {
     titleController.dispose();
     amountController.dispose();
-    dayOfMonthController.dispose();
+    daysController.dispose();
     super.onClose();
   }
 }

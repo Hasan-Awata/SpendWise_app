@@ -183,7 +183,12 @@ class IncomeRepositoryImpl implements IncomeRepository {
 
       if (network.isOnline.value) {
         try {
-          await remote.deleteIncome(local);
+          final res = await remote.deleteIncome(local);
+          if (res) {
+            await localDataSource.deleteIncome(local);
+          } else {
+            return Left(ServerFailure("فشل الحذف من السيرفر"));
+          }
         } catch (e) {
           await _addToQueue(local, SyncAction.delete);
         }

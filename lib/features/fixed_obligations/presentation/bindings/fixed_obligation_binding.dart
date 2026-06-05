@@ -97,6 +97,7 @@ class FixedObligationBinding extends Bindings {
         addUseCase: Get.find<AddFixedObligationUseCase>(),
         updateUseCase: Get.find<UpdateFixedObligationUseCase>(),
         deleteUseCase: Get.find<DeleteFixedObligationUseCase>(),
+        walletsListController: Get.find(),
       ),
       fenix: true,
     );

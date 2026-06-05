@@ -7,6 +7,8 @@ import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/fixed_incomes/data/models/fixedIncome_model.dart';
 import 'package:spendwise/features/fixed_incomes/presentation/manager/fixed_income_controller.dart'
     show FixedIncomeController;
+import 'package:spendwise/features/fixed_incomes/presentation/manager/fixed_income_list_controller.dart';
+import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart';
 
 class FixedIncomeListView extends StatelessWidget {
   const FixedIncomeListView({super.key});
@@ -14,7 +16,7 @@ class FixedIncomeListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // تأكد من ضبط Controller الخاص بك في الـ Binding
-    final controller = Get.find<FixedIncomeController>();
+    final controller = Get.find<FixedIncomeListController>();
 
     return Scaffold(
       backgroundColor: const Color(0xFF020817),
@@ -42,13 +44,13 @@ class FixedIncomeListView extends StatelessWidget {
         ),
       ),
       body: Obx(() {
-        if (controller.isLoading.value && controller.incomes.isEmpty) {
+        if (controller.isLoading.value && controller.incomesList.isEmpty) {
           return const Center(
             child: CircularProgressIndicator(color: SpColor.incomeGreen),
           );
         }
 
-        if (controller.incomes.isEmpty) {
+        if (controller.incomesList.isEmpty) {
           return Center(
             child: ListView(
               shrinkWrap: true,
@@ -83,9 +85,9 @@ class FixedIncomeListView extends StatelessWidget {
               parent: BouncingScrollPhysics(),
             ),
             padding: const EdgeInsets.only(bottom: 100),
-            itemCount: controller.incomes.length,
+            itemCount: controller.incomesList.length,
             itemBuilder: (context, index) {
-              final income = controller.incomes[index];
+              final income = controller.incomesList[index];
               return _buildIncomeItem(income, controller);
             },
           ),
@@ -96,7 +98,7 @@ class FixedIncomeListView extends StatelessWidget {
 
   Widget _buildIncomeItem(
     FixedIncomeModel income,
-    FixedIncomeController controller,
+    FixedIncomeListController controller,
   ) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -185,13 +187,19 @@ class FixedIncomeListView extends StatelessWidget {
 
   Widget _buildActions(
     FixedIncomeModel item,
-    FixedIncomeController controller,
+    FixedIncomeListController controller,
   ) {
+    final curreny =
+        Get.find<WalletsListController>().wallets
+            .firstWhereOrNull((w) => w.walletId == item.walletId)
+            ?.currency
+            .code ??
+        "No Code";
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text(
-          item.amount.toStringAsFixed(2),
+          "${item.amount.toStringAsFixed(2)} $curreny",
           style: const TextStyle(
             color: SpColor.incomeGreen,
             fontSize: 18,
@@ -199,18 +207,10 @@ class FixedIncomeListView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _iconBtn(Icons.edit, Colors.blueAccent, () {
-              // إضافة منطق التعديل هنا
-            }),
-            const SizedBox(width: 6),
-            _iconBtn(Icons.delete, Colors.redAccent, () {
-              controller.deleteFixedIncome(item.isarId);
-            }),
-          ],
-        ),
+        const SizedBox(width: 6),
+        _iconBtn(Icons.delete, Colors.redAccent, () {
+          _showDeleteDialog(item);
+        }),
       ],
     );
   }
@@ -225,6 +225,34 @@ class FixedIncomeListView extends StatelessWidget {
         onPressed: onTap,
         icon: Icon(icon, color: color, size: 20),
       ),
+    );
+  }
+
+  // واجهة تأكيد الحذف
+  void _showDeleteDialog(FixedIncomeModel item) {
+    final controller = Get.find<FixedIncomeController>();
+
+    Get.defaultDialog(
+      backgroundColor: SpColor.surfaceNavy,
+
+      title: "حذف الدخل",
+      titleStyle: const TextStyle(
+        color: Colors.white,
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+      ),
+      middleText:
+          "هل أنت متأكد من حذف هذا الدخل الثابت؟ لا يمكن التراجع عن هذا الإجراء.",
+      textConfirm: "حذف",
+      textCancel: "إلغاء",
+
+      middleTextStyle: TextStyle(color: SpColor.offWhite),
+      confirmTextColor: SpColor.offWhite,
+      buttonColor: SpColor.incomeGreen,
+      onConfirm: () async {
+        await controller.deleteFixedIncome(item);
+        Get.back(); // إغلاق الـ Dialog
+      },
     );
   }
 }

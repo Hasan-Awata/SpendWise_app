@@ -1,5 +1,6 @@
 import 'package:isar/isar.dart';
 import 'package:spendwise/features/sync/model/syncable_model.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 
 part 'fixedIncome_model.g.dart';
 
@@ -12,12 +13,16 @@ class FixedIncomeModel implements SyncableModel {
 
   int userId;
   int tagId; // مضاف حديثاً بناءً على الـ DTO
+  int walletId;
   String title;
   double amount;
   bool isMonthly; // مضاف حديثاً
   bool isActive;
   int days; // مضاف حديثاً
   DateTime lastTime; // مضاف حديثاً
+
+  @ignore
+  WalletEntity? wallet;
 
   @override
   bool isDeleted;
@@ -32,6 +37,8 @@ class FixedIncomeModel implements SyncableModel {
     this.fixedIncomeId = -1,
     required this.userId,
     required this.tagId,
+    required this.walletId,
+    this.wallet,
     required this.title,
     required this.amount,
     required this.isMonthly,
@@ -54,14 +61,15 @@ class FixedIncomeModel implements SyncableModel {
       isActive: json['isActive'] ?? true,
       days: json['days'] ?? 1,
       lastTime: DateTime.parse(json['lastTime']),
+      walletId: json['walletId'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'fixedIncomeId': fixedIncomeId,
       'userId': userId,
       'tagId': tagId,
+      'walletId': walletId,
       'title': title,
       'amount': amount,
       'isMonthly': isMonthly,
@@ -69,6 +77,17 @@ class FixedIncomeModel implements SyncableModel {
       'days': days,
       'lastTime': lastTime.toIso8601String(),
     };
+  }
+
+  // داخل FixedIncomeModel
+  DateTime get nextDueDate {
+    if (isMonthly) {
+      // إذا كان شهرياً، نضيف شهراً إلى lastTime
+      return DateTime(lastTime.year, lastTime.month + 1, lastTime.day);
+    } else {
+      // إذا كان بعدد أيام محدد، نضيف عدد الأيام إلى lastTime
+      return lastTime.add(Duration(days: days));
+    }
   }
 
   @override

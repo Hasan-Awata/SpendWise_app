@@ -16,7 +16,7 @@ class IncomeListView extends GetView<IncomesListController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF020817),
+      backgroundColor: SpColor.primaryDark2,
 
       appBar: AppBar(
         elevation: 0,

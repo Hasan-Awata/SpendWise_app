@@ -7,17 +7,25 @@ import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/features/budget/data/datasource/category_budget_local_datasource.dart';
 import 'package:spendwise/features/budget/data/datasource/category_budget_remote_datasource.dart';
 import 'package:spendwise/features/budget/presentation/bindings/category_budget_binding.dart';
+import 'package:spendwise/features/debts/data/datasources/shared_debt_local_datasource.dart';
+import 'package:spendwise/features/debts/data/datasources/shared_debt_remote_datasource.dart';
+import 'package:spendwise/features/debts/presentation/manager/debt_binding.dart';
 import 'package:spendwise/features/expense/data/datasources/expense_local_datasource.dart';
 import 'package:spendwise/features/expense/data/datasources/expense_remote_datasource.dart';
+import 'package:spendwise/features/expense/data/repositories/expense_repository.dart';
 import 'package:spendwise/features/expense/presentation/bindings/expense_binding.dart';
+import 'package:spendwise/features/financial_scheduler/financial_scheduler.dart';
 import 'package:spendwise/features/fixed_incomes/data/datasources/fixed_income_local_datasource.dart';
 import 'package:spendwise/features/fixed_incomes/data/datasources/fixed_income_remote_datasource.dart';
+import 'package:spendwise/features/fixed_incomes/data/repositories/fixed_income_repository.dart';
 import 'package:spendwise/features/fixed_incomes/presentation/bindings/fixed_income_binding.dart';
 import 'package:spendwise/features/fixed_obligations/data/datasources/fixed_obligation_local_datasource.dart';
 import 'package:spendwise/features/fixed_obligations/data/datasources/fixed_obligation_remote_datasource.dart';
+import 'package:spendwise/features/fixed_obligations/data/repositories/fixed_obligation_repository.dart';
 import 'package:spendwise/features/fixed_obligations/presentation/bindings/fixed_obligation_binding.dart';
 import 'package:spendwise/features/income/data/datasources/income_local_datasource.dart';
 import 'package:spendwise/features/income/data/datasources/income_remote_datasource.dart';
+import 'package:spendwise/features/income/data/repositories/income_repository.dart';
 import 'package:spendwise/features/income/presentation/bindings/income_binding.dart';
 import 'package:spendwise/features/savings_goals/data/datasources/saving_goal_local_datasource.dart';
 import 'package:spendwise/features/savings_goals/data/datasources/saving_goal_remote_datasource.dart';
@@ -26,6 +34,7 @@ import 'package:spendwise/features/sync/manager/sync_engine.dart';
 import 'package:spendwise/features/sync/manager/sync_manager.dart';
 import 'package:spendwise/features/sync/queue/sync_queue_repository.dart';
 import 'package:spendwise/features/sync/repository/category_budget_sync_repository.dart';
+import 'package:spendwise/features/sync/repository/debt_sync_repository.dart';
 import 'package:spendwise/features/sync/repository/expense_sync_reposiory.dart';
 import 'package:spendwise/features/sync/repository/fixed_income_sync_repository.dart';
 import 'package:spendwise/features/sync/repository/fixed_obligation_sync_repository.dart';
@@ -119,6 +128,15 @@ class SyncBinding extends Bindings {
       ),
       permanent: true,
     );
+
+    SharedDebtBinding().dependencies();
+    Get.put(
+      SharedDebtSyncRepository(
+        local: Get.find<SharedDebtLocalDataSource>(),
+        remote: Get.find<SharedDebtRemoteDatasource>(),
+      ),
+      permanent: true,
+    );
     // =========================================================
     // Engines
     // =========================================================
@@ -170,10 +188,16 @@ class SyncBinding extends Bindings {
         table: "saving_goal",
       ),
       SyncEngine(
-        repository: Get.find<SavingGoalSyncRepository>(),
+        repository: Get.find<FixedIncomeSyncRepository>(),
         network: networkService,
         queueRepository: queueRepo,
         table: "fixed_income",
+      ),
+      SyncEngine(
+        repository: Get.find<SharedDebtSyncRepository>(),
+        network: networkService,
+        queueRepository: queueRepo,
+        table: "shared_debt",
       ),
     ]);
 
@@ -212,5 +236,18 @@ class SyncBinding extends Bindings {
         await syncManager.syncAll();
       }
     });
+
+    Get.put(
+      FinancialScheduler(
+        expenseRepo: Get.find<ExpenseRepository>(),
+        fixedIncomeRepo: Get.find<FixedIncomeRepository>(),
+        fixedObligationRepo: Get.find<FixedObligationRepository>(),
+        incomeRepo: Get.find<IncomeRepository>(),
+      ),
+      permanent: true,
+    );
+
+    // 3. التنفيذ لمرة واحدة عند التشغيل
+    Future.microtask(() => Get.find<FinancialScheduler>().runAllTasks());
   }
 }

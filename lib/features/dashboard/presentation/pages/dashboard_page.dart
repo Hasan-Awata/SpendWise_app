@@ -101,7 +101,7 @@ class DashboardPage extends StatelessWidget {
             ), // تأكد من مطابقة اسم المسار عندك
           ),
           _DashboardTile(
-            icon: Icons.trending_down, // أيقونة مناسبة للديون المشتركة (مشاركة)
+            icon: Icons.trending_up, // أيقونة مناسبة للديون المشتركة (مشاركة)
             title: 'دخل ثابت', // Fixed Income
             subtitle: 'إدارة الدخل الثابت',
             color: const Color.fromARGB(

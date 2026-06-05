@@ -44,7 +44,14 @@ class SavingGoalActionController extends GetxController {
 
   Future<void> addSavingGoal() async {
     if (!_validateInputs()) return;
-
+    if (selectedWallet.value == null) {
+      HelperFunction.showSnackBar(
+        "تنبيه",
+        "يرجى اختيار محفظة أولاً",
+        isError: true,
+      );
+      return;
+    }
     isActionLoading.value = true;
     try {
       final userResult = await userIdUsecase.getUserId();
@@ -71,10 +78,9 @@ class SavingGoalActionController extends GetxController {
               isError: true,
             ),
             (success) {
+              HelperFunction.showSnackBar("نجاح", "تم إضافة هدف الادخار بنجاح");
               _resetFields();
               _refreshList();
-              HelperFunction.showSnackBar("نجاح", "تم إضافة هدف الادخار بنجاح");
-              Get.back();
             },
           );
         },
@@ -89,12 +95,14 @@ class SavingGoalActionController extends GetxController {
 
     isActionLoading.value = true;
     try {
-      // تحديث بيانات الكيان المحلي
       goal.title = titleController.text.trim();
       goal.targetAmount = double.parse(targetAmountController.text);
       goal.currentAmount = double.tryParse(currentAmountController.text) ?? 0.0;
+
+      // التأكد من أن التاريخ المحدث من الـ controller يتم تعيينه هنا
       goal.deadlineDate = deadlineDate.value;
 
+      // 2. إرسال الكائن المحدث للمستودع
       final result = await updateSavingGoalUseCase.call(goal);
 
       result.fold(
@@ -102,7 +110,7 @@ class SavingGoalActionController extends GetxController {
             HelperFunction.showSnackBar("خطأ", failure.message, isError: true),
         (success) {
           _refreshList();
-          Get.back();
+          if (Get.isOverlaysOpen) Get.back(); // إغلاق الـ BottomSheet
           HelperFunction.showSnackBar("نجاح", "تم تحديث الهدف بنجاح");
         },
       );
@@ -113,6 +121,7 @@ class SavingGoalActionController extends GetxController {
 
   Future<void> deleteSavingGoal(SavingGoalEntity goal) async {
     // حذف فوري من الواجهة (Optimistic Update)
+
     if (Get.isRegistered<SavingGoalListController>()) {
       Get.find<SavingGoalListController>().savingGoals.removeWhere(
         (g) => g.localId == goal.localId,
@@ -120,6 +129,7 @@ class SavingGoalActionController extends GetxController {
       Get.find<SavingGoalListController>().refresh();
     }
 
+    Get.back();
     final result = await deleteSavingGoalUseCase.call(goal);
     result.fold(
       (failure) {
@@ -127,8 +137,8 @@ class SavingGoalActionController extends GetxController {
         HelperFunction.showSnackBar("خطأ", failure.message, isError: true);
       },
       (success) {
-        // HelperFunction.showSnackBar("نجاح", "تم حذف الهدف");
-        if (Get.isOverlaysOpen) Get.back();
+        // // HelperFunction.showSnackBar("نجاح", "تم حذف الهدف");
+        // if (Get.isOverlaysOpen)
       },
     );
   }
@@ -165,6 +175,14 @@ class SavingGoalActionController extends GetxController {
     targetAmountController.clear();
     currentAmountController.clear();
     deadlineDate.value = DateTime.now();
+  }
+
+  Future<void> fetchDate(BuildContext context, {DateTime? initialDate}) async {
+    final picked = await HelperFunction.chooseDate(context);
+
+    if (picked != null) {
+      deadlineDate.value = picked;
+    }
   }
 
   @override

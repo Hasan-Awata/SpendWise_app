@@ -36,6 +36,7 @@ class TagActionController extends GetxController {
   // =========================
 
   Future<void> addTag() async {
+    isLoading.value = true;
     final name = nameController.text.trim();
 
     if (name.isEmpty) {
@@ -49,7 +50,6 @@ class TagActionController extends GetxController {
 
     try {
       await tagViewController.refreshmyTags();
-      isLoading.value = true;
 
       // =====================
       // USER ID
@@ -96,6 +96,8 @@ class TagActionController extends GetxController {
           nameController.clear();
 
           HelperFunction.showSnackBar("نجاح", "تم إضافة الوسم");
+          Get.find<TagViewController>().isLoading.value = true;
+          Get.find<TagViewController>().loadTags(isRefresh: true);
         },
       );
     } catch (e) {

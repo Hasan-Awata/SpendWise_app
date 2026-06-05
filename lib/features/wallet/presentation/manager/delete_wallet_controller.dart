@@ -62,9 +62,9 @@ class DeleteWalletController extends GetxController {
       // =========================
 
       final hasConflict =
-          expenses.any((e) => e.currencyId! + 1 == wallet.currencyId) ||
-          incomes.any((i) => i.walletId! + 1 == wallet.walletId) ||
-          goals.any((g) => g.currencyId + 1 == wallet.currencyId);
+          expenses.any((e) => e.currencyId! == wallet.currencyId) ||
+          incomes.any((i) => i.walletId! == wallet.walletId) ||
+          goals.any((g) => g.currencyId == wallet.currencyId);
 
       if (hasConflict) {
         HelperFunction.showSnackBar(

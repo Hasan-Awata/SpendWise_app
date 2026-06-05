@@ -1,5 +1,6 @@
 import 'package:isar/isar.dart';
 import 'package:spendwise/features/sync/model/syncable_model.dart';
+import 'package:spendwise/features/wallet/domain/entities/wallet_entity.dart';
 
 part 'fixed_obligation_model.g.dart';
 
@@ -10,11 +11,16 @@ class FixedObligationModel implements SyncableModel {
   @Index()
   int id;
 
+  int walletId;
   int ownerId;
   String title;
   double amount;
-  DateTime dueDate;
+  DateTime lastTime;
   bool isActive;
+
+  int days;
+  @ignore
+  WalletEntity? wallet;
 
   @override
   bool isDeleted;
@@ -29,32 +35,38 @@ class FixedObligationModel implements SyncableModel {
     this.id = -1,
     required this.ownerId,
     required this.title,
+    required this.walletId,
+    this.wallet,
     required this.amount,
-    required this.dueDate,
+    required this.lastTime,
     required this.isActive,
     this.isDeleted = false,
+    required this.days,
     this.isSynced = false,
     this.syncAttempts = 0,
   });
 
   factory FixedObligationModel.fromJson(Map<String, dynamic> json) {
     return FixedObligationModel(
-      id: json['id'] ?? -1,
+      id: json['fixedObligationId'] ?? -1,
       ownerId: json['ownerId'] ?? -1,
       title: json['title'] ?? '',
       amount: (json['amount'] ?? 0).toDouble(),
-      dueDate: DateTime.parse(json['dueDate']),
+      lastTime: DateTime.parse(json['lastTime']),
+      days: json['days'],
       isActive: json['isActive'] ?? false,
+      walletId: json['walletId'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'ownerId': ownerId,
       'title': title,
+      'walletId': walletId,
       'amount': amount,
-      'dueDate': dueDate.toIso8601String(),
+      'days': days,
+      'lastTime': lastTime.toIso8601String(),
       'isActive': isActive,
     };
   }

@@ -32,7 +32,7 @@ class TagsView extends GetView<TagViewController> {
       ),
 
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: SpColor.mutedGrey,
+        backgroundColor: SpColor.tagColor,
 
         onPressed: () => Get.toNamed('/add-tag'),
 
@@ -45,7 +45,7 @@ class TagsView extends GetView<TagViewController> {
       ),
 
       body: RefreshIndicator(
-        color: SpColor.mutedGrey,
+        color: SpColor.tagColor,
         backgroundColor: const Color(0xFF1E293B),
 
         onRefresh: () async => await controller.refreshmyTags(),
@@ -57,7 +57,7 @@ class TagsView extends GetView<TagViewController> {
 
           if (controller.isLoading.value && controller.myTags.isEmpty) {
             return const Center(
-              child: CircularProgressIndicator(color: SpColor.mutedGrey),
+              child: CircularProgressIndicator(color: SpColor.tagColor),
             );
           }
 
@@ -175,7 +175,7 @@ class TagsView extends GetView<TagViewController> {
         shape: BoxShape.circle,
 
         gradient: LinearGradient(
-          colors: [SpColor.mutedGrey, SpColor.mutedGrey.withOpacity(0.7)],
+          colors: [SpColor.tagColor, SpColor.tagColor.withOpacity(0.7)],
         ),
       ),
 
@@ -266,7 +266,7 @@ class TagsView extends GetView<TagViewController> {
           tag.name,
 
           style: const TextStyle(
-            color: SpColor.mutedGrey,
+            color: SpColor.tagColor,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -374,7 +374,7 @@ class TagsView extends GetView<TagViewController> {
 
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: SpColor.mutedGrey,
+                    backgroundColor: SpColor.tagColor,
                   ),
 
                   onPressed: () async {

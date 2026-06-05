@@ -23,10 +23,10 @@ const FixedObligationModelSchema = CollectionSchema(
       name: r'amount',
       type: IsarType.double,
     ),
-    r'dueDate': PropertySchema(
+    r'days': PropertySchema(
       id: 1,
-      name: r'dueDate',
-      type: IsarType.dateTime,
+      name: r'days',
+      type: IsarType.long,
     ),
     r'id': PropertySchema(
       id: 2,
@@ -48,25 +48,35 @@ const FixedObligationModelSchema = CollectionSchema(
       name: r'isSynced',
       type: IsarType.bool,
     ),
-    r'ownerId': PropertySchema(
+    r'lastTime': PropertySchema(
       id: 6,
+      name: r'lastTime',
+      type: IsarType.dateTime,
+    ),
+    r'ownerId': PropertySchema(
+      id: 7,
       name: r'ownerId',
       type: IsarType.long,
     ),
     r'serverId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'serverId',
       type: IsarType.long,
     ),
     r'syncAttempts': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'syncAttempts',
       type: IsarType.long,
     ),
     r'title': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'title',
       type: IsarType.string,
+    ),
+    r'walletId': PropertySchema(
+      id: 11,
+      name: r'walletId',
+      type: IsarType.long,
     )
   },
   estimateSize: _fixedObligationModelEstimateSize,
@@ -114,15 +124,17 @@ void _fixedObligationModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDouble(offsets[0], object.amount);
-  writer.writeDateTime(offsets[1], object.dueDate);
+  writer.writeLong(offsets[1], object.days);
   writer.writeLong(offsets[2], object.id);
   writer.writeBool(offsets[3], object.isActive);
   writer.writeBool(offsets[4], object.isDeleted);
   writer.writeBool(offsets[5], object.isSynced);
-  writer.writeLong(offsets[6], object.ownerId);
-  writer.writeLong(offsets[7], object.serverId);
-  writer.writeLong(offsets[8], object.syncAttempts);
-  writer.writeString(offsets[9], object.title);
+  writer.writeDateTime(offsets[6], object.lastTime);
+  writer.writeLong(offsets[7], object.ownerId);
+  writer.writeLong(offsets[8], object.serverId);
+  writer.writeLong(offsets[9], object.syncAttempts);
+  writer.writeString(offsets[10], object.title);
+  writer.writeLong(offsets[11], object.walletId);
 }
 
 FixedObligationModel _fixedObligationModelDeserialize(
@@ -133,14 +145,16 @@ FixedObligationModel _fixedObligationModelDeserialize(
 ) {
   final object = FixedObligationModel(
     amount: reader.readDouble(offsets[0]),
-    dueDate: reader.readDateTime(offsets[1]),
+    days: reader.readLong(offsets[1]),
     id: reader.readLongOrNull(offsets[2]) ?? -1,
     isActive: reader.readBool(offsets[3]),
     isDeleted: reader.readBoolOrNull(offsets[4]) ?? false,
     isSynced: reader.readBoolOrNull(offsets[5]) ?? false,
-    ownerId: reader.readLong(offsets[6]),
-    syncAttempts: reader.readLongOrNull(offsets[8]) ?? 0,
-    title: reader.readString(offsets[9]),
+    lastTime: reader.readDateTime(offsets[6]),
+    ownerId: reader.readLong(offsets[7]),
+    syncAttempts: reader.readLongOrNull(offsets[9]) ?? 0,
+    title: reader.readString(offsets[10]),
+    walletId: reader.readLong(offsets[11]),
   );
   object.isarId = id;
   return object;
@@ -156,7 +170,7 @@ P _fixedObligationModelDeserializeProp<P>(
     case 0:
       return (reader.readDouble(offset)) as P;
     case 1:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 2:
       return (reader.readLongOrNull(offset) ?? -1) as P;
     case 3:
@@ -166,13 +180,17 @@ P _fixedObligationModelDeserializeProp<P>(
     case 5:
       return (reader.readBoolOrNull(offset) ?? false) as P;
     case 6:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 7:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 8:
-      return (reader.readLongOrNull(offset) ?? 0) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 9:
+      return (reader.readLongOrNull(offset) ?? 0) as P;
+    case 10:
       return (reader.readString(offset)) as P;
+    case 11:
+      return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -444,53 +462,53 @@ extension FixedObligationModelQueryFilter on QueryBuilder<FixedObligationModel,
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel,
-      QAfterFilterCondition> dueDateEqualTo(DateTime value) {
+      QAfterFilterCondition> daysEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'dueDate',
+        property: r'days',
         value: value,
       ));
     });
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel,
-      QAfterFilterCondition> dueDateGreaterThan(
-    DateTime value, {
+      QAfterFilterCondition> daysGreaterThan(
+    int value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'dueDate',
+        property: r'days',
         value: value,
       ));
     });
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel,
-      QAfterFilterCondition> dueDateLessThan(
-    DateTime value, {
+      QAfterFilterCondition> daysLessThan(
+    int value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'dueDate',
+        property: r'days',
         value: value,
       ));
     });
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel,
-      QAfterFilterCondition> dueDateBetween(
-    DateTime lower,
-    DateTime upper, {
+      QAfterFilterCondition> daysBetween(
+    int lower,
+    int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'dueDate',
+        property: r'days',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -633,6 +651,62 @@ extension FixedObligationModelQueryFilter on QueryBuilder<FixedObligationModel,
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'isarId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel,
+      QAfterFilterCondition> lastTimeEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel,
+      QAfterFilterCondition> lastTimeGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel,
+      QAfterFilterCondition> lastTimeLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastTime',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel,
+      QAfterFilterCondition> lastTimeBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastTime',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -964,6 +1038,62 @@ extension FixedObligationModelQueryFilter on QueryBuilder<FixedObligationModel,
       ));
     });
   }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel,
+      QAfterFilterCondition> walletIdEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'walletId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel,
+      QAfterFilterCondition> walletIdGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'walletId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel,
+      QAfterFilterCondition> walletIdLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'walletId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel,
+      QAfterFilterCondition> walletIdBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'walletId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension FixedObligationModelQueryObject on QueryBuilder<FixedObligationModel,
@@ -989,16 +1119,16 @@ extension FixedObligationModelQuerySortBy
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
-      sortByDueDate() {
+      sortByDays() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'dueDate', Sort.asc);
+      return query.addSortBy(r'days', Sort.asc);
     });
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
-      sortByDueDateDesc() {
+      sortByDaysDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'dueDate', Sort.desc);
+      return query.addSortBy(r'days', Sort.desc);
     });
   }
 
@@ -1059,6 +1189,20 @@ extension FixedObligationModelQuerySortBy
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
+      sortByLastTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastTime', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
+      sortByLastTimeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastTime', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
       sortByOwnerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerId', Sort.asc);
@@ -1113,6 +1257,20 @@ extension FixedObligationModelQuerySortBy
       return query.addSortBy(r'title', Sort.desc);
     });
   }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
+      sortByWalletId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
+      sortByWalletIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletId', Sort.desc);
+    });
+  }
 }
 
 extension FixedObligationModelQuerySortThenBy
@@ -1132,16 +1290,16 @@ extension FixedObligationModelQuerySortThenBy
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
-      thenByDueDate() {
+      thenByDays() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'dueDate', Sort.asc);
+      return query.addSortBy(r'days', Sort.asc);
     });
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
-      thenByDueDateDesc() {
+      thenByDaysDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'dueDate', Sort.desc);
+      return query.addSortBy(r'days', Sort.desc);
     });
   }
 
@@ -1216,6 +1374,20 @@ extension FixedObligationModelQuerySortThenBy
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
+      thenByLastTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastTime', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
+      thenByLastTimeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastTime', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
       thenByOwnerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerId', Sort.asc);
@@ -1270,6 +1442,20 @@ extension FixedObligationModelQuerySortThenBy
       return query.addSortBy(r'title', Sort.desc);
     });
   }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
+      thenByWalletId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel, QAfterSortBy>
+      thenByWalletIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletId', Sort.desc);
+    });
+  }
 }
 
 extension FixedObligationModelQueryWhereDistinct
@@ -1282,9 +1468,9 @@ extension FixedObligationModelQueryWhereDistinct
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel, QDistinct>
-      distinctByDueDate() {
+      distinctByDays() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'dueDate');
+      return query.addDistinctBy(r'days');
     });
   }
 
@@ -1317,6 +1503,13 @@ extension FixedObligationModelQueryWhereDistinct
   }
 
   QueryBuilder<FixedObligationModel, FixedObligationModel, QDistinct>
+      distinctByLastTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastTime');
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel, QDistinct>
       distinctByOwnerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'ownerId');
@@ -1343,6 +1536,13 @@ extension FixedObligationModelQueryWhereDistinct
       return query.addDistinctBy(r'title', caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<FixedObligationModel, FixedObligationModel, QDistinct>
+      distinctByWalletId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'walletId');
+    });
+  }
 }
 
 extension FixedObligationModelQueryProperty on QueryBuilder<
@@ -1360,10 +1560,9 @@ extension FixedObligationModelQueryProperty on QueryBuilder<
     });
   }
 
-  QueryBuilder<FixedObligationModel, DateTime, QQueryOperations>
-      dueDateProperty() {
+  QueryBuilder<FixedObligationModel, int, QQueryOperations> daysProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'dueDate');
+      return query.addPropertyName(r'days');
     });
   }
 
@@ -1394,6 +1593,13 @@ extension FixedObligationModelQueryProperty on QueryBuilder<
     });
   }
 
+  QueryBuilder<FixedObligationModel, DateTime, QQueryOperations>
+      lastTimeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastTime');
+    });
+  }
+
   QueryBuilder<FixedObligationModel, int, QQueryOperations> ownerIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'ownerId');
@@ -1417,6 +1623,12 @@ extension FixedObligationModelQueryProperty on QueryBuilder<
   QueryBuilder<FixedObligationModel, String, QQueryOperations> titleProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'title');
+    });
+  }
+
+  QueryBuilder<FixedObligationModel, int, QQueryOperations> walletIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'walletId');
     });
   }
 }

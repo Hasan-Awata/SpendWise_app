@@ -67,6 +67,8 @@ class AddIncomeController extends GetxController {
 
   final isLoadingSave = false.obs;
 
+  final isWalletsSaved = false.obs;
+
   // =========================
   // INIT
   // =========================
@@ -144,12 +146,20 @@ class AddIncomeController extends GetxController {
       incomesListController.incomesList.refresh();
 
       // إضافة المبلغ فورياً للمحفظة
-      walletsListController.increaseWalletBalance(
-        walletId: selectedWallet.value!.walletId!,
+      if (isWalletsSaved.value) {
+        walletsListController.increaseWalletBalance(
+          walletId: selectedWallet.value!.walletId!,
+          amountFromRegular: 0.0,
+          amountFromSavings: income.amount,
+        );
+      } else {
+        walletsListController.increaseWalletBalance(
+          walletId: selectedWallet.value!.walletId!,
 
-        amountFromRegular: income.amount,
-        amountFromSavings: 0.0,
-      );
+          amountFromRegular: income.amount,
+          amountFromSavings: 0.0,
+        );
+      }
 
       incomesListController.updateDashboardTotals();
 
@@ -175,8 +185,9 @@ class AddIncomeController extends GetxController {
         },
 
         (message) {
-          HelperFunction.showSnackBar("تم بنجاح", message);
-
+          HelperFunction.showSnackBar("تم بنجاح", "تم اضافة الدخل");
+          incomesListController.fetchAllIncomes(isRefresh: true);
+          walletsListController.loadWallets(isRefresh: true);
           resetFields();
         },
       );

@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/auth/presentation/manager/logout_controller.dart';
+import 'package:spendwise/features/dashboard/presentation/budget_reports_view.dart';
+import 'package:spendwise/features/dashboard/presentation/dashboard_view.dart';
 import 'package:spendwise/features/home/presentation/manager/main_controller.dart';
 import 'package:spendwise/features/home/presentation/pages/home.dart';
 import 'package:spendwise/features/home/presentation/pages/profile.dart';
@@ -30,11 +32,9 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     pages = [
       Home(), // Index 0
-      const Center(
-        child: Text("Search", style: TextStyle(color: Colors.white)),
-      ),
-      SizedBox(),
-      Profile(), // Index 2
+      BudgetReportsView(),
+      DashboardView(),
+      Profile(),
     ];
 
     // // تعليق: حماية إضافية - إذا كان الـ index المحفوظ أكبر من عدد الصفحات، نعيده للصفر

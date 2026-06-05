@@ -7,4 +7,6 @@ abstract class AppUserRemoteDatasource {
   Future<UserModel> register(SignupParams params);
   Future<UserModel> logIn(LoginParams params);
   Future<void> logOut();
+
+  Future<UserModel> getUserByUsername(String username);
 }

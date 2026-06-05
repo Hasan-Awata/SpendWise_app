@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
-import 'package:spendwise/features/expense/presentation/manager/add_expense_controller.dart';
 import 'package:spendwise/features/ocr/ocr_result.dart';
 
 class ReceiptScannerScreen extends StatefulWidget {
@@ -37,48 +36,43 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
   // // عرض نافذة منبثقة للمستخدم ليختار مصدر الصورة
   void _showPickerOptions() {
     showModalBottomSheet(
+      backgroundColor: SpColor.surfaceNavy,
+
       context: context,
       builder: (context) => SafeArea(
         child: SizedBox(
           height: 130,
-          child: Material(
-            color: SpColor.surfaceNavy,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-            child: Wrap(
-              children: [
-                ListTile(
-                  leading: const Icon(
-                    Icons.camera_alt,
-                    color: SpColor.accentBlue,
-                  ),
-                  title: const Text(
-                    'الكاميرا',
-                    style: TextStyle(color: SpColor.accentBlue),
-                  ),
-                  onTap: () {
-                    _pickImage(ImageSource.camera);
-                    Navigator.of(context).pop();
-                  },
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.camera_alt,
+                  color: SpColor.accentBlue,
                 ),
-                ListTile(
-                  leading: const Icon(
-                    Icons.photo_library,
-                    color: SpColor.accentBlue,
-                  ),
-                  title: const Text(
-                    'المعرض',
-                    style: TextStyle(color: SpColor.accentBlue),
-                  ),
-                  onTap: () {
-                    _pickImage(ImageSource.gallery);
-                    Navigator.of(context).pop();
-                  },
+                title: const Text(
+                  'الكاميرا',
+                  style: TextStyle(color: SpColor.accentBlue),
                 ),
-              ],
-            ),
+                onTap: () {
+                  _pickImage(ImageSource.camera);
+                  Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_library,
+                  color: SpColor.accentBlue,
+                ),
+                title: const Text(
+                  'المعرض',
+                  style: TextStyle(color: SpColor.accentBlue),
+                ),
+                onTap: () {
+                  _pickImage(ImageSource.gallery);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -125,83 +119,83 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
             ),
           ),
         ),
-        SizedBox(
-          height: 50,
-          child: ElevatedButton.icon(
-            style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.all(SpColor.accentBlue),
-              foregroundColor: WidgetStateProperty.all(SpColor.offWhite),
-              padding: WidgetStateProperty.all(
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: SizedBox(
+            height: 50,
+            child: ElevatedButton.icon(
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.all(SpColor.accentBlue),
+                foregroundColor: WidgetStateProperty.all(SpColor.offWhite),
+                padding: WidgetStateProperty.all(
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
               ),
-            ),
-            onPressed: () async {
-              // 1. إظهار نافذة الانتظار
-              Get.dialog(
-                PopScope(
-                  canPop:
-                      false, // منع المستخدم من الخروج عبر زر الرجوع في الهاتف
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: SpColor.surfaceNavy,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const CircularProgressIndicator(
-                            color: SpColor.accentBlue,
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            "جاري تحليل الإيصال...",
-                            style: TextStyle(
-                              color: SpColor.offWhite,
-                              decoration: TextDecoration.none,
-                              fontSize: 16,
+              onPressed: () async {
+                // 1. إظهار نافذة الانتظار
+                Get.dialog(
+                  PopScope(
+                    canPop:
+                        false, // منع المستخدم من الخروج عبر زر الرجوع في الهاتف
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: SpColor.surfaceNavy,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(
+                              color: SpColor.accentBlue,
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 20),
+                            const Text(
+                              "جاري تحليل الإيصال...",
+                              style: TextStyle(
+                                color: SpColor.offWhite,
+                                decoration: TextDecoration.none,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                barrierDismissible: false, // لا يمكن الخروج بالضغط خارج النافذة
-              );
-
-              try {
-                // 2. عملية التحليل (الرفع)
-                final result = await _networkService.upload(
-                  endpoint: "ocr",
-                  file: _selectedImage!,
+                  barrierDismissible:
+                      false, // لا يمكن الخروج بالضغط خارج النافذة
                 );
 
-                if (result != null) {
-                  final ocrData = OcrResult.fromJson(result);
-                  final AddExpenseController addExpenseController =
-                      Get.find<AddExpenseController>();
-                  addExpenseController.populateFromOcr(ocrData);
+                try {
+                  // 2. عملية التحليل (الرفع)
+                  final result = await _networkService.upload(
+                    endpoint: "ocr",
+                    file: _selectedImage!,
+                  );
 
-                  // إغلاق نافذة الانتظار قبل الانتقال
+                  if (result != null) {
+                    final ocrData = OcrResult.fromJson(result);
+                    print(ocrData);
+                    Get.back();
+                    Get.toNamed(Routes.ADD_EXPENSE, arguments: ocrData);
+                  }
+                } catch (e) {
+                  // إغلاق نافذة الانتظار في حال حدوث خطأ
                   Get.back();
-                  Get.toNamed(Routes.ADD_EXPENSE);
+                  // تعليق: إظهار رسالة خطأ للمستخدم في حال فشل عملية الرفع أو المعالجة
+                  Get.snackbar(
+                    "خطأ",
+                    "فشل تحليل الإيصال: ${e.toString()}",
+                    backgroundColor: Colors.redAccent,
+                    colorText: Colors.white,
+                  );
                 }
-              } catch (e) {
-                // إغلاق نافذة الانتظار في حال حدوث خطأ
-                Get.back();
-                // تعليق: إظهار رسالة خطأ للمستخدم في حال فشل عملية الرفع أو المعالجة
-                Get.snackbar(
-                  "خطأ",
-                  "فشل تحليل الإيصال: ${e.toString()}",
-                  backgroundColor: Colors.redAccent,
-                  colorText: Colors.white,
-                );
-              }
-            },
-            icon: const Icon(Icons.upload_file),
-            label: const Text("إرسال للتحليل"),
+              },
+              icon: const Icon(Icons.upload_file),
+              label: const Text("إرسال للتحليل"),
+            ),
           ),
         ),
         SizedBox(height: 20),

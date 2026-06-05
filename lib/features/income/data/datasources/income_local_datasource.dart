@@ -13,5 +13,6 @@ abstract class IncomeLocalDataSource {
   Future<void> saveOrUpdateRemoteIncome(IncomeModel remoteIncome);
   Future<bool> checkIfIncomeExists(String localId);
   Future<bool> checkIfIncomeExistsById(int id);
+
   Future<void> clear();
 }

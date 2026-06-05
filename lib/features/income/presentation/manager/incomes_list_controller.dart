@@ -57,7 +57,6 @@ class IncomesListController extends GetxController {
 
     scrollController.addListener(_scrollListener);
 
-    // تم حذف مستمع ever(incomesList) القديم لأنه كان يسبب حلقة تكرار لانهائية ويخرب جلب البيانات عند الإضافة أو الحذف الفوري
     fetchAllIncomes(isRefresh: true);
   }
 

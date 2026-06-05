@@ -11,8 +11,10 @@ import 'package:spendwise/features/budget/presentation/bindings/category_budget_
 import 'package:spendwise/features/budget/presentation/pages/add_category_budget_page.dart';
 import 'package:spendwise/features/budget/presentation/pages/category_budget_list_page.dart';
 import 'package:spendwise/features/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:spendwise/features/debts/presentation/manager/debt_binding.dart'
+    show SharedDebtBinding;
 import 'package:spendwise/features/debts/presentation/pages/add_debt.dart';
-import 'package:spendwise/features/debts/presentation/pages/show_debt.dart';
+import 'package:spendwise/features/debts/presentation/pages/show_debts.dart';
 // ================= Expense =================
 import 'package:spendwise/features/expense/presentation/bindings/expense_binding.dart';
 import 'package:spendwise/features/expense/presentation/pages/add_expense_view.dart';
@@ -248,11 +250,20 @@ class AppPages {
 
     GetPage(
       name: Routes.ADD_CATEGORY_BUDGET,
-      page: () => ManageCategoryBudgetScreen(userId: CurrentUser.userId!),
-      binding:
-          CategoryBudgetBinding(), // 🔥 نفس الـ binding لضمان shared controller
+      page: () {
+        if (CurrentUser.userId == null) {
+          // إعادة التوجيه للـ Login لتجنب الانهيار
+          return LogInPage();
+        }
+        return ManageCategoryBudgetScreen(userId: CurrentUser.userId!);
+      },
+      binding: CategoryBudgetBinding(),
     ),
     GetPage(name: Routes.ADD_SHARED_DEBTS, page: () => AddSharedDebtView()),
-    GetPage(name: Routes.SHARED_DEBTS, page: () => const SharedDebtsView()),
+    GetPage(
+      name: Routes.SHARED_DEBTS,
+      page: () => SharedDebtsView(),
+      binding: SharedDebtBinding(),
+    ),
   ];
 }

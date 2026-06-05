@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/savings_goals/domain/entities/saving_goal_entity.dart';
 import 'package:spendwise/features/savings_goals/presentation/manager/saving_goal_action_controller.dart';
 import 'package:spendwise/features/savings_goals/presentation/manager/saving_goal_lis_controller.dart';
+import 'package:spendwise/features/wallet/data/datasources/currency_local.dart';
 
 class SavingGoalsListPage extends GetView<SavingGoalListController> {
-  SavingGoalsListPage({super.key});
-
+  // Comment: Initializing the action controller to manage saving goal updates and interactions.
   final savingGoalAction = Get.find<SavingGoalActionController>();
+
+  SavingGoalsListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Comment: Setting the background color explicitly to avoid white screen flashes during page transitions in release mode.
     return Scaffold(
       backgroundColor: SpColor.primaryDark,
       appBar: AppBar(
@@ -26,7 +30,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
         builder: (context, constraints) {
           return RefreshIndicator(
             color: SpColor.savinggoalColor,
-            backgroundColor: SpColor.surfaceNavy,
+            backgroundColor: SpColor.primaryDark,
             onRefresh: () => controller.loadSavingGoals(isRefresh: true),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -55,17 +59,14 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                       horizontal: 16,
                       vertical: 10,
                     ),
-                    child: Obx(
-                      () => ListView.builder(
-                        shrinkWrap: true,
-                        physics:
-                            const NeverScrollableScrollPhysics(), // لأننا داخل SingleChildScrollView
-                        itemCount: controller.savingGoals.length,
-                        itemBuilder: (context, index) {
-                          final goal = controller.savingGoals[index];
-                          return _buildGoalCard(goal);
-                        },
-                      ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: controller.savingGoals.length,
+                      itemBuilder: (context, index) {
+                        final goal = controller.savingGoals[index];
+                        return _buildGoalCard(goal);
+                      },
                     ),
                   );
                 }),
@@ -78,6 +79,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
   }
 
   Widget _syncStatusBadge(SavingGoalEntity goal) {
+    // Comment: Displaying the sync status of the goal to inform the user about data synchronization.
     return Obx(() {
       final bool synced = goal.isSynced.value;
       return Container(
@@ -101,7 +103,10 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
   }
 
   Widget _buildGoalCard(SavingGoalEntity goal) {
-    double progress = (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0);
+    // Comment: Calculating progress percentage safely, ensuring no division by zero occurs.
+    double progress = (goal.targetAmount > 0)
+        ? (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0)
+        : 0.0;
     int percentage = (progress * 100).toInt();
 
     return GestureDetector(
@@ -145,7 +150,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     _syncStatusBadge(goal),
                   ],
                 ),
@@ -153,11 +158,10 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                   icon: const Icon(Icons.more_vert, color: Colors.white70),
                   color: SpColor.surfaceNavy,
                   onSelected: (value) {
-                    if (value == 'edit') {
+                    if (value == 'edit')
                       _showEditSheet(goal);
-                    } else if (value == 'delete') {
+                    else if (value == 'delete')
                       _showDeleteConfirmation(goal);
-                    }
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(
@@ -193,11 +197,11 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "وفرت: \$${goal.currentAmount}",
+                  "وفرت: ${goal.currentAmount} ${Get.find<CurrencyLocal>().allCurrencies[goal.currencyId - 1].code}",
                   style: TextStyle(color: Colors.grey[400]),
                 ),
                 Text(
-                  "الهدف: \$${goal.targetAmount}",
+                  "الهدف: ${goal.targetAmount} ${Get.find<CurrencyLocal>().allCurrencies[goal.currencyId - 1].code}",
                   style: const TextStyle(
                     color: SpColor.savinggoalColor,
                     fontWeight: FontWeight.w600,
@@ -243,7 +247,86 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
     );
   }
 
+  // Comment: Added the missing _providingTarger method to handle goal contribution input.
+  void _providingTarger(SavingGoalEntity goal) {
+    savingGoalAction.titleController.text = goal.title;
+    savingGoalAction.targetAmountController.text = goal.targetAmount.toString();
+    savingGoalAction.currentAmountController.text = goal.currentAmount
+        .toString();
+    savingGoalAction.deadlineDate.value = goal.deadlineDate;
+
+    double previousAmount = goal.currentAmount;
+
+    Get.bottomSheet(
+      isScrollControlled: true,
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: SpColor.primaryDark2,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "تزويد الهدف الادخاري",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 15),
+              _buildTextField(
+                savingGoalAction.currentAmountController,
+                "المبلغ المراد إضافته",
+                Icons.attach_money,
+                isNumber: true,
+              ),
+              const SizedBox(height: 25),
+              Obx(
+                () => SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: SpColor.savinggoalColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () {
+                      double added =
+                          double.tryParse(
+                            savingGoalAction.currentAmountController.text,
+                          ) ??
+                          0.0;
+                      savingGoalAction.currentAmountController.text =
+                          (added + previousAmount).toString();
+                      savingGoalAction.updateSavingGoal(goal);
+                    },
+                    child: savingGoalAction.isActionLoading.value
+                        ? const CircularProgressIndicator(color: Colors.black)
+                        : const Text(
+                            "تزويد الهدف",
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showEditSheet(SavingGoalEntity goal) {
+    // Comment: Pre-filling the fields before showing the edit bottom sheet to ensure current state is reflected.
     savingGoalAction.titleController.text = goal.title;
     savingGoalAction.targetAmountController.text = goal.targetAmount.toString();
     savingGoalAction.currentAmountController.text = goal.currentAmount
@@ -291,78 +374,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                 isNumber: true,
               ),
               const SizedBox(height: 25),
-              Obx(
-                () => SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: SpColor.savinggoalColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      savingGoalAction.updateSavingGoal(goal);
-                    },
-                    child: savingGoalAction.isActionLoading.value
-                        ? const CircularProgressIndicator(color: Colors.black)
-                        : const Text(
-                            "حفظ التغييرات",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _providingTarger(SavingGoalEntity goal) {
-    savingGoalAction.titleController.text = goal.title;
-
-    savingGoalAction.targetAmountController.text = goal.targetAmount.toString();
-    savingGoalAction.currentAmountController.text = goal.currentAmount
-        .toString();
-    savingGoalAction.deadlineDate.value = goal.deadlineDate;
-
-    double previousAmount = goal.currentAmount;
-
-    Get.bottomSheet(
-      isScrollControlled: true,
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: SpColor.primaryDark2,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "تزويد الهدف الادخاري",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 15),
-              _buildTextField(
-                savingGoalAction.currentAmountController,
-                "المبلغ المتوفر حالياً",
-                Icons.attach_money,
-                isNumber: true,
-              ),
+              _buildDatePicker(Get.context!),
               const SizedBox(height: 25),
               Obx(
                 () => SizedBox(
@@ -375,21 +387,13 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () {
-                      savingGoalAction.currentAmountController.text =
-                          (double.parse(
-                                    savingGoalAction
-                                        .currentAmountController
-                                        .text,
-                                  ).toDouble() +
-                                  previousAmount)
-                              .toString();
-                      savingGoalAction.updateSavingGoal(goal);
-                    },
+                    onPressed: savingGoalAction.isActionLoading.value
+                        ? null
+                        : () => savingGoalAction.updateSavingGoal(goal),
                     child: savingGoalAction.isActionLoading.value
                         ? const CircularProgressIndicator(color: Colors.black)
                         : const Text(
-                            "تزويد الهدف",
+                            "حفظ التغييرات",
                             style: TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.bold,
@@ -398,7 +402,6 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
             ],
           ),
         ),
@@ -412,6 +415,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
     IconData icon, {
     bool isNumber = false,
   }) {
+    // Comment: Creating a clean, reusable input field for editing goal details.
     return TextField(
       controller: controller,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
@@ -431,6 +435,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
   }
 
   void _showDeleteConfirmation(SavingGoalEntity goal) {
+    // Comment: Providing a clear confirmation dialog before performing the deletion operation.
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(20),
@@ -463,9 +468,7 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.redAccent,
                     ),
-                    onPressed: () {
-                      savingGoalAction.deleteSavingGoal(goal);
-                    },
+                    onPressed: () => savingGoalAction.deleteSavingGoal(goal),
                     child: const Text(
                       "حذف الآن",
                       style: TextStyle(color: Colors.white),
@@ -485,6 +488,36 @@ class SavingGoalsListPage extends GetView<SavingGoalListController> {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker(BuildContext context) {
+    // Comment: Date picker wrapper for selecting goal deadlines, ensuring consistent theme.
+    return Obx(
+      () => Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: SpColor.surfaceNavy,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text(
+            "تاريخ الانتهاء",
+            style: TextStyle(color: Colors.white70),
+          ),
+          trailing: Text(
+            DateFormat(
+              'yyyy-MM-dd',
+            ).format(savingGoalAction.deadlineDate.value),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          onTap: () async => await savingGoalAction.fetchDate(context),
         ),
       ),
     );

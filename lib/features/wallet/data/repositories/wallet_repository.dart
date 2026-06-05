@@ -25,5 +25,10 @@ abstract class WalletRepository {
     required double amountFromRegular,
     required double amountFromSavings,
   });
-  Future<Either<Failure, double>> getWalletBalance({required int currencyId});
+  Future<Either<Failure, double>> getWalletBalance({required int walletId});
+
+  Future<Either<Failure, List<WalletEntity>>> getWalletsByCurrencyId(
+    int currencyId,
+  );
+  Future<Either<Failure, WalletEntity>> getWalletById(int walletId);
 }

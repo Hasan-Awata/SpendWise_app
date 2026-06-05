@@ -153,18 +153,22 @@ class _AddTagPageState extends State<AddTagPage> {
           () => SizedBox(
             width: double.infinity,
             height: 55,
-            child: CustomButton(
-              text: controller.isLoading.value ? "جاري الحفظ..." : "حفظ الوسم",
-              onPressed: controller.isLoading.value
-                  ? () {}
-                  : () async {
-                      FocusScope.of(context).unfocus();
-                      await controller.addTag();
-                    },
-              color: controller.isLoading.value
-                  ? Colors.grey
-                  : SpColor.tagColor,
-            ),
+            child: controller.isLoading.value
+                ? Center(
+                    child: CircularProgressIndicator(color: SpColor.tagColor),
+                  )
+                : CustomButton(
+                    text: "حفظ الوسم",
+                    onPressed: controller.isLoading.value
+                        ? () {}
+                        : () async {
+                            FocusScope.of(context).unfocus();
+                            await controller.addTag();
+                          },
+                    color: controller.isLoading.value
+                        ? Colors.grey
+                        : SpColor.tagColor,
+                  ),
           ),
         ),
       ),

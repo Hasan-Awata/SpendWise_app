@@ -5,8 +5,6 @@ import 'package:spendwise/features/expense/domain/entities/expense_entity.dart';
 import 'package:spendwise/features/expense/domain/usecases/delete_expense_usecase.dart';
 import 'package:spendwise/features/expense/presentation/manager/expense_list_controller.dart';
 import 'package:spendwise/features/helper_function.dart';
-import 'package:spendwise/features/wallet/presentation/manager/wallets_list_controller.dart'
-    show WalletsListController;
 
 class DeleteExpenseController extends GetxController {
   DeleteExpenseController({
@@ -51,11 +49,6 @@ class DeleteExpenseController extends GetxController {
         (_) {
           expensesListController.updateDashboardTotals();
 
-          Get.find<WalletsListController>().increaseWalletBalance(
-            walletId: expense.walletId!,
-            amountFromRegular: expense.amount,
-            amountFromSavings: 0.0,
-          );
           Get.back();
           // HelperFunction.showSnackBar("تم الحذف", "تم حذف المصروف بنجاح");
         },

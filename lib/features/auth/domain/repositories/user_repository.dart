@@ -16,4 +16,5 @@ abstract class UserRepository {
   Future<Either<Failure, UserModel>> getUser();
 
   Future<Either<Failure, int>> getUserId();
+  Future<Either<Failure, UserModel>> getUserByUsername(String username);
 }

@@ -57,29 +57,39 @@ const FixedIncomeModelSchema = CollectionSchema(
       name: r'lastTime',
       type: IsarType.dateTime,
     ),
-    r'serverId': PropertySchema(
+    r'nextDueDate': PropertySchema(
       id: 8,
+      name: r'nextDueDate',
+      type: IsarType.dateTime,
+    ),
+    r'serverId': PropertySchema(
+      id: 9,
       name: r'serverId',
       type: IsarType.long,
     ),
     r'syncAttempts': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'syncAttempts',
       type: IsarType.long,
     ),
     r'tagId': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'tagId',
       type: IsarType.long,
     ),
     r'title': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'title',
       type: IsarType.string,
     ),
     r'userId': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'userId',
+      type: IsarType.long,
+    ),
+    r'walletId': PropertySchema(
+      id: 14,
+      name: r'walletId',
       type: IsarType.long,
     )
   },
@@ -135,11 +145,13 @@ void _fixedIncomeModelSerialize(
   writer.writeBool(offsets[5], object.isMonthly);
   writer.writeBool(offsets[6], object.isSynced);
   writer.writeDateTime(offsets[7], object.lastTime);
-  writer.writeLong(offsets[8], object.serverId);
-  writer.writeLong(offsets[9], object.syncAttempts);
-  writer.writeLong(offsets[10], object.tagId);
-  writer.writeString(offsets[11], object.title);
-  writer.writeLong(offsets[12], object.userId);
+  writer.writeDateTime(offsets[8], object.nextDueDate);
+  writer.writeLong(offsets[9], object.serverId);
+  writer.writeLong(offsets[10], object.syncAttempts);
+  writer.writeLong(offsets[11], object.tagId);
+  writer.writeString(offsets[12], object.title);
+  writer.writeLong(offsets[13], object.userId);
+  writer.writeLong(offsets[14], object.walletId);
 }
 
 FixedIncomeModel _fixedIncomeModelDeserialize(
@@ -157,10 +169,11 @@ FixedIncomeModel _fixedIncomeModelDeserialize(
     isMonthly: reader.readBool(offsets[5]),
     isSynced: reader.readBoolOrNull(offsets[6]) ?? false,
     lastTime: reader.readDateTime(offsets[7]),
-    syncAttempts: reader.readLongOrNull(offsets[9]) ?? 0,
-    tagId: reader.readLong(offsets[10]),
-    title: reader.readString(offsets[11]),
-    userId: reader.readLong(offsets[12]),
+    syncAttempts: reader.readLongOrNull(offsets[10]) ?? 0,
+    tagId: reader.readLong(offsets[11]),
+    title: reader.readString(offsets[12]),
+    userId: reader.readLong(offsets[13]),
+    walletId: reader.readLong(offsets[14]),
   );
   object.isarId = id;
   return object;
@@ -190,14 +203,18 @@ P _fixedIncomeModelDeserializeProp<P>(
     case 7:
       return (reader.readDateTime(offset)) as P;
     case 8:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 9:
-      return (reader.readLongOrNull(offset) ?? 0) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 10:
-      return (reader.readLong(offset)) as P;
+      return (reader.readLongOrNull(offset) ?? 0) as P;
     case 11:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 12:
+      return (reader.readString(offset)) as P;
+    case 13:
+      return (reader.readLong(offset)) as P;
+    case 14:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -732,6 +749,62 @@ extension FixedIncomeModelQueryFilter
   }
 
   QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterFilterCondition>
+      nextDueDateEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'nextDueDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterFilterCondition>
+      nextDueDateGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'nextDueDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterFilterCondition>
+      nextDueDateLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'nextDueDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterFilterCondition>
+      nextDueDateBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'nextDueDate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterFilterCondition>
       serverIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1108,6 +1181,62 @@ extension FixedIncomeModelQueryFilter
       ));
     });
   }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterFilterCondition>
+      walletIdEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'walletId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterFilterCondition>
+      walletIdGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'walletId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterFilterCondition>
+      walletIdLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'walletId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterFilterCondition>
+      walletIdBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'walletId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension FixedIncomeModelQueryObject
@@ -1230,6 +1359,20 @@ extension FixedIncomeModelQuerySortBy
   }
 
   QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterSortBy>
+      sortByNextDueDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextDueDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterSortBy>
+      sortByNextDueDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextDueDate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterSortBy>
       sortByServerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'serverId', Sort.asc);
@@ -1294,6 +1437,20 @@ extension FixedIncomeModelQuerySortBy
       sortByUserIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'userId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterSortBy>
+      sortByWalletId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterSortBy>
+      sortByWalletIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletId', Sort.desc);
     });
   }
 }
@@ -1426,6 +1583,20 @@ extension FixedIncomeModelQuerySortThenBy
   }
 
   QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterSortBy>
+      thenByNextDueDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextDueDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterSortBy>
+      thenByNextDueDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextDueDate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterSortBy>
       thenByServerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'serverId', Sort.asc);
@@ -1492,6 +1663,20 @@ extension FixedIncomeModelQuerySortThenBy
       return query.addSortBy(r'userId', Sort.desc);
     });
   }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterSortBy>
+      thenByWalletId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QAfterSortBy>
+      thenByWalletIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'walletId', Sort.desc);
+    });
+  }
 }
 
 extension FixedIncomeModelQueryWhereDistinct
@@ -1552,6 +1737,13 @@ extension FixedIncomeModelQueryWhereDistinct
   }
 
   QueryBuilder<FixedIncomeModel, FixedIncomeModel, QDistinct>
+      distinctByNextDueDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'nextDueDate');
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QDistinct>
       distinctByServerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'serverId');
@@ -1583,6 +1775,13 @@ extension FixedIncomeModelQueryWhereDistinct
       distinctByUserId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'userId');
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, FixedIncomeModel, QDistinct>
+      distinctByWalletId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'walletId');
     });
   }
 }
@@ -1645,6 +1844,13 @@ extension FixedIncomeModelQueryProperty
     });
   }
 
+  QueryBuilder<FixedIncomeModel, DateTime, QQueryOperations>
+      nextDueDateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'nextDueDate');
+    });
+  }
+
   QueryBuilder<FixedIncomeModel, int?, QQueryOperations> serverIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'serverId');
@@ -1672,6 +1878,12 @@ extension FixedIncomeModelQueryProperty
   QueryBuilder<FixedIncomeModel, int, QQueryOperations> userIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'userId');
+    });
+  }
+
+  QueryBuilder<FixedIncomeModel, int, QQueryOperations> walletIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'walletId');
     });
   }
 }

@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/get.dart';
 import 'package:spendwise/core/error/failure.dart';
 import 'package:spendwise/core/network/network_service.dart';
 import 'package:spendwise/features/fixed_incomes/data/datasources/fixed_income_local_datasource.dart';
@@ -10,17 +9,20 @@ import 'package:spendwise/features/fixed_incomes/data/models/fixedIncome_model.d
 import 'package:spendwise/features/fixed_incomes/data/repositories/fixed_income_repository.dart';
 import 'package:spendwise/features/sync/queue/sync_queue_model.dart';
 import 'package:spendwise/features/sync/queue/sync_queue_repository.dart';
+import 'package:spendwise/features/wallet/data/repositories/wallet_repository.dart';
 import 'package:uuid/uuid.dart';
 
 class FixedIncomeRepositoryImpl implements FixedIncomeRepository {
   final FixedIncomeLocalDataSource localDataSource;
   final FixedIncomeRemoteDataSource remote;
   final SyncQueueRepository syncQueueRepository;
+  final WalletRepository walletRepo;
 
   FixedIncomeRepositoryImpl({
     required this.localDataSource,
     required this.remote,
     required this.syncQueueRepository,
+    required this.walletRepo,
   });
 
   @override
@@ -40,7 +42,6 @@ class FixedIncomeRepositoryImpl implements FixedIncomeRepository {
       final remoteResponse = await remote.addFixedIncome(model);
       if (remoteResponse == null) return Left(ServerFailure('Server error'));
 
-      // استخدام fixedIncomeId المحدث
       model.markSynced(remoteResponse.fixedIncomeId);
       await localDataSource.saveFixedIncome(model);
 
@@ -103,9 +104,12 @@ class FixedIncomeRepositoryImpl implements FixedIncomeRepository {
 
       if (Get.find<NetworkService>().isOnline.value) {
         try {
-          // استخدام fixedIncomeId للحذف
-          await remote.deleteFixedIncome(local.fixedIncomeId);
-          await localDataSource.deleteFixedIncome(local.isarId);
+          final res = await remote.deleteFixedIncome(local.fixedIncomeId);
+          if (res) {
+            await localDataSource.deleteFixedIncome(local.isarId);
+          } else {
+            return Left(ServerFailure("فشل الحذف"));
+          }
         } catch (_) {
           await _addToQueue(local, SyncAction.delete);
         }
@@ -122,32 +126,43 @@ class FixedIncomeRepositoryImpl implements FixedIncomeRepository {
   @override
   Future<Either<Failure, List<FixedIncomeModel>>> getFixedIncomes() async {
     try {
-      if (Get.find<NetworkService>().isOnline.value) {
+      final network = Get.find<NetworkService>();
+      final isOnline = network.isOnline.value;
+
+      if (isOnline) {
         try {
-          final remoteData = await remote.getFixedIncomes();
-          if (remoteData != null) {
-            for (final item in remoteData) {
-              item.isSynced = true;
-              await localDataSource.saveFixedIncome(item);
+          final remoteResponse = await remote.getFixedIncomes();
+
+          if (remoteResponse != null) {
+            await localDataSource.clear();
+
+            for (final income in remoteResponse) {
+              income.isSynced = true;
+              income.isDeleted = false;
+              await localDataSource.saveFixedIncome(income);
             }
           }
         } catch (e) {
-          debugPrint("Remote sync failed, using local: $e");
+          if (kDebugMode) {
+            print("⚠️ Remote failed, fallback to local: $e");
+          }
         }
       }
 
       final localData = await localDataSource.getFixedIncomes();
-      final filtered = localData.where((e) => !e.isDeleted).toList()
-        ..sort(
-          (a, b) => b.lastTime.compareTo(a.lastTime),
-        ); // ترتيب حسب lastTime
 
-      return Right(filtered);
+      final filtered = localData.where((e) => !e.isDeleted).toList()
+        ..sort((a, b) => b.lastTime.compareTo(a.lastTime));
+
+      final slice = filtered;
+
+      return Right(slice);
     } catch (e) {
-      return Left(CacheFailure("Error: $e"));
+      return Left(CacheFailure("Error loading incomes: $e"));
     }
   }
 
+  // دالة مساعدة لعملية المزامنة
   Future<void> _addToQueue(FixedIncomeModel model, SyncAction action) async {
     await syncQueueRepository.addToQueue(
       SyncQueueModel(

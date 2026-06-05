@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:spendwise/features/auth/data/models/user_model.dart';
 import 'package:spendwise/features/budget/data/model/category_budget_model.dart';
 import 'package:spendwise/features/category/data/models/category_model.dart';
+import 'package:spendwise/features/debts/data/models/shared_debt_model.dart';
 import 'package:spendwise/features/expense/data/models/expense_model.dart';
 import 'package:spendwise/features/fixed_incomes/data/models/fixedIncome_model.dart';
 import 'package:spendwise/features/fixed_obligations/data/models/fixed_obligation_model.dart';
@@ -41,6 +42,7 @@ class InitIsar {
         TransactionModelSchema,
         FixedObligationModelSchema,
         FixedIncomeModelSchema,
+        SharedDebtModelSchema,
       ],
       directory: dir.path,
       inspector: true,

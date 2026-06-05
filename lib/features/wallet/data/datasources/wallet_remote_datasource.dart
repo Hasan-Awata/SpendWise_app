@@ -7,4 +7,7 @@ abstract class WalletRemoteDatasource {
   Future<WalletModel?> updateWallet(WalletModel wallet);
 
   Future<bool> deleteWallet(WalletModel wallet);
+
+  Future<WalletModel?> getWalletById(int walletId);
+  Future<List<WalletModel>?> getWalletsByCurrencyId(int currencyId);
 }

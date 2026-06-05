@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:spendwise/core/routes/app_pages.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/fixed_obligations/presentation/manager/fixed_obligation_controller.dart';
 import 'package:spendwise/features/widget_feature/helper_widget/custom_button.dart';
+import 'package:spendwise/features/widget_feature/helper_widget/dropdown_button.dart';
 
 class AddFixedObligationView extends GetView<FixedObligationController> {
   const AddFixedObligationView({super.key});
@@ -11,7 +13,6 @@ class AddFixedObligationView extends GetView<FixedObligationController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-   
       backgroundColor: SpColor.primaryDark,
       appBar: AppBar(
         elevation: 0,
@@ -21,6 +22,14 @@ class AddFixedObligationView extends GetView<FixedObligationController> {
           "التزام ثابت جديد",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Get.toNamed(Routes.FIXEDOBLIGATIONS);
+            },
+            icon: Icon(Icons.list),
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -45,9 +54,11 @@ class AddFixedObligationView extends GetView<FixedObligationController> {
                   const SizedBox(height: 20),
                   _field(
                     "يوم الاستحقاق (1-31)",
-                    controller.dayOfMonthController,
+                    controller.daysController,
                     Icons.calendar_today_rounded,
                   ),
+                  const SizedBox(height: 20),
+                  _buildWalletDropdown(),
                   const SizedBox(height: 20),
                   _buildDatePicker(context),
                   const Divider(color: Colors.white10),
@@ -192,6 +203,37 @@ class AddFixedObligationView extends GetView<FixedObligationController> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWalletDropdown() {
+    return Obx(
+      () => SPDropdownSearch(
+        themeColor: SpColor.expenseRed,
+
+        label: "المحفظة",
+
+        items: controller.walletsListController.regularWallets
+            .map((w) => "${w.currency.currencyName} (${w.currency.code})")
+            .toList(),
+
+        onChanged: (value) {
+          final index = controller.walletsListController.regularWallets
+              .indexWhere(
+                (w) =>
+                    "${w.currency.currencyName} (${w.currency.code})"
+                        .toLowerCase()
+                        .trim() ==
+                    value?.toLowerCase().trim(),
+              );
+          if (index != -1) {
+            controller.selectedWallet.value =
+                controller.walletsListController.regularWallets[index];
+          }
+        },
+
+        hint: 'اختر محفظة',
       ),
     );
   }

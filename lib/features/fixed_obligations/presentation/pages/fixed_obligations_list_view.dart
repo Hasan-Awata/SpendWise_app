@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spendwise/core/utils/colors.dart';
 import 'package:spendwise/features/fixed_obligations/data/models/fixed_obligation_model.dart';
+import 'package:spendwise/features/fixed_obligations/presentation/manager/fixed_obligation_controller.dart';
 import 'package:spendwise/features/fixed_obligations/presentation/manager/fixed_obligation_list_controller.dart';
 
 class FixedObligationListView extends StatelessWidget {
@@ -149,7 +150,7 @@ class FixedObligationListView extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          "يوم الاستحقاق: ${item.dueDate.day}",
+          "يوم الاستحقاق: ${item.lastTime.day}",
           style: const TextStyle(color: Colors.white54, fontSize: 12),
         ),
         const SizedBox(height: 10),
@@ -194,12 +195,9 @@ class FixedObligationListView extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _iconBtn(Icons.edit, Colors.blueAccent, () {
-              // استدعاء Update Dialog المخصص للالتزامات
-            }),
             const SizedBox(width: 6),
-            _iconBtn(Icons.delete, Colors.redAccent, () {
-              // استدعاء Delete Dialog المخصص للالتزامات
+            _iconBtn(Icons.delete, const Color.fromRGBO(255, 82, 82, 1), () {
+              _showDeleteDialog(item);
             }),
           ],
         ),
@@ -219,4 +217,44 @@ class FixedObligationListView extends StatelessWidget {
       ),
     );
   }
+
+  // واجهة تأكيد الحذف
+  void _showDeleteDialog(FixedObligationModel item) {
+    FixedObligationController controller = Get.find();
+    Get.defaultDialog(
+      backgroundColor: SpColor.surfaceNavy,
+
+      title: "حذف الالتزام",
+      titleStyle: const TextStyle(
+        color: Colors.white,
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+      ),
+      middleText:
+          "هل أنت متأكد من حذف هذا الالتزام؟ لا يمكن التراجع عن هذا الإجراء.",
+      textConfirm: "حذف",
+      textCancel: "إلغاء",
+
+      middleTextStyle: TextStyle(color: SpColor.offWhite),
+      confirmTextColor: SpColor.offWhite,
+      buttonColor: SpColor.expenseRed,
+      onConfirm: () {
+        controller.deleteObligationLocally(item);
+      },
+    );
+  }
+
+  // void _editFixedIncome(FixedObligationModel item) {
+  //   final FixedObligationController controller = Get.find();
+
+  //   // 1. تعبئة الحقول النصية
+  //   controller.titleController.text = item.title;
+  //   controller.amountController.text = item.amount.toString();
+
+  //   controller.isActive.value = item.isActive;
+  //   controller.selectedDate.value = item.lastTime;
+
+  //   // 4. الانتقال لصفحة الإضافة
+  //   Get.toNamed(Routes.ADD_FIXEDOBLIGATION);
+  // }
 }

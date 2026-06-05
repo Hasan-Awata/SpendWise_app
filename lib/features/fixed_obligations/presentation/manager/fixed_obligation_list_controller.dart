@@ -7,6 +7,13 @@ class FixedObligationListController extends GetxController {
 
   FixedObligationListController({required this.getFixedObligationsUseCase});
 
+  @override
+  void onInit() {
+    super.onInit();
+
+    fetchObligations(isRefresh: true);
+  }
+
   // =========================
   // STATE
   // =========================
@@ -17,12 +24,6 @@ class FixedObligationListController extends GetxController {
 
   // الإجماليات الخاصة بالالتزامات (يمكن عرضها في لوحة التحكم)
   final RxDouble totalMonthlyObligations = 0.0.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    fetchObligations();
-  }
 
   // =========================
   // FETCH
@@ -40,7 +41,7 @@ class FixedObligationListController extends GetxController {
       (data) {
         obligationsList.assignAll(data);
         // ترتيب الالتزامات حسب تاريخ الاستحقاق (الأقرب أولاً)
-        obligationsList.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+        obligationsList.sort((a, b) => a.lastTime.compareTo(b.lastTime));
         _updateTotals();
       },
     );
@@ -53,7 +54,7 @@ class FixedObligationListController extends GetxController {
   // =========================
   void addObligationLocally(FixedObligationModel model) {
     obligationsList.add(model);
-    obligationsList.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    obligationsList.sort((a, b) => a.lastTime.compareTo(b.lastTime));
     _updateTotals();
   }
 
@@ -61,7 +62,7 @@ class FixedObligationListController extends GetxController {
     final index = obligationsList.indexWhere((e) => e.id == updated.id);
     if (index != -1) {
       obligationsList[index] = updated;
-      obligationsList.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+      obligationsList.sort((a, b) => a.lastTime.compareTo(b.lastTime));
       _updateTotals();
     }
   }

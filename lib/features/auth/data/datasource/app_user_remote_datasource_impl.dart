@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:spendwise/core/network/api_endpoints.dart';
+import 'package:spendwise/core/utils/current_user.dart';
 import 'package:spendwise/features/auth/data/models/login_dto.dart';
 import 'package:spendwise/features/auth/data/models/signup_dto.dart';
 import 'package:spendwise/features/auth/domain/usecases/login_params.dart';
@@ -44,7 +45,7 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
           .timeout(
             const Duration(seconds: 10),
           ); // // تعليق: مهلة زمنية 10 ثوانٍ لضمان استقرار الشبكة
-
+      print("Message ---------> ${response.body} ${response.statusCode}");
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         return UserModel.fromJson(_extractUserPayload(data));
@@ -115,5 +116,46 @@ class AppUserRemoteDatasourceImpl implements AppUserRemoteDatasource {
         map.containsKey('Token') ||
         map.containsKey('token') ||
         map.containsKey('refreshToken');
+  }
+
+  @override
+  Future<UserModel> getUserByUsername(String username) async {
+    try {
+      final uri = _buildUri(
+        "users/by-username",
+      ).replace(queryParameters: {"username": username});
+
+      final response = await client
+          .get(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': "Bearer ${CurrentUser.token}",
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+      print({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': CurrentUser.token,
+      });
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+
+        print("👤 User by username response: $data");
+
+        return UserModel.fromJson(_extractUserPayload(data));
+      }
+
+      if (response.statusCode == 404) {
+        throw Exception("المستخدم غير موجود");
+      }
+
+      throw Exception("فشل جلب المستخدم: ${response.statusCode}");
+    } catch (e) {
+      print("❌ getUserByUsername Error: $e");
+      rethrow;
+    }
   }
 }
