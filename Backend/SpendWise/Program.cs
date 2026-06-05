@@ -166,7 +166,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseSecurityHeaders();
 app.UseCors("AllowAll"); // Delete on actual deployment
 app.UseAuthentication();
