@@ -1,13 +1,12 @@
 ﻿using SpendWise.Application.DTOs.Tag;
 using SpendWise.Application.Interfaces.Tags;
+using SpendWise.Domain.Common;
 using SpendWise.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using SpendWise.Domain.Enums;
 
 namespace SpendWise.Application.Services
 {
-    public class TagService: ITagService
+    public class TagService : ITagService
     {
         private readonly ITagRepository _tagRepo;
 
@@ -16,68 +15,92 @@ namespace SpendWise.Application.Services
             _tagRepo = tagRepository;
         }
 
-        public async Task<TagResponse?> GetTagAsync(int tagId, int userId)
+        // Helpers methods --------------------------------------------------
+        private Tag MapTagDTOtoTagObject(TagDTO tagDto)
+        {
+            // Utilizing the Domain Entity constructor as requested
+            return new Tag(tagDto.Id, tagDto.OwnerId, tagDto.Label);
+        }
+
+        private TagResponse MapTagToTagResponse(Tag tag)
+        {
+            return new TagResponse
+            (
+                tag.Id,
+                tag.Label,
+                tag.OwnerId
+            );
+        }
+
+        // Reading methods --------------------------------------------------
+        public async Task<Result<TagResponse>> GetTagAsync(int tagId, int userId)
         {
             var tag = await _tagRepo.GetTagAsync(tagId, userId);
 
-            return new TagResponse 
-            {
-                Id = tag.Id,
-                Label = tag.Label,
-                OwnerId = tag.OwnerId,
-            };
+            if (tag == null)
+                return Result<TagResponse>.Failure("Tag was not found.", enErrorType.NotFound);
+
+            return Result<TagResponse>.Success(MapTagToTagResponse(tag));
         }
 
-        public async Task<IEnumerable<TagResponse?>> GetTagsByUserIdAsync(int userId)
+        public async Task<Result<IEnumerable<TagResponse>>> GetTagsByUserIdAsync(int userId)
         {
             var tagsList = await _tagRepo.GetTagsByUserIdAsync(userId);
 
-            return tagsList.Select(item => new TagResponse 
-            {
-                Id = item.Id,
-                Label = item.Label,
-                OwnerId = item.OwnerId
-            });
+            if (!tagsList.Any())
+                return Result<IEnumerable<TagResponse>>.Success(Enumerable.Empty<TagResponse>());
+
+            var tagsResponse = tagsList.Select(item => MapTagToTagResponse(item)).ToList();
+
+            return Result<IEnumerable<TagResponse>>.Success(tagsResponse);
         }
 
-        public async Task<TagResponse?> AddTagAsync(TagDTO tagDto)
+        // Writing methods --------------------------------------------------
+        public async Task<Result<TagResponse>> AddTagAsync(TagDTO tagDto)
         {
-            var newTag = new Tag(tagDto.Id, tagDto.OwnerId, tagDto.Label);
+            // 1 - Input validations --------------------------------------------
+            if (string.IsNullOrWhiteSpace(tagDto.Label))
+                return Result<TagResponse>.Failure("Tag label cannot be empty.", enErrorType.Validation);
+
+            tagDto.Id = -1; // Make sure to send -1 to database (safe practice)
+
+            // 2 - Map data ------------------------------------------------------
+            var newTag = MapTagDTOtoTagObject(tagDto);
 
             int newTagId = await _tagRepo.AddTagAsync(newTag);
 
             if (newTagId == -1)
-            {
-                return null;
-            }
+                return Result<TagResponse>.Failure("Failed to add the tag to the database.", enErrorType.Failure);
 
-            return new TagResponse
-            {
-                Id = newTagId,
-                Label = newTag.Label,
-                OwnerId = newTag.OwnerId,
-            };
+            // Re-assign database generated ID to update our local reference object
+            var updatedTagWithId = new Tag(newTagId, newTag.OwnerId, newTag.Label);
+
+            // 3 - Form the response ----------------------------------------------
+            return Result<TagResponse>.Success(MapTagToTagResponse(updatedTagWithId));
         }
-        public async Task<TagResponse?> UpdateTagAsync(TagDTO tagDto)
+
+        public async Task<Result<TagResponse>> UpdateTagAsync(TagDTO tagDto)
         {
-            var updatedTag = new Tag(tagDto.Id, tagDto.OwnerId, tagDto.Label);
+            // 1 - Input validations --------------------------------------------
+            if (string.IsNullOrWhiteSpace(tagDto.Label))
+                return Result<TagResponse>.Failure("Tag label cannot be empty.", enErrorType.Validation);
+
+            // 2 - Map data ------------------------------------------------------
+            var updatedTag = MapTagDTOtoTagObject(tagDto);
 
             if (!await _tagRepo.UpdateTagAsync(updatedTag))
-            {
-                return null;
-            }
+                return Result<TagResponse>.Failure("Failed to update the tag in the database.", enErrorType.Failure);
 
-            return new TagResponse
-            {
-                Id = updatedTag.Id,
-                Label = updatedTag.Label,
-                OwnerId = updatedTag.OwnerId,
-            };
-
+            // 3 - Form the response ----------------------------------------------
+            return Result<TagResponse>.Success(MapTagToTagResponse(updatedTag));
         }
-        public async Task DeleteTagAsync(int tagId, int userId)
+
+        public async Task<Result> DeleteTagAsync(int tagId, int userId)
         {
-            await _tagRepo.DeleteTagAsync(tagId, userId);
+            if (await _tagRepo.DeleteTagAsync(tagId, userId))
+                return Result.Success();
+
+            return Result.Failure("Failed to delete the tag from the database.", enErrorType.Failure);
         }
     }
 }

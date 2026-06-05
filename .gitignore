@@ -100,3 +100,21 @@ Thumbs.db
 
 # Exception: Allow environment template files so you can share the variable structure
 !*template.postman_environment.json
+
+## Visual Studio Build Results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+
+## SQL Server Database Project files
+*.jfm
+*.dbmdl
+*.pfx
+*.dacpac
+*.publish.xml
+
+## User-specific files
+*.sqlproj.user
+/Backend/SpendWise/firebase-adminsdk.json

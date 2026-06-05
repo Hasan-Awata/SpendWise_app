@@ -5,14 +5,14 @@ method: PATCH
 headers:
   Content-Type: application/json
 pathVariables:
-  tagId: "9299"
+  tagId: "348"
 body:
   type: json
   content: |-
     {
-      "id": 6334,
+      "id": 9476,
       "label": "string",
-      "ownerId": 297
+      "ownerId": 5231
     }
 examples: ./.resources/-api-tags-tagId-1.resources/examples
 order: 2000

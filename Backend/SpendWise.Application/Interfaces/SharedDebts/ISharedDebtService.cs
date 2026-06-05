@@ -1,33 +1,47 @@
 ﻿using SpendWise.Application.DTOs.SharedDebts;
+using SpendWise.Domain.Common; 
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace SpendWise.Application.Interfaces.SharedDebts
 {
-    public interface  ISharedDebtService
+    public interface ISharedDebtService
     {
-      
-
         // Get debts where the current user is the creditor (The money you are owed)
-      public  Task<IEnumerable<SharedDebtResponse>> GetDebtsOwedToUserAsync(int userId);
+        Task<Result<IEnumerable<SharedDebtResponse>>> GetDebtsOwedToUserAsync(int userId);
 
         // Get debts where the current user is the debtor (The money you owe)
-        public Task<IEnumerable<SharedDebtResponse>> GetTheDebtsIHaveToPayAsync(int userId);
-        // Get a single debt by its ID
-        public  Task<SharedDebtResponse?> GetDebtByIdAsync(int debtId);
-        //Get debt by title
-        public Task<SharedDebtResponse?> GetDebtByTitleAsync(string title);
+        Task<Result<IEnumerable<SharedDebtResponse>>> GetTheDebtsIHaveToPayAsync(int userId);
 
-        // Create a new debt
-         public  Task<int> AddDebtAsync(SharedDebtDTO debtDto);
+        // Get a single debt by its ID
+        Task<Result<SharedDebtResponse>> GetDebtByIdAsync(int debtId);
+
+        // Get debt by title
+        Task<Result<SharedDebtResponse>> GetDebtByTitleAsync(string title);
+
+        // Create a new debt (Returns the new record ID inside Result)
+        Task<Result<SharedDebtResponse>> AddDebtAsync(SharedDebtDTO debtDto);
 
         // Update an existing debt
-        public Task<bool> UpdateDebtAsync(int debtId, SharedDebtDTO debtDto);
+        Task<Result> UpdateDebtAsync(int debtId, SharedDebtDTO debtDto);
 
         // Delete a debt
-        public Task<bool> DeleteDebtByIdAsync(int debtId);
-        public Task<bool> DeletDebtByTitleAsync(string title);
+        Task<Result> DeleteDebtByIdAsync(int debtId);
+        Task<Result> DeletDebtByTitleAsync(string title);
 
+        // Get all shared debts for a specific user
+        Task<Result<IEnumerable<SharedDebtResponse>>> GetSharedDebtsForUserAsync(int userId);
+
+        // Record a payback transaction
+        Task<Result> ReturnDebtAmountAsync(int debtId, ReturnDebtDTO returnDebtDTO);
+
+        // Pure state check remains a boolean
+        Task<bool> DebtExistsAsyns(int debtId);
+
+        // Handle confirmation states
+        Task<Result> AcceptSharedDebtAsync(int debtId, ReturnDebtDTO debtDTO);
+        Task<Result> RefuseDebtAsync(int debtId);
     }
 }

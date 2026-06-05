@@ -9,13 +9,25 @@ namespace SpendWise.Application.Interfaces.Expenses
     public interface IExpenseRepository
     {
         // Writing to database
-        public Task<int> AddExpenseAsync(Expense newExpense, Transaction newTransaction);
-        public Task<bool> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction);
+        public Task<(int ExpenseId, bool IsOverLimit)> AddExpenseAsync(Expense newExpense);
+        public Task<(int ExpenseId, bool IsOverLimit)> AddExpenseUsingBothWalletsAsync(
+            Expense newExpense,
+            int primaryWalletId,
+            int savingWalletId,
+            decimal amountFromPrimaryWallet,
+            decimal amountFromSavingWallet);
+
+        public Task<(bool Success, bool IsOverLimit)> UpdateExpenseAsync(Expense newExpense);
+        public Task<(bool Success, bool IsOverLimit)> UpdateExpenseUsingBothWalletsAsync(
+            Expense newExpense,
+            int primaryWalletId,
+            decimal amountFromPrimaryWallet,
+            decimal amountFromSavingWallet);
         public Task<bool> DeleteExpenseAsync(int expenseId, int userId);
 
         // Reading from the database
         public Task<Expense> GetExpenseAsync(int expenseId, int userId);
-        public Task<(IEnumerable<Expense> projects, int totalCount)> GetExpensesByUserAsync(int userId, int pageNumber, int pageSize);
+        public Task<(IEnumerable<Expense> expenses, int totalCount)> GetExpensesByUserAsync(int userId, int pageNumber, int pageSize);
         public Task<string> GetProductsAsync(int expenseId);
     }
 }

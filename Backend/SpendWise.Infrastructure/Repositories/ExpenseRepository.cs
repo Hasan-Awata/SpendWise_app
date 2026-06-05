@@ -1,271 +1,250 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using SpendWise.Application.Interfaces.Expenses;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
-using SpendWise.Infrastructure.Global; // Added Global Exception Handler
+using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
-using SpendWise.Application.Interfaces.Expenses;
 
 namespace SpendWise.Infrastructure.Repositories
 {
-    public class ExpenseRepository : IExpenseRepository
+    public class ExpenseRepository : BaseRepository, IExpenseRepository
     {
-        private readonly string _connectionString;
-
         public ExpenseRepository(IConfiguration configuration)
+            : base(configuration.GetConnectionString("DefaultConnection")
+                  ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings."))
+        { }
+
+        public async Task<(int ExpenseId, bool IsOverLimit)> AddExpenseAsync(Expense newExpense)
         {
-            _connectionString = configuration.GetConnectionString("DefaultConnection")
-                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+            SqlParameter? outputId = null;
+            SqlParameter? outputLimit = null;
+
+            // Using ExecuteScalarAsync while capturing output parameters via lambda closure
+            await ExecuteScalarAsync<int>("[Ledger].[sp_AddExpenseWithTransaction]", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@UserId", newExpense.UserId);
+                cmd.Parameters.AddWithValue("@WalletId", newExpense.WalletId);
+                cmd.Parameters.AddWithValue("@CategoryId", newExpense.CategoryId);
+                cmd.Parameters.AddWithValue("@Amount", newExpense.Amount);
+                cmd.Parameters.AddWithValue("@Date", newExpense.Date);
+                cmd.Parameters.AddWithValue("@Title", newExpense.Title);
+
+                cmd.Parameters.AddWithValue("@Products", (object)newExpense.Products ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@TagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
+
+                cmd.Parameters.AddWithValue("@Description", (object)newExpense.LinkedTransaction.Description ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@AmountInSp", newExpense.LinkedTransaction.AmountInSp);
+                cmd.Parameters.AddWithValue("@TransactionType", (int)enTransactionType.Dedduction);
+
+                outputId = new SqlParameter("@NewExpenseID", SqlDbType.Int) { Direction = ParameterDirection.Output };
+                outputLimit = new SqlParameter("@IsOverLimit", SqlDbType.Bit) { Direction = ParameterDirection.Output };
+                cmd.Parameters.Add(outputId);
+                cmd.Parameters.Add(outputLimit);
+            });
+
+            return ((int)(outputId?.Value ?? -1), (bool)(outputLimit?.Value ?? false));
         }
 
-        public async Task<int> AddExpenseAsync(Expense newExpense, Transaction newTransaction)
+        public async Task<(int ExpenseId, bool IsOverLimit)> AddExpenseUsingBothWalletsAsync(
+            Expense newExpense,
+            int primaryWalletId,
+            int savingWalletId,
+            decimal amountFromPrimaryWallet,
+            decimal amountFromSavingWallet)
         {
-            try
+            SqlParameter? outputId = null;
+            SqlParameter? outputLimit = null;
+
+            await ExecuteScalarAsync<int>("[Ledger].[sp_AddExpenseUsingBothWallets]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_AddExpenseWithTransaction]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@UserId", newExpense.UserId);
+                cmd.Parameters.AddWithValue("@CategoryId", newExpense.CategoryId);
+                cmd.Parameters.AddWithValue("@Amount", newExpense.Amount);
+                cmd.Parameters.AddWithValue("@Date", newExpense.Date);
+                cmd.Parameters.AddWithValue("@Title", newExpense.Title);
 
-                // Directly mapping the IDs as defined in your Expense.cs domain entity
-                command.Parameters.AddWithValue("@ExpenseUserId", newExpense.UserId);
-                command.Parameters.AddWithValue("@ExpenseWalletId", newExpense.WalletId);
-                command.Parameters.AddWithValue("@ExpenseCategoryId", newExpense.CategoryId);
-                command.Parameters.AddWithValue("@Products", string.IsNullOrEmpty(newExpense.Products) ? DBNull.Value : newExpense.Products);
-                command.Parameters.AddWithValue("@ExpenseAmount", newExpense.Amount);
-                command.Parameters.AddWithValue("@ExpenseDate", newExpense.Date);
-                command.Parameters.AddWithValue("@ExpenseTagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
+                cmd.Parameters.AddWithValue("@PrimaryWalletId", primaryWalletId);
+                cmd.Parameters.AddWithValue("@SavingWalletId", savingWalletId);
+                cmd.Parameters.AddWithValue("@AmountFromPrimaryWallet", amountFromPrimaryWallet);
+                cmd.Parameters.AddWithValue("@AmountFromSavingWallet", amountFromSavingWallet);
 
-                command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
-                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
-                command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
-                command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
-                command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategoryId > 0 ? newTransaction.TransactionCategoryId : DBNull.Value);
+                cmd.Parameters.AddWithValue("@Products", (object)newExpense.Products ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@TagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
 
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
+                cmd.Parameters.AddWithValue("@Description", (object)newExpense.LinkedTransaction.Description ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@AmountInSp", newExpense.LinkedTransaction.AmountInSp);
+                cmd.Parameters.AddWithValue("@TransactionType", (int)enTransactionType.Dedduction);
 
-                // Clean, one-line evaluation
-                return result != null && int.TryParse(result.ToString(), out int insertedId) ? insertedId : -1;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex); // Centralized Exception Handling
-                throw;
-            }
+                outputId = new SqlParameter("@NewExpenseID", SqlDbType.Int) { Direction = ParameterDirection.Output };
+                outputLimit = new SqlParameter("@IsOverLimit", SqlDbType.Bit) { Direction = ParameterDirection.Output };
+                cmd.Parameters.Add(outputId);
+                cmd.Parameters.Add(outputLimit);
+            });
+
+            return ((int)(outputId?.Value ?? -1), (bool)(outputLimit?.Value ?? false));
         }
 
-        public async Task<bool> UpdateExpenseAsync(Expense newExpense, Transaction newTransaction)
+        public async Task<(bool Success, bool IsOverLimit)> UpdateExpenseAsync(Expense newExpense)
         {
-            try
+            SqlParameter? outputLimit = null;
+
+            var rowsAffected = await ExecuteScalarAsync<int>("[Ledger].[sp_UpdateExpenseWithTransaction]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_UpdateExpenseWithTransaction]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@ExpenseId", newExpense.ExpenseId);
+                cmd.Parameters.AddWithValue("@UserId", newExpense.UserId);
+                cmd.Parameters.AddWithValue("@WalletId", newExpense.WalletId);
+                cmd.Parameters.AddWithValue("@CategoryId", newExpense.CategoryId);
+                cmd.Parameters.AddWithValue("@Amount", newExpense.Amount);
+                cmd.Parameters.AddWithValue("@Date", newExpense.Date);
+                cmd.Parameters.AddWithValue("@Products", (object)newExpense.Products ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@TagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
 
-                command.Parameters.AddWithValue("@ExpenseId", newExpense.ExpenseId);
-                command.Parameters.AddWithValue("@ExpenseUserId", newExpense.UserId);
-                command.Parameters.AddWithValue("@ExpenseWalletId", newExpense.WalletId);
-                command.Parameters.AddWithValue("@ExpenseCategoryId", newExpense.CategoryId);
-                command.Parameters.AddWithValue("@Products", string.IsNullOrEmpty(newExpense.Products) ? DBNull.Value : newExpense.Products);
-                command.Parameters.AddWithValue("@ExpenseAmount", newExpense.Amount);
-                command.Parameters.AddWithValue("@ExpenseDate", newExpense.Date);
-                command.Parameters.AddWithValue("@ExpenseTagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
+                cmd.Parameters.AddWithValue("@Title", newExpense.LinkedTransaction.Title);
+                cmd.Parameters.AddWithValue("@Description", (object)newExpense.LinkedTransaction.Description ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@AmountInSp", newExpense.LinkedTransaction.AmountInSp);
+                cmd.Parameters.AddWithValue("@TransactionType", (int)enTransactionType.Dedduction);
 
-                command.Parameters.AddWithValue("@TransTitle", newTransaction.Title);
-                command.Parameters.AddWithValue("@TransDescription", string.IsNullOrEmpty(newTransaction.Description) ? DBNull.Value : newTransaction.Description);
-                command.Parameters.AddWithValue("@TransType", (int)newTransaction.TransactionType);
-                command.Parameters.AddWithValue("@TransTagId", newTransaction.TransactionTagId > 0 ? newTransaction.TransactionTagId : DBNull.Value);
-                command.Parameters.AddWithValue("@TransCategoryId", newTransaction.TransactionCategoryId > 0 ? newTransaction.TransactionCategoryId : DBNull.Value);
+                outputLimit = new SqlParameter("@IsOverLimit", SqlDbType.Bit) { Direction = ParameterDirection.Output };
+                cmd.Parameters.Add(outputLimit);
+            });
 
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return (rowsAffected > 0, (bool)(outputLimit?.Value ?? false));
         }
 
-        // Added userId parameter for IDOR security!
+        public async Task<(bool Success, bool IsOverLimit)> UpdateExpenseUsingBothWalletsAsync(
+            Expense newExpense,
+            int primaryWalletId,
+            decimal amountFromPrimaryWallet,
+            decimal amountFromSavingWallet)
+        {
+            SqlParameter? outputLimit = null;
+
+            var rowsAffected = await ExecuteNonQueryAsync("[Ledger].[sp_UpdateExpenseUsingBothWallets]", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@ExpenseId", newExpense.ExpenseId);
+                cmd.Parameters.AddWithValue("@UserId", newExpense.UserId);
+                cmd.Parameters.AddWithValue("@CategoryId", newExpense.CategoryId);
+                cmd.Parameters.AddWithValue("@Amount", newExpense.Amount);
+                cmd.Parameters.AddWithValue("@Date", newExpense.Date);
+                cmd.Parameters.AddWithValue("@Title", newExpense.Title);
+
+                cmd.Parameters.AddWithValue("@PrimaryWalletId", primaryWalletId);
+                cmd.Parameters.AddWithValue("@AmountFromPrimaryWallet", amountFromPrimaryWallet);
+                cmd.Parameters.AddWithValue("@AmountFromSavingWallet", amountFromSavingWallet);
+
+                cmd.Parameters.AddWithValue("@Products", (object)newExpense.Products ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@TagId", newExpense.ExpenseTagId > 0 ? newExpense.ExpenseTagId : DBNull.Value);
+
+                cmd.Parameters.AddWithValue("@Description", (object)newExpense.LinkedTransaction.Description ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@AmountInSp", newExpense.LinkedTransaction.AmountInSp);
+                cmd.Parameters.AddWithValue("@TransactionType", (int)enTransactionType.Dedduction);
+
+                outputLimit = new SqlParameter("@IsOverLimit", SqlDbType.Bit) { Direction = ParameterDirection.Output };
+                cmd.Parameters.Add(outputLimit);
+            });
+
+            return (rowsAffected > 0, (bool)(outputLimit?.Value ?? false));
+        }
+
         public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
         {
-            try
+            var rowsAffected = await ExecuteScalarAsync<int>("[Ledger].[sp_DeleteExpense]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_DeleteExpense]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                cmd.Parameters.AddWithValue("@ExpenseId", expenseId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+            });
 
-                command.Parameters.AddWithValue("@ExpenseId", expenseId);
-                command.Parameters.AddWithValue("@UserId", userId); // Pass to SQL for ownership check
-
-                await connection.OpenAsync();
-                var result = await command.ExecuteScalarAsync();
-
-                // Clean, one-line evaluation
-                return result != null && int.TryParse(result.ToString(), out int rowsAffected) && rowsAffected > 0;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return rowsAffected > 0;
         }
 
-        public async Task<Expense> GetExpenseAsync(int expenseId, int userId)
+        public async Task<Expense?> GetExpenseAsync(int expenseId, int userId)
         {
-            try
+            return await ExecuteReaderSingleAsync("[Ledger].[sp_GetExpense]", cmd =>
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetExpense]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@ExpenseId", expenseId);
-                command.Parameters.AddWithValue("@UserId", userId);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
-                {
-                    // Fixed mapping: creating the object directly using IDs, removing the Income copy-paste bug
-                    var expense = new Expense
-                    {
-                        ExpenseId = Convert.ToInt32(reader["ExpenseID"]),
-                        UserId = Convert.ToInt32(reader["UserID"]),
-                        Amount = Convert.ToDecimal(reader["Amount"]),
-                        Products = reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
-                        Date = Convert.ToDateTime(reader["Date"]),
-                        WalletId = Convert.ToInt32(reader["WalletID"]),
-                        CategoryId = Convert.ToInt32(reader["CategoryID"])
-                    };
-
-                    if (reader["TagID"] != DBNull.Value)
-                    {
-                        expense.ExpenseTagId = Convert.ToInt32(reader["TagID"]);
-                    }
-                    else
-                    {
-                        expense.ExpenseTagId = -1;
-                    }
-
-                    return expense;
-                }
-
-                return null!;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+                cmd.Parameters.AddWithValue("@ExpenseID", expenseId);
+                cmd.Parameters.AddWithValue("@UserID", userId);
+            }, MapToExpense);
         }
 
-        public async Task<(IEnumerable<Expense> projects, int totalCount)> GetExpensesByUserAsync(int userId, int pageNumber, int pageSize)
+        public async Task<(IEnumerable<Expense> expenses, int totalCount)> GetExpensesByUserAsync(int userId, int pageNumber, int pageSize)
         {
             var expenses = new List<Expense>();
             int totalCount = 0;
 
-            try
-            {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetExpensesByUserPaged]", connection)
+            // Handled using an inline custom reader context since it handles multi-result grid structures natively
+            await ExecuteReaderAsync("[Ledger].[sp_GetExpensesByUserPaged]",
+                cmd =>
                 {
-                    CommandType = CommandType.StoredProcedure
-                };
-
-                command.Parameters.AddWithValue("@UserId", userId);
-                command.Parameters.AddWithValue("@PageNumber", pageNumber);
-                command.Parameters.AddWithValue("@PageSize", pageSize);
-
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                    cmd.Parameters.AddWithValue("@UserId", userId);
+                    cmd.Parameters.AddWithValue("@PageNumber", pageNumber);
+                    cmd.Parameters.AddWithValue("@PageSize", pageSize);
+                },
+                async reader =>
                 {
-                    totalCount = Convert.ToInt32(reader["TotalCount"]);
-                }
-
-                if (await reader.NextResultAsync())
-                {
-                    while (await reader.ReadAsync())
+                    // First Result Set: Total Count
+                    if (await reader.ReadAsync())
                     {
-                        var expense = new Expense
-                        {
-                            ExpenseId = Convert.ToInt32(reader["ExpenseID"]),
-                            UserId = Convert.ToInt32(reader["UserID"]),
-                            Amount = Convert.ToDecimal(reader["Amount"]),
-                            Products = reader["Products"] != DBNull.Value ? Convert.ToString(reader["Products"])! : string.Empty,
-                            Date = Convert.ToDateTime(reader["Date"]),
-                            WalletId = Convert.ToInt32(reader["WalletID"]),
-                            CategoryId = Convert.ToInt32(reader["CategoryID"])
-                        };
-
-                        if (reader["TagID"] != DBNull.Value)
-                        {
-                            expense.ExpenseTagId = Convert.ToInt32(reader["TagID"]);
-                        }
-                        else
-                        {
-                            expense.ExpenseTagId = -1;
-                        }
-
-                        expenses.Add(expense);
+                        totalCount = EmptyValuesHandler.GetInt32OrDefault(reader, "TotalCount");
                     }
-                }
 
-                return (expenses, totalCount);
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+                    // Second Result Set: Paged Expenses list
+                    if (await reader.NextResultAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            expenses.Add(MapToExpense(reader));
+                        }
+                    }
+                    return default(object); // Dummy return required by functional mapping delegate signature
+                });
+
+            return (expenses, totalCount);
         }
 
         public async Task<string> GetProductsAsync(int expenseId)
         {
-            string products = string.Empty;
+            var result = await ExecuteScalarAsync<object>("[Ledger].[sp_GetProducts]",
+                cmd => cmd.Parameters.AddWithValue("@ExpenseId", expenseId));
 
-            try
+            return result?.ToString() ?? string.Empty;
+        }
+
+        // =========================================================================
+        // REUSABLE HELPER METHODS & MAPPERS
+        // =========================================================================
+        private static Expense MapToExpense(SqlDataReader reader)
+        {
+            var expense = new Expense
             {
-                using var connection = new SqlConnection(_connectionString);
-                using var command = new SqlCommand("[Ledger].[sp_GetProducts]", connection)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                ExpenseId = EmptyValuesHandler.GetInt32OrDefault(reader, "ExpenseID"),
+                UserId = EmptyValuesHandler.GetInt32OrDefault(reader, "UserID"),
+                Title = EmptyValuesHandler.GetStringOrDefault(reader, "Title"),
+                Amount = EmptyValuesHandler.GetDecimalOrDefault(reader, "Amount"),
+                Date = EmptyValuesHandler.GetDateTimeOrDefault(reader, "Date"),
+                WalletId = EmptyValuesHandler.GetInt32OrDefault(reader, "WalletID"),
+                CategoryId = EmptyValuesHandler.GetInt32OrDefault(reader, "CategoryID"),
+                Products = EmptyValuesHandler.GetStringOrDefault(reader, "Products"),
+                ExpenseTagId = reader.IsDBNull(reader.GetOrdinal("TagID")) ? -1 : Convert.ToInt32(reader["TagID"])
+            };
 
-                command.Parameters.AddWithValue("@ExpenseId", expenseId);
+            expense.LinkedTransaction = new Transaction(
+                expense.ExpenseId,
+                expense.UserId,
+                expense.Title,
+                EmptyValuesHandler.GetStringOrDefault(reader, "Description"),
+                expense.WalletId,
+                expense.Amount,
+                EmptyValuesHandler.GetDecimalOrDefault(reader, "AmountInSp"),
+                expense.Date,
+                enTransactionType.Dedduction,
+                -1, -1, -1, -1
+            );
 
-                await connection.OpenAsync();
-                using var reader = await command.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
-                {
-                    if (reader["Products"] != DBNull.Value)
-                        products = reader["Products"].ToString()!;
-                }
-
-                return products;
-            }
-            catch (SqlException ex)
-            {
-                SqlExceptionHandler.Handle(ex);
-                throw;
-            }
+            return expense;
         }
     }
 }

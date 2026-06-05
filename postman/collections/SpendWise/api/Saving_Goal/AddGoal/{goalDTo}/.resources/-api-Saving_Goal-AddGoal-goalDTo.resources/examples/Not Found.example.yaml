@@ -16,11 +16,11 @@ request:
     type: json
     content: |-
       {
-        "currentAmount": 1.7453229607369887e+307,
-        "deadlineDate": "1955-04-01",
-        "targetAmount": 1.4922409000695493e+308,
+        "currentAmount": 7.206777727339053e+307,
+        "deadlineDate": "1970-02-15",
+        "targetAmount": 7.458220144147451e+307,
         "title": "string",
-        "userId": 1157
+        "userId": 2249
       }
 response:
   statusCode: 404
@@ -33,9 +33,8 @@ response:
       {
         "type": "string",
         "title": "string",
-        "status": 651,
+        "status": 3829,
         "detail": "string",
-        "instance": "string",
-        "key_0": "string"
+        "instance": "string"
       }
 order: 2000

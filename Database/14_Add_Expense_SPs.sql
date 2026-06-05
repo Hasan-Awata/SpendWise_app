@@ -61,7 +61,7 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_AddExpenseWithTransaction]
     @ExpenseUserId INT,
     @ExpenseWalletId INT,
     @ExpenseCategoryId INT,
-    @Products NVARCHAR(MAX) = NULL, -- Added missing parameter
+    @Products NVARCHAR(MAX) = NULL, 
     @ExpenseTagId INT = NULL,
     @ExpenseAmount DECIMAL(18,2),
     @ExpenseDate DATETIME,
@@ -69,6 +69,7 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_AddExpenseWithTransaction]
     @TransTitle NVARCHAR(255),
     @TransDescription NVARCHAR(MAX) = NULL,
     @TransType INT,
+    @TransAmountInSp DECIMAL(18,2), 
     @TransCategoryId INT,
     @TransTagId INT = NULL,
     @GoalId INT = NULL,
@@ -104,9 +105,9 @@ BEGIN
 
         -- 2. Insert Transaction (Linking to ExpenseID instead of IncomeID)
         INSERT INTO [Ledger].Transactions 
-        (UserID, WalletID, CategoryID, TagID, GoalID, FixedExpenseID, FixedIncomeID, DebtID, ExpenseID, Title, Amount, TransactionDate, TransactionType, Description)
+        (UserID, WalletID, CategoryID, TagID, GoalID, FixedExpenseID, FixedIncomeID, DebtID, ExpenseID, Title, Amount, AmountInSp, TransactionDate, TransactionType, Description)
         VALUES 
-        (@ExpenseUserId, @ExpenseWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewExpenseID, @TransTitle, @ExpenseAmount, @ExpenseDate, @TransType, @TransDescription);
+        (@ExpenseUserId, @ExpenseWalletId, @TransCategoryId, @TransTagId, @GoalId, @FixedExpenseId, @FixedIncomeId, @DebtId, @NewExpenseID, @TransTitle, @ExpenseAmount, @TransAmountInSp, @ExpenseDate, @TransType, @TransDescription);
 
         -- 3. UPDATE WALLET BALANCE (DEDUCT FOR EXPENSE)
         UPDATE [Banking].Wallets
@@ -131,7 +132,7 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_UpdateExpenseWithTransaction]
     @ExpenseUserId INT,
     @ExpenseWalletId INT,
     @ExpenseCategoryId INT,
-    @Products NVARCHAR(MAX) = NULL, -- Added missing parameter
+    @Products NVARCHAR(MAX) = NULL, 
     @ExpenseTagId INT = NULL,
     @ExpenseAmount DECIMAL(18,2),
     @ExpenseDate DATETIME,
@@ -139,6 +140,7 @@ CREATE OR ALTER PROCEDURE [Ledger].[sp_UpdateExpenseWithTransaction]
     @TransTitle NVARCHAR(255),
     @TransDescription NVARCHAR(MAX) = NULL,
     @TransType INT,
+    @TransAmountInSp DECIMAL(18,2),
     @TransCategoryId INT = NULL,
     @TransTagId INT = NULL,
     @GoalId INT = NULL,
@@ -210,6 +212,7 @@ BEGIN
                 DebtID = @DebtId,
                 Title = @TransTitle,
                 Amount = @ExpenseAmount,
+                AmountInSp = @TransAmountInSp, 
                 TransactionDate = @ExpenseDate,
                 TransactionType = @TransType,
                 Description = @TransDescription

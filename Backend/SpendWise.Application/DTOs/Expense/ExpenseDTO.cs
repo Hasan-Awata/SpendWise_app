@@ -1,4 +1,5 @@
 ﻿using SpendWise.Application.DTOs.Category;
+using SpendWise.Application.DTOs.Expense;
 using SpendWise.Application.DTOs.Tag;
 using SpendWise.Domain.Entities;
 using SpendWise.Domain.Enums;
@@ -7,7 +8,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace SpendWise.Application.DTOs.Income
+namespace SpendWise.Application.DTOs.Expense
 {
     public class ExpenseDTO
     {
@@ -33,8 +34,8 @@ namespace SpendWise.Application.DTOs.Income
         [Required(ErrorMessage = "Please enter the date of the transaction")]
         public DateTime Date { get; set; }
 
-        public int ExpenseTagId { get; set; }
+        public int ExpenseTagId { get; set; } = -1;
         public string Description { get; set; } = string.Empty;
-        public string Products {  get; set; } = string.Empty; // JSON 
+        public List<ProductDTO> Products { get; set; } = new();
     }
 }

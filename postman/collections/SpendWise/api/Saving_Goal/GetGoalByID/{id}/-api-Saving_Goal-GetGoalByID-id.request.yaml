@@ -5,6 +5,6 @@ method: GET
 headers:
   Accept: text/plain
 pathVariables:
-  id: "9299"
+  id: "348"
 examples: ./.resources/-api-Saving_Goal-GetGoalByID-id.resources/examples
 order: 1000

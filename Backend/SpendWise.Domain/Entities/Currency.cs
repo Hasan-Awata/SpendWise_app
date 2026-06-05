@@ -1,19 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SpendWise.Domain.Entities
+﻿namespace SpendWise.Domain.Entities
 {
     public class Currency
     {
         public int Id { get; set; }
+        public string Code { get; set; } = string.Empty; // <-- Add this!
         public string CurrencyName { get; set; } = string.Empty;
-        public decimal LiveValue { get; set; }
-        public Currency(int id, string currencyName, Decimal livevalue = 1.000m)
+
+        public Currency(int id, string code, string currencyName)
         {
-            this.Id = id;
-            this.CurrencyName = currencyName;
-            this.LiveValue = livevalue;
+            Id = id;
+            Code = code;
+            CurrencyName = currencyName;
         }
 
         public Currency() { }

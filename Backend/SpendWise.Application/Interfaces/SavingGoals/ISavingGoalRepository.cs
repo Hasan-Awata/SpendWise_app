@@ -10,11 +10,13 @@ namespace SpendWise.Application.Interfaces.SavingGoals
     public interface ISavingGoalRepository
     {
         public Task<SavingGoal?> GetGoalByIdAsync(int goalId);
-        public Task<IEnumerable<SavingGoal>>? GetAllUserGoalsAsync(int userId);
+        public Task<(IEnumerable<SavingGoal> goals, int totalCount)> GetAllUserGoalsAsync(int userId, int pageNumber, int pageSize);
         public Task<int> AddGoalAsync(SavingGoal goal);
         public Task<bool> UpdateGoalAsync(SavingGoal ubdatedGoal);
         public Task<bool> DeleteGoalAsync(int goalId);
         public Task<bool> GoalExistsAsync(int goalId);
         public Task<IEnumerable<SavingGoal>> GetAchievedGoalsAsync(int userId);
+        public Task<bool> WithdrawAmountFromSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromSavingGoal, decimal amountToWallet, decimal amountInSp);
+        public Task<bool> AddAmountToSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromWallet, decimal amountToSavingGoal, decimal amountInSp);
     }
 }

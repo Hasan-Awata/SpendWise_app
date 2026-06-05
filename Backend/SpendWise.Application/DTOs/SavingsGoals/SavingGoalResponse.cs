@@ -17,8 +17,10 @@ namespace SpendWise.Application.DTOs.SavingsGoals
         public decimal CurrentAmount { get; set; }
 
         public DateTime DeadlineDate { get; set; }
+        public int CurrencyId { get; set; }
+        public bool IsActive { get; set; }
         public SavingGoalResponse() { }
-        public SavingGoalResponse(int goalID, int userID, string title, decimal targetAmount, decimal currentAmount, DateTime deadlineDate)
+        public SavingGoalResponse(int goalID, int userID, string title, decimal targetAmount, decimal currentAmount, DateTime deadlineDate,int currencyId, bool isActive    )
         {
             GoalID = goalID;
             UserID = userID;
@@ -26,14 +28,19 @@ namespace SpendWise.Application.DTOs.SavingsGoals
             TargetAmount = targetAmount;
             CurrentAmount = currentAmount;
             DeadlineDate = deadlineDate;
+            CurrencyId = currencyId;
+            IsActive = isActive;
         }
         public SavingGoalResponse(SpendWise.Domain.Entities.SavingGoal savingGoals) {
-        this.GoalID= savingGoals.GoalID;
+             this.GoalID= savingGoals.GoalID;
             this.DeadlineDate = savingGoals.DeadlineDate;
             this.UserID = savingGoals.UserID;
             this.CurrentAmount = savingGoals.CurrentAmount;
             this.Title = savingGoals.Title;
             this.TargetAmount = savingGoals.TargetAmount;
+            this.CurrencyId = savingGoals.CurrencyId;
+            this.IsActive = savingGoals.IsAchieved;
+
 
         
         }

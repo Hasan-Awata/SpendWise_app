@@ -7,10 +7,8 @@ namespace SpendWise.Application.DTOs.SharedDebts
 {
     public class SharedDebtDTO
     {
-        [Required(ErrorMessage = "Creditor ID is required.")]
         public int CreditorID { get; set; }
 
-        [Required(ErrorMessage = "Debtor ID is required.")]
         public int DebtorID { get; set; }
 
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero.")]
@@ -25,5 +23,9 @@ namespace SpendWise.Application.DTOs.SharedDebts
         [Required(ErrorMessage = "Due date is required.")]
         public DateTime DueDate { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        public int CreditorWalletID { get; set; }
+        public int DebtorWalletID { get; set; }
+        public decimal PaidAmount { get; set; }
     }
 }

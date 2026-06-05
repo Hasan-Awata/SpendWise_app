@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using SpendWise.Application.Interfaces.SavingGoals;
 using SpendWise.Domain.Entities;
+using SpendWise.Infrastructure.Global;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -9,241 +10,161 @@ using System.Threading.Tasks;
 
 namespace SpendWise.Infrastructure.Repositories
 {
-    public class SavingGoalRepository : ISavingGoalRepository
+    public class SavingGoalRepository : BaseRepository, ISavingGoalRepository
     {
-        private readonly string _connectionString;
-
         public SavingGoalRepository(IConfiguration configuration)
+            : base(configuration.GetConnectionString("DefaultConnection")
+                  ?? throw new ArgumentNullException(nameof(configuration), "Connection string is missing in appsettings."))
+        { }
+
+        public async Task<bool> WithdrawAmountFromSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromSavingGoal, decimal amountToWallet, decimal amountInSp)
         {
-            _connectionString = configuration.GetConnectionString("DefaultConnection")
-                                            ?? throw new ArgumentNullException("Connection string is missing in appsettings.");
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_WithdrawAmountFromSavingGoalWithTransaction]", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@GoalId", goalId);
+                cmd.Parameters.AddWithValue("@WalletId", walletId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@AmountFromSavingGoal", amountFromSavingGoal);
+                cmd.Parameters.AddWithValue("@AmountToWallet", amountToWallet);
+                cmd.Parameters.AddWithValue("@AmountInSp", amountInSp);
+                cmd.Parameters.AddWithValue("@TransactionTitle", "Withdraw money from the savings goal");
+                cmd.Parameters.AddWithValue("@TransactionType", 1);
+            });
+            return result == 1;
         }
+        public async Task<bool> AddAmountToSavingGoalTransactionAsync(int goalId, int walletId, int userId, decimal amountFromWallet, decimal amountToSavingGoal, decimal amountInSp)
+        {
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_AddAmountToSavingGoalWithTransaction]", cmd =>
+            {
+                cmd.Parameters.AddWithValue("@GoalId", goalId);
+                cmd.Parameters.AddWithValue("@WalletId", walletId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@AmountFromWallet", amountFromWallet);
+                cmd.Parameters.AddWithValue("@AmountToSavingGoal", amountToSavingGoal);
+                cmd.Parameters.AddWithValue("@AmountInSp", amountInSp);
+                cmd.Parameters.AddWithValue("@TransactionTitle", "Transfer money to the savings goal");
+                cmd.Parameters.AddWithValue("@TransactionType", 1);
+            });
+
+            return result == 1;
+        }
+
         public async Task<int> AddGoalAsync(SavingGoal goal)
         {
-            int GoalID = -1;
+            SqlParameter? outputId = null;
 
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            await ExecuteScalarAsync<int>("[Planning].[sp_AddSavingGoal]", cmd =>
             {
-                using (SqlCommand command = new SqlCommand("[pln].[sp_CreateSavingsGoal]", connection))
-                {
-                    command.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@UserId", goal.UserID);
+                cmd.Parameters.AddWithValue("@Title", goal.Title);
+                cmd.Parameters.AddWithValue("@TargetAmount", goal.TargetAmount);
+                cmd.Parameters.AddWithValue("@CurrentAmount", goal.CurrentAmount);
+                cmd.Parameters.AddWithValue("@DeadlineDate", (object?)goal.DeadlineDate ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@CurrencyId", goal.CurrencyId);
+                cmd.Parameters.AddWithValue("@IsAchieved", false);
 
-                    command.Parameters.AddWithValue("@NewGoalID", goal.GoalID);
-                    command.Parameters.AddWithValue("@UserID", goal.UserID);
-                    command.Parameters.AddWithValue("@Title", goal.Title);
-                    command.Parameters.AddWithValue("@TargetAmount", goal.TargetAmount);
-                    command.Parameters.AddWithValue("@CurrentAmount", goal.CurrentAmount);
-                    command.Parameters.AddWithValue("@DeadlineDate", goal.DeadlineDate);
+                // Output parameter configuration via closure
+                outputId = new SqlParameter("@NewGoalID", SqlDbType.Int) { Direction = ParameterDirection.Output };
+                cmd.Parameters.Add(outputId);
+            });
 
-                    try
-                    {
-                        await connection.OpenAsync();
-                        object? result = await command.ExecuteScalarAsync();
-                        if (result != null && int.TryParse(result.ToString(), out int insertedID))
-                        {
-                            GoalID = insertedID;
-                            goal.GoalID = GoalID;
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        return GoalID;
-                    }
-                }
-                return GoalID;
-            }
+            return (int)(outputId?.Value ?? -1);
         }
 
         public async Task<bool> UpdateGoalAsync(SavingGoal updatedGoal)
         {
-            int rowsAffected = 0;
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_UpdateSavingGoal]", cmd =>
             {
-                using (SqlCommand command = new SqlCommand("[pln].[sp_UpdateSavingsGoal]", connection))
-                {
-                    command.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@GoalId", updatedGoal.GoalID);
+                cmd.Parameters.AddWithValue("@UserId", updatedGoal.UserID);
+                cmd.Parameters.AddWithValue("@Title", updatedGoal.Title);
+                cmd.Parameters.AddWithValue("@TargetAmount", updatedGoal.TargetAmount);
+                cmd.Parameters.AddWithValue("@CurrentAmount", updatedGoal.CurrentAmount);
+                cmd.Parameters.AddWithValue("@DeadlineDate", updatedGoal.DeadlineDate);
+            });
 
-                    command.Parameters.AddWithValue("@GoalID", updatedGoal.GoalID);
-                    command.Parameters.AddWithValue("@UserID", updatedGoal.UserID);
-                    command.Parameters.AddWithValue("@Title", updatedGoal.Title);
-                    command.Parameters.AddWithValue("@TargetAmount", updatedGoal.TargetAmount);
-                    command.Parameters.AddWithValue("@CurrentAmount", updatedGoal.CurrentAmount);
-                    command.Parameters.AddWithValue("@DeadlineDate", updatedGoal.DeadlineDate);
-
-                    try
-                    {
-                        await connection.OpenAsync();
-                        rowsAffected = await command.ExecuteNonQueryAsync();
-                    }
-                    catch (Exception)
-                    {
-                        return false;
-                    }
-                }
-            }
-            return (rowsAffected > 0);
+            return rowsAffected > 0;
         }
 
         public async Task<bool> DeleteGoalAsync(int goalId)
         {
-            int rowsAffected = 0;
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            var rowsAffected = await ExecuteNonQueryAsync("[Planning].[sp_DeleteSavingGoal]", cmd =>
             {
-                using (SqlCommand command = new SqlCommand("[pln].[sp_DeleteSavingsGoal]", connection))
-                {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@GoalID", goalId);
+                cmd.Parameters.AddWithValue("@GoalId", goalId);
+            });
 
-                    try
-                    {
-                        await connection.OpenAsync();
-                        rowsAffected = await command.ExecuteNonQueryAsync();
-                    }
-                    catch (Exception)
-                    {
-                        return false;
-                    }
-                }
-            }
-            return (rowsAffected > 0);
+            return rowsAffected > 0;
         }
 
         public async Task<SavingGoal?> GetGoalByIdAsync(int goalId)
         {
-            SavingGoal? goal = null;
-
-            using (SqlConnection connection = new SqlConnection(_connectionString))
-            {
-                using (SqlCommand command = new SqlCommand("[pln].[sp_GetSavingsGoalByID]", connection))
-                {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@GoalID", goalId);
-
-                    try
-                    {
-                        await connection.OpenAsync();
-                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                        {
-                            if (await reader.ReadAsync())
-                            {
-                                goal = new SavingGoal(
-                                    (int)reader["GoalID"],
-                                    (int)reader["UserID"],
-                                    (string)reader["Title"],
-                                    (decimal)reader["TargetAmount"],
-                                    (decimal)reader["CurrentAmount"],
-                                    (DateTime)reader["DeadlineDate"]
-                                );
-                            }
-                        }
-                    }
-                    catch (Exception) { }
-                }
-            }
-            return goal;
+            return await ExecuteReaderSingleAsync("[Planning].[sp_GetSavingGoalById]",
+                cmd => cmd.Parameters.AddWithValue("@GoalId", goalId), MapToSavingGoal);
         }
 
-        public async Task<IEnumerable<SavingGoal>> GetAllUserGoalsAsync(int userId)
+        public async Task<(IEnumerable<SavingGoal> goals, int totalCount)> GetAllUserGoalsAsync(int userId, int pageNumber, int pageSize)
         {
-            List<SavingGoal> goals = new List<SavingGoal>();
+            var goals = new List<SavingGoal>();
+            int totalCount = 0;
 
-            using (SqlConnection connection = new SqlConnection(_connectionString))
-            {
-                using (SqlCommand command = new SqlCommand("[pln].[sp_GetAllUserGoals]", connection))
+            // Sequential processing for multiple result sets via Grid Reader delegate pattern
+            await ExecuteReaderAsync("[Planning].[sp_GetAllUserGoalsPaged]",
+                cmd =>
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@UserID", userId);
-
-                    try
+                    cmd.Parameters.AddWithValue("@UserId", userId);
+                    cmd.Parameters.AddWithValue("@PageNumber", pageNumber);
+                    cmd.Parameters.AddWithValue("@PageSize", pageSize);
+                },
+                async reader =>
+                {
+                    // Result Set 1: Total Row Count
+                    if (await reader.ReadAsync())
                     {
-                        await connection.OpenAsync();
-                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        totalCount = EmptyValuesHandler.GetInt32OrDefault(reader, "TotalCount");
+                    }
+
+                    // Result Set 2: Paged Goals List
+                    if (await reader.NextResultAsync())
+                    {
+                        while (await reader.ReadAsync())
                         {
-                            while (await reader.ReadAsync())
-                            {
-                                SavingGoal goal = new SavingGoal(
-                                    (int)reader["GoalID"],
-                                    (int)reader["UserID"],
-                                    (string)reader["Title"],
-                                    (decimal)reader["TargetAmount"],
-                                    (decimal)reader["CurrentAmount"],
-                                    (DateTime)reader["DeadlineDate"]
-                                );
-                                goals.Add(goal);
-                            }
+                            goals.Add(MapToSavingGoal(reader));
                         }
                     }
-                    catch (Exception) { }
-                }
-            }
+                    return default(object); // Dummy return to satisfy core functional signatures
+                });
 
-            return goals;
+            return (goals, totalCount);
         }
 
         public async Task<IEnumerable<SavingGoal>> GetAchievedGoalsAsync(int userId)
         {
-            List<SavingGoal> goals = new List<SavingGoal>();
-
-            using (SqlConnection connection = new SqlConnection(_connectionString))
-            {
-                using (SqlCommand command = new SqlCommand("[pln].[sp_GetAchievedGoals]", connection))
-                {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@UserID", userId);
-
-                    try
-                    {
-                        await connection.OpenAsync();
-                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                        {
-                            while (await reader.ReadAsync())
-                            {
-                                SavingGoal goal = new SavingGoal(
-                                    (int)reader["GoalID"],
-                                    (int)reader["UserID"],
-                                    (string)reader["Title"],
-                                    (decimal)reader["TargetAmount"],
-                                    (decimal)reader["CurrentAmount"],
-                                    (DateTime)reader["DeadlineDate"]
-                                );
-                                goals.Add(goal);
-                            }
-                        }
-                    }
-                    catch (Exception) { }
-                }
-            }
-
-            return goals;
+            return await ExecuteReaderAsync("[Planning].[sp_GetAchievedGoals]",
+                cmd => cmd.Parameters.AddWithValue("@UserId", userId), MapToSavingGoal);
         }
 
         public async Task<bool> GoalExistsAsync(int goalId)
         {
-            bool exists = false;
+            var result = await ExecuteScalarAsync<int>("[Planning].[sp_CheckSavingGoalExists]",
+                cmd => cmd.Parameters.AddWithValue("@GoalId", goalId));
 
-            using (SqlConnection connection = new SqlConnection(_connectionString))
-            {
-                using (SqlCommand command = new SqlCommand("[pln].[sp_IsGoalExist]", connection))
-                {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@GoalID", goalId);
-
-                    try
-                    {
-                        await connection.OpenAsync();
-                        object result = await command.ExecuteScalarAsync();
-                        if (result != null && int.TryParse(result.ToString(), out int count))
-                        {
-                            exists = (count > 0);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        return false;
-                    }
-                }
-            }
-            return exists;
+            return result == 1;
+        }
+        // =========================================================================
+        // REUSABLE HELPER METHODS & MAPPERS
+        // =========================================================================
+        private static SavingGoal MapToSavingGoal(SqlDataReader reader)
+        {
+            return new SavingGoal(
+                EmptyValuesHandler.GetInt32OrDefault(reader, "GoalID"),
+                EmptyValuesHandler.GetInt32OrDefault(reader, "UserID"),
+                EmptyValuesHandler.GetStringOrDefault(reader, "Title"),
+                EmptyValuesHandler.GetDecimalOrDefault(reader, "TargetAmount"),
+                EmptyValuesHandler.GetDecimalOrDefault(reader, "CurrentAmount"),
+                EmptyValuesHandler.GetDateTimeOrDefault(reader, "DeadlineDate"),
+                EmptyValuesHandler.GetInt32OrDefault(reader, "CurrencyID"),
+                EmptyValuesHandler.GetBooleanOrDefault(reader, "IsAchieved")
+            );
         }
     }
 }

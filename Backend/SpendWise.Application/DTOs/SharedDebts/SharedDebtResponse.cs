@@ -14,8 +14,10 @@ namespace SpendWise.Application.DTOs.SharedDebts
         public string Status { get; set; } = string.Empty; // Added
         public DateTime CreatedAt { get; set; }            // Added
         public DateTime DueDate { get; set; }
+        public int CreditorWalletID { get; set; } // Added
+        public int DebtorWalletID { get; set; } // Added
+        public decimal PaidAmount { get; set; } // Added
 
-      
         public SharedDebtResponse(SpendWise.Domain.Entities.SharedDebt debt)
         {
             this.DebtID = debt.DebtID;
@@ -26,6 +28,9 @@ namespace SpendWise.Application.DTOs.SharedDebts
             this.Status = debt.Status;
             this.CreatedAt = debt.CreatedAt;
             this.DueDate = debt.DueDate;
+            this.CreditorWalletID = debt.CreditorWalletID;
+            this.DebtorWalletID = debt.DebtorWalletID;
+            this.PaidAmount = debt.PaidAmount;
         }
      
     }

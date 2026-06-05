@@ -1,121 +1,146 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SpendWise.Application.DTOs.Paged;
 using SpendWise.Application.DTOs.SavingGoals;
-using SpendWise.Application.DTOs.SavingsGoals;
 using SpendWise.Application.Interfaces.SavingGoals;
-using SpendWise.Domain.Entities;
-using System.Security.Claims;
+using SpendWise.Domain.Common;
+using System.Threading.Tasks;
 
 namespace SpendWise.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/Saving_Goal")]
-    public class SavingGoalController : ControllerBase
+    [Route("api/saving-goals")]
+    public class SavingGoalController : BaseApiController
     {
         private readonly ISavingGoalService _savingGoalService;
+
         public SavingGoalController(ISavingGoalService savingGoalService)
         {
             _savingGoalService = savingGoalService;
         }
 
-        private int CurrentUserId
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetGoalByID([FromRoute] int id)
         {
-            get
+            
+            var result = await _savingGoalService.GetGoalByIdAsync(id);
+
+            if (!result.IsSuccess)
             {
-                // 1. Get the string value from the claim
-                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                // 2. Safely attempt to parse it into an integer
-                if (int.TryParse(userIdString, out int userId))
-                {
-                    return userId;
-                }
-
-                // 3. Fallback/Safety Net: If the claim is missing or somehow isn't a valid number
-                throw new UnauthorizedAccessException("User ID claim is missing or invalid.");
+                return HandleResultOnError(result);
             }
+
+            return Ok(result.Value);
         }
-        [HttpGet("GetGoalByID/{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetGoalByID([FromRoute]int id) {
 
-            if (id <= 0)
-                return BadRequest("Please enter correct ID");
-            //int userId = CurrentUserId; 
-           var goal =await _savingGoalService.GetGoalByIdAsync(id);
+        [HttpGet]
+        public async Task<IActionResult> GetAllUserGoalsAsync([FromQuery] PageDTO pageDTO)
+        {
+            var result = await _savingGoalService.GetAllUserGoalsAsync(CurrentUserId, pageDTO);
 
-            if (goal == null)
+            if (!result.IsSuccess)
             {
-                return NotFound();
+                return HandleResultOnError(result);
             }
-            return Ok(goal);
+
+            return Ok(result.Value);
         }
-        [HttpGet("GetAllUserGoals")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetAllUserGoalsAsync()
+
+        [HttpPost]
+        public async Task<IActionResult> AddGoal([FromBody] SavingGoalDTO goalDto)
         {
-            int userId = CurrentUserId;
-            var ListGoalsUser = await _savingGoalService.GetAllUserGoalsAsync(userId);
-            if(ListGoalsUser == null)
-            {  return NotFound(); }
-            return Ok(ListGoalsUser);
+            var result = await _savingGoalService.AddGoalAsync(CurrentUserId, goalDto);
 
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            var goalId = result.Value;
+            var createdGoalResult = await _savingGoalService.GetGoalByIdAsync(goalId);
+
+            if (!createdGoalResult.IsSuccess)
+            {
+                return HandleResultOnError(createdGoalResult);
+            }
+
+            return CreatedAtAction(nameof(GetGoalByID), new { id = goalId }, createdGoalResult.Value);
         }
 
-        [HttpPost("AddGoal/{goalDTo}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-      //  [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> AddGoal( [FromBody]SavingGoalDTO goalDto)
+        [HttpPatch("{goalId}")]
+        public async Task<IActionResult> UpdateGoal([FromRoute] int goalId, [FromBody] SavingGoalDTO updatedGoal)
         {
-            int userID = CurrentUserId;
-             var goalId =await _savingGoalService.AddGoalAsync(userID, goalDto);
-            if (goalId== -1) { return NotFound(); }
-            return Ok(goalId);
+            // نمرر الـ CurrentUserId كبارامتر ثالث للخدمة
+            var result = await _savingGoalService.UpdateGoalAsync(goalId, updatedGoal, CurrentUserId);
 
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
 
+            // لتوفير كويري إضافي، يمكنك تمرير الـ CurrentUserId هنا أيضاً لحماية الجلب
+            var updatedGoalDataResult = await _savingGoalService.GetGoalByIdAsync(goalId);
 
+            if (!updatedGoalDataResult.IsSuccess)
+            {
+                return HandleResultOnError(updatedGoalDataResult);
+            }
+
+            return Ok(updatedGoalDataResult.Value);
         }
-        [HttpPatch("UpdateGoal/{goalID,ubdatedGoal}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateGoal([FromRoute]int goalID,[FromBody]SavingGoalDTO ubdatedGoal)
+
+        [HttpDelete("{goalId}")]
+        public async Task<IActionResult> DeleteGoal([FromRoute] int goalId)
         {
-            if (goalID<=0) { return BadRequest(); }
-            var IsDone = await _savingGoalService.UpdateGoalAsync(goalID,ubdatedGoal);
-            if(!IsDone)return NotFound();
-            return Ok(IsDone);
+            var result = await _savingGoalService.DeleteGoalAsync(goalId);
 
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+             
+            return NoContent();
         }
-        [HttpDelete("DeleteGoal/{goalId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> DeleteGoal([FromRoute]int goalId)
+
+        [HttpGet("achieved")]
+        public async Task<IActionResult> GetAchievedGoals()
         {
-            if (goalId <= 0) { return BadRequest(); }
+            var result = await _savingGoalService.GetAchievedGoalsAsync(CurrentUserId);
 
-            var IsDone = await _savingGoalService.DeleteGoalAsync(goalId);
-            if (!IsDone) return NotFound();
-            return Ok(IsDone);
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(result.Value);
         }
-        [HttpGet("GetAchievedGoals")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-       // [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-       public async Task<IActionResult> GetAchievedGoals()
+
+        [HttpPost("{savingGoalId:int}/wallets/{walletId:int}/add/{amount:double}")]
+        public async Task<IActionResult> AddAmountToSavingGoal([FromRoute] int savingGoalId, [FromRoute] int walletId, [FromRoute] double amount)
         {
-            int userID = CurrentUserId;
-              var Goals =await _savingGoalService.GetAchievedGoalsAsync(userID);
-            if (Goals == null) return NotFound();
-            return Ok(Goals);
+            var result = await _savingGoalService.AddAmountToSavingGoal(savingGoalId, walletId, CurrentUserId, amount);
+
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(new { Message = "Amount successfully added to the saving goal.", Status = result.Value });
         }
 
+        [HttpPost("{savingGoalId:int}/wallets/{walletId:int}/withdraw/{amount:double}")]
+        public async Task<IActionResult> WithdrawAmountFromSavingGoal([FromRoute] int savingGoalId, [FromRoute] int walletId, [FromRoute] double amount)
+        {
+            var result = await _savingGoalService.WithdrawAmountFromSavingGoal(savingGoalId, walletId, CurrentUserId, amount);
+
+            if (!result.IsSuccess)
+            {
+                return HandleResultOnError(result);
+            }
+
+            return Ok(new { Message = "Amount successfully withdrawn and returned to the wallet.", Status = result.Value });
+        }
     }
 }

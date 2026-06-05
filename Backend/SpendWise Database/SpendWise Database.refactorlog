@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Operations Version="1.0" xmlns="http://schemas.microsoft.com/sqlserver/dac/Serialization/2012/02">
+  <Operation Name="Rename Refactor" Key="0871c53c-4518-4d8b-8d60-7d06e6b08dee" ChangeDateTime="06/03/2026 10:52:27">
+    <Property Name="ElementName" Value="[Identity].[Users].[Fcm]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[Identity].[Users]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="FcmToken" />
+  </Operation>
+</Operations>

@@ -7,7 +7,7 @@ request:
       value: Bearer <token>
       description: "Added as a part of security scheme: bearer"
   pathVariables:
-    walletId: "9299"
+    walletId: "348"
 response:
   statusCode: 200
   statusText: OK

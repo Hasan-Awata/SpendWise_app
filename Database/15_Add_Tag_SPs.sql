@@ -14,8 +14,7 @@ BEGIN
     -- Check for duplicate tag names for this specific user
     IF EXISTS (SELECT 1 FROM [Config].Tags WHERE UserID = @UserID AND Name = @Name)
     BEGIN
-        -- We will let this throw 50001 so the global handler catches it
-        THROW 50001, 'A tag with this name already exists for your account.', 1;
+        THROW 50004, 'A tag with this name already exists for your account.', 1;
     END
 
     INSERT INTO [Config].Tags (UserID, Name)
